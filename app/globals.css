@@ -1,26 +1,206 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   Fresh Phones PH - Y2K / Modern blue design tokens
+   ============================================================ */
+@theme {
+  /* Brand blues */
+  --color-sky: #eaf4ff;
+  --color-sky-2: #d6e9ff;
+  --color-blue: #2f6bff;
+  --color-blue-600: #1f53e6;
+  --color-blue-ink: #14266b;
+  --color-periwinkle: #8aa2f2;
+  --color-cyan: #57e0ff;
+
+  /* Y2K accents */
+  --color-bubblegum: #ff8fcb;
+  --color-hotpink: #ff5fa8;
+  --color-lilac: #c9a7ff;
+  --color-chrome: #c8d3e6;
+
+  /* Neutrals */
+  --color-ink: #101a3d;
+  --color-ink-soft: #46538a;
+  --color-paper: #ffffff;
+
+  /* Type */
+  --font-display: var(--font-fredoka);
+  --font-body: var(--font-nunito);
+
+  /* Radius */
+  --radius-blob: 2.5rem;
+
+  /* Animations */
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: float 9s ease-in-out infinite;
+  --animate-bob: bob 4s ease-in-out infinite;
+  --animate-spin-slow: spin 14s linear infinite;
+  --animate-twinkle: twinkle 2.4s ease-in-out infinite;
+  --animate-gradient: gradient-pan 12s ease infinite;
+  --animate-marquee: marquee 28s linear infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Numeric font-weight utilities (Tailwind v4 ships named weights only) */
+@utility font-500 { font-weight: 500; }
+@utility font-600 { font-weight: 600; }
+@utility font-700 { font-weight: 700; }
+@utility font-800 { font-weight: 800; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(-3deg); }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes twinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(0.7) rotate(20deg); opacity: 0.55; }
+}
+@keyframes gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ============================================================
+   Base
+   ============================================================ */
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  color: var(--color-ink);
+  background:
+    radial-gradient(1200px 700px at 12% -8%, #ffe7f4 0%, transparent 55%),
+    radial-gradient(1100px 700px at 88% -4%, #e2ecff 0%, transparent 55%),
+    radial-gradient(1000px 800px at 50% 110%, #efe4ff 0%, transparent 55%),
+    linear-gradient(180deg, #f3f8ff 0%, #fbf7ff 60%, #fef3fb 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--color-bubblegum); color: #fff; }
+
+/* ============================================================
+   Reusable Y2K utilities
+   ============================================================ */
+
+/* Frosted glass surface */
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 18px 50px -18px rgba(47, 107, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.glass-tint {
+  background: rgba(234, 244, 255, 0.5);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 18px 50px -20px rgba(47, 107, 255, 0.4);
+}
+
+/* Holographic / iridescent gradient text */
+.holo-text {
+  background: linear-gradient(100deg, #2f6bff, #57e0ff, #c9a7ff, #ff8fcb, #2f6bff);
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--animate-gradient);
+}
+
+/* Glossy chrome bubble surface (for stars/blobs fallback) */
+.chrome {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #dfe9fb 45%, #aebfe6 100%);
+  box-shadow:
+    inset 0 2px 6px rgba(255, 255, 255, 0.95),
+    inset 0 -8px 14px rgba(91, 120, 196, 0.5),
+    0 12px 28px -10px rgba(47, 107, 255, 0.5);
+}
+
+/* Glossy candy button */
+.btn-candy {
+  position: relative;
+  background: linear-gradient(180deg, #4f86ff 0%, #2f6bff 50%, #1f53e6 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -4px 10px rgba(11, 38, 120, 0.5),
+    0 14px 30px -10px rgba(47, 107, 255, 0.7);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-candy:hover {
+  transform: translateY(-2px);
+  filter: saturate(1.15) brightness(1.04);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -4px 10px rgba(11, 38, 120, 0.5),
+    0 20px 38px -10px rgba(47, 107, 255, 0.8);
+}
+.btn-candy:active { transform: translateY(0) scale(0.98); }
+
+.btn-bubblegum {
+  background: linear-gradient(180deg, #ff9fd3 0%, #ff5fa8 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -4px 10px rgba(190, 36, 110, 0.45),
+    0 14px 30px -10px rgba(255, 95, 168, 0.7);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.btn-bubblegum:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.btn-bubblegum:active { transform: translateY(0) scale(0.98); }
+
+/* Dashed sticker outline */
+.sticker {
+  border: 2px dashed rgba(47, 107, 255, 0.4);
+}
+
+/* Soft pill tag */
+.pill {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(47, 107, 255, 0.18);
+  box-shadow: 0 6px 16px -8px rgba(47, 107, 255, 0.4);
+}
+
+/* Scroll reveal helper (paired with IntersectionObserver in client) */
+.reveal { opacity: 0; }
+.reveal.in { animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+/* Marquee track */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: var(--animate-marquee);
+}
+
+/* Grid dot texture */
+.dotgrid {
+  background-image: radial-gradient(rgba(47, 107, 255, 0.16) 1.4px, transparent 1.4px);
+  background-size: 22px 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal { opacity: 1; }
 }
