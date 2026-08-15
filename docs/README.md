@@ -40,6 +40,8 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [07-compliance-security.md](07-compliance-security.md) | Privacy (DPA/NPC), BIR boundary, security controls | §14, §16, §B |
 | [08-commercials-boundaries.md](08-commercials-boundaries.md) | Fee, subscriptions, out-of-scope, handover | §19, §20, §21 |
 | [09-tech-stack.md](09-tech-stack.md) | **Decided stack** — Django REST backend + Next.js frontend (from ARKO) | §15 |
+| [10-team-roles.md](10-team-roles.md) | Developer team split & module ownership (internal) | — |
+| [11-payments-reporting-design.md](11-payments-reporting-design.md) | Design spec for M4 (Payments/Finance) + M7 (Reporting) | §7, §9 |
 
 ## Legend (from the scope)
 

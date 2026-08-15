@@ -5,6 +5,9 @@ Clarifies exactly what the **developer** builds vs. what **Fresh Phones PH** mus
 protects both sides — the developer implements technical controls but does **not** become the
 client's legal/privacy officer (§14).
 
+> For the **per-developer** split across our 4-person team (who owns which module), see
+> [10-team-roles.md](10-team-roles.md). This doc covers the developer-vs-client boundary.
+
 ## Developer responsibilities (build & deliver)
 
 **Technical implementation of the agreed scope:**
