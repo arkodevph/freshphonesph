@@ -43,6 +43,8 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [10-team-roles.md](10-team-roles.md) | Developer team split & module ownership (internal) | — |
 | [11-payments-reporting-design.md](11-payments-reporting-design.md) | Design spec for M4 (Payments/Finance) + M7 (Reporting) | §7, §9 |
 | [12-records-schema-design.md](12-records-schema-design.md) | Design spec for M3 records (Batch/Client/ScheduleItem) — the balance interface | §6 |
+| [13-auth-roles-schema-design.md](13-auth-roles-schema-design.md) | Design spec for M2 auth/roles (Employee, CustomerAccount, permission map) | §3, §16 |
+| [14-sprint-plan-payments-reporting.md](14-sprint-plan-payments-reporting.md) | Sprint plan & stories for Justine Cane's role (M4 + M7) | §7, §9 |
 
 ## Legend (from the scope)
 
