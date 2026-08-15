@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from clients_app.models import Client
 
-from . import selectors, services
+from . import documents, selectors, services
 from .models import Payment
 from .permissions import RequirePaymentRecord, RequirePaymentVerify
 from .serializers import (
@@ -78,6 +78,15 @@ class PaymentViewSet(
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         return Response(PaymentReadSerializer(payment).data)
 
+    @action(detail=True, methods=["get"])
+    def confirmation(self, request, pk=None):
+        """Payment Confirmation document (verified payments only)."""
+        payment = self.get_object()
+        try:
+            return Response(documents.build_payment_confirmation(payment))
+        except documents.DocumentError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ClientBalanceView(APIView):
     permission_classes = [IsAuthenticated]
@@ -92,3 +101,11 @@ class ClientBalanceView(APIView):
                 "remaining_balance": str(selectors.remaining_balance(client)),
             }
         )
+
+
+class ClientStatementView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, client_id):
+        client = get_object_or_404(Client, pk=client_id)
+        return Response(documents.build_statement(client))
