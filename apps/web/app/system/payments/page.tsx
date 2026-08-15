@@ -7,12 +7,14 @@ import {
   XCircle,
   Wallet,
   Plus,
+  DownloadSimple,
 } from "@phosphor-icons/react";
 import {
   listPayments,
   createPayment,
   decidePayment,
   getBalance,
+  downloadPaymentsExport,
   type Payment,
   type PaymentStatus,
   type Balance,
@@ -261,20 +263,44 @@ export default function PaymentsPage() {
 
       {/* List */}
       <div className="glass rounded-3xl p-5">
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          {FILTERS.map((f) => (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-700 transition-colors ${
+                  filter === f.value
+                    ? "bg-blue text-white"
+                    : "bg-white/60 text-ink-soft hover:bg-white"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
             <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-700 transition-colors ${
-                filter === f.value
-                  ? "bg-blue text-white"
-                  : "bg-white/60 text-ink-soft hover:bg-white"
-              }`}
+              onClick={() =>
+                downloadPaymentsExport(filter ? { status: filter } : {}, "csv").catch(
+                  (e) => setError(e instanceof Error ? e.message : "Export failed."),
+                )
+              }
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/60 px-3.5 py-1.5 text-sm font-700 text-blue-ink hover:bg-white"
             >
-              {f.label}
+              <DownloadSimple weight="bold" className="h-4 w-4" /> CSV
             </button>
-          ))}
+            <button
+              onClick={() =>
+                downloadPaymentsExport(filter ? { status: filter } : {}, "xlsx").catch(
+                  (e) => setError(e instanceof Error ? e.message : "Export failed."),
+                )
+              }
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/60 px-3.5 py-1.5 text-sm font-700 text-blue-ink hover:bg-white"
+            >
+              <DownloadSimple weight="bold" className="h-4 w-4" /> Excel
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

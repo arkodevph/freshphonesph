@@ -1,8 +1,9 @@
 from django.urls import path
 
-from .views import CollectionsView, DashboardView
+from .views import CollectionsView, DashboardView, PaymentsExportView
 
 urlpatterns = [
     path("dashboard/", DashboardView.as_view(), name="report-dashboard"),
     path("collections/", CollectionsView.as_view(), name="report-collections"),
+    path("payments/export/", PaymentsExportView.as_view(), name="report-payments-export"),
 ]

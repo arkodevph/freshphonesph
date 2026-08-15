@@ -58,3 +58,32 @@ def collections(*, date_from=None, date_to=None, batch=None) -> dict:
         "collected_in_period": str(collected_in_period),
         "verified_count_in_period": in_period.count(),
     }
+
+
+# Columns exposed in exports — non-sensitive fields only (§9 role-scoped).
+PAYMENT_REPORT_COLUMNS = [
+    ("id", "ID"),
+    ("client_id", "Client"),
+    ("batch_id", "Batch"),
+    ("amount", "Amount"),
+    ("method", "Method"),
+    ("reference_no", "Reference"),
+    ("status", "Status"),
+    ("payment_date", "Payment date"),
+    ("verified_at", "Verified at"),
+]
+
+
+def payments_report(*, status=None, date_from=None, date_to=None, batch=None):
+    """Flat rows for the payments report/export. Uses .values() (no ORM objects)."""
+    qs = Payment.objects.all()
+    if status:
+        qs = qs.filter(status=status)
+    if batch:
+        qs = qs.filter(batch_id=batch)
+    if date_from:
+        qs = qs.filter(payment_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(payment_date__lte=date_to)
+    fields = [key for key, _label in PAYMENT_REPORT_COLUMNS]
+    return list(qs.order_by("-payment_date", "-id").values(*fields))

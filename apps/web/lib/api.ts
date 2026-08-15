@@ -122,3 +122,23 @@ export type DashboardCards = {
 export function getDashboard() {
   return apiFetch("/api/reports/dashboard/") as Promise<DashboardCards>;
 }
+
+/** Download the payments report as a file (CSV or XLSX). */
+export async function downloadPaymentsExport(
+  params: Record<string, string> = {},
+  fmt: "csv" | "xlsx" = "csv",
+) {
+  const token = getTokens()?.access;
+  const qs = new URLSearchParams({ ...params, fmt }).toString();
+  const res = await fetch(`${API_URL}/api/reports/payments/export/?${qs}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`Export failed (${res.status}).`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `payments.${fmt}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
