@@ -142,6 +142,19 @@ export function getDashboard() {
   return apiFetch("/api/reports/dashboard/") as Promise<DashboardCards>;
 }
 
+// ── Current user (role-aware UI) ───────────────────────────────────────────
+export type Me = {
+  id: number;
+  email: string;
+  full_name: string;
+  role: string | null;
+  permissions: string[];
+};
+
+export function fetchMe() {
+  return apiFetch("/api/auth/me/") as Promise<Me>;
+}
+
 /** Download the payments report as a file (CSV or XLSX). */
 export async function downloadPaymentsExport(
   params: Record<string, string> = {},

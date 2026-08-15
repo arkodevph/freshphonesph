@@ -5,7 +5,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from auth_app.views import FlexibleTokenObtainPairView
+from auth_app.views import FlexibleTokenObtainPairView, MeView
 
 
 def health(_request):
@@ -18,6 +18,7 @@ urlpatterns = [
     # Auth (JWT) — M2 will extend with password reset etc.
     path("api/auth/token/", FlexibleTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/auth/me/", MeView.as_view(), name="me"),
     # API schema / docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),

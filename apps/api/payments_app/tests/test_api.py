@@ -62,6 +62,11 @@ class PaymentAPITests(APITestCase):
         self.assertEqual(r.status_code, status.HTTP_200_OK)
         self.assertEqual(r.data["count"], 1)
 
+    def test_list_forbidden_for_role_without_payment_rights(self):
+        self.client.force_authenticate(user=self.cs.user)  # CS_TEAM has no payment perm
+        r = self.client.get("/api/payments/")
+        self.assertEqual(r.status_code, status.HTTP_403_FORBIDDEN)
+
     # --- verify (S2 preview) + balance ------------------------------------
     def test_finance_can_verify_and_balance_moves(self):
         pid = self._record(self.finance).data["id"]

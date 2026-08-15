@@ -22,6 +22,7 @@ import {
   type PaymentStatus,
   type Balance,
 } from "@/lib/api";
+import { useMe, can } from "@/lib/useMe";
 
 const FILTERS: { label: string; value: string }[] = [
   { label: "All", value: "" },
@@ -40,6 +41,9 @@ const STATUS_STYLES: Record<PaymentStatus, string> = {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export default function PaymentsPage() {
+  const me = useMe();
+  const canRecord = can(me, "PAYMENT_RECORD");
+  const canVerify = can(me, "PAYMENT_VERIFY");
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
@@ -144,6 +148,17 @@ export default function PaymentsPage() {
     }
   }
 
+  if (me && !canRecord && !canVerify) {
+    return (
+      <section className="glass rounded-3xl p-10 text-center">
+        <h1 className="font-display text-xl font-700 text-blue-ink">No access</h1>
+        <p className="mt-2 text-sm text-ink-soft">
+          Your role doesn&apos;t have access to Payments &amp; Finance.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <>
       <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
@@ -172,6 +187,7 @@ export default function PaymentsPage() {
 
       <div className="mb-4 grid gap-4 lg:grid-cols-3">
         {/* Record form */}
+        {canRecord && (
         <form
           onSubmit={onRecord}
           className="glass rounded-3xl p-5 lg:col-span-2"
@@ -261,6 +277,7 @@ export default function PaymentsPage() {
             {saving ? "Recording…" : "Record payment"}
           </button>
         </form>
+        )}
 
         {/* Balance lookup */}
         <div className="glass rounded-3xl p-5">
@@ -387,7 +404,7 @@ export default function PaymentsPage() {
                             <Paperclip weight="bold" className="h-3.5 w-3.5" /> Proof
                           </button>
                         )}
-                        {p.status === "pending" ? (
+                        {p.status === "pending" && canVerify ? (
                           <>
                             <button
                               onClick={() => decide(p.id, "verified")}

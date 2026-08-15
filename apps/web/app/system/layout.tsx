@@ -17,22 +17,24 @@ import {
   Sparkle,
 } from "@phosphor-icons/react";
 import { isAuthed, clearTokens } from "@/lib/auth";
+import { useMe, can } from "@/lib/useMe";
 
 const NAV = [
-  { icon: SquaresFour, label: "Dashboard", tag: "M7", href: "/system" },
-  { icon: Stack, label: "Paluwagan Records", tag: "M3", href: null },
-  { icon: Receipt, label: "Payments & Finance", tag: "M4", href: "/system/payments" },
-  { icon: Users, label: "Clients", tag: "M3", href: null },
-  { icon: ChartBar, label: "Reports", tag: "M7", href: null },
-  { icon: Headset, label: "Customer Service", tag: "M8", href: null },
-  { icon: Briefcase, label: "Recruitment", tag: "M9", href: null },
-  { icon: Bell, label: "Notifications", tag: "M10", href: null },
-  { icon: Sparkle, label: "AI Assistant", tag: "M11", href: null },
+  { icon: SquaresFour, label: "Dashboard", tag: "M7", href: "/system", perms: [] as string[] },
+  { icon: Stack, label: "Paluwagan Records", tag: "M3", href: null, perms: [] },
+  { icon: Receipt, label: "Payments & Finance", tag: "M4", href: "/system/payments", perms: ["PAYMENT_RECORD", "PAYMENT_VERIFY"] },
+  { icon: Users, label: "Clients", tag: "M3", href: null, perms: [] },
+  { icon: ChartBar, label: "Reports", tag: "M7", href: null, perms: [] },
+  { icon: Headset, label: "Customer Service", tag: "M8", href: null, perms: [] },
+  { icon: Briefcase, label: "Recruitment", tag: "M9", href: null, perms: [] },
+  { icon: Bell, label: "Notifications", tag: "M10", href: null, perms: [] },
+  { icon: Sparkle, label: "AI Assistant", tag: "M11", href: null, perms: [] },
 ] as const;
 
 export default function SystemLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const me = useMe();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -73,7 +75,8 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
           </div>
 
           <nav className="flex flex-col gap-0.5">
-            {NAV.map(({ icon: Icon, label, tag, href }) => {
+            {NAV.filter((item) => item.perms.length === 0 || can(me, ...item.perms)).map(
+              ({ icon: Icon, label, tag, href }) => {
               const active = href && pathname === href;
               const rowClass = `flex items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm font-600 transition-colors ${
                 active

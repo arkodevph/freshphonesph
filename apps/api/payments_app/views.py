@@ -32,11 +32,10 @@ class PaymentViewSet(
     ).all()
 
     def get_permissions(self):
-        if self.action in ("create", "proof"):
-            return [IsAuthenticated(), RequirePaymentRecord()]
         if self.action == "verify":
             return [IsAuthenticated(), RequirePaymentVerify()]
-        return [IsAuthenticated()]
+        # list/retrieve/create/proof/confirmation/proof_url — staff with payment rights
+        return [IsAuthenticated(), RequirePaymentRecord()]
 
     def get_serializer_class(self):
         return PaymentCreateSerializer if self.action == "create" else PaymentReadSerializer

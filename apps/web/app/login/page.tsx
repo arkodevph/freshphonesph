@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { SignIn, ArrowLeft } from "@phosphor-icons/react";
-import { login } from "@/lib/api";
-import { saveTokens } from "@/lib/auth";
+import { login, fetchMe } from "@/lib/api";
+import { saveTokens, saveMe } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,6 +22,11 @@ export default function LoginPage() {
     try {
       const tokens = await login(username, password);
       saveTokens(tokens);
+      try {
+        saveMe(await fetchMe());
+      } catch {
+        /* non-fatal: useMe() will retry */
+      }
       router.push("/system");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
