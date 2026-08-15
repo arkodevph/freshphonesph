@@ -46,6 +46,7 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [13-auth-roles-schema-design.md](13-auth-roles-schema-design.md) | Design spec for M2 auth/roles (Employee, CustomerAccount, permission map) | §3, §16 |
 | [14-sprint-plan-payments-reporting.md](14-sprint-plan-payments-reporting.md) | Sprint plan & stories for Justine Cane's role (M4 + M7) | §7, §9 |
 | [15-payments-reporting-architecture.md](15-payments-reporting-architecture.md) | **Engineering plan** for M4+M7 — code structure, flows, DB schema (Justine Cane) | §7, §9 |
+| [16-how-payments-work.md](16-how-payments-work.md) | **Explainer** (for team & client) — no payment button; claim → verify → balance | §7, §19 |
 | [DEV_ACCOUNTS.md](DEV_ACCOUNTS.md) | Local dev login accounts + how to seed them | — |
 
 ## Legend (from the scope)

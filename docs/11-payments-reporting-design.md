@@ -6,6 +6,10 @@ Technical design for **Justine Cane Bacurin's** modules. Owner-facing detail for
 
 > **Status: design draft, pre-sign-off.** Model sketches below are illustrative Django, not yet
 > scaffolded into `apps/api`. Field names finalize in Discovery ([03-data-model.md](03-data-model.md)).
+>
+> **New to this module?** Read [16-how-payments-work.md](16-how-payments-work.md) first — a
+> plain-language explainer (for teammates & the client) of why there's no payment button and how
+> the claim → verify → balance flow works.
 
 ---
 
