@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SquaresFour, Receipt, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import DashboardCards from "./DashboardCards";
 
 export default function DashboardPage() {
   return (
@@ -12,6 +13,10 @@ export default function DashboardPage() {
           <p className="text-xs text-ink-soft">Session active</p>
         </div>
       </header>
+
+      <div className="mb-4">
+        <DashboardCards />
+      </div>
 
       <section className="glass rounded-3xl p-6 sm:p-10">
         <div className="flex flex-col items-center text-center">

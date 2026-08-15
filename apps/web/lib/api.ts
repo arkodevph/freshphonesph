@@ -110,3 +110,15 @@ export function decidePayment(id: number, decision: PaymentStatus) {
 export function getBalance(clientId: number) {
   return apiFetch(`/api/clients/${clientId}/balance/`) as Promise<Balance>;
 }
+
+// ── Reporting (M7) ─────────────────────────────────────────────────────────
+export type DashboardCards = {
+  active_batches: number;
+  verified_payments: number;
+  pending_verification: number;
+  verified_total: string;
+};
+
+export function getDashboard() {
+  return apiFetch("/api/reports/dashboard/") as Promise<DashboardCards>;
+}
