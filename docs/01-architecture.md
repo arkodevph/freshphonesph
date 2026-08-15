@@ -48,30 +48,28 @@ Unverified entries stay pending and do not move balances. See the Payment module
 
 The scope deliberately splits Vercel (frontend) from Railway (backend) so that **permission
 checks, financial verification, and validation run on the server**, never "only by hiding
-buttons" (§16). Row-Level Security in Supabase is a second layer, not the only one.
+buttons" (§16). Authorization is enforced in the Django REST API (DRF permissions); Supabase
+Row-Level Security is optional defense-in-depth, not the primary gate.
 
 - **Frontend (Vercel):** rendering, session UX, calling the API. No trusted business rules.
 - **Backend (Railway):** authorization, payment verification, balance calculation, audit
   logging, file access brokering, notifications, report generation.
-- **Supabase:** system of record + RLS + auth + private storage. The API uses a privileged
-  server key; the browser never gets it.
+- **Supabase:** Postgres system of record + private file storage. Django owns the schema
+  (migrations) and connects with a privileged role; the browser never gets DB credentials.
 
-## Backend framework (dev recommendation — not fixed by scope)
+## Backend framework (DECIDED — see [09-tech-stack.md](09-tech-stack.md))
 
-The scope names Railway but not the framework. Recommendation: a **TypeScript backend**
-(Fastify or NestJS) so types are shared with the Next.js frontend via a workspace package.
-
-- **Fastify** — lighter, faster to stand up. Good default.
-- **NestJS** — heavier but its module/guard/interceptor model maps cleanly onto this system's
-  many roles, permissions, and audit needs. Choose if the team wants more structure.
-
-Decision to be confirmed at foundation kickoff; either keeps the same repo layout below.
+**Django + Django REST Framework + SimpleJWT** (Python 3.12), adopted from the internal ARKO
+system. Django brings its own ORM, migrations, and JWT auth, so no separate ORM (Prisma/Drizzle)
+or Supabase Auth is used. Deployed on Railway via gunicorn. The frontend is a Next.js app that
+calls this REST API over HTTPS. Full rationale and library list in
+[09-tech-stack.md](09-tech-stack.md).
 
 ## Repository shape
 
 This repo is the single source. It becomes a **monorepo** (see
 [02-foundation-setup.md](02-foundation-setup.md)) with the current landing page moved under
-the web app. Two deployables (Vercel web, Railway api) share typed packages.
+the web app. Two deployables: Vercel web (Next.js) and Railway api (Django).
 
 ## Environments
 

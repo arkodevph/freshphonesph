@@ -25,7 +25,7 @@ security are designed in from the start — not added after launch.
 
 | Control | What it means |
 |---|---|
-| Secure authentication | Managed auth, secure sessions, password reset (Supabase Auth) |
+| Secure authentication | JWT auth, secure sessions, password reset (DRF SimpleJWT) |
 | **Backend role checks** | Permissions checked on the **server/DB**, not only by hiding buttons |
 | Private file storage | Sensitive files private; access authenticated, authorized, temporary where possible |
 | HTTPS | Encrypt traffic between user and system |
@@ -47,7 +47,8 @@ security are designed in from the start — not added after launch.
 | Wage deductions | PH labor rules restrict wage deductions → software must not auto-compute/enforce salary deductions | Labor Code / PD 442 |
 
 ## How these map into the build
-- **Privacy-by-design:** private storage, RLS, least-privilege, data minimization (collect only
+- **Privacy-by-design:** private storage, DRF permissions (optional RLS), least-privilege,
+  data minimization (collect only
   needed fields — [03-data-model.md](03-data-model.md)).
 - **No automated consequential decisions:** late flag is a fact; deductions are human-entered;
   AI only suggests into a human queue ([05-modules.md](05-modules.md) M6, M11).

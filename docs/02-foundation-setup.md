@@ -19,20 +19,25 @@ freshphonesph/
 │  │  │  └─ (staff)/           # authenticated employee dashboard (role-gated)
 │  │  ├─ components/           # existing landing components + shared UI
 │  │  └─ lib/                  # api client, auth session, feature flags
-│  └─ api/                     # backend/API + business logic                              → Railway
-│     └─ src/
-│        └─ modules/           # one folder per functional module (§4–§13)
-│           ├─ auth/  batches/  clients/  payments/  documents/  tasks/  kpi/
-│           ├─ reports/  support/  recruitment/  agents/  notifications/  ai/  audit/
-├─ packages/
-│  ├─ db/                      # Supabase schema, migrations, generated types, RLS policies
-│  ├─ shared/                  # shared TypeScript types + zod validation (contract between web & api)
+│  └─ api/                     # Django REST backend + business logic                       → Railway
+│     ├─ config/               # Django settings (local+prod), urls, wsgi/asgi
+│     └─ <domain>_app/         # one Django app per module (§4–§13):
+│                              #   auth_app, clients_app, batches_app, payments_app,
+│                              #   documents_app, tasks_app, kpi_app, reports_app,
+│                              #   support_app, recruitment_app, agents_app,
+│                              #   notifications_app, ai_app, audit_app, storage_app
+├─ packages/                   # (JS-side shared packages, optional)
+│  ├─ ui/                      # shared React components (Radix/shadcn)
 │  └─ config/                  # eslint/tsconfig/tailwind presets
-├─ supabase/                   # local Supabase config + migrations
 ├─ docs/                       # this planning set
-├─ turbo.json                  # or pnpm workspaces build orchestration
+├─ docker-compose.yml          # local infra: Postgres + MinIO + MailHog (mirrors ARKO)
+├─ turbo.json                  # JS build orchestration
+├─ pnpm-workspace.yaml         # apps/*, packages/*
 └─ package.json                # workspace root
 ```
+
+> The Django schema lives in each app's `models.py`; migrations are the single source of truth
+> for tables (no Prisma/Drizzle). See [09-tech-stack.md](09-tech-stack.md) for the full stack.
 
 > Migrating the current app into `apps/web` is a mechanical move (files + import path
 > `@/…` stays working via tsconfig paths). The landing page keeps rendering throughout.
@@ -41,21 +46,22 @@ freshphonesph/
 
 Each step has a verification check (per CLAUDE.md goal-driven execution).
 
-1. **Workspace init** → verify: `web` and `api` both build from the repo root; landing page
-   still renders at `/`.
-2. **Supabase project + `packages/db`** → verify: migrations apply; generated types compile.
-3. **Auth (Supabase Auth)** → verify: sign-up/sign-in/password-reset flows work; sessions
-   persist; email via Resend.
-4. **Role model + RBAC guard** (see [04-roles-access.md](04-roles-access.md)) → verify:
-   server rejects an under-privileged role on a protected route (not just hidden in UI).
-5. **RLS policies** on core tables → verify: a customer can read only their own rows; a
-   handler sees only assigned records.
+1. **Workspace init** → verify: `web` (Next.js) builds and the landing page still renders at
+   `/`; `api` (Django) boots with `manage.py runserver`.
+2. **Django project + Supabase Postgres** → verify: `migrate` applies against Supabase Postgres
+   (Docker Postgres locally); admin loads.
+3. **Auth (DRF SimpleJWT)** → verify: token obtain/refresh works; password reset flow; JWT
+   accepted by a protected endpoint; email via Resend (MailHog locally).
+4. **Role model + DRF permissions** (see [04-roles-access.md](04-roles-access.md)) → verify:
+   the API rejects an under-privileged role on a protected endpoint (not just hidden in UI).
+5. **(Optional) RLS on sensitive tables** → verify: policy blocks direct cross-tenant reads.
+   Primary authz stays in DRF; RLS is defense-in-depth.
 6. **Employee & customer account provisioning** → verify: an owner/HR can create an employee
    account with a role; a customer account maps to a client record.
 7. **Batch & client records CRUD** (the core source of truth, §6) → verify: create batch,
    attach client, edit history logged to audit table.
-8. **Audit logging middleware** → verify: sensitive changes (role, payment verification,
-   record edits) write an audit entry with actor/action/before-after (§16).
+8. **Audit logging** (DRF middleware/signals) → verify: sensitive changes (role, payment
+   verification, record edits) write an audit entry with actor/action/before-after (§16).
 
 Completing 1–8 = **Core Foundation acceptance** milestone (§20).
 
@@ -64,17 +70,21 @@ Completing 1–8 = **Core Foundation acceptance** milestone (§20).
 Server-only (never shipped to the browser):
 
 ```
-# Supabase
-SUPABASE_URL=
-SUPABASE_ANON_KEY=            # web (public, RLS-guarded)
-SUPABASE_SERVICE_ROLE_KEY=    # api only — privileged, server env only
-# Resend
+# Django API (Railway)
+DATABASE_URL=                 # Supabase Postgres connection string
+SECRET_KEY=                   # Django secret
+ALLOWED_HOSTS=
+CORS_ALLOWED_ORIGINS=         # the Vercel web domain
+# JWT (SimpleJWT) uses SECRET_KEY by default
+# Supabase Storage (S3 API)
+SUPABASE_S3_ENDPOINT=
+SUPABASE_S3_ACCESS_KEY=
+SUPABASE_S3_SECRET_KEY=
+SUPABASE_S3_BUCKET=
+# Email
 RESEND_API_KEY=
-# API
-API_BASE_URL=
-JWT_/SESSION_SECRET=
-# App
-NEXT_PUBLIC_API_URL=          # web → api
+# Web (Next.js, Vercel)
+NEXT_PUBLIC_API_URL=          # web → Django API base URL
 ```
 
 ## Account ownership (§20)

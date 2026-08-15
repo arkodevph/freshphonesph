@@ -39,6 +39,7 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [06-dev-responsibilities.md](06-dev-responsibilities.md) | Developer role vs client obligations | §14, §21 |
 | [07-compliance-security.md](07-compliance-security.md) | Privacy (DPA/NPC), BIR boundary, security controls | §14, §16, §B |
 | [08-commercials-boundaries.md](08-commercials-boundaries.md) | Fee, subscriptions, out-of-scope, handover | §19, §20, §21 |
+| [09-tech-stack.md](09-tech-stack.md) | **Decided stack** — Django REST backend + Next.js frontend (from ARKO) | §15 |
 
 ## Legend (from the scope)
 

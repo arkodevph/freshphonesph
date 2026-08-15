@@ -10,13 +10,14 @@ client's legal/privacy officer (§14).
 **Technical implementation of the agreed scope:**
 - Public website + customer/employee portal frontend (Vercel).
 - Backend/API and server-side business logic (Railway).
-- Database, auth, and private file storage (Supabase) with schema, migrations, and RLS.
+- Database (Supabase Postgres, schema via **Django migrations**), JWT auth (**DRF SimpleJWT**),
+  and private file storage (Supabase Storage).
 - Transactional email wiring (Resend).
 - All modules M1–M11 per [05-modules.md](05-modules.md) to their acceptance criteria.
 
 **Security & privacy controls (technical) (§14, §16):**
 - Secure authentication, sessions, password reset.
-- **Server-side** role/permission checks (not UI-only) + RLS.
+- **Server-side** role/permission checks in DRF (not UI-only); optional RLS hardening.
 - Private file storage with authenticated, temporary access.
 - HTTPS, input/file validation, rate limiting.
 - Audit logs for sensitive changes.

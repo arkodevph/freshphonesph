@@ -2,7 +2,8 @@
 
 From scope §3 and §18.7. Every employee gets an **individual account**; what they can see or
 change depends on their **assigned role**. This protects confidential information and makes it
-traceable who changed a record. Access is enforced **server-side** (API + Supabase RLS), never
+traceable who changed a record. Access is enforced **server-side** (Django REST API
+permissions; optional Supabase RLS hardening), never
 only by hiding UI (§16).
 
 ## Internal roles (§3)
@@ -34,9 +35,10 @@ only by hiding UI (§16).
 - **Least privilege (§18.7):** grant only what a role's job needs. "Broad management roles do
   not automatically get all records" (§18.7 revision) — confidential payroll/KPI/customer
   documents are **separately authorized**.
-- **Two-layer enforcement:**
-  1. API middleware/guard checks the caller's role+permission before any handler runs.
-  2. Supabase **RLS** restricts rows even if the API layer is bypassed (defense in depth).
+- **Enforcement (server-side):**
+  1. **DRF permissions** check the caller's role+permission before any viewset/handler runs.
+  2. *Optional:* Supabase **RLS** on sensitive tables as defense-in-depth. Django is the
+     primary gate (it connects with a privileged role), so RLS is hardening, not the main lock.
 - **Confidential HR/payroll** is gated behind explicit approval even for COO (§3).
 - **Sensitive actions are audited** (role changes, payment verification, record edits) (§16).
 
