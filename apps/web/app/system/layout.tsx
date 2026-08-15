@@ -16,6 +16,7 @@ import {
   Bell,
   Sparkle,
   ShieldCheck,
+  ListChecks,
 } from "@phosphor-icons/react";
 import { isAuthed, clearTokens } from "@/lib/auth";
 import { useMe, can } from "@/lib/useMe";
@@ -25,6 +26,7 @@ const NAV = [
   { icon: Stack, label: "Paluwagan Records", tag: "M3", href: "/system/records", perms: ["BATCH_MANAGE"] },
   { icon: Receipt, label: "Payments & Finance", tag: "M4", href: "/system/payments", perms: ["PAYMENT_RECORD", "PAYMENT_VERIFY"] },
   { icon: Users, label: "Clients", tag: "M3", href: "/system/clients", perms: ["CLIENT_MANAGE"] },
+  { icon: ListChecks, label: "Tasks & KPI", tag: "M6", href: "/system/tasks", perms: [] },
   { icon: ChartBar, label: "Reports", tag: "M7", href: null, perms: [] },
   { icon: Headset, label: "Customer Service", tag: "M8", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
   { icon: Briefcase, label: "Recruitment", tag: "M9", href: null, perms: [] },

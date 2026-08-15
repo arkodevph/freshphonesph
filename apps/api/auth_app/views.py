@@ -43,11 +43,26 @@ class MeView(APIView):
                     else request.user.get_username()
                 ),
                 "role": employee.role if employee else None,
+                "employee_id": employee.id if employee else None,
                 "account_type": account_type,
                 "client_id": customer.client_id if customer else None,
                 "permissions": sorted(permissions_for(employee)),
             }
         )
+
+
+class StaffDirectoryView(APIView):
+    """Minimal active-staff list for assignee pickers (any employee)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        rows = (
+            Employee.objects.filter(status="active")
+            .order_by("full_name")
+            .values("id", "full_name", "role")
+        )
+        return Response(list(rows))
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):

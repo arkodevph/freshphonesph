@@ -29,4 +29,6 @@ urlpatterns = [
     path("api/", include("clients_app.urls")),
     path("api/", include("auth_app.urls")),
     path("api/", include("support_app.urls")),
+    path("api/", include("tasks_app.urls")),
+    path("api/", include("kpi_app.urls")),
 ]

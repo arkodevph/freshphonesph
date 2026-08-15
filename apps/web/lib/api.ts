@@ -225,6 +225,7 @@ export type Me = {
   email: string;
   full_name: string;
   role: string | null;
+  employee_id: number | null;
   account_type: "employee" | "customer" | null;
   client_id: number | null;
   permissions: string[];
@@ -318,6 +319,66 @@ export function createPortalSupport(body: { category: string; description: strin
     method: "POST",
     body: JSON.stringify(body),
   }) as Promise<SupportCase>;
+}
+
+// ── Employee Tasks & KPI (M6) ──────────────────────────────────────────────
+export type Task = {
+  id: number;
+  title: string;
+  instructions: string;
+  assignee: number;
+  assignee_name: string;
+  creator_name: string;
+  priority: string;
+  deadline: string;
+  status: string;
+  submission_timestamp: string | null;
+  late_flag: boolean | null;
+  created_at: string;
+};
+
+export type StaffMember = { id: number; full_name: string; role: string };
+
+export function listStaff() {
+  return apiFetch("/api/staff/") as Promise<StaffMember[]>;
+}
+
+export function listTasks(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch(`/api/tasks/${qs ? `?${qs}` : ""}`) as Promise<Paginated<Task>>;
+}
+
+export function createTask(body: {
+  title: string;
+  instructions?: string;
+  assignee: number;
+  priority: string;
+  deadline: string;
+}) {
+  return apiFetch("/api/tasks/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<Task>;
+}
+
+export function submitTask(id: number) {
+  return apiFetch(`/api/tasks/${id}/submit/`, { method: "POST" }) as Promise<Task>;
+}
+
+export function getKpiQueue() {
+  return apiFetch("/api/kpi/queue/") as Promise<Task[]>;
+}
+
+export function createKpiReview(body: {
+  task: number;
+  evaluation?: string;
+  recommendation?: string;
+  decision: string;
+}) {
+  return apiFetch("/api/kpi/reviews/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<unknown>;
 }
 
 // ── Users & roles admin (M2) ───────────────────────────────────────────────
