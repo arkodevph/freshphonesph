@@ -1,27 +1,20 @@
 {
   "name": "fresh-phones-ph",
-  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "deploy": "vercel deploy",
-    "deploy:prod": "vercel deploy --prod"
-  },
-  "dependencies": {
-    "@phosphor-icons/react": "^2.1.10",
-    "next": "16.2.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "web": "pnpm --filter @fresh/web",
+    "api": "bash apps/api/scripts/manage.sh",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "tailwindcss": "^4",
-    "typescript": "^5",
-    "vercel": "^54.18.0"
+    "turbo": "^2.3.0"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
   }
 }
