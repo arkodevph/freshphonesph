@@ -272,6 +272,54 @@ export function createPortalAccount(clientId: number, body: { email: string; pas
   }) as Promise<{ detail: string }>;
 }
 
+// ── Customer Service (M8) ──────────────────────────────────────────────────
+export type SupportCase = {
+  id: number;
+  client: number;
+  client_name: string;
+  category: string;
+  description: string;
+  assigned_staff: number | null;
+  status: string;
+  resolution: string;
+  date_received: string;
+  closed_date: string | null;
+  turnaround_hours: number | null;
+};
+
+export const SUPPORT_STATUSES: [string, string][] = [
+  ["open", "Open"],
+  ["in_progress", "In progress"],
+  ["waiting_for_client", "Waiting for client"],
+  ["resolved", "Resolved"],
+  ["closed", "Closed"],
+];
+
+export function listSupportCases(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch(`/api/support/cases/${qs ? `?${qs}` : ""}`) as Promise<
+    Paginated<SupportCase>
+  >;
+}
+
+export function updateSupportCase(id: number, body: { status?: string; resolution?: string }) {
+  return apiFetch(`/api/support/cases/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  }) as Promise<SupportCase>;
+}
+
+export function getPortalSupport() {
+  return apiFetch("/api/portal/support/") as Promise<SupportCase[]>;
+}
+
+export function createPortalSupport(body: { category: string; description: string }) {
+  return apiFetch("/api/portal/support/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<SupportCase>;
+}
+
 // ── Users & roles admin (M2) ───────────────────────────────────────────────
 export type Employee = {
   id: number;

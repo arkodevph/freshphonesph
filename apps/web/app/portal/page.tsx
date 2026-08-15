@@ -9,14 +9,19 @@ import {
   CalendarBlank,
   CheckCircle,
   Package,
+  ChatCircleText,
+  Plus,
 } from "@phosphor-icons/react";
 import {
   getPortalSummary,
   getPortalSchedule,
   getPortalPayments,
+  getPortalSupport,
+  createPortalSupport,
   type PortalSummary,
   type PortalScheduleItem,
   type Payment,
+  type SupportCase,
 } from "@/lib/api";
 import { isAuthed, clearTokens } from "@/lib/auth";
 import { useMe } from "@/lib/useMe";
@@ -35,7 +40,11 @@ export default function PortalPage() {
   const [summary, setSummary] = useState<PortalSummary | null>(null);
   const [schedule, setSchedule] = useState<PortalScheduleItem[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [cases, setCases] = useState<SupportCase[]>([]);
+  const [concern, setConcern] = useState({ category: "Payment", description: "" });
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // guard: must be an authenticated customer
   useEffect(() => {
@@ -43,6 +52,8 @@ export default function PortalPage() {
     else if (me && me.account_type && me.account_type !== "customer")
       router.replace("/system");
   }, [me, router]);
+
+  const loadSupport = () => getPortalSupport().then(setCases).catch(() => {});
 
   useEffect(() => {
     Promise.all([getPortalSummary(), getPortalSchedule(), getPortalPayments()])
@@ -52,11 +63,29 @@ export default function PortalPage() {
         setPayments(pay);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load."));
+    loadSupport();
   }, []);
 
   function logout() {
     clearTokens();
     router.replace("/login");
+  }
+
+  async function submitConcern(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      await createPortalSupport(concern);
+      setConcern((c) => ({ ...c, description: "" }));
+      setNotice("Concern submitted — we'll follow up.");
+      setTimeout(() => setNotice(null), 3000);
+      loadSupport();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not submit.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -81,8 +110,10 @@ export default function PortalPage() {
           </button>
         </header>
 
-        {error && (
-          <div className="mb-4 rounded-2xl bg-rose-100 px-4 py-2.5 text-sm font-600 text-rose-700">{error}</div>
+        {(error || notice) && (
+          <div className={`mb-4 rounded-2xl px-4 py-2.5 text-sm font-600 ${error ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+            {error ?? notice}
+          </div>
         )}
 
         {/* Membership + balance */}
@@ -170,6 +201,52 @@ export default function PortalPage() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+
+        {/* Support */}
+        <div className="glass mt-4 rounded-3xl p-5">
+          <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
+            <ChatCircleText weight="fill" className="h-4 w-4" /> Support
+          </h2>
+          <form onSubmit={submitConcern} className="mb-4 grid gap-3 sm:grid-cols-[10rem_1fr_auto]">
+            <select
+              value={concern.category}
+              onChange={(e) => setConcern({ ...concern, category: e.target.value })}
+              className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2 text-sm text-ink outline-none focus:border-blue"
+            >
+              <option>Payment</option>
+              <option>Unit / device</option>
+              <option>Account</option>
+              <option>Other</option>
+            </select>
+            <input
+              required
+              value={concern.description}
+              onChange={(e) => setConcern({ ...concern, description: e.target.value })}
+              placeholder="Describe your concern…"
+              className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2 text-sm text-ink outline-none focus:border-blue"
+            />
+            <button type="submit" disabled={submitting} className="btn-candy inline-flex items-center justify-center gap-1.5 rounded-2xl px-4 py-2 text-sm font-700 disabled:opacity-70">
+              <Plus weight="bold" className="h-4 w-4" /> {submitting ? "Sending…" : "Submit"}
+            </button>
+          </form>
+          {cases.length === 0 ? (
+            <p className="text-center text-sm text-ink-soft">No concerns raised yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {cases.map((c) => (
+                <li key={c.id} className="glass-tint flex items-center justify-between gap-3 rounded-2xl px-4 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-700 text-blue-ink">{c.category}</p>
+                    <p className="truncate text-xs text-ink-soft">{c.description}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 capitalize text-blue-ink">
+                    {c.status.replace(/_/g, " ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
