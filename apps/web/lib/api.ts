@@ -29,3 +29,84 @@ export async function login(
   }
   return res.json() as Promise<Tokens>;
 }
+
+// ── Authenticated requests ─────────────────────────────────────────────────
+import { getTokens } from "./auth";
+
+async function apiFetch(path: string, options: RequestInit = {}) {
+  const token = getTokens()?.access;
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers ?? {}),
+    },
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(data.detail ?? `Request failed (${res.status}).`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// ── Payment types & endpoints (M4) ─────────────────────────────────────────
+export type PaymentStatus =
+  | "pending"
+  | "verified"
+  | "rejected"
+  | "needs_clarification";
+
+export type Payment = {
+  id: number;
+  client: number;
+  batch: number;
+  amount: string;
+  payment_date: string;
+  method: string;
+  reference_no: string;
+  status: PaymentStatus;
+  verified_by: number | null;
+  created_at: string;
+};
+
+export type Paginated<T> = { count: number; next: string | null; results: T[] };
+
+export type Balance = {
+  client: number;
+  total_due: string;
+  verified_paid: string;
+  remaining_balance: string;
+};
+
+export function listPayments(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch(`/api/payments/${qs ? `?${qs}` : ""}`) as Promise<
+    Paginated<Payment>
+  >;
+}
+
+export function createPayment(body: {
+  client: number;
+  batch: number;
+  amount: string;
+  payment_date: string;
+  method: string;
+  reference_no?: string;
+}) {
+  return apiFetch("/api/payments/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<Payment>;
+}
+
+export function decidePayment(id: number, decision: PaymentStatus) {
+  return apiFetch(`/api/payments/${id}/verify/`, {
+    method: "POST",
+    body: JSON.stringify({ decision }),
+  }) as Promise<Payment>;
+}
+
+export function getBalance(clientId: number) {
+  return apiFetch(`/api/clients/${clientId}/balance/`) as Promise<Balance>;
+}
