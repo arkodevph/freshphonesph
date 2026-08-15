@@ -65,6 +65,7 @@ export type Payment = {
   payment_date: string;
   method: string;
   reference_no: string;
+  proof_file: number | null;
   status: PaymentStatus;
   verified_by: number | null;
   created_at: string;
@@ -105,6 +106,24 @@ export function decidePayment(id: number, decision: PaymentStatus) {
     method: "POST",
     body: JSON.stringify({ decision }),
   }) as Promise<Payment>;
+}
+
+/** Attach a private proof file (multipart). */
+export async function uploadProof(id: number, file: File) {
+  const token = getTokens()?.access;
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_URL}/api/payments/${id}/proof/`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  if (!res.ok) throw new Error(`Proof upload failed (${res.status}).`);
+  return res.json() as Promise<Payment>;
+}
+
+export function getProofUrl(id: number) {
+  return apiFetch(`/api/payments/${id}/proof-url/`) as Promise<{ url: string }>;
 }
 
 export function getBalance(clientId: number) {

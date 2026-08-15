@@ -27,7 +27,10 @@ class Payment(models.Model):
     payment_date = models.DateField()
     method = models.CharField(max_length=40)          # gcash/bank/cash/...
     reference_no = models.CharField(max_length=120, blank=True)  # not unique (dupes warned)
-    # proof_file FK -> storage_app.StoredFile is added in S1 (private, presigned).
+    proof_file = models.ForeignKey(
+        "storage_app.StoredFile", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="+",
+    )
     status = models.CharField(
         max_length=24, choices=Status.choices, default=Status.PENDING
     )

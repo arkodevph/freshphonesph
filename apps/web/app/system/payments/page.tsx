@@ -8,6 +8,7 @@ import {
   Wallet,
   Plus,
   DownloadSimple,
+  Paperclip,
 } from "@phosphor-icons/react";
 import {
   listPayments,
@@ -15,6 +16,8 @@ import {
   decidePayment,
   getBalance,
   downloadPaymentsExport,
+  uploadProof,
+  getProofUrl,
   type Payment,
   type PaymentStatus,
   type Balance,
@@ -53,6 +56,7 @@ export default function PaymentsPage() {
     reference_no: "",
   });
   const [saving, setSaving] = useState(false);
+  const [proof, setProof] = useState<File | null>(null);
 
   // balance lookup
   const [balanceClient, setBalanceClient] = useState("1");
@@ -85,7 +89,7 @@ export default function PaymentsPage() {
     setSaving(true);
     setError(null);
     try {
-      await createPayment({
+      const created = await createPayment({
         client: Number(form.client),
         batch: Number(form.batch),
         amount: form.amount,
@@ -93,13 +97,29 @@ export default function PaymentsPage() {
         method: form.method,
         reference_no: form.reference_no,
       });
-      flash("Payment recorded (pending verification).");
+      if (proof) await uploadProof(created.id, proof);
+      flash(
+        proof
+          ? "Payment recorded with proof (pending verification)."
+          : "Payment recorded (pending verification).",
+      );
       setForm((f) => ({ ...f, amount: "", reference_no: "" }));
+      setProof(null);
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not record payment.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function viewProof(id: number) {
+    setError(null);
+    try {
+      const { url } = await getProofUrl(id);
+      window.open(url, "_blank", "noopener");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not open proof.");
     }
   }
 
@@ -221,6 +241,17 @@ export default function PaymentsPage() {
               />
             </Field>
           </div>
+          <label className="mt-3 flex flex-col gap-1">
+            <span className="text-xs font-600 text-ink-soft">
+              Proof (screenshot / receipt) — optional, stored privately
+            </span>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setProof(e.target.files?.[0] ?? null)}
+              className="text-sm text-ink-soft file:mr-3 file:rounded-full file:border-0 file:bg-white/70 file:px-3 file:py-1.5 file:text-sm file:font-700 file:text-blue-ink"
+            />
+          </label>
           <button
             type="submit"
             disabled={saving}
@@ -347,24 +378,34 @@ export default function PaymentsPage() {
                       </span>
                     </td>
                     <td className="px-2 py-2.5 text-right">
-                      {p.status === "pending" ? (
-                        <div className="inline-flex gap-1.5">
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        {p.proof_file && (
                           <button
-                            onClick={() => decide(p.id, "verified")}
-                            className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-700 text-emerald-700 hover:bg-emerald-200"
+                            onClick={() => viewProof(p.id)}
+                            className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
                           >
-                            <CheckCircle weight="fill" className="h-3.5 w-3.5" /> Verify
+                            <Paperclip weight="bold" className="h-3.5 w-3.5" /> Proof
                           </button>
-                          <button
-                            onClick={() => decide(p.id, "rejected")}
-                            className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-700 text-rose-700 hover:bg-rose-200"
-                          >
-                            <XCircle weight="fill" className="h-3.5 w-3.5" /> Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-ink-soft">—</span>
-                      )}
+                        )}
+                        {p.status === "pending" ? (
+                          <>
+                            <button
+                              onClick={() => decide(p.id, "verified")}
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-700 text-emerald-700 hover:bg-emerald-200"
+                            >
+                              <CheckCircle weight="fill" className="h-3.5 w-3.5" /> Verify
+                            </button>
+                            <button
+                              onClick={() => decide(p.id, "rejected")}
+                              className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-700 text-rose-700 hover:bg-rose-200"
+                            >
+                              <XCircle weight="fill" className="h-3.5 w-3.5" /> Reject
+                            </button>
+                          </>
+                        ) : (
+                          !p.proof_file && <span className="text-xs text-ink-soft">—</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

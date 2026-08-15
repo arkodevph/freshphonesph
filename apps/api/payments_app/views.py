@@ -2,11 +2,14 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from audit_app.services import log_action
 from clients_app.models import Client
+from storage_app import services as storage_services
 
 from . import documents, selectors, services
 from .models import Payment
@@ -29,7 +32,7 @@ class PaymentViewSet(
     ).all()
 
     def get_permissions(self):
-        if self.action == "create":
+        if self.action in ("create", "proof"):
             return [IsAuthenticated(), RequirePaymentRecord()]
         if self.action == "verify":
             return [IsAuthenticated(), RequirePaymentVerify()]
@@ -86,6 +89,40 @@ class PaymentViewSet(
             return Response(documents.build_payment_confirmation(payment))
         except documents.DocumentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser, FormParser])
+    def proof(self, request, pk=None):
+        """Attach a private proof file (screenshot/receipt) to the payment."""
+        payment = self.get_object()
+        upload = request.FILES.get("file")
+        if not upload:
+            return Response(
+                {"detail": "No file provided (field 'file')."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        stored = storage_services.store_file(
+            fileobj=upload,
+            original_name=upload.name,
+            content_type=getattr(upload, "content_type", ""),
+            uploaded_by=request.user.employee,
+        )
+        payment.proof_file = stored
+        payment.save(update_fields=["proof_file", "updated_at"])
+        log_action(
+            actor=request.user.employee, action="payment.proof_attached",
+            record=payment, after={"proof_file": stored.key},
+        )
+        return Response(PaymentReadSerializer(payment).data)
+
+    @action(detail=True, methods=["get"], url_path="proof-url")
+    def proof_url(self, request, pk=None):
+        """Short-lived presigned URL to view the private proof file."""
+        payment = self.get_object()
+        if not payment.proof_file_id:
+            return Response(
+                {"detail": "No proof attached."}, status=status.HTTP_404_NOT_FOUND
+            )
+        return Response({"url": storage_services.presigned_get(payment.proof_file)})
 
 
 class ClientBalanceView(APIView):
