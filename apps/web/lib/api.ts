@@ -142,6 +142,83 @@ export function getDashboard() {
   return apiFetch("/api/reports/dashboard/") as Promise<DashboardCards>;
 }
 
+// ── Records: batches + clients (M3) ────────────────────────────────────────
+export type Batch = {
+  id: number;
+  batch_number: string;
+  unit_model: string;
+  status: string;
+  contract_price: string;
+  num_installments: number;
+  cadence: string;
+  start_date: string;
+  end_date: string | null;
+  member_count: number;
+  created_at: string;
+};
+
+export type ClientRecord = {
+  id: number;
+  batch: number;
+  batch_number: string;
+  full_name: string;
+  contact_email: string;
+  unit_model: string;
+  status: string;
+  joined_at: string;
+  created_at: string;
+};
+
+export type ScheduleItem = {
+  id: number;
+  sequence_no: number;
+  due_date: string;
+  expected_amount: string;
+};
+
+export function listBatches() {
+  return apiFetch("/api/batches/") as Promise<Paginated<Batch>>;
+}
+
+export function createBatch(body: {
+  batch_number: string;
+  unit_model: string;
+  status: string;
+  contract_price: string;
+  num_installments: number;
+  cadence: string;
+  start_date: string;
+}) {
+  return apiFetch("/api/batches/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<Batch>;
+}
+
+export function listClients(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch(`/api/clients/${qs ? `?${qs}` : ""}`) as Promise<
+    Paginated<ClientRecord>
+  >;
+}
+
+export function createClient(body: {
+  batch: number;
+  full_name: string;
+  contact_email?: string;
+  unit_model?: string;
+  joined_at: string;
+}) {
+  return apiFetch("/api/clients/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<ClientRecord>;
+}
+
+export function getSchedule(clientId: number) {
+  return apiFetch(`/api/clients/${clientId}/schedule/`) as Promise<ScheduleItem[]>;
+}
+
 // ── Current user (role-aware UI) ───────────────────────────────────────────
 export type Me = {
   id: number;

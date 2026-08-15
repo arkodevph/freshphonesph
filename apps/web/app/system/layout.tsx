@@ -21,9 +21,9 @@ import { useMe, can } from "@/lib/useMe";
 
 const NAV = [
   { icon: SquaresFour, label: "Dashboard", tag: "M7", href: "/system", perms: [] as string[] },
-  { icon: Stack, label: "Paluwagan Records", tag: "M3", href: null, perms: [] },
+  { icon: Stack, label: "Paluwagan Records", tag: "M3", href: "/system/records", perms: ["BATCH_MANAGE"] },
   { icon: Receipt, label: "Payments & Finance", tag: "M4", href: "/system/payments", perms: ["PAYMENT_RECORD", "PAYMENT_VERIFY"] },
-  { icon: Users, label: "Clients", tag: "M3", href: null, perms: [] },
+  { icon: Users, label: "Clients", tag: "M3", href: "/system/clients", perms: ["CLIENT_MANAGE"] },
   { icon: ChartBar, label: "Reports", tag: "M7", href: null, perms: [] },
   { icon: Headset, label: "Customer Service", tag: "M8", href: null, perms: [] },
   { icon: Briefcase, label: "Recruitment", tag: "M9", href: null, perms: [] },
