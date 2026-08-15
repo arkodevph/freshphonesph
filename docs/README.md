@@ -42,6 +42,7 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [09-tech-stack.md](09-tech-stack.md) | **Decided stack** — Django REST backend + Next.js frontend (from ARKO) | §15 |
 | [10-team-roles.md](10-team-roles.md) | Developer team split & module ownership (internal) | — |
 | [11-payments-reporting-design.md](11-payments-reporting-design.md) | Design spec for M4 (Payments/Finance) + M7 (Reporting) | §7, §9 |
+| [12-records-schema-design.md](12-records-schema-design.md) | Design spec for M3 records (Batch/Client/ScheduleItem) — the balance interface | §6 |
 
 ## Legend (from the scope)
 
