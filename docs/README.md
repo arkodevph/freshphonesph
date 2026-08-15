@@ -5,9 +5,11 @@ Planning documentation for the system defined in **Full Scope v5 (Revision 1.4, 
 This repository (`freshphonesph`) is the **main repository** for the whole system. The
 existing landing page becomes the public-website surface (§4) of a larger product.
 
-> **Status:** Discovery & Design (Month 1). No application code is built yet.
-> Per scope §17 and §21, the modules, roles, data model, and boundaries below must be
-> **reviewed and signed off** before development proceeds.
+> **Status:** V1 core **implemented** on the `foundation` branch — 8 of 11 modules built
+> end-to-end, 80 backend tests passing. These 00–16 docs are the *plan*; for what's actually
+> built see **[BUILD_STATUS.md](BUILD_STATUS.md)**, and for the merge write-up see
+> **[PULL_REQUEST.md](PULL_REQUEST.md)**. New here (human or AI)? Start with
+> **[../AGENTS.md](../AGENTS.md)**.
 
 ## What this system is (and is not)
 
