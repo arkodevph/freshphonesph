@@ -23,6 +23,8 @@ urlpatterns = [
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
     # Per-module routes
-    path("api/", include("payments_app.urls")),
+    path("api/", include("payments_app.urls")),  # includes clients/{id}/balance|statement
     path("api/reports/", include("reports_app.urls")),
+    path("api/", include("batches_app.urls")),
+    path("api/", include("clients_app.urls")),
 ]
