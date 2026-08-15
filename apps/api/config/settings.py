@@ -134,6 +134,17 @@ AWS_ACCESS_KEY_ID = env("SUPABASE_S3_ACCESS_KEY", default="")
 AWS_SECRET_ACCESS_KEY = env("SUPABASE_S3_SECRET_KEY", default="")
 AWS_STORAGE_BUCKET_NAME = env("SUPABASE_S3_BUCKET", default="")
 
+# --- Email (MailHog locally; Resend SMTP in prod) -------------------------
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=1025)  # MailHog SMTP
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL", default="Fresh Phones PH <noreply@freshphones.ph>"
+)
+
 # --- i18n / tz ------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Manila"

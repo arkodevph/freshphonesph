@@ -18,6 +18,7 @@ class Client(models.Model):
         "batches_app.Batch", on_delete=models.PROTECT, related_name="members"
     )
     full_name = models.CharField(max_length=200)
+    contact_email = models.EmailField(blank=True)  # for notifications (M10)
     unit_model = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     joined_at = models.DateField()

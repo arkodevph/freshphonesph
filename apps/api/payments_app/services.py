@@ -70,5 +70,9 @@ def verify_payment(*, payment_id, decision, actor, notes=""):
         actor=actor, action=f"payment.{decision}", record=payment,
         before={"status": Payment.Status.PENDING}, after={"status": decision},
     )
-    # TODO(M10): notifications_app.notify_payment_verified(payment) on VERIFIED.
+    if decision == Payment.Status.VERIFIED:
+        # Deferred import avoids a module-load cycle (notifications -> payments models).
+        from notifications_app.services import notify_payment_verified
+
+        notify_payment_verified(payment)
     return payment
