@@ -381,6 +381,86 @@ export function createKpiReview(body: {
   }) as Promise<unknown>;
 }
 
+// ── Recruitment & Agent Verification (M9) ──────────────────────────────────
+export type JobOpening = {
+  id: number;
+  title: string;
+  description: string;
+  location: string;
+  employment_type: string;
+  is_open?: boolean;
+  applicant_count?: number;
+};
+
+export type Applicant = {
+  id: number;
+  job: number | null;
+  job_title: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  message: string;
+  status: string;
+  reviewer_notes: string;
+  created_at: string;
+};
+
+export type AgentRecord = {
+  id: number;
+  full_name: string;
+  agent_code: string;
+  phone: string;
+  is_active: boolean;
+};
+
+export type AgentVerifyResult =
+  | { found: false }
+  | { found: true; full_name: string; agent_code: string; is_active: boolean };
+
+// public (no auth)
+export function getCareers() {
+  return apiFetch("/api/careers/") as Promise<JobOpening[]>;
+}
+export function applyToJob(body: {
+  job: number;
+  full_name: string;
+  email: string;
+  phone?: string;
+  message?: string;
+}) {
+  return apiFetch("/api/careers/apply/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<{ detail: string }>;
+}
+export function verifyAgent(q: string) {
+  return apiFetch(`/api/agents/verify/?q=${encodeURIComponent(q)}`) as Promise<AgentVerifyResult>;
+}
+
+// internal (RECRUITMENT_MANAGE / CLIENT_MANAGE)
+export function listJobs() {
+  return apiFetch("/api/recruitment/jobs/") as Promise<Paginated<JobOpening>>;
+}
+export function createJob(body: Partial<JobOpening> & { title: string }) {
+  return apiFetch("/api/recruitment/jobs/", { method: "POST", body: JSON.stringify(body) }) as Promise<JobOpening>;
+}
+export function updateJob(id: number, body: Partial<JobOpening>) {
+  return apiFetch(`/api/recruitment/jobs/${id}/`, { method: "PATCH", body: JSON.stringify(body) }) as Promise<JobOpening>;
+}
+export function listApplicants(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch(`/api/recruitment/applicants/${qs ? `?${qs}` : ""}`) as Promise<Paginated<Applicant>>;
+}
+export function updateApplicant(id: number, body: { status?: string; reviewer_notes?: string }) {
+  return apiFetch(`/api/recruitment/applicants/${id}/`, { method: "PATCH", body: JSON.stringify(body) }) as Promise<Applicant>;
+}
+export function listAgents() {
+  return apiFetch("/api/agents/") as Promise<Paginated<AgentRecord>>;
+}
+export function createAgent(body: { full_name: string; agent_code: string; phone?: string; is_active: boolean }) {
+  return apiFetch("/api/agents/", { method: "POST", body: JSON.stringify(body) }) as Promise<AgentRecord>;
+}
+
 // ── Users & roles admin (M2) ───────────────────────────────────────────────
 export type Employee = {
   id: number;

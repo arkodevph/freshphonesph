@@ -29,7 +29,7 @@ const NAV = [
   { icon: ListChecks, label: "Tasks & KPI", tag: "M6", href: "/system/tasks", perms: [] },
   { icon: ChartBar, label: "Reports", tag: "M7", href: null, perms: [] },
   { icon: Headset, label: "Customer Service", tag: "M8", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
-  { icon: Briefcase, label: "Recruitment", tag: "M9", href: null, perms: [] },
+  { icon: Briefcase, label: "Recruitment", tag: "M9", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "CLIENT_MANAGE"] },
   { icon: Bell, label: "Notifications", tag: "M10", href: null, perms: [] },
   { icon: Sparkle, label: "AI Assistant", tag: "M11", href: null, perms: [] },
   { icon: ShieldCheck, label: "Users & Roles", tag: "M2", href: "/system/team", perms: ["ROLE_ASSIGN"] },

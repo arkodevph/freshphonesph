@@ -69,6 +69,18 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2">
             <Link
+              href="/careers"
+              className="hidden rounded-full px-3.5 py-2.5 text-sm font-600 text-ink-soft transition-colors hover:bg-white/60 hover:text-blue lg:inline-flex"
+            >
+              Careers
+            </Link>
+            <Link
+              href="/verify"
+              className="hidden rounded-full px-3.5 py-2.5 text-sm font-600 text-ink-soft transition-colors hover:bg-white/60 hover:text-blue lg:inline-flex"
+            >
+              Verify agent
+            </Link>
+            <Link
               href="/login"
               className="hidden items-center gap-1.5 rounded-full bg-white/70 px-4 py-2.5 text-sm font-700 text-blue-ink transition-colors hover:bg-white sm:inline-flex"
             >
