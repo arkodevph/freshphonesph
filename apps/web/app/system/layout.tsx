@@ -44,6 +44,11 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
     else setReady(true);
   }, [router]);
 
+  // Customers belong in the portal, not the staff system.
+  useEffect(() => {
+    if (me && me.account_type === "customer") router.replace("/portal");
+  }, [me, router]);
+
   function logout() {
     clearTokens();
     router.replace("/login");

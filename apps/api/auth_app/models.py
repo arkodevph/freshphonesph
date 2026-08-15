@@ -34,3 +34,18 @@ class Employee(models.Model):
 
     def __str__(self):
         return f"{self.full_name} ({self.role})"
+
+
+class CustomerAccount(models.Model):
+    """A customer's portal login, linked 1:1 to their Client record (M5)."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="customer_account"
+    )
+    client = models.OneToOneField(
+        "clients_app.Client", on_delete=models.CASCADE, related_name="portal_account"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"portal:{self.user.email} -> client {self.client_id}"

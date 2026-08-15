@@ -31,12 +31,20 @@ class MeView(APIView):
 
     def get(self, request):
         employee = getattr(request.user, "employee", None)
+        customer = getattr(request.user, "customer_account", None)
+        account_type = "employee" if employee else ("customer" if customer else None)
         return Response(
             {
                 "id": request.user.id,
                 "email": request.user.email,
-                "full_name": employee.full_name if employee else request.user.get_username(),
+                "full_name": (
+                    employee.full_name if employee
+                    else customer.client.full_name if customer
+                    else request.user.get_username()
+                ),
                 "role": employee.role if employee else None,
+                "account_type": account_type,
+                "client_id": customer.client_id if customer else None,
                 "permissions": sorted(permissions_for(employee)),
             }
         )

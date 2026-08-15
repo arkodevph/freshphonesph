@@ -22,12 +22,15 @@ export default function LoginPage() {
     try {
       const tokens = await login(username, password);
       saveTokens(tokens);
+      let dest = "/system";
       try {
-        saveMe(await fetchMe());
+        const me = await fetchMe();
+        saveMe(me);
+        if (me.account_type === "customer") dest = "/portal";
       } catch {
         /* non-fatal: useMe() will retry */
       }
-      router.push("/system");
+      router.push(dest);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {

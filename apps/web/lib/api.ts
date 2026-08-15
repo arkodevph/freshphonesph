@@ -225,11 +225,51 @@ export type Me = {
   email: string;
   full_name: string;
   role: string | null;
+  account_type: "employee" | "customer" | null;
+  client_id: number | null;
   permissions: string[];
 };
 
 export function fetchMe() {
   return apiFetch("/api/auth/me/") as Promise<Me>;
+}
+
+// ── Customer portal (M5) ───────────────────────────────────────────────────
+export type PortalSummary = {
+  full_name: string;
+  batch_number: string;
+  unit_model: string;
+  status: string;
+  total_due: string;
+  verified_paid: string;
+  remaining_balance: string;
+};
+
+export type PortalScheduleItem = {
+  sequence_no: number;
+  due_date: string;
+  expected_amount: string;
+  paid_applied: string;
+  status: string;
+};
+
+export function getPortalSummary() {
+  return apiFetch("/api/portal/summary/") as Promise<PortalSummary>;
+}
+
+export function getPortalSchedule() {
+  return apiFetch("/api/portal/schedule/") as Promise<PortalScheduleItem[]>;
+}
+
+export function getPortalPayments() {
+  return apiFetch("/api/portal/payments/") as Promise<Payment[]>;
+}
+
+export function createPortalAccount(clientId: number, body: { email: string; password: string }) {
+  return apiFetch(`/api/clients/${clientId}/portal-account/`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<{ detail: string }>;
 }
 
 // ── Users & roles admin (M2) ───────────────────────────────────────────────
