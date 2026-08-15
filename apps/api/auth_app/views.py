@@ -1,10 +1,21 @@
+from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from audit_app.services import log_action
+
+from .api_permissions import RequireRoleAssign
+from .models import Employee
 from .permissions_map import permissions_for
-from .serializers import FlexibleTokenObtainPairSerializer
+from .serializers import (
+    EmployeeCreateSerializer,
+    EmployeeSerializer,
+    EmployeeUpdateSerializer,
+    FlexibleTokenObtainPairSerializer,
+)
+from .services import create_employee
 
 
 class FlexibleTokenObtainPairView(TokenObtainPairView):
@@ -29,3 +40,36 @@ class MeView(APIView):
                 "permissions": sorted(permissions_for(employee)),
             }
         )
+
+
+class EmployeeViewSet(viewsets.ModelViewSet):
+    """User & role administration — owner-only (ROLE_ASSIGN)."""
+
+    queryset = Employee.objects.select_related("user").order_by("full_name")
+    serializer_class = EmployeeSerializer
+    permission_classes = [IsAuthenticated, RequireRoleAssign]
+    http_method_names = ["get", "post", "patch"]
+
+    def create(self, request, *args, **kwargs):
+        ser = EmployeeCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        employee = create_employee(**ser.validated_data)
+        log_action(
+            actor=request.user.employee, action="employee.create",
+            record=employee, after={"role": employee.role, "status": employee.status},
+        )
+        return Response(EmployeeSerializer(employee).data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        employee = self.get_object()
+        ser = EmployeeUpdateSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        before = {"role": employee.role, "status": employee.status}
+        for field, value in ser.validated_data.items():
+            setattr(employee, field, value)
+        employee.save()
+        log_action(
+            actor=request.user.employee, action="employee.update", record=employee,
+            before=before, after={"role": employee.role, "status": employee.status},
+        )
+        return Response(EmployeeSerializer(employee).data)

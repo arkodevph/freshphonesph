@@ -15,6 +15,7 @@ import {
   Briefcase,
   Bell,
   Sparkle,
+  ShieldCheck,
 } from "@phosphor-icons/react";
 import { isAuthed, clearTokens } from "@/lib/auth";
 import { useMe, can } from "@/lib/useMe";
@@ -29,6 +30,7 @@ const NAV = [
   { icon: Briefcase, label: "Recruitment", tag: "M9", href: null, perms: [] },
   { icon: Bell, label: "Notifications", tag: "M10", href: null, perms: [] },
   { icon: Sparkle, label: "AI Assistant", tag: "M11", href: null, perms: [] },
+  { icon: ShieldCheck, label: "Users & Roles", tag: "M2", href: "/system/team", perms: ["ROLE_ASSIGN"] },
 ] as const;
 
 export default function SystemLayout({ children }: { children: React.ReactNode }) {

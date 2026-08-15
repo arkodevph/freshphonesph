@@ -232,6 +232,52 @@ export function fetchMe() {
   return apiFetch("/api/auth/me/") as Promise<Me>;
 }
 
+// ── Users & roles admin (M2) ───────────────────────────────────────────────
+export type Employee = {
+  id: number;
+  email: string;
+  full_name: string;
+  role: string;
+  status: string;
+  created_at: string;
+};
+
+export const ROLES: [string, string][] = [
+  ["owner", "Owner"],
+  ["coo", "COO"],
+  ["general_manager", "General Manager"],
+  ["hr_payroll", "HR / Payroll"],
+  ["finance_officer", "Finance Officer"],
+  ["records_monitoring", "Records & Monitoring"],
+  ["analytics", "Analytics"],
+  ["cs_head", "Customer Service Head"],
+  ["cs_team", "Customer Service Team"],
+  ["core_handler", "Core Team / Handler"],
+];
+
+export function listEmployees() {
+  return apiFetch("/api/employees/") as Promise<Paginated<Employee>>;
+}
+
+export function createEmployee(body: {
+  email: string;
+  full_name: string;
+  role: string;
+  password: string;
+}) {
+  return apiFetch("/api/employees/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<Employee>;
+}
+
+export function updateEmployee(id: number, body: { role?: string; status?: string }) {
+  return apiFetch(`/api/employees/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  }) as Promise<Employee>;
+}
+
 /** Download the payments report as a file (CSV or XLSX). */
 export async function downloadPaymentsExport(
   params: Record<string, string> = {},
