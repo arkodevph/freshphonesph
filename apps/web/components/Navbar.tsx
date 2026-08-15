@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { List, X, Sparkle } from "@phosphor-icons/react";
+import Link from "next/link";
+import { List, X, Sparkle, SignIn } from "@phosphor-icons/react";
 
 const links = [
   { href: "#how", label: "How it Works" },
@@ -67,6 +68,13 @@ export default function Navbar() {
           </ul>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="hidden items-center gap-1.5 rounded-full bg-white/70 px-4 py-2.5 text-sm font-700 text-blue-ink transition-colors hover:bg-white sm:inline-flex"
+            >
+              <SignIn weight="fill" className="h-4 w-4" />
+              Login
+            </Link>
             <a
               href="#join"
               className="btn-candy hidden items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-700 sm:inline-flex"
@@ -99,6 +107,16 @@ export default function Navbar() {
                   </a>
                 </li>
               ))}
+              <li className="mt-1 px-1">
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-center gap-1.5 rounded-2xl bg-white/70 px-5 py-3 font-700 text-blue-ink"
+                >
+                  <SignIn weight="fill" className="h-4 w-4" />
+                  Login
+                </Link>
+              </li>
               <li className="mt-1 px-1">
                 <a
                   href="#join"

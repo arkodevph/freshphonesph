@@ -1,3 +1,9 @@
-from django.shortcuts import render
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-# Create your views here.
+from .serializers import FlexibleTokenObtainPairSerializer
+
+
+class FlexibleTokenObtainPairView(TokenObtainPairView):
+    """Login by email or username (foundation phase). See serializers.py."""
+
+    serializer_class = FlexibleTokenObtainPairSerializer
