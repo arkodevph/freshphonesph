@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { List, X, Sparkle } from "@phosphor-icons/react";
+import { List, X, SignIn } from "@phosphor-icons/react";
 
 const links = [
-  { href: "#how", label: "How it Works" },
-  { href: "#iphones", label: "iPhones" },
-  { href: "#plans", label: "Plans" },
-  { href: "#reviews", label: "Reviews" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#top", label: "Home" },
+  { href: "/about", label: "About" },
+  { href: "/#units", label: "Units" },
+  { href: "/#how", label: "How it Works" },
+  { href: "/#contact", label: "Contact" },
 ];
 
 export default function Navbar() {
@@ -35,10 +35,10 @@ export default function Navbar() {
       <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5">
         <nav
           className={`mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full px-3 transition-all duration-300 sm:px-4 ${
-            scrolled ? "glass" : "bg-white/30 backdrop-blur-sm"
+            scrolled ? "glass !bg-white" : "bg-white/30 backdrop-blur-sm"
           }`}
         >
-          <a href="#top" className="flex items-center gap-2.5 pl-1">
+          <a href="/#top" className="flex items-center gap-2.5 pl-1">
             <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-2xl chrome">
               <Image
                 src="/brand/fresh-phones-logo.png"
@@ -53,12 +53,12 @@ export default function Navbar() {
             </span>
           </a>
 
-          <ul className="hidden items-center gap-1 md:flex">
+          <ul className="hidden items-center gap-1 lg:flex">
             {links.map((l) => (
               <li key={l.href}>
                 <a
                   href={l.href}
-                  className="rounded-full px-3.5 py-2 text-sm font-600 text-ink-soft transition-colors hover:bg-white/60 hover:text-blue"
+                  className="rounded-full px-3.5 py-2 text-sm font-700 text-ink-soft transition-colors hover:bg-white/60 hover:text-blue"
                 >
                   {l.label}
                 </a>
@@ -68,17 +68,17 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2">
             <a
-              href="#join"
+              href="/login"
               className="btn-candy hidden items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-700 sm:inline-flex"
             >
-              <Sparkle weight="fill" className="h-4 w-4" />
-              Reserve a Slot
+              <SignIn weight="bold" className="h-4 w-4" />
+              Login Portal
             </a>
             <button
               onClick={() => setOpen((v) => !v)}
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
-              className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-blue-ink md:hidden"
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-blue-ink lg:hidden"
             >
               {open ? <X className="h-5 w-5" /> : <List className="h-5 w-5" />}
             </button>
@@ -86,7 +86,7 @@ export default function Navbar() {
         </nav>
 
         {open && (
-          <div className="glass mx-auto mt-2 max-w-7xl rounded-3xl p-3 md:hidden">
+          <div className="glass mx-auto mt-2 max-w-7xl rounded-3xl p-3 lg:hidden">
             <ul className="flex flex-col">
               {links.map((l) => (
                 <li key={l.href}>
@@ -101,12 +101,12 @@ export default function Navbar() {
               ))}
               <li className="mt-1 px-1">
                 <a
-                  href="#join"
+                  href="/login"
                   onClick={() => setOpen(false)}
                   className="btn-candy flex items-center justify-center gap-1.5 rounded-2xl px-5 py-3 font-700"
                 >
-                  <Sparkle weight="fill" className="h-4 w-4" />
-                  Reserve a Slot
+                  <SignIn weight="bold" className="h-4 w-4" />
+                  Login Portal
                 </a>
               </li>
             </ul>

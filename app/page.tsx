@@ -1,31 +1,26 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import Marquee from "@/components/Marquee";
-import Stats from "@/components/Stats";
-import HowItWorks from "@/components/HowItWorks";
 import Models from "@/components/Models";
-import Plans from "@/components/Plans";
-import PosterGallery from "@/components/PosterGallery";
-import Features from "@/components/Features";
-import Testimonials from "@/components/Testimonials";
 import Faq from "@/components/Faq";
 import CtaJoin from "@/components/CtaJoin";
 import Footer from "@/components/Footer";
+import { Process, RequirementsAndPayments, Trust } from "@/components/RecentLandingSections";
+import ScrollPhoneStory from "@/components/ScrollPhoneStory";
+import LandingLoader from "@/components/LandingLoader";
+import "./landing.css";
 
 export default function Home() {
   return (
     <>
+      <LandingLoader />
       <Navbar />
       <main>
         <Hero />
-        <Marquee />
-        <Stats />
-        <HowItWorks />
+        <Trust />
+        <ScrollPhoneStory />
         <Models />
-        <Plans />
-        <PosterGallery />
-        <Features />
-        <Testimonials />
+        <Process />
+        <RequirementsAndPayments />
         <Faq />
         <CtaJoin />
       </main>
