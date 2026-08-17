@@ -59,9 +59,7 @@
 .scroll-phone-story .story-finale { opacity: var(--story-final); transform: translateY(calc((1 - var(--story-final)) * 24px)); }
 
 @media (max-width: 640px) {
-  .scroll-phone-story video { display: none; }
   .scroll-phone-story .story-frame-canvas {
-    display: block;
     top: 43%;
     width: 155vw;
     max-width: none;
