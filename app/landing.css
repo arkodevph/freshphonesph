@@ -63,7 +63,7 @@
     top: 43%;
     width: 155vw;
     max-width: none;
-    aspect-ratio: 720 / 406;
+    aspect-ratio: 16 / 9;
   }
   .scroll-phone-story .story-beat { max-width: 16rem; }
   .scroll-phone-story .story-finale { bottom: 2.25rem; padding-inline: .75rem; }
