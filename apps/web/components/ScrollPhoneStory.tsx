@@ -21,7 +21,7 @@ export default function ScrollPhoneStory() {
     const useFrames = matchMedia("(max-width: 640px)").matches && canvas;
     const context = canvas?.getContext("2d", { alpha: false });
     const frames: HTMLImageElement[] = [];
-    const framePath = (index: number) => `/video/iphone-scroll-frames/frame-${String(index + 1).padStart(3, "0")}.jpg`;
+    const framePath = (index: number) => `/video/iphone-scroll-frames/frame-${String(index + 1).padStart(3, "0")}.webp`;
     const drawFrame = (index: number) => {
       const image = frames[index];
       if (!context || !canvas || !image?.complete || !image.naturalWidth) return;

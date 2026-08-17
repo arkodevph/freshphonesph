@@ -83,7 +83,7 @@ export default function AboutPage() {
                 </div>
                 <div className="absolute -left-14 top-40 z-0 w-48 opacity-80 sm:w-60">
                   <Image
-                    src="/about/glass-bubble.png"
+                    src="/about/glass-bubble.webp"
                     alt=""
                     width={1248}
                     height={1248}
@@ -92,7 +92,7 @@ export default function AboutPage() {
                 </div>
                 <div className="absolute -right-10 top-48 z-20 w-36 sm:w-44">
                   <Image
-                    src="/about/glossy-heart.png"
+                    src="/about/glossy-heart.webp"
                     alt=""
                     width={1248}
                     height={1248}
@@ -101,7 +101,7 @@ export default function AboutPage() {
                 </div>
                 <div className="absolute right-8 top-8 z-20 w-20 sm:w-24">
                   <Image
-                    src="/about/chrome-sparkle.png"
+                    src="/about/chrome-sparkle.webp"
                     alt=""
                     width={1248}
                     height={1248}
@@ -110,7 +110,7 @@ export default function AboutPage() {
                 </div>
                 <div className="absolute inset-x-0 bottom-0 z-10 h-[78%]">
                   <Image
-                    src="/about/dale-tambong-cutout-v2.png"
+                    src="/about/dale-tambong-cutout-v2.webp"
                     alt="Dale John Garcia Tambong, owner of Fresh Phones PH"
                     fill
                     priority

@@ -69,7 +69,7 @@ export default function Hero() {
           <div className="absolute h-[72%] w-[92%] rotate-[-10deg] rounded-[50%] border-2 border-blue/10" aria-hidden />
           <div className="absolute h-[58%] w-[78%] rotate-[14deg] rounded-[50%] border border-bubblegum/30" aria-hidden />
           <Image
-            src="/brand/fresh-phones-hero-cutout-trimmed.png"
+            src="/brand/fresh-phones-hero-cutout-trimmed.webp"
             alt="Fresh Phones PH Gadget Center brand artwork"
             width={1695}
             height={1532}
