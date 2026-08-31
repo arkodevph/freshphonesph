@@ -1,5 +1,8 @@
 # 14 — Sprint Plan: Justine Cane's Role (M4 Payments/Finance + M7 Reporting)
 
+> **Historical plan:** Use this for domain acceptance details only. The active TypeScript
+> delivery sequence is [17-full-scope-workflow.md](17-full-scope-workflow.md).
+
 Story-level sprint plan for **Justine Cane Bacurin**'s modules. Built on the design specs in
 [11-payments-reporting-design.md](11-payments-reporting-design.md) and the interfaces in
 [12-records-schema-design.md](12-records-schema-design.md) (M3) and

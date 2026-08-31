@@ -38,9 +38,9 @@ landing page.
 Not a numbered scope section but the prerequisite for every gated module. See
 [04-roles-access.md](04-roles-access.md).
 
-- **Features:** Supabase Auth (sign-in, sessions, password reset); employee account creation
-  with role assignment; customer account linked to a client record; server-side RBAC guard;
-  RLS policies.
+- **Features:** API-issued JWT sign-in/refresh and password reset; employee account creation
+  with role assignment; customer account linked to a client record; server-side NestJS
+  permission guards; optional database-policy hardening.
 - **Acceptance:** an under-privileged role is rejected at the API (not just hidden); a customer
   sees only their own data; role changes are audited.
 
@@ -228,10 +228,10 @@ Implemented **only after** core workflows and permissions are stable.
 | Overdue task summaries | Summarizes overdue tasks for KPI/management | Surfaces facts only; human decides |
 | Task assistance | Explains assigned tasks & processes | Explains only; can't reassign/approve/complete |
 | Report summarization | Summarizes reports & surfaces patterns | Read-only; doesn't alter records |
-| Deduction/action suggestions | Suggests an action/deduction % **from configured policy**, into the KPI/HR queue | Suggestion only; a human reviews & approves before anything is recorded; AI never applies it |
+| Review assistance | Summarizes factual task evidence for the KPI/HR queue | No deduction amount or employment action is computed; an authorized human writes any recommendation |
 
 - **AI guardrails (apply to all):** respects role permissions and sees only what that role may
-  see; must not independently approve/apply payroll deductions, alter financial records, or
+  see; must not compute, recommend, approve, or apply payroll deductions, alter financial records, or
   expose confidential data; all consequential HR/finance decisions require human review;
   privacy-aware per NPC rules on automated decision-making/profiling (§13, §18.4–18.5, §B).
 - **Acceptance:** AI cannot perform any write/approve action; suggestions land in a human queue;

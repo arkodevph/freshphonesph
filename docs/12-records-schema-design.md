@@ -1,5 +1,8 @@
 # 12 — Design: Paluwagan Records Schema (M3)
 
+> **Migration note:** Model sketches below describe the Django baseline. Prisma is the target
+> schema owner; port the behavior through [17-full-scope-workflow.md](17-full-scope-workflow.md).
+
 Schema for **Paluwagan Records & Client Management** (§6, [05-modules.md](05-modules.md) M3) —
 `batches_app` + `clients_app`. **Owned by Justine Rhey Tambong** (core spine). Written here as
 the **interface that M4 (payments) and M7 (reporting) depend on**, so the balance math has a

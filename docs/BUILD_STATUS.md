@@ -1,7 +1,14 @@
 # Build Status
 
 Current implementation state of the `foundation` branch. The planning docs (00–16) describe the
-*intended* system; this file describes what is **actually built and tested**. **80 tests passing.**
+*intended* system; this file describes what was built in the Django baseline. The suite contains
+**80 tests** and was historically green; rerun it against a working local PostgreSQL service
+before treating that result as current.
+
+> **TypeScript migration:** This page records the existing Django baseline. The active target is
+> a NestJS TypeScript API. Track migration gates in
+> [17-full-scope-workflow.md](17-full-scope-workflow.md) and row-level coverage in
+> [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md).
 
 ## Module status
 
@@ -42,5 +49,5 @@ Every module has **working, tested code**. A few models started as minimal **con
 - Production provisioning (Supabase/Railway/Vercel/Cloudflare/Resend) — client-owned accounts (§20).
 
 ## Test & run
-`cd apps/api && source .venv/bin/activate && python manage.py test` → 80 tests.
+`cd apps/api && source .venv/bin/activate && python manage.py test` → discovers 80 tests.
 Run instructions: see [../AGENTS.md](../AGENTS.md). Dev accounts: [DEV_ACCOUNTS.md](DEV_ACCOUNTS.md).

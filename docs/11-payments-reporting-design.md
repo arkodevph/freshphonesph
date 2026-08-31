@@ -1,5 +1,9 @@
 # 11 — Design: Payments/Finance (M4) + Reporting (M7)
 
+> **Migration note:** This document describes the Django baseline. Preserve its business rules
+> and acceptance criteria, but implement the target backend in TypeScript/NestJS per
+> [09-tech-stack.md](09-tech-stack.md) and [17-full-scope-workflow.md](17-full-scope-workflow.md).
+
 Technical design for **Justine Cane Bacurin's** modules. Owner-facing detail for
 [05-modules.md](05-modules.md) M4 & M7, on the decided stack (Django REST + DRF SimpleJWT,
 [09-tech-stack.md](09-tech-stack.md)).

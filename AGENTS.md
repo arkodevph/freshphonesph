@@ -22,22 +22,26 @@ Source of truth for scope: **Full Scope v5 (Rev 1.4)** → summarized in [`docs/
    (operational docs, flagged `not_official_bir_invoice`), never the official BIR invoice (§7).
 4. **Privacy-limited public:** the public agent verification returns only name + **masked** code
    + active status — never phone/address/IDs (§18.8). Collect only necessary data (§14).
-5. **Server-side authz:** permissions are enforced in the API (DRF permission classes reading
-   `auth_app/permissions_map.py`), never UI-only. The role-aware UI is UX on top of that.
+5. **Server-side authz:** permissions are enforced in the API (NestJS guards in the target;
+   DRF permission classes in the Django baseline), never UI-only. The role-aware UI is UX on
+   top of that.
 6. **Secrets** live only in env vars (`apps/api/.env`, `apps/web/.env.local`) — never committed.
 
 ## Monorepo layout
 ```
 apps/web/    Next.js 16 + React 19 + Tailwind v4 (Vercel)  — landing, /system staff, /portal customer
-apps/api/    Django 5 + DRF + SimpleJWT (Railway)          — one Django app per module
+apps/api/    Django 5 baseline (temporary migration source; no new feature work by default)
+apps/api-ts/ NestJS + Prisma + TypeScript (Railway target) — one module per business domain
 packages/    (reserved for shared UI/config)
 docs/        planning (00–16) + BUILD_STATUS + PULL_REQUEST
 docker-compose.yml   local infra: Postgres:5435 + MinIO + MailHog
 ```
 
 ## Stack (decided — see docs/09-tech-stack.md)
-- **Backend:** Django 5 · Django REST Framework · SimpleJWT · Django ORM (no Prisma/Drizzle) ·
-  Postgres (Supabase in prod) · Supabase Storage/MinIO (boto3, presigned) · Resend/SMTP email.
+- **Backend target:** NestJS · TypeScript · Prisma · API-issued JWT · PostgreSQL (Supabase in
+  prod) · private Supabase Storage/MinIO via S3 signed URLs · Resend email.
+- **Backend baseline:** Django 5 + DRF remains under `apps/api/` only as parity/migration
+  evidence until each TypeScript vertical slice passes its cutover gate.
 - **Frontend:** Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · Radix/Phosphor.
 - **Tooling:** pnpm workspaces + Turborepo · Python venv · pytest via `manage.py test`.
 
@@ -46,7 +50,7 @@ docker-compose.yml   local infra: Postgres:5435 + MinIO + MailHog
 # 1) infra
 docker compose up -d                      # Postgres:5435, MinIO:9000/9001, MailHog:1025/8025
 
-# 2) backend (apps/api)
+# 2) current baseline backend (apps/api; temporary during TypeScript migration)
 cd apps/api
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -63,7 +67,18 @@ Local dev accounts (password `freshphones123`): `justine.rhey@freshphones.ph` (o
 `ralph@freshphones.ph` (CS head). Customer portal demo: provision via
 `POST /api/clients/{id}/portal-account/`. Emails land in MailHog (http://localhost:8025).
 
-## Backend conventions (Django)
+## Target backend conventions (NestJS + TypeScript)
+- Build new backend behavior in `apps/api-ts/`; do not extend Django by default.
+- **Layering:** thin controllers → services (writes/business rules) / query functions (reads)
+  → Prisma data access. Never put business rules in controllers or DTOs.
+- **AuthZ:** stable permission keys enforced by NestJS guards on the API, never UI-only.
+- **Audit:** sensitive changes (money, roles, records) write through the audit service.
+- **Tests:** add unit, integration, authorization-matrix, and parity tests for each migrated
+  vertical slice. Use a real test PostgreSQL database for integration behavior.
+- **Migrations:** commit Prisma migrations. Money uses decimal types; balances stay derived.
+- Migration workflow: [`docs/17-full-scope-workflow.md`](docs/17-full-scope-workflow.md).
+
+## Baseline backend conventions (Django, migration reference only)
 - **One app per module** (`payments_app`, `clients_app`, `batches_app`, `auth_app`, `reports_app`,
   `support_app`, `tasks_app`, `kpi_app`, `recruitment_app`, `agents_app`, `notifications_app`,
   `storage_app`, `audit_app`).

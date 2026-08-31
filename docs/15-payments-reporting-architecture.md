@@ -1,5 +1,8 @@
 # 15 — Architecture & Database: My Part (M4 Payments/Finance + M7 Reporting)
 
+> **Migration note:** This architecture records the Django baseline. The active target is
+> NestJS + Prisma; preserve the payment invariants through parity tests during migration.
+
 **Owner: Justine Cane Bacurin.** Engineering plan for `payments_app` + `reports_app`.
 Builds on: [11-payments-reporting-design.md](11-payments-reporting-design.md) (features),
 [12-records-schema-design.md](12-records-schema-design.md) (M3 interface I depend on),

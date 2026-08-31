@@ -2,9 +2,9 @@
 
 Derived from scope §6 (records), §7 (payments), and §A (recommended data fields). Exact fields
 are finalized in Discovery; **collect only what the business genuinely needs** (data
-minimization, §14). All tables live in Supabase Postgres, owned by **Django migrations**
-(`models.py`); Row-Level Security is optional defense-in-depth (see
-[09-tech-stack.md](09-tech-stack.md)).
+minimization, §14). Target tables live in Supabase PostgreSQL and are owned by **Prisma
+migrations**. Existing Django models remain migration input until each TypeScript slice cuts
+over; database policies are optional defense-in-depth (see [09-tech-stack.md](09-tech-stack.md)).
 
 ## Entity overview
 
@@ -92,8 +92,8 @@ unauthenticated `public`.
 
 ## Access-control principles baked into the model
 - **Least privilege:** each role sees only what its job needs (§18.7).
-- **Server-enforced:** permissions checked in the Django REST API (DRF), never only in the UI
-  (§16); optional RLS as hardening.
+- **Server-enforced:** permissions checked by NestJS guards, never only in the UI (§16);
+  database policies remain optional hardening.
 - **Private by default:** IDs, financial records, documents are private storage + authorized
   access only.
 - **Auditable:** money and permission changes always leave a trail.

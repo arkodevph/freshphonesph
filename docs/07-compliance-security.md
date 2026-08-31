@@ -50,7 +50,8 @@ security are designed in from the start — not added after launch.
 - **Privacy-by-design:** private storage, DRF permissions (optional RLS), least-privilege,
   data minimization (collect only
   needed fields — [03-data-model.md](03-data-model.md)).
-- **No automated consequential decisions:** late flag is a fact; deductions are human-entered;
-  AI only suggests into a human queue ([05-modules.md](05-modules.md) M6, M11).
+- **No automated consequential decisions:** late flag is a fact; deductions and employment
+  actions are human-entered; AI may summarize evidence but does not compute a wage suggestion
+  ([05-modules.md](05-modules.md) M6, M11).
 - **Auditability:** money & permission changes are logged.
 - **Client obligations tracked** as Month-1 prerequisites in [00-roadmap.md](00-roadmap.md).

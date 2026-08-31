@@ -5,9 +5,11 @@ Planning documentation for the system defined in **Full Scope v5 (Revision 1.4, 
 This repository (`freshphonesph`) is the **main repository** for the whole system. The
 existing landing page becomes the public-website surface (§4) of a larger product.
 
-> **Status:** V1 core **implemented** on the `foundation` branch — 8 of 11 modules built
-> end-to-end, 80 backend tests passing. These 00–16 docs are the *plan*; for what's actually
-> built see **[BUILD_STATUS.md](BUILD_STATUS.md)**, and for the merge write-up see
+> **Status:** The repository has a working Django baseline on `foundation`. The approved target
+> now uses **TypeScript for both web and API**. Follow
+> **[17-full-scope-workflow.md](17-full-scope-workflow.md)** for the migration and delivery gates,
+> and use **[18-scope-traceability-matrix.md](18-scope-traceability-matrix.md)** for scope status.
+> For the existing baseline see **[BUILD_STATUS.md](BUILD_STATUS.md)**, and for its merge write-up see
 > **[PULL_REQUEST.md](PULL_REQUEST.md)**. New here (human or AI)? Start with
 > **[../AGENTS.md](../AGENTS.md)**.
 
@@ -41,7 +43,7 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [06-dev-responsibilities.md](06-dev-responsibilities.md) | Developer role vs client obligations | §14, §21 |
 | [07-compliance-security.md](07-compliance-security.md) | Privacy (DPA/NPC), BIR boundary, security controls | §14, §16, §B |
 | [08-commercials-boundaries.md](08-commercials-boundaries.md) | Fee, subscriptions, out-of-scope, handover | §19, §20, §21 |
-| [09-tech-stack.md](09-tech-stack.md) | **Decided stack** — Django REST backend + Next.js frontend (from ARKO) | §15 |
+| [09-tech-stack.md](09-tech-stack.md) | **Decided target stack** — NestJS + Prisma API and Next.js web, all TypeScript | §15 |
 | [10-team-roles.md](10-team-roles.md) | Developer team split & module ownership (internal) | — |
 | [11-payments-reporting-design.md](11-payments-reporting-design.md) | Design spec for M4 (Payments/Finance) + M7 (Reporting) | §7, §9 |
 | [12-records-schema-design.md](12-records-schema-design.md) | Design spec for M3 records (Batch/Client/ScheduleItem) — the balance interface | §6 |
@@ -49,6 +51,8 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [14-sprint-plan-payments-reporting.md](14-sprint-plan-payments-reporting.md) | Sprint plan & stories for Justine Cane's role (M4 + M7) | §7, §9 |
 | [15-payments-reporting-architecture.md](15-payments-reporting-architecture.md) | **Engineering plan** for M4+M7 — code structure, flows, DB schema (Justine Cane) | §7, §9 |
 | [16-how-payments-work.md](16-how-payments-work.md) | **Explainer** (for team & client) — no payment button; claim → verify → balance | §7, §19 |
+| [17-full-scope-workflow.md](17-full-scope-workflow.md) | **How-to** — TypeScript full-scope delivery, migration, gates, evidence, UAT, handover | §1–§21, §A–§B |
+| [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md) | **Reference** — every PDF section mapped to current status and acceptance evidence | §1–§21, §A–§B |
 | [DEV_ACCOUNTS.md](DEV_ACCOUNTS.md) | Local dev login accounts + how to seed them | — |
 
 ## Legend (from the scope)

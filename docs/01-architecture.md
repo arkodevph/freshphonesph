@@ -48,28 +48,28 @@ Unverified entries stay pending and do not move balances. See the Payment module
 
 The scope deliberately splits Vercel (frontend) from Railway (backend) so that **permission
 checks, financial verification, and validation run on the server**, never "only by hiding
-buttons" (§16). Authorization is enforced in the Django REST API (DRF permissions); Supabase
-Row-Level Security is optional defense-in-depth, not the primary gate.
+buttons" (§16). Authorization is enforced in the NestJS API through permission guards;
+database policies are optional defense-in-depth, not the primary gate.
 
 - **Frontend (Vercel):** rendering, session UX, calling the API. No trusted business rules.
-- **Backend (Railway):** authorization, payment verification, balance calculation, audit
+- **Backend (Railway):** NestJS authorization, payment verification, balance calculation, audit
   logging, file access brokering, notifications, report generation.
-- **Supabase:** Postgres system of record + private file storage. Django owns the schema
-  (migrations) and connects with a privileged role; the browser never gets DB credentials.
+- **Supabase:** Postgres system of record + private file storage. Prisma owns the TypeScript
+  target schema and migrations; the browser never gets DB credentials.
 
-## Backend framework (DECIDED — see [09-tech-stack.md](09-tech-stack.md))
+## Backend framework (DECIDED - see [09-tech-stack.md](09-tech-stack.md))
 
-**Django + Django REST Framework + SimpleJWT** (Python 3.12), adopted from the internal ARKO
-system. Django brings its own ORM, migrations, and JWT auth, so no separate ORM (Prisma/Drizzle)
-or Supabase Auth is used. Deployed on Railway via gunicorn. The frontend is a Next.js app that
-calls this REST API over HTTPS. Full rationale and library list in
-[09-tech-stack.md](09-tech-stack.md).
+**NestJS + Prisma + PostgreSQL**, written in TypeScript and deployed as a separate Railway
+service. The frontend is a Next.js TypeScript app that calls the REST API over HTTPS. During
+migration, the current Django API remains the behavioral baseline until each NestJS slice passes
+parity and cutover checks. Full details are in [09-tech-stack.md](09-tech-stack.md).
 
 ## Repository shape
 
 This repo is the single source. It becomes a **monorepo** (see
 [02-foundation-setup.md](02-foundation-setup.md)) with the current landing page moved under
-the web app. Two deployables: Vercel web (Next.js) and Railway api (Django).
+the web app. The target has two TypeScript deployables: Vercel web (Next.js) and Railway API
+(NestJS). The existing Django API stays in place only during the controlled migration.
 
 ## Environments
 

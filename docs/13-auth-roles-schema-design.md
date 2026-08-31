@@ -1,5 +1,8 @@
 # 13 — Design: Auth, Accounts & Roles (M2)
 
+> **Migration note:** This is the Django baseline contract. Keep the permission keys and
+> behavior, but implement target authentication and authorization with NestJS guards.
+
 Schema for **Auth, Accounts & Roles** ([05-modules.md](05-modules.md) M2, §3, §16) —
 `auth_app`. **Owned by Justine Rhey Tambong** (core spine). Written here because **every gated
 module depends on it** — in particular M4's `payment:verify` must resolve to the Finance role.
