@@ -1,39 +1,132 @@
-import { SquaresFour } from "@phosphor-icons/react/dist/ssr";
+"use client";
+
+import Link from "next/link";
+import {
+  ArrowUpRight,
+  CheckCircle,
+  Headset,
+  ListChecks,
+  Receipt,
+  ShieldCheck,
+  Stack,
+  Users,
+} from "@phosphor-icons/react";
+import { useMe } from "@/lib/useMe";
 import DashboardCards from "./DashboardCards";
 import PaymentsCta from "./PaymentsCta";
+import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
+
+const SHORTCUTS = [
+  { icon: Stack, label: "Manage batches", detail: "Paluwagan records", href: "/system/records" },
+  { icon: Users, label: "Open clients", detail: "Members and schedules", href: "/system/clients" },
+  { icon: Receipt, label: "Review payments", detail: "Record and verify", href: "/system/payments" },
+  { icon: Headset, label: "Support cases", detail: "Customer concerns", href: "/system/support" },
+] as const;
 
 export default function DashboardPage() {
-  return (
-    <>
-      <header className="glass mb-4 flex items-center justify-between rounded-3xl px-5 py-3.5">
-        <div>
-          <h1 className="font-display text-lg font-700 tracking-tight text-blue-ink">
-            System Dashboard
-          </h1>
-          <p className="text-xs text-ink-soft">Session active</p>
-        </div>
-      </header>
+  const me = useMe();
+  const displayName = me?.full_name?.split(" ")[0] ?? "there";
+  const date = new Intl.DateTimeFormat("en-PH", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
 
-      <div className="mb-4">
-        <DashboardCards />
+  return (
+    <div className="system-dashboard">
+      <div className="system-dashboard-intro">
+        <div>
+          <p>{date}</p>
+          <h2>Good day, {displayName}</h2>
+          <span>Here&apos;s the latest view of your operations.</span>
+        </div>
+        <div className="system-live-status">
+          <span /> Live data
+        </div>
       </div>
 
-      <section className="glass rounded-3xl p-6 sm:p-10">
-        <div className="flex flex-col items-center text-center">
-          <span className="mb-4 grid h-16 w-16 place-items-center rounded-2xl chrome">
-            <SquaresFour weight="fill" className="h-8 w-8 text-blue" />
-          </span>
-          <h2 className="font-display text-2xl font-700 tracking-tight text-blue-ink">
-            Welcome to the Fresh Phones PH system
-          </h2>
-          <p className="mt-2 max-w-lg text-sm text-ink-soft">
-            Module screens plug in here as each is built. The first live module is
-            Payments &amp; Finance.
-          </p>
+      <div className="system-hero-grid">
+        <section className="system-welcome-card">
+          <div className="system-welcome-copy">
+            <span className="system-card-kicker">Operations workspace</span>
+            <h3>Everything your team needs, in one clear view.</h3>
+            <p>
+              Track batches, customer schedules, payment verification, and support
+              work without leaving the dashboard.
+            </p>
+            <PaymentsCta />
+          </div>
+          <div className="system-hero-visual" aria-hidden="true">
+            <div className="system-hero-orbit orbit-one" />
+            <div className="system-hero-orbit orbit-two" />
+            <div className="system-hero-phone">
+              <span className="system-hero-camera" />
+              <span className="system-hero-camera camera-two" />
+              <span className="system-hero-logo">FP</span>
+            </div>
+            <div className="system-hero-check"><CheckCircle weight="fill" /></div>
+          </div>
+        </section>
 
-          <PaymentsCta />
-        </div>
-      </section>
-    </>
+        <aside className="system-policy-card">
+          <div className="system-panel-heading">
+            <div>
+              <span className="system-card-kicker">System status</span>
+              <h3>Operations safeguards</h3>
+            </div>
+            <ShieldCheck weight="fill" className="h-6 w-6 text-[#5548ff]" />
+          </div>
+          <ul className="system-status-list">
+            <li><span className="status-dot is-green" /><div><strong>Database connected</strong><small>Local development environment</small></div></li>
+            <li><span className="status-dot is-violet" /><div><strong>{TYPESCRIPT_API ? "Installment schedules enabled" : "Finance verification active"}</strong><small>{TYPESCRIPT_API ? "Agreed totals preserved for enrolled clients" : "Only verified payments affect balances"}</small></div></li>
+            <li><span className="status-dot is-blue" /><div><strong>Role access enabled</strong><small>Module permissions enforced by API</small></div></li>
+          </ul>
+        </aside>
+      </div>
+
+      <DashboardCards />
+
+      <div className="system-dashboard-grid">
+        <section className="system-panel system-shortcuts-panel">
+          <div className="system-panel-heading">
+            <div>
+              <span className="system-card-kicker">Daily tools</span>
+              <h3>Quick access</h3>
+            </div>
+            <span className="system-panel-note">Core modules</span>
+          </div>
+          <div className="system-shortcuts">
+            {SHORTCUTS.filter(({ href }) => availableRoute(href)).map(({ icon: Icon, label, detail, href }) => (
+              <Link key={href} href={href} className="system-shortcut">
+                <span className="system-shortcut-icon"><Icon weight="fill" /></span>
+                <span className="min-w-0 flex-1">
+                  <strong>{label}</strong>
+                  <small>{detail}</small>
+                </span>
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="system-panel system-workflow-panel">
+          <div className="system-panel-heading">
+            <div>
+              <span className="system-card-kicker">Required process</span>
+              <h3>Payment workflow</h3>
+            </div>
+            <Receipt className="h-6 w-6 text-[#5548ff]" weight="fill" />
+          </div>
+          <ol className="system-workflow">
+            <li><span>1</span><div><strong>Record</strong><small>Staff enters external payment details.</small></div></li>
+            <li><span>2</span><div><strong>Verify</strong><small>Finance checks proof and reference.</small></div></li>
+            <li><span>3</span><div><strong>Update</strong><small>Verified amount changes the balance.</small></div></li>
+          </ol>
+          {availableRoute("/system/tasks") && <Link href="/system/tasks" className="system-text-link">
+            <ListChecks weight="bold" /> View assigned tasks <ArrowUpRight />
+          </Link>}
+        </section>
+      </div>
+    </div>
   );
 }

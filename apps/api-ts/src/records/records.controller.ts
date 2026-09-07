@@ -66,6 +66,14 @@ export class RecordsController {
   ) {
     return this.records.createClient(user, body);
   }
+  @Get('clients/:id/schedule') schedule(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.records.schedule(user, id);
+  }
+  @Post('clients/:id/schedule') @Requires('CLIENT_MANAGE') issueSchedule(
+    @CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.records.issueSchedule(user, id);
+  }
   @Patch('clients/:id') @Requires('CLIENT_MANAGE') updateClient(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,

@@ -1,45 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Stack, CheckCircle, Clock, CurrencyCircleDollar } from "@phosphor-icons/react";
+import { useCallback, useEffect, useState } from "react";
+import { CheckCircle, Clock, CurrencyCircleDollar, Stack } from "@phosphor-icons/react";
 import { getDashboard, type DashboardCards as Cards } from "@/lib/api";
+import type { Overview } from "@freshphones/contracts";
+import { TYPESCRIPT_API } from "@/lib/backend";
+import { tsRequest } from "@/lib/ts-api";
+import { useLiveRecords } from "@/lib/useLiveRecords";
+
+const formatPeso = (value: string) =>
+  new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    maximumFractionDigits: 0,
+  }).format(Number(value));
 
 export default function DashboardCards() {
   const [cards, setCards] = useState<Cards | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [overview, setOverview] = useState<Overview | null>(null);
 
-  useEffect(() => {
-    getDashboard()
-      .then(setCards)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
+  const load = useCallback(() => {
+    const request = TYPESCRIPT_API ? tsRequest<Overview>("/overview").then(setOverview) : getDashboard().then(setCards);
+    request
+      .then(() => setError(null))
+      .catch((reason) => setError(reason instanceof Error ? reason.message : "Failed to load"));
   }, []);
+  useEffect(load, [load]);
+  useLiveRecords(load);
 
   if (error) {
-    return (
-      <p className="rounded-2xl bg-rose-100 px-4 py-2.5 text-sm font-600 text-rose-700">
-        {error}
-      </p>
-    );
+    return <p className="system-alert is-error">{error}</p>;
   }
 
-  const items = [
-    { icon: Stack, label: "Active batches", value: cards?.active_batches, tone: "text-blue" },
-    { icon: CheckCircle, label: "Verified payments", value: cards?.verified_payments, tone: "text-emerald-600" },
-    { icon: Clock, label: "Pending verification", value: cards?.pending_verification, tone: "text-amber-600" },
-    { icon: CurrencyCircleDollar, label: "Verified total", value: cards ? `₱${cards.verified_total}` : undefined, tone: "text-blue-ink" },
-  ];
+  const items = TYPESCRIPT_API ? [
+    { icon: Stack, label: "Active batches", value: overview?.activeBatches, note: "Current Paluwagan groups", tone: "violet" },
+    { icon: CheckCircle, label: "Clients", value: overview?.clients, note: "Enrolled members", tone: "green" },
+    { icon: Clock, label: "Ready for release", value: overview?.readyForRelease, note: "Recorded release status", tone: "amber" },
+    { icon: CheckCircle, label: "Employees", value: overview?.employees, note: "Active staff accounts", tone: "blue" },
+  ] : [
+    { icon: Stack, label: "Active batches", value: cards?.active_batches, note: "Current Paluwagan groups", tone: "violet" },
+    { icon: CheckCircle, label: "Verified payments", value: cards?.verified_payments, note: "Finance-approved records", tone: "green" },
+    { icon: Clock, label: "Pending review", value: cards?.pending_verification, note: "Awaiting verification", tone: "amber" },
+    { icon: CurrencyCircleDollar, label: "Verified total", value: cards ? formatPeso(cards.verified_total) : undefined, note: "Approved collections", tone: "blue" },
+  ] as const;
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {items.map(({ icon: Icon, label, value, tone }) => (
-        <div key={label} className="glass-tint flex flex-col gap-2 rounded-2xl p-4">
-          <Icon weight="fill" className={`h-6 w-6 ${tone}`} />
-          <span className="font-display text-2xl font-700 text-blue-ink">
-            {value ?? "…"}
-          </span>
-          <span className="text-xs font-600 text-ink-soft">{label}</span>
-        </div>
+    <section className="system-metrics" aria-label="Operations overview">
+      {items.map(({ icon: Icon, label, value, note, tone }) => (
+        <article key={label} className="system-metric-card">
+          <div className={`system-metric-icon tone-${tone}`}><Icon weight="fill" /></div>
+          <div>
+            <span>{label}</span>
+            <strong>{value ?? "—"}</strong>
+            <small>{note}</small>
+          </div>
+        </article>
       ))}
-    </div>
+    </section>
   );
 }

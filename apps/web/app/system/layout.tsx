@@ -1,131 +1,268 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import {
-  SignOut,
-  SquaresFour,
-  Stack,
-  Receipt,
-  Users,
+  Bell,
+  Briefcase,
+  CaretDown,
   ChartBar,
   Headset,
-  Briefcase,
-  Bell,
-  Sparkle,
-  ShieldCheck,
   ListChecks,
+  MagnifyingGlass,
+  Moon,
+  Receipt,
+  ShieldCheck,
+  SignOut,
+  Sparkle,
+  SquaresFour,
+  Stack,
+  Sun,
+  Users,
 } from "@phosphor-icons/react";
-import { isAuthed, clearTokens } from "@/lib/auth";
-import { useMe, can } from "@/lib/useMe";
+import { logoutSession, isAuthed } from "@/lib/auth";
+import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
+import { can, useMe } from "@/lib/useMe";
 
 const NAV = [
-  { icon: SquaresFour, label: "Dashboard", tag: "M7", href: "/system", perms: [] as string[] },
-  { icon: Stack, label: "Paluwagan Records", tag: "M3", href: "/system/records", perms: ["BATCH_MANAGE"] },
-  { icon: Receipt, label: "Payments & Finance", tag: "M4", href: "/system/payments", perms: ["PAYMENT_RECORD", "PAYMENT_VERIFY"] },
-  { icon: Users, label: "Clients", tag: "M3", href: "/system/clients", perms: ["CLIENT_MANAGE"] },
-  { icon: ListChecks, label: "Tasks & KPI", tag: "M6", href: "/system/tasks", perms: [] },
-  { icon: ChartBar, label: "Reports", tag: "M7", href: null, perms: [] },
-  { icon: Headset, label: "Customer Service", tag: "M8", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
-  { icon: Briefcase, label: "Recruitment", tag: "M9", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "CLIENT_MANAGE"] },
-  { icon: Bell, label: "Notifications", tag: "M10", href: null, perms: [] },
-  { icon: Sparkle, label: "AI Assistant", tag: "M11", href: null, perms: [] },
-  { icon: ShieldCheck, label: "Users & Roles", tag: "M2", href: "/system/team", perms: ["ROLE_ASSIGN"] },
+  { icon: SquaresFour, label: "Dashboard", href: "/system", perms: [] as string[] },
+  { icon: Stack, label: "Paluwagan Records", href: "/system/records", perms: ["BATCH_MANAGE", "BATCH_READ"] },
+  { icon: Receipt, label: "Payments & Finance", href: "/system/payments", perms: ["PAYMENT_RECORD", "PAYMENT_VERIFY"] },
+  { icon: Users, label: "Clients", href: "/system/clients", perms: ["CLIENT_MANAGE", "CLIENT_READ"] },
+  { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
+  { icon: ChartBar, label: "Reports", href: null, perms: [] },
+  { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
+  { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "CLIENT_MANAGE"] },
+  { icon: Bell, label: "Notifications", href: null, perms: [] },
+  { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
+  { icon: ShieldCheck, label: "Users & Roles", href: "/system/team", perms: ["ROLE_ASSIGN"] },
 ] as const;
+
+const formatRole = (role?: string | null) =>
+  role ? role.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "Staff";
+
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void) => { finished: Promise<void> };
+};
 
 export default function SystemLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const me = useMe();
   const [ready, setReady] = useState(false);
+  const [openPanel, setOpenPanel] = useState<"search" | "notifications" | "profile" | null>(null);
+  const [query, setQuery] = useState("");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const actionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isAuthed()) router.replace("/login");
     else setReady(true);
   }, [router]);
 
-  // Customers belong in the portal, not the staff system.
   useEffect(() => {
-    if (me && me.account_type === "customer") router.replace("/portal");
+    if (me?.account_type === "customer") router.replace("/portal");
   }, [me, router]);
 
-  function logout() {
-    clearTokens();
-    router.replace("/login");
+  useEffect(() => {
+    setTheme(document.documentElement.dataset.systemTheme === "dark" ? "dark" : "light");
+  }, []);
+
+  useEffect(() => {
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (!actionsRef.current?.contains(event.target as Node)) setOpenPanel(null);
+    }
+    function handleKeyboard(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenPanel(null);
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpenPanel("search");
+      }
+    }
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", handleKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", handleKeyboard);
+    };
+  }, []);
+
+  async function logout() {
+    try {
+      await logoutSession();
+      router.replace("/login");
+    } catch {
+      window.alert("Could not sign out. Check your connection and try again.");
+    }
   }
 
-  if (!ready) {
+  function toggleTheme(event: MouseEvent<HTMLButtonElement>) {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    const root = document.documentElement;
+    const radius = Math.hypot(
+      Math.max(event.clientX, window.innerWidth - event.clientX),
+      Math.max(event.clientY, window.innerHeight - event.clientY),
+    );
+    root.style.setProperty("--theme-iris-x", `${event.clientX}px`);
+    root.style.setProperty("--theme-iris-y", `${event.clientY}px`);
+    root.style.setProperty("--theme-iris-radius", `${radius}px`);
+
+    const applyTheme = () => {
+      root.dataset.systemTheme = nextTheme;
+      localStorage.setItem("freshphones-system-theme", nextTheme);
+      setTheme(nextTheme);
+    };
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      applyTheme();
+      return;
+    }
+    const transition = (document as ViewTransitionDocument).startViewTransition?.(applyTheme);
+    if (!transition) {
+      applyTheme();
+      return;
+    }
+    root.classList.add("system-theme-iris-transition");
+    void transition.finished.finally(() => root.classList.remove("system-theme-iris-transition"));
+  }
+
+  if (!ready || (TYPESCRIPT_API && !me)) {
     return (
-      <main className="grid min-h-screen place-items-center">
-        <p className="text-ink-soft">Checking session…</p>
+      <main className="grid min-h-screen place-items-center bg-[#f4f5f7]">
+        <p className="text-sm font-600 text-[#70727a]">Checking session…</p>
       </main>
     );
   }
 
+  const visibleNav = NAV.filter((item) =>
+    (!TYPESCRIPT_API || (item.href && availableRoute(item.href))) &&
+    (item.perms.length === 0 || can(me, ...item.perms)));
+  const current = visibleNav.find((item) => item.href === pathname)?.label ?? "Workspace";
+  const searchResults = visibleNav.filter(
+    (item) => item.href && item.label.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+  const initials = (me?.full_name ?? "Fresh Phones")
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
-    <div className="min-h-screen p-3 sm:p-5">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row">
-        <aside className="glass flex h-fit flex-col rounded-3xl p-3 lg:w-64 lg:shrink-0">
-          <div className="mb-3 flex items-center gap-2.5 px-2 pt-1">
-            <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-xl chrome">
-              <Image
-                src="/brand/fresh-phones-logo.png"
-                alt="Fresh Phones PH"
-                width={36}
-                height={36}
-                className="h-8 w-8 scale-150 object-cover"
-              />
+    <div className="system-shell">
+      <aside className="system-sidebar">
+        <Link href="/system" className="system-brand" aria-label="Fresh Phones PH dashboard">
+          <span className="system-brand-mark">
+            <Image
+              src="/brand/fresh-phones-logo.png"
+              alt=""
+              width={38}
+              height={38}
+              className="h-9 w-9 scale-150 object-cover"
+            />
+          </span>
+          <span>
+            <strong>Fresh Phones</strong>
+            <small>Operations</small>
+          </span>
+        </Link>
+
+        <div className="system-workspace-label">Workspace</div>
+        <nav className="system-nav" aria-label="System navigation">
+          {visibleNav.map(({ icon: Icon, label, href }) => {
+            const active = href === pathname;
+            const content = (
+              <>
+                <Icon weight={active ? "fill" : "regular"} className="h-[18px] w-[18px]" />
+                <span>{label}</span>
+                {!href && <span className="system-soon">Soon</span>}
+              </>
+            );
+
+            return href ? (
+              <Link key={label} href={href} className={`system-nav-item${active ? " is-active" : ""}`}>
+                {content}
+              </Link>
+            ) : (
+              <span key={label} className="system-nav-item is-disabled" title="Coming soon">
+                {content}
+              </span>
+            );
+          })}
+        </nav>
+
+        <div className="system-sidebar-footer">
+          <div className="system-profile">
+            <span className="system-avatar">{initials}</span>
+            <span className="min-w-0 flex-1">
+              <strong className="block truncate">{me?.full_name ?? "Loading profile"}</strong>
+              <small className="block truncate">{formatRole(me?.role)}</small>
             </span>
-            <span className="font-display text-base font-700 leading-none tracking-tight text-blue-ink">
-              Fresh Phones <span className="holo-text">PH</span>
-            </span>
+            <button onClick={logout} className="system-icon-button" aria-label="Log out" title="Log out">
+              <SignOut className="h-[18px] w-[18px]" />
+            </button>
           </div>
+        </div>
+      </aside>
 
-          <nav className="flex flex-col gap-0.5">
-            {NAV.filter((item) => item.perms.length === 0 || can(me, ...item.perms)).map(
-              ({ icon: Icon, label, tag, href }) => {
-              const active = href && pathname === href;
-              const rowClass = `flex items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm font-600 transition-colors ${
-                active
-                  ? "bg-white/70 text-blue"
-                  : href
-                    ? "text-ink-soft hover:bg-white/50 hover:text-blue"
-                    : "cursor-not-allowed text-ink-soft/50"
-              }`;
-              const inner = (
-                <>
-                  <Icon weight={active ? "fill" : "regular"} className="h-5 w-5" />
-                  <span className="flex-1">{label}</span>
-                  <span className="rounded-full bg-sky-2/70 px-1.5 py-0.5 text-[10px] font-700 text-blue-ink">
-                    {tag}
-                  </span>
-                </>
-              );
-              return href ? (
-                <Link key={label} href={href} className={rowClass}>
-                  {inner}
-                </Link>
-              ) : (
-                <span key={label} className={rowClass} title="Coming soon">
-                  {inner}
-                </span>
-              );
-            })}
-          </nav>
+      <section className="system-main">
+        <header className="system-topbar">
+          <div>
+            <p className="system-eyebrow">Fresh Phones PH</p>
+            <h1>{current}</h1>
+          </div>
+          <div className="system-topbar-actions" ref={actionsRef}>
+            <div className="system-search-wrap">
+              <button className="system-search" type="button" aria-expanded={openPanel === "search"} aria-controls="workspace-search-panel" onClick={() => setOpenPanel(openPanel === "search" ? null : "search")}>
+                <MagnifyingGlass className="h-4 w-4" /><span>Search workspace</span><kbd>⌘ K</kbd>
+              </button>
+              {openPanel === "search" && (
+                <section id="workspace-search-panel" className="system-popover system-search-popover" aria-label="Workspace search">
+                  <div className="system-popover-search"><MagnifyingGlass className="h-4 w-4" /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search accessible pages" aria-label="Search accessible pages" /></div>
+                  <div className="system-search-results">
+                    {searchResults.length ? searchResults.map(({ icon: Icon, label, href }) => (
+                      <Link key={label} href={href!} onClick={() => setOpenPanel(null)}><Icon className="h-[18px] w-[18px]" /><span>{label}</span><span>Open</span></Link>
+                    )) : <p>No accessible pages match “{query}”.</p>}
+                  </div>
+                </section>
+              )}
+            </div>
+            <button className="system-icon-button" type="button" onClick={toggleTheme} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+              {theme === "dark" ? <Sun className="h-[19px] w-[19px]" /> : <Moon className="h-[19px] w-[19px]" />}
+            </button>
+            <div className="system-popover-anchor">
+              <button className="system-icon-button" aria-label="Notifications" aria-expanded={openPanel === "notifications"} aria-controls="notifications-panel" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell className="h-[19px] w-[19px]" /></button>
+              {openPanel === "notifications" && (
+                <section id="notifications-panel" className="system-popover system-notifications-popover" aria-label="Notifications">
+                  <div className="system-popover-heading"><strong>Notifications</strong><small>Staff activity</small></div>
+                  <div className="system-notification-empty"><span><Bell weight="fill" /></span><strong>You&apos;re all caught up</strong><p>No new staff notifications.</p></div>
+                </section>
+              )}
+            </div>
+            <div className="system-popover-anchor">
+              <button className="system-top-profile system-profile-button" type="button" aria-expanded={openPanel === "profile"} aria-controls="profile-panel" onClick={() => setOpenPanel(openPanel === "profile" ? null : "profile")}>
+                <span className="system-avatar">{initials}</span><span className="hidden min-w-0 sm:block"><strong className="block max-w-36 truncate">{me?.full_name ?? "Staff"}</strong><small>{formatRole(me?.role)}</small></span><CaretDown className="hidden h-3.5 w-3.5 sm:block" />
+              </button>
+              {openPanel === "profile" && (
+                <section id="profile-panel" className="system-popover system-profile-popover" aria-label="Account menu">
+                  <div className="system-profile-summary"><span className="system-avatar">{initials}</span><div><strong>{me?.full_name ?? "Staff"}</strong><small>{me?.email}</small></div></div>
+                  <div className="system-profile-role"><span>Access level</span><strong>{formatRole(me?.role)}</strong></div>
+                  <button type="button" onClick={logout}><SignOut /> Log out</button>
+                </section>
+              )}
+            </div>
+          </div>
+        </header>
 
-          <button
-            onClick={logout}
-            className="btn-bubblegum mt-3 inline-flex items-center justify-center gap-1.5 rounded-2xl px-4 py-2.5 text-sm font-700"
-          >
-            <SignOut weight="fill" className="h-4 w-4" />
-            Log out
-          </button>
-        </aside>
-
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
+        <main className="system-content">{availableRoute(pathname) ? children : (
+          <section className="glass rounded-3xl p-10 text-center">
+            <h1 className="font-display text-xl font-700 text-blue-ink">This section is not available yet.</h1>
+            <Link href="/system" className="mt-3 inline-block text-blue">Return to dashboard</Link>
+          </section>
+        )}</main>
+      </section>
     </div>
   );
 }

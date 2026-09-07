@@ -85,6 +85,10 @@ export const accountUpdateSchema = z
   .object({ active: z.boolean(), version: z.number().int().positive() })
   .strict();
 export const batchStatuses = ['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED'] as const;
+export const cadenceSchema = z.enum(['WEEKLY', 'SEMIMONTHLY', 'MONTHLY']);
+export type Cadence = z.infer<typeof cadenceSchema>;
+export const moneySchema = z.string().regex(/^(0|[1-9]\d{0,9})(\.\d{1,2})?$/, 'Use a positive amount with at most two decimal places.')
+  .refine((value) => Number(value) > 0, 'Amount must be positive.');
 export const batchSchema = z
   .object({
     code: z
@@ -98,11 +102,21 @@ export const batchSchema = z
     status: z.enum(batchStatuses),
     startDate: z.string().date(),
     endDate: z.string().date(),
+    contractPrice: moneySchema.optional(),
+    installmentCount: z.number().int().min(1).max(600).optional(),
+    cadence: cadenceSchema.optional(),
   })
   .strict()
   .refine((v) => v.endDate >= v.startDate, {
     path: ['endDate'],
     message: 'End date must be on or after the start date.',
+  })
+  .superRefine((value, ctx) => {
+    const terms = [value.contractPrice, value.installmentCount, value.cadence];
+    if (terms.some((term) => term !== undefined) && terms.some((term) => term === undefined))
+      ctx.addIssue({ code: 'custom', path: ['contractPrice'], message: 'Provide price, installment count and cadence together.' });
+    if (value.contractPrice && value.installmentCount && Math.round(Number(value.contractPrice) * 100) < value.installmentCount)
+      ctx.addIssue({ code: 'custom', path: ['installmentCount'], message: 'Each installment must be at least one centavo.' });
   });
 export const batchUpdateSchema = z
   .object({ version: z.number().int().positive(), record: batchSchema })
@@ -112,14 +126,13 @@ export const releaseStatuses = ['NOT_READY', 'PROCESSING', 'READY', 'RELEASED'] 
 export const clientSchema = z
   .object({
     name: z.string().trim().min(2).max(100),
-    email: z
-      .string()
-      .email()
-      .transform((v) => v.toLowerCase()),
+    email: z.union([z.string().email(), z.literal('')]).transform((v) => v.toLowerCase()),
     phone: z
       .string()
       .trim()
-      .regex(/^[+0-9 ()-]{7,25}$/, 'Enter a valid contact number.'),
+      .regex(/^$|^[+0-9 ()-]{7,25}$/, 'Enter a valid contact number.').default(''),
+    joinedAt: z.string().date().optional(),
+    unitModel: z.string().trim().max(100).optional(),
     batchId: z.string().uuid(),
     status: z.enum(clientStatuses),
     releaseStatus: z.enum(releaseStatuses),
@@ -132,6 +145,7 @@ export const listQuerySchema = z.object({
   q: z.string().max(100).default(''),
   page: z.coerce.number().int().min(1).max(100000).default(1),
   status: z.string().max(30).optional(),
+  batchId: z.string().uuid().optional(),
 });
 export type BatchInput = z.infer<typeof batchSchema>;
 export type ClientInput = z.infer<typeof clientSchema>;
@@ -144,20 +158,35 @@ export interface User {
   permissions: Permission[];
   clientId: string | null;
 }
-export interface Batch extends BatchInput {
+export interface Batch extends Omit<BatchInput, 'contractPrice' | 'installmentCount' | 'cadence'> {
+  contractPrice: string | null;
+  installmentCount: number | null;
+  cadence: Cadence | null;
   id: string;
   version: number;
   createdAt: string;
   updatedAt: string;
   _count: { clients: number };
 }
-export interface Client extends ClientInput {
+export interface Client extends Omit<ClientInput, 'joinedAt'> {
+  joinedAt: string | null;
   id: string;
   version: number;
   createdAt: string;
   updatedAt: string;
   batch: Pick<Batch, 'id' | 'code' | 'model' | 'startDate' | 'endDate'>;
   account: { id: string } | null;
+}
+export interface ScheduleItem {
+  id: string;
+  sequenceNo: number;
+  dueDate: string;
+  expectedAmount: string;
+}
+export interface ClientSchedule {
+  clientId: string;
+  totalDue: string;
+  items: ScheduleItem[];
 }
 export interface Account {
   id: string;

@@ -1,15 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Stack, Plus } from "@phosphor-icons/react";
 import { listBatches, createBatch, type Batch } from "@/lib/api";
 import { useMe, can } from "@/lib/useMe";
+import { TYPESCRIPT_API } from "@/lib/backend";
+import { useLiveRecords } from "@/lib/useLiveRecords";
+import { RecordPagination } from "@/components/RecordPagination";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 export default function RecordsPage() {
   const me = useMe();
   const canManage = can(me, "BATCH_MANAGE");
+  const canRead = can(me, "BATCH_READ", "BATCH_MANAGE");
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [hasNext, setHasNext] = useState(false);
+  const requestVersion = useRef(0);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,16 +34,21 @@ export default function RecordsPage() {
   });
 
   const load = useCallback(async () => {
+    const version = ++requestVersion.current;
     setLoading(true);
     setError(null);
     try {
-      setBatches((await listBatches()).results);
+      const result = await listBatches(TYPESCRIPT_API ? { page: String(page), q: query } : {});
+      if (version !== requestVersion.current) return;
+      setBatches(result.results);
+      setHasNext(Boolean(result.next));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load batches.");
+      if (version === requestVersion.current) setError(e instanceof Error ? e.message : "Failed to load batches.");
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
-  }, []);
+  }, [page, query]);
+  useLiveRecords(load, canRead);
 
   useEffect(() => {
     load();
@@ -70,7 +83,7 @@ export default function RecordsPage() {
     }
   }
 
-  if (me && !canManage) {
+  if (me && !canRead) {
     return (
       <section className="glass rounded-3xl p-10 text-center">
         <h1 className="font-display text-xl font-700 text-blue-ink">No access</h1>
@@ -107,7 +120,7 @@ export default function RecordsPage() {
         </div>
       )}
 
-      <form onSubmit={onCreate} className="glass mb-4 rounded-3xl p-5">
+      {canManage && <form onSubmit={onCreate} className="glass mb-4 rounded-3xl p-5">
         <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
           <Plus weight="bold" className="h-4 w-4" /> New batch
         </h2>
@@ -146,7 +159,12 @@ export default function RecordsPage() {
           <Plus weight="bold" className="h-4 w-4" />
           {saving ? "Creating…" : "Create batch"}
         </button>
-      </form>
+      </form>}
+
+      {TYPESCRIPT_API && <label className="mb-4 flex flex-col gap-1 text-sm text-blue-ink">
+        Search batches
+        <input className={inputCls} value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Batch number or model" />
+      </label>}
 
       <div className="glass overflow-x-auto rounded-3xl p-5">
         <table className="w-full min-w-[640px] text-left text-sm">
@@ -171,8 +189,8 @@ export default function RecordsPage() {
                 <tr key={b.id} className="border-b border-white/40">
                   <td className="px-2 py-2.5 font-700 text-blue-ink">{b.batch_number}</td>
                   <td className="px-2 py-2.5">{b.unit_model}</td>
-                  <td className="px-2 py-2.5 font-600 text-blue-ink">₱{b.contract_price}</td>
-                  <td className="px-2 py-2.5 text-ink-soft">{b.num_installments}</td>
+                  <td className="px-2 py-2.5 font-600 text-blue-ink">{b.contract_price === null ? "Terms not set" : `₱${b.contract_price}`}</td>
+                  <td className="px-2 py-2.5 text-ink-soft">{b.num_installments ?? "—"}</td>
                   <td className="px-2 py-2.5 capitalize text-ink-soft">{b.cadence}</td>
                   <td className="px-2 py-2.5">{b.member_count}</td>
                   <td className="px-2 py-2.5 capitalize">
@@ -184,6 +202,7 @@ export default function RecordsPage() {
           </tbody>
         </table>
       </div>
+      {TYPESCRIPT_API && <RecordPagination page={page} hasNext={hasNext} loading={loading} onPage={setPage} />}
     </>
   );
 }

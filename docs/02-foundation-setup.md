@@ -83,6 +83,9 @@ The existing web app continues to use the Django API until a NestJS vertical sli
 parity and reconciliation gate. This prevents dual writes and preserves the current interface
 during migration.
 
+For the opt-in records and customer-schedule preview using the existing interface, see
+[19-records-typescript-preview.md](19-records-typescript-preview.md).
+
 ## Account ownership (§20)
 
 Production **domain, hosting, database, email, and other third-party accounts should be owned

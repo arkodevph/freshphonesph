@@ -128,6 +128,9 @@ before(async () => {
   const batch = await db.batch.create({
     data: {
       code: `TEST-${suffix}`,
+      contractPrice: '100.00',
+      installmentCount: 3,
+      cadence: 'MONTHLY',
       model: 'Test phone',
       status: 'ACTIVE',
       startDate: new Date('2026-09-01'),
@@ -420,6 +423,69 @@ test('SSE delivers across two API instances and isolates customer events', async
     await customerStream.close();
   }
 });
+test('enrollment snapshots exact installments, freezes terms and rolls back invalid writes', async () => {
+  const owner = await new Session().login('OWNER');
+  const terms = { code: `PLAN-${suffix}`, model: 'iPhone plan', status: 'ACTIVE',
+    startDate: '2026-01-31', endDate: '2026-05-01', contractPrice: '100.00', installmentCount: 3, cadence: 'MONTHLY' };
+  const created = await owner.request('/batches', post(terms));
+  assert.equal(created.status, 201);
+  const batch = await created.json();
+  assert.equal(batch.contractPrice, '100.00');
+  assert.equal(batch.startDate, terms.startDate);
+  const input = { name: 'Schedule member', email: '', batchId: batch.id,
+    status: 'ACTIVE', releaseStatus: 'NOT_READY', joinedAt: '2026-02-01' };
+  const enrolled = await owner.request('/clients', post(input));
+  assert.equal(enrolled.status, 201);
+  const client = await enrolled.json();
+  assert.equal(client.joinedAt, '2026-02-01');
+  const schedule = await (await owner.request(`/clients/${client.id}/schedule`)).json();
+  assert.equal(schedule.totalDue, '100.00');
+  assert.deepEqual(schedule.items.map((item: { expectedAmount: string }) => item.expectedAmount), ['33.33', '33.33', '33.34']);
+  assert.deepEqual(schedule.items.map((item: { dueDate: string }) => item.dueDate), ['2026-03-02', '2026-04-01', '2026-05-01']);
+  for (const record of [{ ...terms, contractPrice: '200.00' }, { ...terms, startDate: '2026-02-01' }])
+    assert.equal((await owner.request(`/batches/${batch.id}`, patch({ version: 1, record }))).status, 409);
+  assert.equal((await owner.request(`/clients/${client.id}`, patch({ version: 1, record: { ...input, batchId } }))).status, 409);
+  assert.deepEqual(await (await owner.request(`/clients/${client.id}/schedule`)).json(), schedule);
+  assert.equal(await db.auditEntry.count({ where: { recordId: client.id, action: 'schedule.generated' } }), 1);
+  const eventCount = await db.changeEvent.count();
+  const clientCount = await db.client.count();
+  const legacy = await db.batch.findFirstOrThrow({ where: { code: `OTHER-${suffix}` } });
+  assert.equal((await owner.request('/clients', post({ ...input, batchId: legacy.id }))).status, 400);
+  assert.equal(await db.changeEvent.count(), eventCount);
+  assert.equal(await db.client.count(), clientCount);
+  for (const change of [{ contractPrice: '0.001' }, { contractPrice: '-1' }, { installmentCount: 0 },
+    { contractPrice: '0.01', installmentCount: 2 }, { endDate: '2026-02-01' }]) {
+    assert.equal((await owner.request('/batches', post({ ...terms, code: `BAD-${suffix}`, ...change }))).status, 400);
+  }
+  const filtered = await (await owner.request(`/clients?batchId=${batch.id}&q=Schedule`)).json();
+  assert.deepEqual(filtered.items.map((item: { id: string }) => item.id), [client.id]);
+});
+
+test('schedule issuance is idempotent under concurrency, audited and isolated by role/customer', async () => {
+  const owner = await new Session().login('OWNER');
+  const customer = await new Session().login('CUSTOMER');
+  assert.equal((await customer.request(`/clients/${secondClient}/schedule`)).status, 404);
+  assert.equal((await customer.request(`/clients/${firstClient}/schedule`, post({}))).status, 403);
+  const eventCount = await db.changeEvent.count({ where: { recordId: firstClient } });
+  const issued = await Promise.all([
+    owner.request(`/clients/${firstClient}/schedule`, post({})),
+    owner.request(`/clients/${firstClient}/schedule`, post({})),
+  ]);
+  assert.deepEqual(issued.map((res) => res.status), [201, 201]);
+  assert.deepEqual(await issued[0].json(), await issued[1].json());
+  assert.equal(await db.scheduleItem.count({ where: { clientId: firstClient } }), 3);
+  assert.equal(await db.auditEntry.count({ where: { recordId: firstClient, action: 'schedule.generated' } }), 1);
+  assert.equal(await db.changeEvent.count({ where: { recordId: firstClient } }), eventCount + 1);
+  assert.equal((await customer.request(`/clients/${firstClient}/schedule`)).status, 200);
+  for (const role of roles) {
+    const session = await new Session().login(role);
+    assert.equal((await session.request(`/clients/${firstClient}/schedule`)).status,
+      role === 'CUSTOMER' || rolePermissions[role].includes('CLIENT_READ') ? 200 : 404, role);
+    assert.equal((await session.request(`/clients/${firstClient}/schedule`, post({}))).status,
+      rolePermissions[role].includes('CLIENT_MANAGE') ? 201 : 403, role);
+  }
+});
+
 test('deactivation stops an existing stream and invalidates the session', async () => {
   const owner = await new Session().login('OWNER');
   const records = await new Session().login('RECORDS');

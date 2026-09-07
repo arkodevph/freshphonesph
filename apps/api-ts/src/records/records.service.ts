@@ -17,6 +17,8 @@ import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { allowed } from '../auth/access';
 import { hashPassword } from '../auth/password';
+import { generateSchedule } from './schedule';
+import type { Batch as StoredBatch } from '../generated/prisma/client';
 
 const batchInclude = { _count: { select: { clients: true } } } as const;
 const clientInclude = {
@@ -33,10 +35,19 @@ const accountSelect = {
   version: true,
   createdAt: true,
 } as const;
-type Query = { page: number; q: string; status?: string };
+type Query = { page: number; q: string; status?: string; batchId?: string };
 const pageSize = 20;
 const json = (value: unknown): Prisma.InputJsonValue =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+const batchJson = <T extends StoredBatch>(batch: T) => ({
+  ...batch,
+  startDate: batch.startDate.toISOString().slice(0, 10),
+  endDate: batch.endDate.toISOString().slice(0, 10),
+  contractPrice: batch.contractPrice?.toFixed(2) ?? null,
+});
+const clientJson = <T extends { joinedAt: Date | null }>(client: T) => ({
+  ...client, joinedAt: client.joinedAt?.toISOString().slice(0, 10) ?? null,
+});
 
 @Injectable()
 export class RecordsService {
@@ -100,30 +111,40 @@ export class RecordsService {
       this.db.batch.count({ where }),
     ]);
     return {
-      items: items.map((b) => ({
-        ...b,
-        startDate: b.startDate.toISOString().slice(0, 10),
-        endDate: b.endDate.toISOString().slice(0, 10),
-      })),
+      items: items.map(batchJson),
       total,
       page: query.page,
       pageSize,
     };
   }
   async createBatch(user: User, input: BatchInput) {
+    this.validatePlan(input);
     return this.write(user, 'BATCH_MANAGE', async (tx) => {
       const result = await tx.batch.create({
         data: { ...input, startDate: new Date(input.startDate), endDate: new Date(input.endDate) },
         include: batchInclude,
       });
       await this.record(tx, user.id, 'batch', result.id, 'batch.created', null, result);
-      return result;
+      return batchJson(result);
     });
   }
   async updateBatch(user: User, id: string, input: BatchInput, version: number) {
     return this.write(user, 'BATCH_MANAGE', async (tx) => {
       const before = await tx.batch.findUnique({ where: { id } });
       if (!before) throw new NotFoundException('Batch not found.');
+      const termsChanged = before.startDate.toISOString().slice(0, 10) !== input.startDate ||
+        before.endDate.toISOString().slice(0, 10) !== input.endDate || before.model !== input.model ||
+        (input.contractPrice !== undefined && !before.contractPrice?.equals(input.contractPrice)) ||
+        (input.installmentCount !== undefined && before.installmentCount !== input.installmentCount) ||
+        (input.cadence !== undefined && before.cadence !== input.cadence);
+      if (termsChanged && await tx.scheduleItem.count({ where: { client: { batchId: id } } }))
+        throw new ConflictException('Plan terms are locked after schedules are issued. Create a new batch for a different plan.');
+      this.validatePlan({
+        ...input,
+        contractPrice: input.contractPrice ?? before.contractPrice?.toFixed(2),
+        installmentCount: input.installmentCount ?? before.installmentCount ?? undefined,
+        cadence: input.cadence ?? before.cadence ?? undefined,
+      });
       const changed = await tx.batch.updateMany({
         where: { id, version },
         data: {
@@ -139,7 +160,7 @@ export class RecordsService {
         );
       const after = await tx.batch.findUniqueOrThrow({ where: { id }, include: batchInclude });
       await this.record(tx, user.id, 'batch', id, 'batch.updated', before, after);
-      return after;
+      return batchJson(after);
     });
   }
   async clients(query: Query) {
@@ -155,6 +176,7 @@ export class RecordsService {
         throw new BadRequestException('Invalid client status.');
       where.status = query.status as Prisma.EnumClientStatusFilter['equals'];
     }
+    if (query.batchId) where.batchId = query.batchId;
     const [items, total] = await this.db.$transaction([
       this.db.client.findMany({
         where,
@@ -165,36 +187,60 @@ export class RecordsService {
       }),
       this.db.client.count({ where }),
     ]);
-    return { items, total, page: query.page, pageSize };
+    return { items: items.map(clientJson), total, page: query.page, pageSize };
   }
   async client(user: User, id: string) {
     if (!allowed(user, 'CLIENT_READ') && !(user.role === 'CUSTOMER' && user.clientId === id))
       throw new NotFoundException('Client not found.');
     const client = await this.db.client.findUnique({ where: { id }, include: clientInclude });
     if (!client) throw new NotFoundException('Client not found.');
-    return client;
+    return clientJson(client);
+  }
+  private validatePlan(input: BatchInput) {
+    if (input.contractPrice === undefined || input.installmentCount === undefined || input.cadence === undefined) return;
+    const items = generateSchedule({ ...input, contractPrice: input.contractPrice, installmentCount: input.installmentCount, cadence: input.cadence, startDate: new Date(input.startDate) });
+    if (items[items.length - 1].dueDate > new Date(input.endDate))
+      throw new BadRequestException('The batch end date must include the last installment.');
+  }
+  private plan(batch: StoredBatch) {
+    if (batch.contractPrice === null || batch.installmentCount === null || batch.cadence === null)
+      throw new BadRequestException('Set the agreed batch payment terms before enrolling a client or issuing a schedule.');
+    return generateSchedule({ ...batch, contractPrice: batch.contractPrice.toFixed(2), installmentCount: batch.installmentCount, cadence: batch.cadence });
   }
   private async enrollment(tx: Prisma.TransactionClient, batchId: string) {
     const batch = await tx.batch.findUnique({ where: { id: batchId } });
     if (!batch || !['PLANNED', 'ACTIVE'].includes(batch.status))
       throw new BadRequestException('Choose a planned or active batch for enrollment.');
+    return batch;
   }
   async createClient(user: User, input: ClientInput) {
     return this.write(user, 'CLIENT_MANAGE', async (tx) => {
-      await this.enrollment(tx, input.batchId);
-      const result = await tx.client.create({ data: input, include: clientInclude });
+      const batch = await this.enrollment(tx, input.batchId);
+      const schedule = this.plan(batch);
+      const result = await tx.client.create({
+        data: { ...input, joinedAt: input.joinedAt ? new Date(input.joinedAt) : new Date(),
+          unitModel: input.unitModel || batch.model,
+          schedule: { create: schedule } },
+        include: clientInclude,
+      });
       await this.record(tx, user.id, 'client', result.id, 'client.created', null, result);
-      return result;
+      await this.record(tx, user.id, 'client', result.id, 'schedule.generated', null, { items: schedule });
+      await tx.changeEvent.create({ data: { entity: 'batch', recordId: batch.id } });
+      return clientJson(result);
     });
   }
   async updateClient(user: User, id: string, input: ClientInput, version: number) {
     return this.write(user, 'CLIENT_MANAGE', async (tx) => {
       const before = await tx.client.findUnique({ where: { id } });
       if (!before) throw new NotFoundException('Client not found.');
-      if (before.batchId !== input.batchId) await this.enrollment(tx, input.batchId);
+      if (before.batchId !== input.batchId) {
+        if (await tx.scheduleItem.count({ where: { clientId: id } }))
+          throw new ConflictException('This client has an issued schedule and cannot be moved to another batch.');
+        await this.enrollment(tx, input.batchId);
+      }
       const changed = await tx.client.updateMany({
         where: { id, version },
-        data: { ...input, version: { increment: 1 } },
+        data: { ...input, joinedAt: input.joinedAt ? new Date(input.joinedAt) : undefined, version: { increment: 1 } },
       });
       if (!changed.count)
         throw new ConflictException(
@@ -202,7 +248,32 @@ export class RecordsService {
         );
       const after = await tx.client.findUniqueOrThrow({ where: { id }, include: clientInclude });
       await this.record(tx, user.id, 'client', id, 'client.updated', before, after);
-      return after;
+      return clientJson(after);
+    });
+  }
+  async schedule(user: User, id: string) {
+    await this.client(user, id);
+    return this.readSchedule(this.db, id);
+  }
+  private async readSchedule(tx: Prisma.TransactionClient, id: string) {
+    const items = await tx.scheduleItem.findMany({ where: { clientId: id }, orderBy: { sequenceNo: 'asc' } });
+    if (!items.length) throw new ConflictException('This client does not have an issued schedule yet. Ask Records to review the batch terms.');
+    const totalDue = items.reduce((sum, item) => sum.add(item.expectedAmount), new Prisma.Decimal(0)).toFixed(2);
+    return { clientId: id, totalDue, items: items.map((item) => ({
+      id: item.id, sequenceNo: item.sequenceNo, dueDate: item.dueDate.toISOString().slice(0, 10),
+      expectedAmount: item.expectedAmount.toFixed(2),
+    })) };
+  }
+  async issueSchedule(user: User, id: string) {
+    return this.write(user, 'CLIENT_MANAGE', async (tx) => {
+      const client = await tx.client.findUnique({ where: { id }, include: { batch: true } });
+      if (!client) throw new NotFoundException('Client not found.');
+      if (!await tx.scheduleItem.count({ where: { clientId: id } })) {
+        const items = this.plan(client.batch);
+        await tx.scheduleItem.createMany({ data: items.map((item) => ({ ...item, clientId: id })) });
+        await this.record(tx, user.id, 'client', id, 'schedule.generated', null, { items });
+      }
+      return this.readSchedule(tx, id);
     });
   }
   async accounts(query: Query) {

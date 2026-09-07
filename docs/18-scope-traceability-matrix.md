@@ -43,6 +43,18 @@ current Django baseline as reviewed on 2026-09-01. The target backend is TypeScr
 
 ## Current implementation evidence
 
+### TypeScript increment (2026-09-07)
+
+| Scope | Target implementation and evidence | Status |
+|---|---|---|
+| §3, §16 Auth/access | Existing login uses cookie sessions in opt-in mode; web refresh/error tests and API role matrix pass. Account/role administration parity remains open. | Partial |
+| §5 Portal | Existing portal reads own membership, immutable schedule total and release status. API cross-customer tests deny other clients. Verified Finance and support remain on baseline. | Partial |
+| §6 Records | Batch terms, atomic enrollment/schedules, protected issued terms, legacy issuance, audit/events, search/pagination. Eight unit tests include Django parity fixtures; twelve API integration tests cover security/concurrency. Private documents/checklists and remaining edit UI are open. | Partial |
+| v6 draft §15.1–15.2 | Existing screens refetch on live events/reconnect and retain unsaved drafts. Cross-instance and customer-isolation SSE tests remain green. | Partial |
+
+Runbook and detailed limits: [19-records-typescript-preview.md](19-records-typescript-preview.md).
+The table below remains evidence for the Django baseline.
+
 | Area | Evidence |
 |---|---|
 | Authentication and roles | `apps/api/auth_app`, `auth_app/permissions_map.py`, `auth_app/tests/` |

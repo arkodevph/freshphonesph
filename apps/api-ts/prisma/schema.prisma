@@ -36,6 +36,11 @@ enum ReleaseStatus {
   READY
   RELEASED
 }
+enum Cadence {
+  WEEKLY
+  SEMIMONTHLY
+  MONTHLY
+}
 model User {
   id String @id @default(uuid()) @db.Uuid
   name String @db.VarChar(100)
@@ -77,6 +82,9 @@ model Batch {
   status BatchStatus @default(PLANNED)
   startDate DateTime @db.Date
   endDate DateTime @db.Date
+  contractPrice Decimal? @db.Decimal(12, 2)
+  installmentCount Int?
+  cadence Cadence?
   version Int @default(1)
   clients Client[]
   createdAt DateTime @default(now())
@@ -88,16 +96,28 @@ model Client {
   name String @db.VarChar(100)
   email String @db.VarChar(254)
   phone String @db.VarChar(25)
+  joinedAt DateTime? @db.Date
+  unitModel String @default("") @db.VarChar(100)
   batchId String @db.Uuid
   batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
   status ClientStatus @default(ACTIVE)
   releaseStatus ReleaseStatus @default(NOT_READY)
   version Int @default(1)
   account User?
+  schedule ScheduleItem[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([batchId])
   @@index([status, createdAt])
+}
+model ScheduleItem {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  sequenceNo Int
+  dueDate DateTime @db.Date
+  expectedAmount Decimal @db.Decimal(12, 2)
+  @@unique([clientId, sequenceNo])
 }
 model AuditEntry {
   id String @id @default(uuid()) @db.Uuid

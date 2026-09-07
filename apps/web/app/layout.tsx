@@ -43,7 +43,15 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var saved=localStorage.getItem('freshphones-system-theme');var theme=saved==='light'||saved==='dark'?saved:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.systemTheme=theme}catch(e){document.documentElement.dataset.systemTheme='light'}})()`,
+          }}
+        />
+      </head>
       <body className="min-h-full overflow-x-hidden">{children}</body>
     </html>
   );

@@ -10,7 +10,7 @@ export default function PaymentsCta() {
   return (
     <Link
       href="/system/payments"
-      className="btn-candy mt-6 inline-flex items-center gap-2 rounded-2xl px-5 py-3 font-700"
+      className="system-primary-action"
     >
       <Receipt weight="fill" className="h-5 w-5" />
       Open Payments &amp; Finance

@@ -1,30 +1,39 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Users, Plus, CalendarBlank } from "@phosphor-icons/react";
 import {
   listClients,
   createClient,
-  listBatches,
+  listBatchChoices,
   getSchedule,
   type ClientRecord,
   type Batch,
   type ScheduleItem,
+  type RecordId,
 } from "@/lib/api";
 import { useMe, can } from "@/lib/useMe";
+import { TYPESCRIPT_API } from "@/lib/backend";
+import { useLiveRecords } from "@/lib/useLiveRecords";
+import { RecordPagination } from "@/components/RecordPagination";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 export default function ClientsPage() {
   const me = useMe();
   const canManage = can(me, "CLIENT_MANAGE");
+  const canRead = can(me, "CLIENT_READ", "CLIENT_MANAGE");
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [hasNext, setHasNext] = useState(false);
+  const requestVersion = useRef(0);
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [schedule, setSchedule] = useState<{ id: number; items: ScheduleItem[] } | null>(null);
+  const [schedule, setSchedule] = useState<{ id: RecordId; items: ScheduleItem[] } | null>(null);
   const [form, setForm] = useState({
     batch: "",
     full_name: "",
@@ -33,18 +42,27 @@ export default function ClientsPage() {
   });
 
   const load = useCallback(async () => {
+    const version = ++requestVersion.current;
     setLoading(true);
     setError(null);
     try {
-      const [c, b] = await Promise.all([listClients(), listBatches()]);
+      const [c, b] = await Promise.all([listClients(TYPESCRIPT_API ? { page: String(page), q: query } : {}), listBatchChoices()]);
+      if (version !== requestVersion.current) return;
       setClients(c.results);
-      setBatches(b.results);
+      setHasNext(Boolean(c.next));
+      setBatches(b);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load.");
+      if (version === requestVersion.current) setError(e instanceof Error ? e.message : "Failed to load.");
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
-  }, []);
+  }, [page, query]);
+  useLiveRecords(() => {
+    void load();
+    if (schedule) void getSchedule(schedule.id).then((items) =>
+      setSchedule((current) => current?.id === schedule.id ? { id: current.id, items } : current)
+    ).catch((e) => setError(e instanceof Error ? e.message : "Could not refresh schedule."));
+  }, canRead);
 
   useEffect(() => {
     load();
@@ -61,7 +79,7 @@ export default function ClientsPage() {
     setError(null);
     try {
       await createClient({
-        batch: Number(form.batch),
+        batch: TYPESCRIPT_API ? form.batch : Number(form.batch),
         full_name: form.full_name,
         contact_email: form.contact_email,
         joined_at: form.joined_at,
@@ -76,7 +94,7 @@ export default function ClientsPage() {
     }
   }
 
-  async function toggleSchedule(id: number) {
+  async function toggleSchedule(id: RecordId) {
     if (schedule?.id === id) {
       setSchedule(null);
       return;
@@ -88,7 +106,7 @@ export default function ClientsPage() {
     }
   }
 
-  if (me && !canManage) {
+  if (me && !canRead) {
     return (
       <section className="glass rounded-3xl p-10 text-center">
         <h1 className="font-display text-xl font-700 text-blue-ink">No access</h1>
@@ -123,7 +141,7 @@ export default function ClientsPage() {
         </div>
       )}
 
-      <form onSubmit={onCreate} className="glass mb-4 rounded-3xl p-5">
+      {canManage && <form onSubmit={onCreate} className="glass mb-4 rounded-3xl p-5">
         <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
           <Plus weight="bold" className="h-4 w-4" /> Add client to a batch
         </h2>
@@ -155,7 +173,11 @@ export default function ClientsPage() {
         {batches.length === 0 && (
           <p className="mt-2 text-xs text-ink-soft">Create a batch first (Paluwagan Records).</p>
         )}
-      </form>
+      </form>}
+      {TYPESCRIPT_API && <label className="mb-4 flex flex-col gap-1 text-sm text-blue-ink">
+        Search clients
+        <input className={inputCls} value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Name, email or batch number" />
+      </label>}
 
       <div className="glass overflow-x-auto rounded-3xl p-5">
         <table className="w-full min-w-[640px] text-left text-sm">
@@ -178,7 +200,7 @@ export default function ClientsPage() {
               clients.map((c) => (
                 <Fragment key={c.id}>
                   <tr className="border-b border-white/40">
-                    <td className="px-2 py-2.5 font-600 text-blue-ink">{c.id}</td>
+                    <td className="px-2 py-2.5 font-600 text-blue-ink" title={String(c.id)}>{typeof c.id === "string" ? c.id.slice(0, 8) : c.id}</td>
                     <td className="px-2 py-2.5 font-700 text-blue-ink">{c.full_name}</td>
                     <td className="px-2 py-2.5 text-ink-soft">{c.batch_number}</td>
                     <td className="px-2 py-2.5 text-ink-soft">{c.contact_email || "—"}</td>
@@ -224,6 +246,7 @@ export default function ClientsPage() {
           </tbody>
         </table>
       </div>
+      {TYPESCRIPT_API && <RecordPagination page={page} hasNext={hasNext} loading={loading} onPage={setPage} />}
     </>
   );
 }

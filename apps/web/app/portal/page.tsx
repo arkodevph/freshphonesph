@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import {
   getPortalSummary,
+  getPortalRecords,
   getPortalSchedule,
   getPortalPayments,
   getPortalSupport,
@@ -23,8 +24,10 @@ import {
   type Payment,
   type SupportCase,
 } from "@/lib/api";
-import { isAuthed, clearTokens } from "@/lib/auth";
+import { isAuthed, logoutSession } from "@/lib/auth";
 import { useMe } from "@/lib/useMe";
+import { TYPESCRIPT_API } from "@/lib/backend";
+import { useLiveRecords } from "@/lib/useLiveRecords";
 
 const SCHED_STYLES: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700",
@@ -54,8 +57,26 @@ export default function PortalPage() {
   }, [me, router]);
 
   const loadSupport = () => getPortalSupport().then(setCases).catch(() => {});
+  const loadRecords = useCallback(() => {
+    void getPortalRecords().then(({ client, schedule: plan }) => {
+      setSummary({ full_name: client.name, batch_number: client.batch.code,
+        unit_model: client.unitModel || client.batch.model, status: client.status.toLowerCase(),
+        total_due: plan?.totalDue ?? null, verified_paid: null, remaining_balance: null,
+        release_status: client.releaseStatus.toLowerCase().replaceAll("_", " ") });
+      setSchedule(plan?.items.map((item) => ({
+        sequence_no: item.sequenceNo, due_date: item.dueDate, expected_amount: item.expectedAmount,
+        paid_applied: "", status: "scheduled",
+      })) ?? []);
+      setError(null);
+    }).catch((e) => setError(e instanceof Error ? e.message : "Could not load membership."));
+  }, []);
+  useLiveRecords(loadRecords, me?.account_type === "customer");
 
   useEffect(() => {
+    if (TYPESCRIPT_API) {
+      loadRecords();
+      return;
+    }
     Promise.all([getPortalSummary(), getPortalSchedule(), getPortalPayments()])
       .then(([s, sch, pay]) => {
         setSummary(s);
@@ -64,11 +85,15 @@ export default function PortalPage() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load."));
     loadSupport();
-  }, []);
+  }, [loadRecords]);
 
-  function logout() {
-    clearTokens();
-    router.replace("/login");
+  async function logout() {
+    try {
+      await logoutSession();
+      router.replace("/login");
+    } catch {
+      setError("Could not sign out. Check your connection and try again.");
+    }
   }
 
   async function submitConcern(e: React.FormEvent) {
@@ -129,16 +154,16 @@ export default function PortalPage() {
           </div>
           <div className="glass-tint rounded-3xl p-5">
             <Wallet weight="fill" className="mb-2 h-6 w-6 text-blue" />
-            <p className="text-xs font-600 text-ink-soft">Remaining balance</p>
+            <p className="text-xs font-600 text-ink-soft">{TYPESCRIPT_API ? "Scheduled total" : "Remaining balance"}</p>
             <p className="font-display text-3xl font-800 text-blue-ink">
-              ₱{summary?.remaining_balance ?? "…"}
+              {TYPESCRIPT_API ? (summary?.total_due ? `₱${summary.total_due}` : "Not issued") : `₱${summary?.remaining_balance ?? "…"}`}
             </p>
           </div>
           <div className="glass rounded-3xl p-5">
             <CheckCircle weight="fill" className="mb-2 h-6 w-6 text-emerald-600" />
-            <p className="text-xs font-600 text-ink-soft">Verified paid</p>
-            <p className="font-display text-3xl font-800 text-blue-ink">₱{summary?.verified_paid ?? "…"}</p>
-            <p className="text-xs text-ink-soft">of ₱{summary?.total_due ?? "…"} total</p>
+            <p className="text-xs font-600 text-ink-soft">{TYPESCRIPT_API ? "Release status" : "Verified paid"}</p>
+            <p className="font-display text-3xl font-800 capitalize text-blue-ink">{TYPESCRIPT_API ? summary?.release_status ?? "…" : `₱${summary?.verified_paid ?? "…"}`}</p>
+            {!TYPESCRIPT_API && <p className="text-xs text-ink-soft">of ₱{summary?.total_due ?? "…"} total</p>}
           </div>
         </div>
 
@@ -157,6 +182,7 @@ export default function PortalPage() {
               </tr>
             </thead>
             <tbody>
+              {TYPESCRIPT_API && schedule.length === 0 && <tr><td colSpan={4} className="px-2 py-3 text-ink-soft">Your schedule has not been issued yet. Please contact Records.</td></tr>}
               {schedule.map((s) => (
                 <tr key={s.sequence_no} className="border-b border-white/40">
                   <td className="px-2 py-2.5 font-600 text-blue-ink">{s.sequence_no}</td>
@@ -174,7 +200,7 @@ export default function PortalPage() {
         </div>
 
         {/* Verified payments */}
-        <div className="glass overflow-x-auto rounded-3xl p-5">
+        {!TYPESCRIPT_API && <div className="glass overflow-x-auto rounded-3xl p-5">
           <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
             <CheckCircle weight="fill" className="h-4 w-4" /> Verified payments
           </h2>
@@ -202,10 +228,10 @@ export default function PortalPage() {
               </tbody>
             </table>
           )}
-        </div>
+        </div>}
 
         {/* Support */}
-        <div className="glass mt-4 rounded-3xl p-5">
+        {!TYPESCRIPT_API && <div className="glass mt-4 rounded-3xl p-5">
           <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
             <ChatCircleText weight="fill" className="h-4 w-4" /> Support
           </h2>
@@ -248,11 +274,11 @@ export default function PortalPage() {
               ))}
             </ul>
           )}
-        </div>
+        </div>}
 
         <p className="mt-4 text-center text-xs text-ink-soft">
-          Payments are coordinated in the Messenger group chat — this portal shows your verified
-          records &amp; balance.
+          {TYPESCRIPT_API ? "Payments are coordinated in the Messenger group chat. Scheduled amounts show your plan terms; they are not payment confirmations." :
+            "Payments are coordinated in the Messenger group chat — this portal shows your verified records & balance."}
         </p>
       </div>
     </div>

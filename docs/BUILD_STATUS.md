@@ -23,9 +23,16 @@ The parallel `apps/api-ts` service now provides the first migration slice:
 - Role-filtered server-sent events backed by a PostgreSQL event cursor, including reconnect
   recovery and cross-instance delivery without Redis.
 
-Current verification: 5 unit tests and 10 PostgreSQL integration tests pass. The existing
-Next.js TypeScript check and the NestJS production build also pass. Django remains the active
-behavioral baseline until individual route groups pass cutover parity.
+The records increment now adds decimal batch terms, atomic enrollment/schedule generation,
+locked issued terms, idempotent legacy schedule issuance, and search/pagination. An opt-in
+TypeScript API mode connects the existing login, Records, Clients, dashboard and customer
+membership/schedule screens, with cookie refresh and live invalidation.
+
+Current verification: 8 API unit tests, 12 PostgreSQL integration tests and 4 web client tests.
+Next.js/NestJS typechecks and the production workspace build pass. Browser checks cover
+enrollment, schedule totals, live draft preservation, customer membership and mobile width.
+See [19-records-typescript-preview.md](19-records-typescript-preview.md) for setup, evidence,
+the fixed-day cadence policy, and remaining Gate 2 work. Django is still the default backend.
 
 ## Module status
 

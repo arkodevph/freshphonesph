@@ -3,6 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { hashPassword } from '../src/auth/password';
 import { passwordSchema } from '@freshphones/contracts';
+import { generateSchedule } from '../src/records/schedule';
 
 async function main() {
   if (process.env.NODE_ENV === 'production') throw new Error('Demo seed cannot run in production.');
@@ -42,6 +43,9 @@ async function main() {
       update: {},
       create: {
         code: 'FP-2026-001',
+        contractPrice: '30000.00',
+        installmentCount: 6,
+        cadence: 'MONTHLY',
         model: 'iPhone 16 · 128 GB',
         status: 'ACTIVE',
         startDate: new Date('2026-09-01'),
@@ -53,6 +57,9 @@ async function main() {
       update: {},
       create: {
         code: 'FP-2026-002',
+        contractPrice: '24000.00',
+        installmentCount: 6,
+        cadence: 'MONTHLY',
         model: 'iPhone 15 · 128 GB',
         status: 'PLANNED',
         startDate: new Date('2026-10-01'),
@@ -68,9 +75,15 @@ async function main() {
         name: 'Taylor Garcia',
         email: 'customer@freshphones.test',
         phone: '+63 900 000 0000',
+        joinedAt: new Date('2026-09-01'),
+        unitModel: batch.model,
         batchId: batch.id,
         status: 'ACTIVE',
         releaseStatus: 'PROCESSING',
+        ...(batch.contractPrice && batch.installmentCount && batch.cadence ? {
+          schedule: { create: generateSchedule({ contractPrice: batch.contractPrice.toFixed(2),
+            installmentCount: batch.installmentCount, cadence: batch.cadence, startDate: batch.startDate }) },
+        } : {}),
       },
     });
     await db.user.upsert({

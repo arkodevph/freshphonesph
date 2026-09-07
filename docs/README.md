@@ -53,6 +53,7 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [16-how-payments-work.md](16-how-payments-work.md) | **Explainer** (for team & client) — no payment button; claim → verify → balance | §7, §19 |
 | [17-full-scope-workflow.md](17-full-scope-workflow.md) | **How-to** — TypeScript full-scope delivery, migration, gates, evidence, UAT, handover | §1–§21, §A–§B |
 | [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md) | **Reference** — every PDF section mapped to current status and acceptance evidence | §1–§21, §A–§B |
+| [19-records-typescript-preview.md](19-records-typescript-preview.md) | Run the existing UI with TypeScript records, installments, customer membership and live updates | §3, §5, §6, §15, §16 |
 | [DEV_ACCOUNTS.md](DEV_ACCOUNTS.md) | Local dev login accounts + how to seed them | — |
 
 ## Legend (from the scope)

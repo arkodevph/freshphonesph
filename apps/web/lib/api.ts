@@ -1,8 +1,8 @@
-// Minimal API client for the Django REST backend (docs/09-tech-stack.md).
-// The backend base URL is injected at build/runtime via NEXT_PUBLIC_API_URL.
-
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import type { Batch as TsBatch, BatchInput, Client as TsClient, ClientSchedule, Page, User } from "@freshphones/contracts";
+import { API_URL, TYPESCRIPT_API } from "./backend";
+import { ApiError, tsRequest, toBatch, toClient, toMe, toPage, toSchedule } from "./ts-api";
+export { API_URL } from "./backend";
+export type RecordId = string | number;
 
 export type Tokens = { access: string; refresh: string };
 
@@ -10,7 +10,11 @@ export type Tokens = { access: string; refresh: string };
 export async function login(
   username: string,
   password: string,
-): Promise<Tokens> {
+): Promise<Tokens | null> {
+  if (TYPESCRIPT_API) {
+    await tsRequest<User>("/auth/login", { method: "POST", body: JSON.stringify({ email: username, password }) });
+    return null;
+  }
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/auth/token/`, {
@@ -34,6 +38,7 @@ export async function login(
 import { getTokens } from "./auth";
 
 async function apiFetch(path: string, options: RequestInit = {}) {
+  if (TYPESCRIPT_API) throw new Error("This section is not available yet.");
   const token = getTokens()?.access;
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -144,12 +149,12 @@ export function getDashboard() {
 
 // ── Records: batches + clients (M3) ────────────────────────────────────────
 export type Batch = {
-  id: number;
+  id: RecordId;
   batch_number: string;
   unit_model: string;
   status: string;
-  contract_price: string;
-  num_installments: number;
+  contract_price: string | null;
+  num_installments: number | null;
   cadence: string;
   start_date: string;
   end_date: string | null;
@@ -158,8 +163,8 @@ export type Batch = {
 };
 
 export type ClientRecord = {
-  id: number;
-  batch: number;
+  id: RecordId;
+  batch: RecordId;
   batch_number: string;
   full_name: string;
   contact_email: string;
@@ -170,14 +175,29 @@ export type ClientRecord = {
 };
 
 export type ScheduleItem = {
-  id: number;
+  id: RecordId;
   sequence_no: number;
   due_date: string;
   expected_amount: string;
 };
 
-export function listBatches() {
-  return apiFetch("/api/batches/") as Promise<Paginated<Batch>>;
+export function listBatches(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params).toString();
+  if (TYPESCRIPT_API)
+    return tsRequest<Page<TsBatch>>(`/batches?${qs}`).then((page) => toPage(page, toBatch));
+  return apiFetch(`/api/batches/?${qs}`) as Promise<Paginated<Batch>>;
+}
+
+export async function listBatchChoices(): Promise<Batch[]> {
+  if (!TYPESCRIPT_API) return (await listBatches()).results;
+  const batches: Batch[] = [];
+  let page = 1;
+  while (true) {
+    const result = await listBatches({ page: String(page) });
+    batches.push(...result.results.filter((batch) => ["active", "forming"].includes(batch.status) && batch.contract_price !== null));
+    if (!result.next) return batches;
+    page++;
+  }
 }
 
 export function createBatch(body: {
@@ -189,6 +209,20 @@ export function createBatch(body: {
   cadence: string;
   start_date: string;
 }) {
+  if (TYPESCRIPT_API) {
+    const cadence = body.cadence.toUpperCase() as NonNullable<BatchInput["cadence"]>;
+    const endDate = new Date(body.start_date);
+    const days = { WEEKLY: 7, SEMIMONTHLY: 15, MONTHLY: 30 }[cadence];
+    if (!days || !Number.isInteger(body.num_installments) || body.num_installments < 1 || body.num_installments > 600)
+      return Promise.reject(new Error("Choose a cadence and 1–600 installments."));
+    endDate.setUTCDate(endDate.getUTCDate() + days * body.num_installments);
+    return tsRequest<TsBatch>("/batches", { method: "POST", body: JSON.stringify({
+      code: body.batch_number, model: body.unit_model,
+      status: ({ forming: "PLANNED", active: "ACTIVE", closed: "COMPLETED", cancelled: "CANCELLED" } as const)[body.status as "forming" | "active" | "closed" | "cancelled"],
+      startDate: body.start_date, endDate: endDate.toISOString().slice(0, 10),
+      contractPrice: body.contract_price, installmentCount: body.num_installments, cadence,
+    }) }).then(toBatch);
+  }
   return apiFetch("/api/batches/", {
     method: "POST",
     body: JSON.stringify(body),
@@ -197,41 +231,53 @@ export function createBatch(body: {
 
 export function listClients(params: Record<string, string> = {}) {
   const qs = new URLSearchParams(params).toString();
+  if (TYPESCRIPT_API)
+    return tsRequest<Page<TsClient>>(`/clients?${qs}`).then((page) => toPage(page, toClient));
   return apiFetch(`/api/clients/${qs ? `?${qs}` : ""}`) as Promise<
     Paginated<ClientRecord>
   >;
 }
 
 export function createClient(body: {
-  batch: number;
+  batch: RecordId;
   full_name: string;
   contact_email?: string;
   unit_model?: string;
   joined_at: string;
 }) {
+  if (TYPESCRIPT_API) return tsRequest<TsClient>("/clients", {
+    method: "POST", body: JSON.stringify({
+      batchId: String(body.batch), name: body.full_name, email: body.contact_email ?? "",
+      phone: "", joinedAt: body.joined_at, unitModel: body.unit_model,
+      status: "ACTIVE", releaseStatus: "NOT_READY",
+    }),
+  }).then(toClient);
   return apiFetch("/api/clients/", {
     method: "POST",
     body: JSON.stringify(body),
   }) as Promise<ClientRecord>;
 }
 
-export function getSchedule(clientId: number) {
+export function getSchedule(clientId: RecordId) {
+  if (TYPESCRIPT_API)
+    return tsRequest<ClientSchedule>(`/clients/${clientId}/schedule`).then(toSchedule);
   return apiFetch(`/api/clients/${clientId}/schedule/`) as Promise<ScheduleItem[]>;
 }
 
 // ── Current user (role-aware UI) ───────────────────────────────────────────
 export type Me = {
-  id: number;
+  id: RecordId;
   email: string;
   full_name: string;
   role: string | null;
-  employee_id: number | null;
+  employee_id: RecordId | null;
   account_type: "employee" | "customer" | null;
-  client_id: number | null;
+  client_id: RecordId | null;
   permissions: string[];
 };
 
 export function fetchMe() {
+  if (TYPESCRIPT_API) return tsRequest<User>("/auth/me").then(toMe);
   return apiFetch("/api/auth/me/") as Promise<Me>;
 }
 
@@ -241,10 +287,24 @@ export type PortalSummary = {
   batch_number: string;
   unit_model: string;
   status: string;
-  total_due: string;
-  verified_paid: string;
-  remaining_balance: string;
+  total_due: string | null;
+  verified_paid: string | null;
+  remaining_balance: string | null;
+  release_status?: string;
 };
+
+export async function getPortalRecords() {
+  const user = await tsRequest<User>("/auth/me");
+  if (user.role !== "CUSTOMER" || !user.clientId) throw new Error("A customer account is required.");
+  const [client, schedule] = await Promise.all([
+    tsRequest<TsClient>(`/clients/${user.clientId}`),
+    tsRequest<ClientSchedule>(`/clients/${user.clientId}/schedule`).catch((error: unknown) => {
+      if (error instanceof ApiError && error.status === 409) return null;
+      throw error;
+    }),
+  ]);
+  return { client, schedule };
+}
 
 export type PortalScheduleItem = {
   sequence_no: number;
