@@ -64,26 +64,24 @@ Each step has a verification check (per CLAUDE.md goal-driven execution).
 
 Completing 1–8 = **Core Foundation acceptance** milestone (§20).
 
-## Environment variables (`.env.example` to be added)
+## Environment variables
+
+Copy `apps/api-ts/.env.example` to `apps/api-ts/.env` for local development.
 
 Server-only (never shipped to the browser):
 
 ```
 # NestJS API (Railway)
 DATABASE_URL=                 # Supabase Postgres connection string
-JWT_ACCESS_SECRET=
-JWT_REFRESH_SECRET=
-CORS_ALLOWED_ORIGINS=         # the Vercel web domain
-# Supabase Storage (S3 API)
-SUPABASE_S3_ENDPOINT=
-SUPABASE_S3_ACCESS_KEY=
-SUPABASE_S3_SECRET_KEY=
-SUPABASE_S3_BUCKET=
-# Email
+JWT_SECRET=                   # at least 32 random characters
+WEB_ORIGIN=                   # exact Vercel web origin
 RESEND_API_KEY=
-# Web (Next.js, Vercel)
-NEXT_PUBLIC_API_URL=          # web -> NestJS API base URL
+EMAIL_FROM=
 ```
+
+The existing web app continues to use the Django API until a NestJS vertical slice passes its
+parity and reconciliation gate. This prevents dual writes and preserves the current interface
+during migration.
 
 ## Account ownership (§20)
 

@@ -10,6 +10,23 @@ before treating that result as current.
 > [17-full-scope-workflow.md](17-full-scope-workflow.md) and row-level coverage in
 > [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md).
 
+## TypeScript foundation
+
+The parallel `apps/api-ts` service now provides the first migration slice:
+
+- NestJS API startup, configuration validation, PostgreSQL health check, and Prisma migrations.
+- Access and refresh sessions in secure HTTP-only cookies, password reset, replay protection,
+  account deactivation, and shared database-backed login throttling.
+- Server-enforced role permissions for accounts, batches, clients, and audit reads.
+- Batch and client CRUD with strict shared Zod contracts, optimistic concurrency, transactionally
+  written audit entries, and customer record isolation.
+- Role-filtered server-sent events backed by a PostgreSQL event cursor, including reconnect
+  recovery and cross-instance delivery without Redis.
+
+Current verification: 5 unit tests and 10 PostgreSQL integration tests pass. The existing
+Next.js TypeScript check and the NestJS production build also pass. Django remains the active
+behavioral baseline until individual route groups pass cutover parity.
+
 ## Module status
 
 | Module | Status | Key endpoints | UI |

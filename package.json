@@ -7,6 +7,13 @@
     "lint": "turbo lint",
     "web": "pnpm --filter @fresh/web",
     "api": "bash apps/api/scripts/manage.sh",
+    "api:ts": "pnpm --filter @fresh/api-ts",
+    "typecheck": "pnpm --filter @freshphones/contracts build && pnpm --filter @fresh/api-ts typecheck && pnpm --filter @fresh/web exec tsc --noEmit",
+    "test:api-ts": "pnpm --filter @fresh/api-ts test",
+    "test:api-ts:integration": "pnpm --filter @fresh/api-ts test:integration",
+    "db:generate": "pnpm --filter @fresh/api-ts db:generate",
+    "db:migrate": "pnpm --filter @fresh/api-ts db:migrate",
+    "db:seed": "pnpm --filter @fresh/api-ts db:seed",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down"
   },
