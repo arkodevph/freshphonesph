@@ -1,9 +1,9 @@
-# 18 - Full Scope v5 Traceability Matrix
+# 18 - Full Scope v6 Traceability Matrix
 
-This reference maps every section of **Full Scope v5, Revision 1.4** to the repository's
+This reference maps every section of **Full Scope v6, Revision 1.5** to the repository's
 current implementation evidence and the evidence required for acceptance. Status describes the
-current Django baseline as reviewed on 2026-09-01. The target backend is TypeScript/NestJS; see
-[17-full-scope-workflow.md](17-full-scope-workflow.md).
+current Django baseline as reviewed on 2026-09-01; v6 target architecture is recorded in
+[20-v6-architecture-decision.md](20-v6-architecture-decision.md).
 
 ## How to maintain this matrix
 
@@ -31,7 +31,7 @@ current Django baseline as reviewed on 2026-09-01. The target backend is TypeScr
 | §12 Notifications | In-app/email, deadline, Finance, customer status, templates | Verification creates a customer in-app record and optional email; no center, templates, Finance alerts, deadline reminders, or general status events | Partial | Delivery, retry/idempotency, template authorization, read state, and event coverage tests |
 | §13 AI Assistant | Permission-aware, approved-source assistant added after stable core; summaries and task help only | `ai_app` is an empty skeleton | Skeleton | Approved-source retrieval, role isolation, no-write, prompt-injection, privacy, and human-review tests |
 | §14 Privacy, Documents, Compliance | Notices, terms, employee/applicant notice, DPA, DPO, PIA, NPC assessment, retention, breach process | Private storage and minimization patterns exist; client policy documents, consent/version tracking, retention deletion, and incident workflow remain open | Blocked - client | Approved client policies plus implemented notice/version, retention/deletion, and incident runbooks |
-| §15 Technical Architecture | Vercel web, Railway API, Supabase database/private storage, Resend, optional Redis | Monorepo and integrations are structured for those services; backend is currently Django and production provisioning is pending | Partial | NestJS deployed to Railway, web/API/storage/email smoke tests, client-owned account record |
+| §15 Technical Architecture | VPS web, Railway API, Supabase database/Auth/private storage, Resend, Redis launch infrastructure | Architecture is approved in [20-v6-architecture-decision.md](20-v6-architecture-decision.md); backend identity and production provisioning are pending | Partial | Two API replicas, Redis event/worker recovery, web/API/storage/email smoke tests, client-owned account record |
 | §16 Security Requirements | Auth, backend checks, private files, HTTPS, audit, validation/rate limits, backup/recovery, secrets, least privilege | Auth, server permissions, private signed files, audit, validation, and env-based secrets exist; rate-limit and recovery evidence is missing | Partial | Security checklist, all-route permission scan, rate-limit tests, backup/restore rehearsal, production HTTPS evidence |
 | §17 SDLC and Timeline | Discovery through UAT/handover with change-controlled scope | Planning docs exist and much of the Django baseline was built; formal gate evidence is incomplete | Partial | Gate records from the implementation workflow and accepted release plan |
 | §18 Scope Revisions | Enforce ten revisions covering payments, BIR wording, wages, AI, Redis, access, public agents, privacy, and budget | Most boundaries are documented and represented in code; older AI wording still conflicts with the stricter project rule | Partial | Conflict removed from active docs and regression tests cover every technical revision |
@@ -78,7 +78,7 @@ working local or CI environment.
 
 1. `docs/09-tech-stack.md` and several design drafts describe Django. The target is now a
    TypeScript NestJS API; older Django material remains useful only for behavioral parity.
-2. Full Scope v5 contains optional AI deduction-suggestion wording in §13/§18.4, while §8 and
+2. Full Scope v6 contains optional AI deduction-suggestion wording in §13/§18.4, while §8 and
    the project's approved safeguard prohibit system-computed wage recommendations. The stricter
    no-computation rule wins.
 3. Some old docs describe all M1-M11 acceptance criteria as developer responsibility even when

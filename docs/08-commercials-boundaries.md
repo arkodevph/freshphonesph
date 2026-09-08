@@ -28,29 +28,30 @@ cross-cutting security/privacy, built via a proper SDLC.
   separately. Milestone schedule is in [00-roadmap.md](00-roadmap.md).
 
 ### Recurring third-party subscriptions (paid by Fresh Phones PH)
-Separate from the dev fee and larger, per year, than the one-time fee. USD→PHP at USD 1 =
-PHP 61.358 (reference rate Aug 14, 2026); actual prices/usage vary.
+Separate from the dev fee and larger, per year, than the one-time fee. The v6 architecture
+uses a VPS frontend, Railway API/worker, Supabase, Redis, Resend, and Cloudflare. The estimates
+below use USD 1 = PHP 60 for planning only; provider prices, taxes, exchange rates, and usage vary.
 
 | Item | Treatment | Notes |
 |---|---|---|
-| Vercel / hosting | Recurring | Vercel Pro ~USD 20/mo (~PHP 1,227); usage/seats may add cost |
-| Railway / backend | Recurring | Hobby from USD 5/mo (~PHP 307 min incl. USD 5 usage); overage billed |
-| Supabase | Recurring | Pro from USD 25/mo (~PHP 1,534) for prod DB/auth/storage/quotas |
+| VPS / frontend | Recurring | Plan around USD 24/mo (~PHP 1,440) for a 2 vCPU / 4 GB Next.js host; provider and region remain to be selected |
+| Railway / API and worker | Recurring | Pro from USD 20/mo (~PHP 1,200) including usage credit; two API replicas and a worker scale by actual CPU/RAM use |
+| Supabase | Recurring | Pro with Small compute about USD 30/mo (~PHP 1,800) for production DB/auth/storage/quotas |
 | Cloudflare / domain | Domain + optional paid | DNS + Email Routing can stay Free; domain renewal is separate annual cost by TLD |
 | Resend / email | Recurring if over free | Free up to 3,000 emails/mo; Pro from USD 20/mo (~PHP 1,227) for 50k |
-| Redis | Not required initially | Add only if caching/queue/rate-limit needs justify it |
+| Redis | Recurring | Fixed 250 MB baseline about USD 10/mo (~PHP 600) for events, queues, and rate limiting; high-availability Redis is a separate cost decision |
 | Maintenance | Separate after-launch agreement | Not part of the subscription total |
 
 **Planning reference totals:**
 | Scenario | Estimated total |
 |---|---|
-| Baseline monthly | ~USD 50 / ~PHP 3,068 per month |
-| Baseline annual | ~PHP 36,815/year + domain renewal |
-| If Resend Pro needed | ~USD 70 / ~PHP 4,295 per month |
-| Suggested operating allowance | ~PHP 3,500–5,000/month (headroom for overages/provider changes) |
+| Baseline monthly | ~USD 84 / ~PHP 5,040 per month |
+| With Resend Pro and Railway usage headroom | ~USD 119 / ~PHP 7,140 per month |
+| Suggested operating allowance | ~PHP 7,000/month, excluding taxes, domain renewal, and optional AI/monitoring usage |
 
-*Assumptions:* one Vercel Pro, one Railway Hobby minimum, one Supabase Pro, Cloudflare Free
-DNS/Email Routing, Resend Free, no Redis at launch.
+*Assumptions:* one 2 vCPU / 4 GB VPS, Railway Pro with two API replicas and one worker,
+Supabase Pro with Small compute, a fixed 250 MB Redis instance, Cloudflare Free DNS/Email
+Routing, and Resend Free or Pro according to email volume.
 
 ### Recommended ownership (§20)
 Production domain, hosting, database, email, and other third-party accounts should be **owned

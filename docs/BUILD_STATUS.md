@@ -70,7 +70,7 @@ Every module has **working, tested code**. A few models started as minimal **con
 - M1 public catalog / how-it-works / FAQ content beyond the current landing sections.
 - M10 full notification center (staff/finance alerts, templates, read UI, deadline reminders).
 - Task proof/attachments; report role-scoped field trimming; RLS hardening (optional, docs/15).
-- Production provisioning (Supabase/Railway/Vercel/Cloudflare/Resend) — client-owned accounts (§20).
+- Production provisioning (Supabase/Railway/Redis/VPS/Cloudflare/Resend) — client-owned accounts (§20).
 
 ## Test & run
 `cd apps/api && source .venv/bin/activate && python manage.py test` → discovers 80 tests.

@@ -38,7 +38,7 @@ landing page.
 Not a numbered scope section but the prerequisite for every gated module. See
 [04-roles-access.md](04-roles-access.md).
 
-- **Features:** API-issued JWT sign-in/refresh and password reset; employee account creation
+- **Features:** Supabase Auth sign-in, session recovery, and password reset; employee account creation
   with role assignment; customer account linked to a client record; server-side NestJS
   permission guards; optional database-policy hardening.
 - **Acceptance:** an under-privileged role is rejected at the API (not just hidden); a customer

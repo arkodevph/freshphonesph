@@ -13,7 +13,7 @@ current Django service under `apps/api-ts` until cutover; shared contracts may l
 ```
 freshphonesph/
 ├─ apps/
-│  ├─ web/                     # Next.js — public site (§4) + portal (§5) + staff dashboard  → Vercel
+│  ├─ web/                     # Next.js — public site (§4) + portal (§5) + staff dashboard  → client VPS
 │  │  ├─ app/
 │  │  │  ├─ (public)/          # landing (existing) + catalog, how-it-works, faqs,
 │  │  │  │                     #   agent-verify, careers, requirements, login
@@ -74,7 +74,7 @@ Server-only (never shipped to the browser):
 # NestJS API (Railway)
 DATABASE_URL=                 # Supabase Postgres connection string
 JWT_SECRET=                   # at least 32 random characters
-WEB_ORIGIN=                   # exact Vercel web origin
+WEB_ORIGIN=                   # exact VPS-hosted web origin
 RESEND_API_KEY=
 EMAIL_FROM=
 ```

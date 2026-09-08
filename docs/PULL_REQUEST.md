@@ -9,7 +9,7 @@ Builds the Fresh Phones PH Integrated Web System from the landing page into a fu
 customer UIs on real data. **80 backend tests passing.**
 
 - 26 commits · monorepo restructure + full backend + frontend.
-- Stack (per `docs/09`): Next.js 16 (Vercel) · Django 5 + DRF + SimpleJWT (Railway) · Postgres
+- Stack (per `docs/09`): Next.js 16 (client VPS) · Django 5 + DRF + SimpleJWT baseline · Postgres
   (Supabase) · Supabase Storage/MinIO · Resend/MailHog. Local infra via docker-compose.
 
 ## What's included
@@ -54,7 +54,7 @@ Full status: [`BUILD_STATUS.md`](BUILD_STATUS.md).
 ## Notes
 - Some upstream models began as **contract skeletons** (owned by another dev) and were extended
   to unblock building — owners should review/refine. Nothing here is production-provisioned yet
-  (Supabase/Railway/Vercel accounts are client-owned per §20).
+  (Supabase/Railway/Redis/VPS accounts are client-owned per §20).
 - Not started: **M11 AI assistant**; M1 public catalog/FAQ content; full M10 notification center.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

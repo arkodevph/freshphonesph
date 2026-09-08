@@ -1,23 +1,25 @@
 # 09 - Tech Stack (Decided)
 
-**Decision:** use TypeScript for both the web frontend and backend API. The target keeps the
-scope's deployment split: Next.js on Vercel and a separate NestJS API on Railway.
+**Decision:** use TypeScript for both the web frontend and backend API. The Full Scope v6
+baseline uses Next.js on a Fresh Phones PH-controlled VPS and a separate NestJS API on Railway.
+The settled architecture and pending VPS choices are recorded in
+[20-v6-architecture-decision.md](20-v6-architecture-decision.md).
 
 The current Django API remains a behavioral baseline during migration. New backend features
 belong in the TypeScript service unless a short-lived Django change is required to keep the
 baseline usable and is explicitly approved.
 
-## Frontend - `apps/web` (Vercel)
+## Frontend - `apps/web` (VPS)
 
 | Concern | Target | Notes |
 |---|---|---|
-| Framework | Next.js 16 App Router | Public website, customer portal, and staff system |
+| Framework | Next.js 16 App Router, deployed as a Node.js service | Public website, customer portal, and staff system |
 | Language | TypeScript | Strict mode; no untyped API payloads |
 | UI | React 19 and Tailwind CSS v4 | Follow current repository styling and components |
 | Icons | Phosphor | Already used by the application |
 | Server state | TanStack Query | Add when API migration work needs cache and mutation handling |
 | Validation/contracts | Zod plus generated/shared API types | Client validation improves UX; the API remains authoritative |
-| Authentication UX | JWT session client | API issues and validates access/refresh tokens |
+| Authentication UX | Supabase Auth session client | Supabase owns identity/session recovery; API validates Supabase JWTs |
 
 Before changing Next.js configuration or framework conventions, read the installed guides in
 `node_modules/next/dist/docs/`; this repository uses Next.js 16.
@@ -31,13 +33,13 @@ Before changing Next.js configuration or framework conventions, read the install
 | Framework | NestJS REST API | Module boundaries map to the business domains |
 | Database | Supabase PostgreSQL | System of record |
 | ORM/migrations | Prisma | Decimal money types and committed migrations |
-| Authentication | Passport JWT with access/refresh tokens | Individual employee and customer accounts |
+| Authentication | Supabase Auth JWT validation | Supabase owns identity, password reset, recovery, and session lifecycle |
 | Authorization | Permission decorators and NestJS guards | Server-side enforcement on every protected route |
 | Validation | NestJS DTO validation and explicit domain checks | Reject malformed data before service writes |
 | API reference | OpenAPI through `@nestjs/swagger` | Source for typed clients and endpoint review |
 | File storage | AWS S3 client against Supabase Storage | Private buckets and short-lived signed URLs |
 | Email | Resend | Sent by backend services after committed events |
-| Background jobs | None at launch | Add a queue only when a measured workflow requires it |
+| Background jobs | Redis-backed workers | Email, notifications, exports, document processing, scheduled reminders, and AI work run after the committed request |
 | Server | NestJS HTTP adapter on Railway | Keep business rules out of the web client |
 
 Controllers parse requests and call services. Services own writes, transactions, state
@@ -78,22 +80,24 @@ sequence or a mutable balance column.
 - Monetary values use PostgreSQL/Prisma decimal types, never JavaScript floating-point math.
 - `remaining_balance` is computed from contract total minus verified payment sum.
 - Private files use opaque object keys; the API authorizes every signed URL request.
-- Redis is not launch infrastructure. Add it only for a measured queue, cache, or distributed
-  rate-limit requirement.
+- Redis is launch infrastructure for cross-instance event delivery, background-work queues,
+  rate limiting, and short-lived cache data. It never stores financial truth; reconnecting
+  screens refetch authorized data if delivery is interrupted.
 
 ## Hosting and infrastructure
 
 | Service | Role |
 |---|---|
-| Vercel | Next.js web application |
+| VPS | Next.js web application |
 | Railway | NestJS API |
 | Supabase | PostgreSQL and private storage |
 | Resend | Transactional email |
 | Cloudflare | Domain, DNS, and optional edge controls |
-| Redis | Optional later |
+| Redis | Cross-instance events, queues, rate limiting, and short-lived cache |
 
 Fresh Phones PH owns and pays for production accounts. Developers receive the minimum access
-needed to build and maintain the system.
+needed to build and maintain the system. The VPS provider, deployment method, and production
+region are not yet selected and must be decided before provisioning.
 
 ## Monorepo tooling
 

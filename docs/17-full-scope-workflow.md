@@ -1,6 +1,6 @@
-# 17 - Full Scope v5 Implementation Workflow
+# 17 - Full Scope v6 Implementation Workflow
 
-This is the execution workflow for **Full Scope v5, Revision 1.4 (August 2026)**. It turns
+This is the execution workflow for **Full Scope v6, Revision 1.5 (September 2026)**. It turns
 the signed scope into ordered delivery work, evidence, review gates, and change control.
 Use it with the [scope traceability matrix](18-scope-traceability-matrix.md) and
 [build status](BUILD_STATUS.md).
@@ -9,9 +9,10 @@ Use it with the [scope traceability matrix](18-scope-traceability-matrix.md) and
 
 The target is a mobile-responsive operations platform with:
 
-- a Next.js TypeScript frontend on Vercel;
+- a Next.js TypeScript frontend on a client-owned VPS;
 - a separate NestJS TypeScript API on Railway;
 - PostgreSQL and private S3-compatible storage on Supabase;
+- Redis for cross-instance events, queues, and rate limiting;
 - email through Resend;
 - server-enforced role permissions and audited sensitive actions; and
 - no direct website payment processing, official BIR invoice generation, or automatic wage
@@ -25,7 +26,7 @@ NestJS slice passes parity tests and its cutover gate.
 
 When two documents disagree, use this order:
 
-1. The signed Full Scope v5 revision and approved change requests.
+1. The signed Full Scope v6 revision and approved change requests.
 2. The non-negotiable safeguards in `AGENTS.md`.
 3. This workflow and the traceability matrix.
 4. Current implementation evidence in code, migrations, and tests.
@@ -41,14 +42,14 @@ task facts; an authorized human enters any KPI or HR recommendation.
 Customer / employee browser
             |
             v
-Next.js 16 web (Vercel)
+Next.js 16 web (VPS)
             |
             v
-NestJS API (Railway)
-   |          |          |
-   v          v          v
-PostgreSQL  private S3  Resend
-(Supabase)  storage     email
+NestJS API (Railway, two replicas)
+   |          |          |          |
+   v          v          v          v
+PostgreSQL  private S3  Redis      Resend
+(Supabase)  storage     events/jobs email
 ```
 
 | Concern | Target | Rule |
@@ -56,11 +57,13 @@ PostgreSQL  private S3  Resend
 | Web | Next.js 16, React 19, TypeScript, Tailwind CSS v4 | UI is not a trusted authorization boundary |
 | API | NestJS, TypeScript, REST | Controllers stay thin; services own writes and business rules |
 | Data | PostgreSQL through Prisma migrations | Money uses decimal types; balances stay derived |
-| Auth | JWT access/refresh tokens issued by the API | Every protected route authenticates server-side |
+| Auth | Supabase Auth JWTs validated by the API | Supabase owns identity/session recovery; every protected route authenticates server-side |
 | Authorization | Stable permission keys plus NestJS guards | Each route declares the permission it requires |
 | Validation | DTO validation at the API boundary | Reject invalid money, state transitions, and file metadata |
 | Files | Private Supabase Storage through S3-compatible signed URLs | No public customer, payment-proof, employee, or applicant files |
 | Email | Resend from the API | Use approved templates and recipients only |
+| Live updates | Authenticated SSE; Redis fan-out after a successful commit | Events carry only refresh identifiers; clients refetch authorized data after reconnecting |
+| Background work | Redis-backed workers | Retries cover email, notifications, exports, document processing, reminders, and AI work; payment verification remains transactional |
 | Tests | Unit, API integration, authorization matrix, and end-to-end tests | Every scope row needs repeatable evidence |
 
 ## Non-negotiable acceptance rules
@@ -120,7 +123,7 @@ comparison.
 
 1. Add NestJS, Prisma, PostgreSQL configuration, structured environment validation, and health
    checks.
-2. Add JWT login/refresh and individual employee/customer accounts.
+2. Integrate Supabase Auth and individual employee/customer account linkage; validate its JWTs in the API.
 3. Port stable permission keys and enforce them through API guards.
 4. Add audit logging and private-storage signing as shared services.
 5. Establish unit, integration, and authorization-matrix test helpers.
@@ -222,7 +225,7 @@ metadata without logging unnecessary private content.
 2. Complete backup/restore rehearsal and incident contacts.
 3. Implement client-approved retention/deletion rules and notice/version acceptance.
 4. Run the permission matrix against every protected endpoint.
-5. Provision client-owned Vercel, Railway, Supabase, Cloudflare, and Resend accounts.
+5. Provision the client-owned VPS, Railway, Supabase, Redis, Cloudflare, and Resend accounts.
 
 **Exit evidence:** security checklist, restore record, privacy checklist, production account
 ownership record, and no high-severity release blocker.
@@ -258,7 +261,7 @@ a time. Do not combine unrelated modules or silently remove behavior during migr
 
 ## Change control
 
-If a request is outside Full Scope v5 or changes an accepted workflow:
+If a request is outside Full Scope v6 or changes an accepted workflow:
 
 1. record the request and affected scope rows;
 2. classify it as defect, clarification, or change request;

@@ -11,9 +11,9 @@ client's legal/privacy officer (§14).
 ## Developer responsibilities (build & deliver)
 
 **Technical implementation of the agreed scope:**
-- Public website + customer/employee portal frontend (Vercel).
+- Public website + customer/employee portal frontend (client-owned VPS).
 - NestJS TypeScript backend/API and server-side business logic (Railway).
-- Database (Supabase PostgreSQL, schema via **Prisma migrations**), API-issued JWT auth,
+- Database (Supabase PostgreSQL, schema via **Prisma migrations**), Supabase Auth JWT validation,
   and private file storage (Supabase Storage).
 - Transactional email wiring (Resend).
 - All modules M1–M11 per [05-modules.md](05-modules.md) to their acceptance criteria.

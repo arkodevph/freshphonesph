@@ -29,7 +29,7 @@ Source of truth for scope: **Full Scope v5 (Rev 1.4)** → summarized in [`docs/
 
 ## Monorepo layout
 ```
-apps/web/    Next.js 16 + React 19 + Tailwind v4 (Vercel)  — landing, /system staff, /portal customer
+apps/web/    Next.js 16 + React 19 + Tailwind v4 (client-owned VPS) — landing, /system staff, /portal customer
 apps/api/    Django 5 baseline (temporary migration source; no new feature work by default)
 apps/api-ts/ NestJS + Prisma + TypeScript (Railway target) — one module per business domain
 packages/    (reserved for shared UI/config)
@@ -38,8 +38,10 @@ docker-compose.yml   local infra: Postgres:5435 + MinIO + MailHog
 ```
 
 ## Stack (decided — see docs/09-tech-stack.md)
-- **Backend target:** NestJS · TypeScript · Prisma · API-issued JWT · PostgreSQL (Supabase in
-  prod) · private Supabase Storage/MinIO via S3 signed URLs · Resend email.
+- **Backend target:** NestJS · TypeScript · Prisma · Supabase Auth JWT validation · PostgreSQL
+  (Supabase in prod) · private Supabase Storage/MinIO via S3 signed URLs · Redis for events,
+  queues and rate limits · Resend email. The v6 decisions and pending deployment choices are in
+  [`docs/20-v6-architecture-decision.md`](docs/20-v6-architecture-decision.md).
 - **Backend baseline:** Django 5 + DRF remains under `apps/api/` only as parity/migration
   evidence until each TypeScript vertical slice passes its cutover gate.
 - **Frontend:** Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · Radix/Phosphor.
