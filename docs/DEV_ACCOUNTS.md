@@ -33,6 +33,24 @@ python manage.py seed_dev_accounts         # creates the accounts above (idempot
 # custom password:  python manage.py seed_dev_accounts --password <pw>
 ```
 
+For the NestJS preview, set `SEED_PASSWORD` and optionally `DEMO_PASSWORD` in
+`apps/api-ts/.env`, then run `pnpm db:seed`. When `DEMO_PASSWORD` is set, the seed creates or
+resets these local-only accounts. The seed refuses to run in production.
+
+| Role | Login |
+|---|---|
+| Owner | `demo@freshphones.test` |
+| COO | `demo.coo@freshphones.test` |
+| General manager | `demo.manager@freshphones.test` |
+| HR / Payroll | `demo.hr@freshphones.test` |
+| Finance officer | `demo.finance@freshphones.test` |
+| Records | `demo.records@freshphones.test` |
+| Analytics | `demo.analytics@freshphones.test` |
+| Customer service head | `demo.cs-head@freshphones.test` |
+| Customer service team | `demo.cs-team@freshphones.test` |
+| Core handler | `demo.handler@freshphones.test` |
+| Customer portal | `demo.customer@freshphones.test` |
+
 ## Log in
 
 1. Start the web app: `pnpm --filter @fresh/web dev` → http://localhost:3000

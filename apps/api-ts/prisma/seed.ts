@@ -8,6 +8,9 @@ import { generateSchedule } from '../src/records/schedule';
 async function main() {
   if (process.env.NODE_ENV === 'production') throw new Error('Demo seed cannot run in production.');
   const password = passwordSchema.parse(process.env.SEED_PASSWORD);
+  const demoPassword = process.env.DEMO_PASSWORD
+    ? passwordSchema.parse(process.env.DEMO_PASSWORD)
+    : null;
   const db = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
   });
@@ -97,6 +100,56 @@ async function main() {
         passwordHash,
       },
     });
+    if (demoPassword) {
+      const demoPasswordHash = await hashPassword(demoPassword);
+      const demoClientId = '00000000-0000-4000-8000-000000000102';
+      await db.client.upsert({
+        where: { id: demoClientId },
+        update: {},
+        create: {
+          id: demoClientId,
+          name: 'Demo Customer',
+          email: 'demo.customer@freshphones.test',
+          phone: '+63 900 000 0001',
+          joinedAt: new Date('2026-09-01'),
+          unitModel: batch.model,
+          batchId: batch.id,
+          status: 'ACTIVE',
+          releaseStatus: 'PROCESSING',
+          ...(batch.contractPrice && batch.installmentCount && batch.cadence ? {
+            schedule: { create: generateSchedule({ contractPrice: batch.contractPrice.toFixed(2),
+              installmentCount: batch.installmentCount, cadence: batch.cadence, startDate: batch.startDate }) },
+          } : {}),
+        },
+      });
+      const demoAccounts = [
+        ['demo@freshphones.test', 'Demo Owner', 'OWNER', null],
+        ['demo.coo@freshphones.test', 'Demo COO', 'COO', null],
+        ['demo.manager@freshphones.test', 'Demo General Manager', 'GENERAL_MANAGER', null],
+        ['demo.hr@freshphones.test', 'Demo HR and Payroll', 'HR_PAYROLL', null],
+        ['demo.finance@freshphones.test', 'Demo Finance Officer', 'FINANCE_OFFICER', null],
+        ['demo.records@freshphones.test', 'Demo Records Officer', 'RECORDS', null],
+        ['demo.analytics@freshphones.test', 'Demo Analytics User', 'ANALYTICS', null],
+        ['demo.cs-head@freshphones.test', 'Demo Customer Service Head', 'CS_HEAD', null],
+        ['demo.cs-team@freshphones.test', 'Demo Customer Service Team', 'CS_TEAM', null],
+        ['demo.handler@freshphones.test', 'Demo Core Handler', 'CORE_HANDLER', null],
+        ['demo.customer@freshphones.test', 'Demo Customer', 'CUSTOMER', demoClientId],
+      ] as const;
+      for (const [email, name, role, linkedClientId] of demoAccounts) {
+        await db.user.upsert({
+          where: { email },
+          update: {
+            name,
+            role,
+            active: true,
+            clientId: linkedClientId,
+            passwordHash: demoPasswordHash,
+            version: { increment: 1 },
+          },
+          create: { name, email, role, clientId: linkedClientId, passwordHash: demoPasswordHash },
+        });
+      }
+    }
     if (!(await db.auditEntry.findFirst({ where: { action: 'foundation.seeded' } })))
       await db.auditEntry.create({
         data: {
@@ -107,7 +160,7 @@ async function main() {
         },
       });
     console.log(
-      'Demo records ready. Accounts: owner, records, finance, customer @freshphones.test. Password comes from SEED_PASSWORD; existing accounts are not reset.',
+      `Demo records ready. Accounts: owner, records, finance, customer @freshphones.test.${demoPassword ? ' All role-based demo accounts were reset from DEMO_PASSWORD.' : ''}`,
     );
   } finally {
     await db.$disconnect();

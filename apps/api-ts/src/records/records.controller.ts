@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   accountSchema,
+  accountListQuerySchema,
   accountUpdateSchema,
   batchSchema,
   batchUpdateSchema,
@@ -27,6 +28,7 @@ import { Validate } from '../http';
 import { RecordsService } from './records.service';
 import type { z } from 'zod';
 type ListQuery = z.infer<typeof listQuerySchema>;
+type AccountListQuery = z.infer<typeof accountListQuerySchema>;
 
 @Controller()
 export class RecordsController {
@@ -82,7 +84,7 @@ export class RecordsController {
     return this.records.updateClient(user, id, body.record, body.version);
   }
   @Get('accounts') @Requires('ACCOUNT_MANAGE') accounts(
-    @Query(new Validate(listQuerySchema)) query: ListQuery,
+    @Query(new Validate(accountListQuerySchema)) query: AccountListQuery,
   ) {
     return this.records.accounts(query);
   }
@@ -97,7 +99,7 @@ export class RecordsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body(new Validate(accountUpdateSchema)) body: z.infer<typeof accountUpdateSchema>,
   ) {
-    return this.records.updateAccount(user, id, body.active, body.version);
+    return this.records.updateAccount(user, id, body, body.version);
   }
   @Get('audit') @Requires('AUDIT_READ') audit(
     @Query(new Validate(listQuerySchema)) query: ListQuery,

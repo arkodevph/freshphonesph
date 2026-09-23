@@ -1,0 +1,26 @@
+{
+  "gcash": {
+    "label": "GCash",
+    "amount_labels": ["amount sent", "total amount", "amount"],
+    "reference_labels": ["reference no", "ref no", "reference number", "transaction id"],
+    "date_labels": ["date and time", "date & time", "date"]
+  },
+  "maya": {
+    "label": "Maya",
+    "amount_labels": ["amount sent", "total amount", "amount", "you sent"],
+    "reference_labels": ["reference id", "reference no", "transaction id", "ref no"],
+    "date_labels": ["date and time", "date & time", "transaction date", "date"]
+  },
+  "bank": {
+    "label": "Bank transfer",
+    "amount_labels": ["transfer amount", "amount transferred", "total amount", "amount"],
+    "reference_labels": ["reference number", "reference no", "transaction id", "trace no"],
+    "date_labels": ["transaction date", "date and time", "date & time", "date"]
+  },
+  "cash": {
+    "label": "Cash receipt",
+    "amount_labels": ["amount received", "total amount", "amount", "total"],
+    "reference_labels": ["receipt number", "receipt no", "reference no", "or no"],
+    "date_labels": ["receipt date", "date"]
+  }
+}

@@ -41,6 +41,12 @@ enum Cadence {
   SEMIMONTHLY
   MONTHLY
 }
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  NEEDS_CLARIFICATION
+}
 model User {
   id String @id @default(uuid()) @db.Uuid
   name String @db.VarChar(100)
@@ -54,6 +60,9 @@ model User {
   sessions Session[]
   resets PasswordReset[]
   audit AuditEntry[]
+  recordedPayments Payment[] @relation("PaymentRecorder")
+  verifiedPayments Payment[] @relation("PaymentVerifier")
+  uploadedFiles StoredFile[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -87,6 +96,7 @@ model Batch {
   cadence Cadence?
   version Int @default(1)
   clients Client[]
+  payments Payment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([status, createdAt])
@@ -105,6 +115,7 @@ model Client {
   version Int @default(1)
   account User?
   schedule ScheduleItem[]
+  payments Payment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([batchId])
@@ -117,7 +128,50 @@ model ScheduleItem {
   sequenceNo Int
   dueDate DateTime @db.Date
   expectedAmount Decimal @db.Decimal(12, 2)
+  payments Payment[]
   @@unique([clientId, sequenceNo])
+}
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  batchId String @db.Uuid
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  scheduleItemId String? @db.Uuid
+  scheduleItem ScheduleItem? @relation(fields: [scheduleItemId], references: [id], onDelete: SetNull)
+  amount Decimal @db.Decimal(12, 2)
+  paymentDate DateTime @db.Date
+  method String @db.VarChar(40)
+  referenceNumber String? @db.VarChar(120)
+  notes String?
+  verificationNotes String?
+  proofFileId String? @unique @db.Uuid
+  proofFile StoredFile? @relation(fields: [proofFileId], references: [id], onDelete: SetNull)
+  status PaymentStatus @default(PENDING)
+  recordedById String @db.Uuid
+  recordedBy User @relation("PaymentRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  verifierId String? @db.Uuid
+  verifier User? @relation("PaymentVerifier", fields: [verifierId], references: [id], onDelete: Restrict)
+  verifiedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([clientId, status])
+  @@index([batchId, status])
+  @@index([status, createdAt])
+  @@index([paymentDate])
+}
+model StoredFile {
+  id String @id @default(uuid()) @db.Uuid
+  storageKey String @unique @db.VarChar(120)
+  originalName String @db.VarChar(255)
+  mimeType String @db.VarChar(80)
+  size Int
+  uploadedById String @db.Uuid
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  payment Payment?
+  createdAt DateTime @default(now())
+  @@index([createdAt])
 }
 model AuditEntry {
   id String @id @default(uuid()) @db.Uuid

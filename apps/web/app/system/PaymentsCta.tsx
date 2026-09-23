@@ -6,7 +6,7 @@ import { useMe, can } from "@/lib/useMe";
 
 export default function PaymentsCta() {
   const me = useMe();
-  if (!can(me, "PAYMENT_RECORD", "PAYMENT_VERIFY")) return null;
+  if (!can(me, "PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY")) return null;
   return (
     <Link
       href="/system/payments"

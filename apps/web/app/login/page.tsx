@@ -1,123 +1,158 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
-import { SignIn, ArrowLeft } from "@phosphor-icons/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Eye,
+  EyeSlash,
+  LockKey,
+  SignIn,
+  SpinnerGap,
+  WarningCircle,
+} from "@phosphor-icons/react";
 import { login, fetchMe } from "@/lib/api";
 import { saveTokens, saveMe } from "@/lib/auth";
+
+const accessPrinciples = [
+  "Role-based access for staff and customers",
+  "Only Finance-verified payments affect balances",
+  "Sensitive account changes are recorded",
+];
 
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
     setLoading(true);
     try {
       const tokens = await login(username, password);
       saveTokens(tokens);
-      let dest = "/system";
+      let destination = "/system";
       try {
         const me = await fetchMe();
         saveMe(me);
-        if (me.account_type === "customer") dest = "/portal";
+        if (me.account_type === "customer") destination = "/portal";
       } catch {
         /* non-fatal: useMe() will retry */
       }
-      router.push(dest);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed.");
+      router.push(destination);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Sign-in failed. Check your details and try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="grid min-h-screen place-items-center px-4 py-10">
-      <div className="w-full max-w-md">
-        <Link
-          href="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm font-600 text-ink-soft transition-colors hover:text-blue"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to site
+    <main className="login-shell">
+      <section className="login-story" aria-label="Fresh Phones PH operations workspace">
+        <div className="login-story-grid" aria-hidden="true" />
+        <Link href="/" className="login-brand" aria-label="Fresh Phones PH home">
+          <span className="login-brand-mark">
+            <Image src="/brand/fresh-phones-logo.png" alt="" width={48} height={48} priority />
+          </span>
+          <span><strong>Fresh Phones PH</strong><small>Operations workspace</small></span>
         </Link>
 
-        <div className="glass rounded-blob p-8 sm:p-10">
-          <div className="mb-6 flex flex-col items-center text-center">
-            <span className="mb-4 grid h-14 w-14 place-items-center overflow-hidden rounded-2xl chrome">
-              <Image
-                src="/brand/fresh-phones-logo.png"
-                alt="Fresh Phones PH logo"
-                width={56}
-                height={56}
-                className="h-12 w-12 scale-150 object-cover"
-              />
-            </span>
-            <h1 className="font-display text-2xl font-700 tracking-tight text-blue-ink">
-              Sign in to <span className="holo-text">Fresh Phones PH</span>
-            </h1>
-            <p className="mt-1 text-sm text-ink-soft">
-              Staff &amp; customer portal
-            </p>
-          </div>
+        <div className="login-story-copy">
+          <p className="login-story-kicker"><span aria-hidden="true" /> Private workspace</p>
+          <p className="login-story-title">Clear records.<br /><span>Confident decisions.</span></p>
+          <p className="login-story-description">
+            A focused workspace for paluwagan records, customer updates, and payment verification.
+          </p>
+          <ul className="login-principles">
+            {accessPrinciples.map((principle) => (
+              <li key={principle}><CheckCircle weight="fill" aria-hidden="true" /><span>{principle}</span></li>
+            ))}
+          </ul>
+        </div>
 
-          <form onSubmit={onSubmit} className="flex flex-col gap-4">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-600 text-blue-ink">
-                Email or username
-              </span>
+        <p className="login-story-footer">FP Gadget Center <span aria-hidden="true">•</span> Internal access</p>
+      </section>
+
+      <section className="login-panel">
+        <Link href="/" className="login-back-link"><ArrowLeft aria-hidden="true" /> Back to website</Link>
+
+        <div className="login-form-wrap">
+          <p className="login-eyebrow">Account access</p>
+          <h1>Welcome back</h1>
+          <p className="login-intro">Sign in with the account provided by Fresh Phones PH.</p>
+
+          <form onSubmit={onSubmit} className="login-form">
+            <div className="login-field">
+              <label htmlFor="login-username">Email or username</label>
               <input
+                id="login-username"
                 type="text"
                 required
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(event) => setUsername(event.target.value)}
                 autoComplete="username"
-                className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-ink outline-none transition focus:border-blue focus:bg-white"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "login-error" : undefined}
                 placeholder="you@freshphones.ph"
               />
-            </label>
+            </div>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-600 text-blue-ink">Password</span>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-ink outline-none transition focus:border-blue focus:bg-white"
-                placeholder="••••••••"
-              />
-            </label>
+            <div className="login-field">
+              <label htmlFor="login-password">Password</label>
+              <span className="login-password-field">
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="current-password"
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "login-error" : undefined}
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeSlash aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </button>
+              </span>
+            </div>
 
             {error && (
-              <p className="rounded-2xl bg-hotpink/15 px-4 py-2.5 text-sm font-600 text-hotpink">
-                {error}
-              </p>
+              <div id="login-error" className="login-error" role="alert">
+                <WarningCircle weight="fill" aria-hidden="true" />
+                <div><strong>Couldn’t sign you in</strong><p>{error}</p></div>
+              </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-candy mt-1 inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-700 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <SignIn weight="fill" className="h-5 w-5" />
+            <button type="submit" disabled={loading} className="login-submit">
+              {loading ? <SpinnerGap className="login-spinner" aria-hidden="true" /> : <SignIn weight="bold" aria-hidden="true" />}
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
+
+          <div className="login-safety-note">
+            <LockKey weight="fill" aria-hidden="true" />
+            <p><strong>Private and role-protected</strong><span>Never share your password or one-time access details.</span></p>
+          </div>
         </div>
 
-        <p className="mt-4 text-center text-xs text-ink-soft">
-          Payment coordination stays in Messenger — this portal is for records
-          &amp; status only.
-        </p>
-      </div>
+        <p className="login-panel-footer">Payments happen externally. This workspace records and verifies them.</p>
+      </section>
     </main>
   );
 }

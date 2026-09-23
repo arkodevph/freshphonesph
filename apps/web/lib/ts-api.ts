@@ -43,6 +43,22 @@ export async function tsRequest<T>(path: string, options: RequestInit = {}): Pro
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }
 
+export async function tsUpload<T>(path: string, body: FormData): Promise<T> {
+  const send = () => fetch(`${API_URL}/api${path}`, {
+    method: "POST", body, credentials: "include", cache: "no-store",
+  });
+  let response = await send();
+  if (response.status === 401) {
+    await refreshSession();
+    response = await send();
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({})) as { message?: string };
+    throw new ApiError(data.message ?? `Request failed (${response.status}).`, response.status);
+  }
+  return response.json() as Promise<T>;
+}
+
 export const toMe = (user: User) => ({
   id: user.id, email: user.email, full_name: user.name, role: user.role.toLowerCase(),
   employee_id: user.role === "CUSTOMER" ? null : user.id,
@@ -66,5 +82,5 @@ export const toSchedule = (schedule: ClientSchedule) => schedule.items.map((item
 }));
 export function toPage<T, U>(page: Page<T>, map: (item: T) => U) {
   return { count: page.total, next: page.page * page.pageSize < page.total ? String(page.page + 1) : null,
-    results: page.items.map(map) };
+    results: page.items.map(map), page: page.page, page_size: page.pageSize };
 }

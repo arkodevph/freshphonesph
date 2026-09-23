@@ -13,6 +13,12 @@ import { AuthController } from './auth/auth.controller';
 import { RecordsController } from './records/records.controller';
 import { RecordsService } from './records/records.service';
 import { RealtimeController } from './realtime/realtime.controller';
+import { FinanceController } from './finance/finance.controller';
+import { FinanceService } from './finance/finance.service';
+import { ReceiptService } from './finance/receipt.service';
+import { PrivateStorageService } from './storage/private-storage.service';
+import { ReportsController } from './reports/reports.controller';
+import { ReportsService } from './reports/reports.service';
 
 @Controller('health')
 class HealthController {
@@ -33,12 +39,16 @@ export async function createApp(config: Config = readConfig()) {
   const app = await NestFactory.create(
     {
       module: AppModule,
-      controllers: [HealthController, AuthController, RecordsController, RealtimeController],
+      controllers: [HealthController, AuthController, RecordsController, FinanceController, ReportsController, RealtimeController],
       providers: [
         { provide: CONFIG, useValue: config },
         Database,
         AuthService,
         RecordsService,
+        FinanceService,
+        ReceiptService,
+        PrivateStorageService,
+        ReportsService,
         { provide: APP_GUARD, useClass: AccessGuard },
       ],
     },

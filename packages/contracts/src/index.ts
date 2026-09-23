@@ -35,21 +35,25 @@ export const permissions = [
   'CLIENT_MANAGE',
   'ACCOUNT_MANAGE',
   'AUDIT_READ',
+  'PAYMENT_READ',
+  'PAYMENT_RECORD',
+  'PAYMENT_VERIFY',
+  'REPORT_VIEW',
 ] as const;
 export type Permission = (typeof permissions)[number];
 const records: Permission[] = ['BATCH_READ', 'BATCH_MANAGE', 'CLIENT_READ', 'CLIENT_MANAGE'];
 export const rolePermissions: Record<Role, readonly Permission[]> = {
   OWNER: permissions,
-  COO: records,
-  GENERAL_MANAGER: records,
-  RECORDS: records,
-  FINANCE_OFFICER: ['BATCH_READ', 'CLIENT_READ'],
-  HR_PAYROLL: [],
-  ANALYTICS: [],
-  CS_HEAD: [],
+  COO: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW'],
+  GENERAL_MANAGER: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW'],
+  RECORDS: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW'],
+  FINANCE_OFFICER: ['BATCH_READ', 'CLIENT_READ', 'PAYMENT_READ', 'PAYMENT_RECORD', 'PAYMENT_VERIFY', 'REPORT_VIEW'],
+  HR_PAYROLL: ['REPORT_VIEW'],
+  ANALYTICS: ['REPORT_VIEW'],
+  CS_HEAD: ['REPORT_VIEW'],
   CS_TEAM: [],
   CORE_HANDLER: [],
-  CUSTOMER: [],
+  CUSTOMER: ['PAYMENT_READ'],
 };
 export const passwordSchema = z.string().min(12, 'Use at least 12 characters.').max(128);
 export const loginSchema = z
@@ -82,8 +86,15 @@ export const accountSchema = z
       });
   });
 export const accountUpdateSchema = z
-  .object({ active: z.boolean(), version: z.number().int().positive() })
-  .strict();
+  .object({
+    active: z.boolean().optional(),
+    role: roleSchema.optional(),
+    version: z.number().int().positive(),
+  })
+  .strict()
+  .refine((value) => value.active !== undefined || value.role !== undefined, {
+    message: 'Choose an account detail to update.',
+  });
 export const batchStatuses = ['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED'] as const;
 export const cadenceSchema = z.enum(['WEEKLY', 'SEMIMONTHLY', 'MONTHLY']);
 export type Cadence = z.infer<typeof cadenceSchema>;
@@ -147,9 +158,56 @@ export const listQuerySchema = z.object({
   status: z.string().max(30).optional(),
   batchId: z.string().uuid().optional(),
 });
+export const accountListQuerySchema = z.object({
+  q: z.string().max(100).default(''),
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+  role: roleSchema.optional(),
+});
+export const paymentStatuses = ['PENDING', 'VERIFIED', 'REJECTED', 'NEEDS_CLARIFICATION'] as const;
+export const receiptTypes = ['gcash', 'maya', 'bank', 'cash'] as const;
+export const receiptTypeSchema = z.enum(receiptTypes);
+export type ReceiptType = z.infer<typeof receiptTypeSchema>;
+export const paymentStatusSchema = z.enum(paymentStatuses);
+export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
+export const paymentSchema = z.object({
+  clientId: z.string().uuid(),
+  scheduleItemId: z.string().uuid().nullable().optional(),
+  amount: moneySchema,
+  paymentDate: z.string().date(),
+  method: z.string().trim().min(2).max(40),
+  referenceNumber: z.string().trim().max(120).nullable().optional(),
+  notes: z.string().trim().max(1000).nullable().optional(),
+}).strict();
+export const paymentDecisionSchema = z.object({
+  decision: z.enum(['VERIFIED', 'REJECTED', 'NEEDS_CLARIFICATION']),
+  notes: z.string().trim().min(2).max(1000),
+  version: z.number().int().positive(),
+}).strict();
+export const paymentCorrectionSchema = z.object({
+  record: paymentSchema,
+  version: z.number().int().positive(),
+}).strict();
+export const paymentListQuerySchema = listQuerySchema.extend({
+  clientId: z.string().uuid().optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+}).refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
+  path: ['dateTo'], message: 'End date must be on or after the start date.',
+});
+export const reportQuerySchema = z.object({
+  q: z.string().max(100).optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+  batchId: z.string().uuid().optional(),
+  status: paymentStatusSchema.optional(),
+}).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
+  path: ['dateTo'], message: 'End date must be on or after the start date.',
+});
 export type BatchInput = z.infer<typeof batchSchema>;
 export type ClientInput = z.infer<typeof clientSchema>;
 export type AccountInput = z.infer<typeof accountSchema>;
+export type PaymentInput = z.infer<typeof paymentSchema>;
 export interface User {
   id: string;
   name: string;
@@ -188,6 +246,41 @@ export interface ClientSchedule {
   totalDue: string;
   items: ScheduleItem[];
 }
+export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'notes'> {
+  id: string;
+  batchId: string;
+  scheduleItemId: string | null;
+  referenceNumber: string | null;
+  notes: string | null;
+  verificationNotes: string | null;
+  status: PaymentStatus;
+  duplicateReference: boolean;
+  version: number;
+  recordedBy: { id: string; name: string };
+  verifier: { id: string; name: string } | null;
+  proofFile: { id: string } | null;
+  client: { id: string; name: string; batch: { id: string; code: string } };
+  createdAt: string;
+  updatedAt: string;
+  verifiedAt: string | null;
+}
+export interface ClientBalance {
+  clientId: string;
+  totalDue: string;
+  verifiedPaid: string;
+  remainingBalance: string;
+  overpaid: string;
+  pendingAmount: string;
+}
+export interface ReceiptScan {
+  template: ReceiptType;
+  method: string;
+  amount: string | null;
+  referenceNumber: string | null;
+  paymentDate: string | null;
+  confidence: number;
+  warnings: string[];
+}
 export interface Account {
   id: string;
   name: string;
@@ -219,6 +312,6 @@ export interface Overview {
   employees: number | null;
 }
 export interface ChangeEvent {
-  entity: 'batch' | 'client' | 'account';
+  entity: 'batch' | 'client' | 'account' | 'payment';
   recordId: string;
 }

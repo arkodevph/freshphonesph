@@ -26,6 +26,14 @@ export class RealtimeController {
           }),
         );
     }
+    if (event.entity === 'payment') {
+      if (allowed(user, 'PAYMENT_READ') && user.role !== 'CUSTOMER') return true;
+      if (user.role === 'CUSTOMER' && user.clientId)
+        return Boolean(await this.db.payment.findFirst({
+          where: { id: event.recordId, clientId: user.clientId, status: 'VERIFIED' },
+          select: { id: true },
+        }));
+    }
     return false;
   }
   @Get()

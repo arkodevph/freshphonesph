@@ -36,6 +36,7 @@ const accountSelect = {
   createdAt: true,
 } as const;
 type Query = { page: number; q: string; status?: string; batchId?: string };
+type AccountQuery = { page: number; q: string; status?: 'ACTIVE' | 'INACTIVE'; role?: User['role'] };
 const pageSize = 20;
 const json = (value: unknown): Prisma.InputJsonValue =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -168,6 +169,7 @@ export class RecordsService {
       OR: [
         { name: { contains: query.q, mode: 'insensitive' } },
         { email: { contains: query.q, mode: 'insensitive' } },
+        { phone: { contains: query.q, mode: 'insensitive' } },
         { batch: { code: { contains: query.q, mode: 'insensitive' } } },
       ],
     };
@@ -276,8 +278,10 @@ export class RecordsService {
       return this.readSchedule(tx, id);
     });
   }
-  async accounts(query: Query) {
+  async accounts(query: AccountQuery) {
     const where: Prisma.UserWhereInput = {
+      ...(query.status ? { active: query.status === 'ACTIVE' } : {}),
+      ...(query.role ? { role: query.role } : {}),
       OR: [
         { name: { contains: query.q, mode: 'insensitive' } },
         { email: { contains: query.q, mode: 'insensitive' } },
@@ -314,33 +318,48 @@ export class RecordsService {
       return result;
     });
   }
-  async updateAccount(user: User, id: string, active: boolean, version: number) {
+  async updateAccount(
+    user: User,
+    id: string,
+    input: { active?: boolean; role?: User['role'] },
+    version: number,
+  ) {
     return this.write(user, 'ACCOUNT_MANAGE', async (tx) => {
-      if (id === user.id && !active)
-        throw new BadRequestException('You cannot deactivate your own account.');
       const before = await tx.user.findUnique({ where: { id }, select: accountSelect });
       if (!before) throw new NotFoundException('Account not found.');
+      if (id === user.id && input.active === false)
+        throw new BadRequestException('You cannot deactivate your own account.');
+      if (id === user.id && input.role && input.role !== before.role)
+        throw new BadRequestException('You cannot change your own role.');
+      if (input.role === 'CUSTOMER' && before.role !== 'CUSTOMER')
+        throw new BadRequestException('Create customer access from the linked client record.');
+      if (before.role === 'CUSTOMER' && input.role && input.role !== 'CUSTOMER')
+        throw new BadRequestException('Customer access remains linked to its client record.');
+      const roleChanged = Boolean(input.role && input.role !== before.role);
+      const activeChanged = input.active !== undefined && input.active !== before.active;
+      if (!roleChanged && !activeChanged) return before;
       const updated = await tx.user.updateMany({
         where: { id, version },
-        data: { active, version: { increment: 1 } },
+        data: {
+          ...(input.active !== undefined ? { active: input.active } : {}),
+          ...(input.role ? { role: input.role } : {}),
+          version: { increment: 1 },
+        },
       });
       if (!updated.count)
         throw new ConflictException('This account has changed. Refresh and try again.');
-      if (!active)
+      if (input.active === false || roleChanged)
         await tx.session.updateMany({
           where: { userId: id, revokedAt: null },
           data: { revokedAt: new Date() },
         });
       const after = await tx.user.findUniqueOrThrow({ where: { id }, select: accountSelect });
-      await this.record(
-        tx,
-        user.id,
-        'account',
-        id,
-        active ? 'account.activated' : 'account.deactivated',
-        before,
-        after,
-      );
+      const action = roleChanged
+        ? 'account.role_changed'
+        : input.active
+          ? 'account.activated'
+          : 'account.deactivated';
+      await this.record(tx, user.id, 'account', id, action, before, after);
       return after;
     });
   }

@@ -58,11 +58,13 @@ export default function PortalPage() {
 
   const loadSupport = () => getPortalSupport().then(setCases).catch(() => {});
   const loadRecords = useCallback(() => {
-    void getPortalRecords().then(({ client, schedule: plan }) => {
+    void getPortalRecords().then(({ client, schedule: plan, balance, payments: verifiedPayments }) => {
       setSummary({ full_name: client.name, batch_number: client.batch.code,
         unit_model: client.unitModel || client.batch.model, status: client.status.toLowerCase(),
-        total_due: plan?.totalDue ?? null, verified_paid: null, remaining_balance: null,
+        total_due: balance.total_due, verified_paid: balance.verified_paid,
+        remaining_balance: balance.remaining_balance,
         release_status: client.releaseStatus.toLowerCase().replaceAll("_", " ") });
+      setPayments(verifiedPayments);
       setSchedule(plan?.items.map((item) => ({
         sequence_no: item.sequenceNo, due_date: item.dueDate, expected_amount: item.expectedAmount,
         paid_applied: "", status: "scheduled",
@@ -154,16 +156,16 @@ export default function PortalPage() {
           </div>
           <div className="glass-tint rounded-3xl p-5">
             <Wallet weight="fill" className="mb-2 h-6 w-6 text-blue" />
-            <p className="text-xs font-600 text-ink-soft">{TYPESCRIPT_API ? "Scheduled total" : "Remaining balance"}</p>
+            <p className="text-xs font-600 text-ink-soft">Remaining balance</p>
             <p className="font-display text-3xl font-800 text-blue-ink">
-              {TYPESCRIPT_API ? (summary?.total_due ? `₱${summary.total_due}` : "Not issued") : `₱${summary?.remaining_balance ?? "…"}`}
+              ₱{summary?.remaining_balance ?? "…"}
             </p>
           </div>
           <div className="glass rounded-3xl p-5">
             <CheckCircle weight="fill" className="mb-2 h-6 w-6 text-emerald-600" />
-            <p className="text-xs font-600 text-ink-soft">{TYPESCRIPT_API ? "Release status" : "Verified paid"}</p>
-            <p className="font-display text-3xl font-800 capitalize text-blue-ink">{TYPESCRIPT_API ? summary?.release_status ?? "…" : `₱${summary?.verified_paid ?? "…"}`}</p>
-            {!TYPESCRIPT_API && <p className="text-xs text-ink-soft">of ₱{summary?.total_due ?? "…"} total</p>}
+            <p className="text-xs font-600 text-ink-soft">Verified paid</p>
+            <p className="font-display text-3xl font-800 capitalize text-blue-ink">₱{summary?.verified_paid ?? "…"}</p>
+            <p className="text-xs text-ink-soft">of ₱{summary?.total_due ?? "…"} total</p>
           </div>
         </div>
 
@@ -200,7 +202,7 @@ export default function PortalPage() {
         </div>
 
         {/* Verified payments */}
-        {!TYPESCRIPT_API && <div className="glass overflow-x-auto rounded-3xl p-5">
+        <div className="glass overflow-x-auto rounded-3xl p-5">
           <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
             <CheckCircle weight="fill" className="h-4 w-4" /> Verified payments
           </h2>
@@ -228,7 +230,7 @@ export default function PortalPage() {
               </tbody>
             </table>
           )}
-        </div>}
+        </div>
 
         {/* Support */}
         {!TYPESCRIPT_API && <div className="glass mt-4 rounded-3xl p-5">
@@ -277,8 +279,7 @@ export default function PortalPage() {
         </div>}
 
         <p className="mt-4 text-center text-xs text-ink-soft">
-          {TYPESCRIPT_API ? "Payments are coordinated in the Messenger group chat. Scheduled amounts show your plan terms; they are not payment confirmations." :
-            "Payments are coordinated in the Messenger group chat — this portal shows your verified records & balance."}
+          Payments are coordinated in the Messenger group chat — this portal shows only Finance-verified records and the derived balance.
         </p>
       </div>
     </div>

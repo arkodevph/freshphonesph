@@ -1,6 +1,6 @@
-import type { Batch as TsBatch, BatchInput, Client as TsClient, ClientSchedule, Page, User } from "@freshphones/contracts";
+import type { Batch as TsBatch, BatchInput, Client as TsClient, ClientBalance, ClientSchedule, Page, Payment as TsPayment, ReceiptScan, ReceiptType, Role, User } from "@freshphones/contracts";
 import { API_URL, TYPESCRIPT_API } from "./backend";
-import { ApiError, tsRequest, toBatch, toClient, toMe, toPage, toSchedule } from "./ts-api";
+import { ApiError, tsRequest, tsUpload, toBatch, toClient, toMe, toPage, toSchedule } from "./ts-api";
 export { API_URL } from "./backend";
 export type RecordId = string | number;
 
@@ -63,50 +63,111 @@ export type PaymentStatus =
   | "needs_clarification";
 
 export type Payment = {
-  id: number;
-  client: number;
-  batch: number;
+  id: RecordId;
+  client: RecordId;
+  client_name?: string;
+  batch: RecordId;
   amount: string;
   payment_date: string;
   method: string;
   reference_no: string;
-  proof_file: number | null;
+  proof_file: RecordId | null;
   status: PaymentStatus;
-  verified_by: number | null;
+  verified_by: RecordId | null;
   created_at: string;
+  version?: number;
+  duplicate_reference?: boolean;
 };
 
-export type Paginated<T> = { count: number; next: string | null; results: T[] };
+export type Paginated<T> = {
+  count: number;
+  next: string | null;
+  results: T[];
+  page?: number;
+  page_size?: number;
+};
 
 export type Balance = {
-  client: number;
+  client: RecordId;
   total_due: string;
   verified_paid: string;
   remaining_balance: string;
+  pending_amount?: string;
+  overpaid?: string;
 };
+
+const toPayment = (payment: TsPayment): Payment => ({
+  id: payment.id, client: payment.clientId, client_name: payment.client.name,
+  batch: payment.batchId, amount: payment.amount, payment_date: payment.paymentDate,
+  method: payment.method, reference_no: payment.referenceNumber ?? "",
+  proof_file: payment.proofFile?.id ?? null,
+  status: payment.status.toLowerCase() as PaymentStatus,
+  verified_by: payment.verifier ? 1 : null, created_at: payment.createdAt,
+  version: payment.version, duplicate_reference: payment.duplicateReference,
+});
 
 export function listPayments(params: Record<string, string> = {}) {
   const qs = new URLSearchParams(params).toString();
+  if (TYPESCRIPT_API) {
+    const normalized = new URLSearchParams(params);
+    if (normalized.get("status")) normalized.set("status", normalized.get("status")!.toUpperCase());
+    return tsRequest<Page<TsPayment>>(`/payments?${normalized}`).then((page) => toPage(page, toPayment));
+  }
   return apiFetch(`/api/payments/${qs ? `?${qs}` : ""}`) as Promise<
     Paginated<Payment>
   >;
 }
 
 export function createPayment(body: {
-  client: number;
-  batch: number;
+  client: RecordId;
+  batch?: RecordId;
   amount: string;
   payment_date: string;
   method: string;
   reference_no?: string;
 }) {
+  if (TYPESCRIPT_API) return tsRequest<TsPayment>("/payments", {
+    method: "POST",
+    body: JSON.stringify({ clientId: String(body.client), amount: body.amount,
+      paymentDate: body.payment_date, method: body.method,
+      referenceNumber: body.reference_no || null }),
+  }).then(toPayment);
   return apiFetch("/api/payments/", {
     method: "POST",
     body: JSON.stringify(body),
   }) as Promise<Payment>;
 }
 
-export function decidePayment(id: number, decision: PaymentStatus) {
+export function updatePayment(id: RecordId, version: number, body: {
+  client: RecordId;
+  amount: string;
+  payment_date: string;
+  method: string;
+  reference_no?: string;
+}) {
+  if (!TYPESCRIPT_API) return Promise.reject(new Error("Payment correction is available in the TypeScript workflow."));
+  return tsRequest<TsPayment>(`/payments/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ version, record: {
+      clientId: String(body.client), amount: body.amount, paymentDate: body.payment_date,
+      method: body.method, referenceNumber: body.reference_no || null,
+    } }),
+  }).then(toPayment);
+}
+
+export function scanPaymentReceipt(receipt: File, template: ReceiptType) {
+  if (!TYPESCRIPT_API) return Promise.reject(new Error("Receipt scanning requires the TypeScript API."));
+  const body = new FormData();
+  body.append("template", template);
+  body.append("receipt", receipt);
+  return tsUpload<ReceiptScan>("/payments/receipt-scan", body);
+}
+
+export function decidePayment(id: RecordId, decision: PaymentStatus, version = 1, notes = "Finance reviewed") {
+  if (TYPESCRIPT_API) return tsRequest<TsPayment>(`/payments/${id}/verify`, {
+    method: "POST",
+    body: JSON.stringify({ decision: decision.toUpperCase(), version, notes }),
+  }).then(toPayment);
   return apiFetch(`/api/payments/${id}/verify/`, {
     method: "POST",
     body: JSON.stringify({ decision }),
@@ -114,7 +175,12 @@ export function decidePayment(id: number, decision: PaymentStatus) {
 }
 
 /** Attach a private proof file (multipart). */
-export async function uploadProof(id: number, file: File) {
+export async function uploadProof(id: RecordId, file: File) {
+  if (TYPESCRIPT_API) {
+    const body = new FormData();
+    body.append("proof", file);
+    return tsUpload<TsPayment>(`/payments/${id}/proof`, body).then(toPayment);
+  }
   const token = getTokens()?.access;
   const fd = new FormData();
   fd.append("file", file);
@@ -127,11 +193,17 @@ export async function uploadProof(id: number, file: File) {
   return res.json() as Promise<Payment>;
 }
 
-export function getProofUrl(id: number) {
+export function getProofUrl(id: RecordId) {
+  if (TYPESCRIPT_API) return Promise.resolve({ url: `${API_URL}/api/payments/${id}/proof` });
   return apiFetch(`/api/payments/${id}/proof-url/`) as Promise<{ url: string }>;
 }
 
-export function getBalance(clientId: number) {
+export function getBalance(clientId: RecordId) {
+  if (TYPESCRIPT_API) return tsRequest<ClientBalance>(`/clients/${clientId}/balance`).then((balance) => ({
+    client: balance.clientId, total_due: balance.totalDue, verified_paid: balance.verifiedPaid,
+    remaining_balance: balance.remainingBalance, pending_amount: balance.pendingAmount,
+    overpaid: balance.overpaid,
+  }));
   return apiFetch(`/api/clients/${clientId}/balance/`) as Promise<Balance>;
 }
 
@@ -144,6 +216,12 @@ export type DashboardCards = {
 };
 
 export function getDashboard() {
+  if (TYPESCRIPT_API) return tsRequest<{
+    activeBatches: number; verifiedPayments: number; pendingVerification: number; verifiedAmount: string;
+  }>("/reports/dashboard").then((cards) => ({
+    active_batches: cards.activeBatches, verified_payments: cards.verifiedPayments,
+    pending_verification: cards.pendingVerification, verified_total: cards.verifiedAmount,
+  }));
   return apiFetch("/api/reports/dashboard/") as Promise<DashboardCards>;
 }
 
@@ -296,14 +374,16 @@ export type PortalSummary = {
 export async function getPortalRecords() {
   const user = await tsRequest<User>("/auth/me");
   if (user.role !== "CUSTOMER" || !user.clientId) throw new Error("A customer account is required.");
-  const [client, schedule] = await Promise.all([
+  const [client, schedule, balance, payments] = await Promise.all([
     tsRequest<TsClient>(`/clients/${user.clientId}`),
     tsRequest<ClientSchedule>(`/clients/${user.clientId}/schedule`).catch((error: unknown) => {
       if (error instanceof ApiError && error.status === 409) return null;
       throw error;
     }),
+    getBalance(user.clientId),
+    listPayments({ status: "verified" }).then((page) => page.results),
   ]);
-  return { client, schedule };
+  return { client, schedule, balance, payments };
 }
 
 export type PortalScheduleItem = {
@@ -523,13 +603,52 @@ export function createAgent(body: { full_name: string; agent_code: string; phone
 
 // ── Users & roles admin (M2) ───────────────────────────────────────────────
 export type Employee = {
-  id: number;
+  id: RecordId;
   email: string;
   full_name: string;
   role: string;
   status: string;
   created_at: string;
+  version?: number;
+  client_id?: string | null;
 };
+
+type TsAccount = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  active: boolean;
+  version: number;
+  clientId: string | null;
+  createdAt: string;
+};
+
+const legacyToTsRole: Record<string, Role> = {
+  owner: "OWNER",
+  coo: "COO",
+  general_manager: "GENERAL_MANAGER",
+  hr_payroll: "HR_PAYROLL",
+  finance_officer: "FINANCE_OFFICER",
+  records_monitoring: "RECORDS",
+  analytics: "ANALYTICS",
+  cs_head: "CS_HEAD",
+  cs_team: "CS_TEAM",
+  core_handler: "CORE_HANDLER",
+  customer: "CUSTOMER",
+};
+
+const tsToLegacyRole = (role: Role) => role === "RECORDS" ? "records_monitoring" : role.toLowerCase();
+const toEmployee = (account: TsAccount): Employee => ({
+  id: account.id,
+  email: account.email,
+  full_name: account.name,
+  role: tsToLegacyRole(account.role),
+  status: account.active ? "active" : "inactive",
+  created_at: account.createdAt,
+  version: account.version,
+  client_id: account.clientId,
+});
 
 export const ROLES: [string, string][] = [
   ["owner", "Owner"],
@@ -544,8 +663,17 @@ export const ROLES: [string, string][] = [
   ["core_handler", "Core Team / Handler"],
 ];
 
-export function listEmployees() {
-  return apiFetch("/api/employees/") as Promise<Paginated<Employee>>;
+export function listEmployees(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params);
+  if (TYPESCRIPT_API) {
+    const role = qs.get("role");
+    const status = qs.get("status");
+    if (role) qs.set("role", legacyToTsRole[role] ?? role.toUpperCase());
+    if (status) qs.set("status", status.toUpperCase());
+    return tsRequest<Page<TsAccount>>(`/accounts?${qs}`).then((page) => toPage(page, toEmployee));
+  }
+  const suffix = qs.size ? `?${qs}` : "";
+  return apiFetch(`/api/employees/${suffix}`) as Promise<Paginated<Employee>>;
 }
 
 export function createEmployee(body: {
@@ -554,16 +682,36 @@ export function createEmployee(body: {
   role: string;
   password: string;
 }) {
+  if (TYPESCRIPT_API) return tsRequest<TsAccount>("/accounts", {
+    method: "POST",
+    body: JSON.stringify({
+      name: body.full_name,
+      email: body.email,
+      role: legacyToTsRole[body.role],
+      password: body.password,
+    }),
+  }).then(toEmployee);
   return apiFetch("/api/employees/", {
     method: "POST",
     body: JSON.stringify(body),
   }) as Promise<Employee>;
 }
 
-export function updateEmployee(id: number, body: { role?: string; status?: string }) {
+export function updateEmployee(id: RecordId, body: { role?: string; status?: string; version?: number }) {
+  if (TYPESCRIPT_API) {
+    if (!body.version) return Promise.reject(new Error("Refresh this account before updating it."));
+    return tsRequest<TsAccount>(`/accounts/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        ...(body.role ? { role: legacyToTsRole[body.role] } : {}),
+        ...(body.status ? { active: body.status === "active" } : {}),
+        version: body.version,
+      }),
+    }).then(toEmployee);
+  }
   return apiFetch(`/api/employees/${id}/`, {
     method: "PATCH",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ role: body.role, status: body.status }),
   }) as Promise<Employee>;
 }
 
@@ -572,6 +720,19 @@ export async function downloadPaymentsExport(
   params: Record<string, string> = {},
   fmt: "csv" | "xlsx" = "csv",
 ) {
+  if (TYPESCRIPT_API) {
+    if (fmt !== "csv") throw new Error("The TypeScript report currently supports CSV export.");
+    const normalized = new URLSearchParams(params);
+    if (normalized.get("status")) normalized.set("status", normalized.get("status")!.toUpperCase());
+    const response = await fetch(`${API_URL}/api/reports/payments/export?${normalized}`, {
+      credentials: "include",
+    });
+    if (!response.ok) throw new Error(`Export failed (${response.status}).`);
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = url; link.download = "payments.csv"; link.click(); URL.revokeObjectURL(url);
+    return;
+  }
   const token = getTokens()?.access;
   const qs = new URLSearchParams({ ...params, fmt }).toString();
   const res = await fetch(`${API_URL}/api/reports/payments/export/?${qs}`, {

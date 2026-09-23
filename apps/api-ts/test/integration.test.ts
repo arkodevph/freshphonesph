@@ -58,6 +58,13 @@ class Session {
     assert.equal(response.status, 200);
     return this;
   }
+  async upload(path: string, body: FormData, apiBase = base) {
+    return fetch(`${apiBase}/api${path}`, {
+      method: 'POST',
+      headers: { Origin: origin, Cookie: this.cookie() },
+      body,
+    });
+  }
 }
 const post = (value: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(value) });
 const patch = (value: unknown): RequestInit => ({ method: 'PATCH', body: JSON.stringify(value) });
@@ -215,6 +222,8 @@ test('role matrix is enforced for every foundation collection', async () => {
     '/clients': 'CLIENT_READ',
     '/accounts': 'ACCOUNT_MANAGE',
     '/audit': 'AUDIT_READ',
+    '/payments': 'PAYMENT_READ',
+    '/reports/dashboard': 'REPORT_VIEW',
   } as const;
   for (const role of roles) {
     const session = await new Session().login(role);
@@ -319,6 +328,8 @@ test('batch writes audit atomically; duplicates, malformed input and stale edits
 test('client account linkage, record updates and cross-customer isolation', async () => {
   const owner = await new Session().login('OWNER');
   const customer = await new Session().login('CUSTOMER');
+  const searched = await (await owner.request('/clients?q=0001')).json();
+  assert.ok(searched.items.some((client: { id: string }) => client.id === firstClient));
   assert.equal((await customer.request(`/clients/${firstClient}`)).status, 200);
   assert.equal((await customer.request(`/clients/${secondClient}`)).status, 404);
   assert.equal((await customer.request('/clients', post({}))).status, 403);
@@ -368,6 +379,57 @@ test('client account linkage, record updates and cross-customer isolation', asyn
     where: { recordId: (await db.user.findUniqueOrThrow({ where: { email: input.email } })).id },
   });
   assert.equal(JSON.stringify(accountAudit).includes('password'), false);
+});
+test('owner can find, filter and safely update a staff account', async () => {
+  const owner = await new Session().login('OWNER');
+  const email = `${suffix}-directory@example.test`;
+  const createdResponse = await owner.request('/accounts', post({
+    name: 'Directory Test Person',
+    email,
+    password,
+    role: 'RECORDS',
+  }));
+  assert.equal(createdResponse.status, 201);
+  const created = await createdResponse.json();
+  try {
+    const searched = await (await owner.request('/accounts?q=Directory%20Test')).json();
+    assert.deepEqual(searched.items.map((item: { id: string }) => item.id), [created.id]);
+    const records = await (await owner.request('/accounts?role=RECORDS&status=ACTIVE')).json();
+    assert.ok(records.items.some((item: { id: string }) => item.id === created.id));
+    const inactive = await (await owner.request('/accounts?q=Directory%20Test&status=INACTIVE')).json();
+    assert.equal(inactive.total, 0);
+
+    const roleUpdate = await owner.request(
+      `/accounts/${created.id}`,
+      patch({ role: 'ANALYTICS', version: created.version }),
+    );
+    assert.equal(roleUpdate.status, 200);
+    const changed = await roleUpdate.json();
+    assert.equal(changed.role, 'ANALYTICS');
+
+    const deactivate = await owner.request(
+      `/accounts/${created.id}`,
+      patch({ active: false, version: changed.version }),
+    );
+    assert.equal(deactivate.status, 200);
+    assert.equal((await deactivate.json()).active, false);
+    assert.equal(
+      await db.auditEntry.count({ where: { recordId: created.id, action: 'account.role_changed' } }),
+      1,
+    );
+    assert.equal(
+      await db.auditEntry.count({ where: { recordId: created.id, action: 'account.deactivated' } }),
+      1,
+    );
+
+    const self = await db.user.findUniqueOrThrow({ where: { id: accounts.get('OWNER')! } });
+    assert.equal(
+      (await owner.request(`/accounts/${self.id}`, patch({ role: 'COO', version: self.version }))).status,
+      400,
+    );
+  } finally {
+    await db.user.delete({ where: { id: created.id } });
+  }
 });
 test('SSE delivers across two API instances and isolates customer events', async () => {
   const owner = await new Session().login('OWNER');
@@ -461,6 +523,31 @@ test('enrollment snapshots exact installments, freezes terms and rolls back inva
   assert.deepEqual(filtered.items.map((item: { id: string }) => item.id), [client.id]);
 });
 
+test('client search finds and pages records in a 1,000-client dataset', async () => {
+  const records = await new Session().login('RECORDS');
+  const marker = `SEARCH-${suffix}`;
+  await db.client.createMany({
+    data: Array.from({ length: 1000 }, (_, index) => ({
+      name: `${marker} Client ${String(index).padStart(4, '0')}`,
+      email: `${marker.toLowerCase()}-${index}@example.test`,
+      phone: `+63 917 ${String(index).padStart(7, '0')}`,
+      batchId,
+    })),
+  });
+  try {
+    const first = await (await records.request(`/clients?q=${marker}&page=1`)).json();
+    const last = await (await records.request(`/clients?q=${marker}&page=50`)).json();
+    assert.equal(first.total, 1000);
+    assert.equal(last.items.length, 20);
+    const known = await (await records.request(
+      `/clients?q=${encodeURIComponent(`${marker} Client 0999`)}`,
+    )).json();
+    assert.deepEqual(known.items.map((item: { name: string }) => item.name), [`${marker} Client 0999`]);
+  } finally {
+    await db.client.deleteMany({ where: { name: { startsWith: marker } } });
+  }
+});
+
 test('schedule issuance is idempotent under concurrency, audited and isolated by role/customer', async () => {
   const owner = await new Session().login('OWNER');
   const customer = await new Session().login('CUSTOMER');
@@ -483,6 +570,166 @@ test('schedule issuance is idempotent under concurrency, audited and isolated by
       role === 'CUSTOMER' || rolePermissions[role].includes('CLIENT_READ') ? 200 : 404, role);
     assert.equal((await session.request(`/clients/${firstClient}/schedule`, post({}))).status,
       rolePermissions[role].includes('CLIENT_MANAGE') ? 201 : 403, role);
+  }
+});
+
+test('Finance verification alone moves balances and customer-visible history', async () => {
+  const records = await new Session().login('RECORDS');
+  const finance = await new Session().login('FINANCE_OFFICER');
+  const customer = await new Session().login('CUSTOMER');
+  const support = await new Session().login('CS_TEAM');
+  const input = {
+    clientId: firstClient,
+    amount: '10.25',
+    paymentDate: '2026-09-22',
+    method: 'GCash',
+    referenceNumber: `GC-${suffix}`,
+    notes: 'Claim shared in Messenger',
+  };
+  assert.equal((await support.request('/payments/receipt-scan', post({ template: 'gcash' }))).status, 403);
+  assert.equal((await records.request('/payments/receipt-scan', post({ template: 'gcash' }))).status, 400);
+  assert.equal((await support.request('/payments', post(input))).status, 403);
+  const recorded = await records.request('/payments', post(input));
+  assert.equal(recorded.status, 201);
+  const payment = await recorded.json();
+  assert.equal(payment.status, 'PENDING');
+  assert.equal(payment.duplicateReference, false);
+  const proof = new FormData();
+  const proofBytes = Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    Buffer.from('private-proof-fixture'),
+  ]);
+  proof.append('proof', new Blob([proofBytes], { type: 'image/png' }), 'receipt.png');
+  const attached = await records.upload(`/payments/${payment.id}/proof`, proof);
+  assert.equal(attached.status, 201);
+  const paymentWithProof = await attached.json();
+  assert.ok(paymentWithProof.proofFile.id);
+  const storedProof = await records.request(`/payments/${payment.id}/proof`);
+  assert.equal(storedProof.status, 200);
+  assert.match(storedProof.headers.get('content-type') ?? '', /^image\/png/);
+  assert.deepEqual(Buffer.from(await storedProof.arrayBuffer()), proofBytes);
+  assert.equal((await customer.request(`/payments/${payment.id}/proof`)).status, 404);
+  assert.equal((await support.request(`/payments/${payment.id}/proof`)).status, 403);
+  const duplicateProof = new FormData();
+  duplicateProof.append('proof', new Blob([proofBytes], { type: 'image/png' }), 'other.png');
+  assert.equal((await records.upload(`/payments/${payment.id}/proof`, duplicateProof)).status, 409);
+  const duplicate = await (await records.request('/payments', post(input))).json();
+  assert.equal(duplicate.duplicateReference, true);
+
+  const pendingBalance = await (await records.request(`/clients/${firstClient}/balance`)).json();
+  assert.equal(pendingBalance.totalDue, '100.00');
+  assert.equal(pendingBalance.verifiedPaid, '0.00');
+  assert.equal(pendingBalance.remainingBalance, '100.00');
+  assert.equal(pendingBalance.pendingAmount, '20.50');
+  assert.equal((await records.request(`/payments/${payment.id}/verify`, post({
+    decision: 'VERIFIED', notes: 'Not permitted', version: payment.version,
+  }))).status, 403);
+
+  const decisions = await Promise.all([
+    finance.request(`/payments/${payment.id}/verify`, post({
+      decision: 'VERIFIED', notes: 'Matched GCash history', version: paymentWithProof.version,
+    })),
+    finance.request(`/payments/${payment.id}/verify`, post({
+      decision: 'VERIFIED', notes: 'Second reviewer', version: paymentWithProof.version,
+    }), secondBase),
+  ]);
+  assert.deepEqual(decisions.map((response) => response.status).sort(), [200, 409]);
+  const verifiedBalance = await (await customer.request(`/clients/${firstClient}/balance`)).json();
+  assert.equal(verifiedBalance.verifiedPaid, '10.25');
+  assert.equal(verifiedBalance.remainingBalance, '89.75');
+  assert.equal((await customer.request(`/clients/${secondClient}/balance`)).status, 404);
+  const customerPayments = await (await customer.request('/payments')).json();
+  assert.deepEqual(customerPayments.items.map((item: { id: string }) => item.id), [payment.id]);
+  const statement = await (await customer.request(`/clients/${firstClient}/statement`)).json();
+  assert.equal(statement.officialTaxInvoice, false);
+  assert.match(statement.notice, /not an official BIR sales invoice/i);
+  assert.deepEqual(statement.verifiedPayments.map((item: { id: string }) => item.id), [payment.id]);
+  assert.equal((await customer.request(`/payments/${duplicate.id}/confirmation`)).status, 404);
+  const confirmation = await (await customer.request(`/payments/${payment.id}/confirmation`)).json();
+  assert.equal(confirmation.payment.id, payment.id);
+  assert.equal(confirmation.officialTaxInvoice, false);
+  assert.equal((await customer.request(`/payments/${payment.id}/proof`)).status, 200);
+  const clarification = await finance.request(`/payments/${duplicate.id}/verify`, post({
+    decision: 'NEEDS_CLARIFICATION', notes: 'Reference needs a clearer screenshot', version: duplicate.version,
+  }));
+  assert.equal(clarification.status, 200);
+  assert.equal((await clarification.json()).status, 'NEEDS_CLARIFICATION');
+  const corrected = await records.request(`/payments/${duplicate.id}`, patch({
+    version: duplicate.version + 1,
+    record: { ...input, amount: '11.00', referenceNumber: `GC-CORRECTED-${suffix}` },
+  }));
+  assert.equal(corrected.status, 200);
+  assert.equal((await corrected.json()).status, 'PENDING');
+  assert.equal((await records.request(`/payments/${payment.id}`, patch({
+    version: payment.version + 1, record: input,
+  }))).status, 409);
+  assert.equal(await db.auditEntry.count({ where: { recordId: payment.id } }), 3);
+
+  const overpayment = await (await records.request('/payments', post({
+    ...input, amount: '150.00', referenceNumber: `OVER-${suffix}`,
+  }))).json();
+  assert.equal((await finance.request(`/payments/${overpayment.id}/verify`, post({
+    decision: 'VERIFIED', notes: 'Matched bank history', version: overpayment.version,
+  }))).status, 200);
+  const overpaidBalance = await (await records.request(`/clients/${firstClient}/balance`)).json();
+  assert.equal(overpaidBalance.remainingBalance, '0.00');
+  assert.equal(overpaidBalance.overpaid, '60.25');
+  const report = await (await finance.request(
+    `/reports/dashboard?batchId=${batchId}&dateFrom=2026-09-22&dateTo=2026-09-22`,
+  )).json();
+  assert.equal(report.verifiedAmount, '160.25');
+  assert.equal(report.pendingAmount, '11.00');
+  const exported = await finance.request(
+    `/reports/payments/export?batchId=${batchId}&dateFrom=2026-09-22&dateTo=2026-09-22`,
+  );
+  assert.equal(exported.status, 200);
+  assert.match(exported.headers.get('content-type') ?? '', /text\/csv/);
+  const csv = await exported.text();
+  assert.match(csv, /"VERIFIED"/);
+  assert.equal(csv.includes('First customer'), false);
+  assert.equal(csv.includes(`GC-${suffix}`), false);
+});
+
+test('payment search and stable pagination find claims in a 1,000-row queue', async () => {
+  const records = await new Session().login('RECORDS');
+  const marker = `LOAD-${suffix}`;
+  await db.payment.createMany({
+    data: Array.from({ length: 1000 }, (_, index) => ({
+      clientId: firstClient,
+      batchId,
+      amount: '1.00',
+      paymentDate: new Date('2026-09-20'),
+      method: 'GCash',
+      referenceNumber: `${marker}-${String(index).padStart(4, '0')}`,
+      recordedById: accounts.get('RECORDS')!,
+    })),
+  });
+  try {
+    const first = await (await records.request(`/payments?q=${marker}&page=1`)).json();
+    const last = await (await records.request(`/payments?q=${marker}&page=50`)).json();
+    assert.equal(first.total, 1000);
+    assert.equal(first.pageSize, 20);
+    assert.equal(last.items.length, 20);
+    assert.equal(new Set([
+      ...first.items.map((item: { id: string }) => item.id),
+      ...last.items.map((item: { id: string }) => item.id),
+    ]).size, 40);
+
+    const batchSearch = await (await records.request(
+      `/payments?q=${encodeURIComponent(`TEST-${suffix}`)}&status=PENDING&dateFrom=2026-09-20&dateTo=2026-09-20`,
+    )).json();
+    assert.equal(batchSearch.total, 1000);
+
+    const exported = await records.request(
+      `/reports/payments/export?q=${marker}&status=PENDING&dateFrom=2026-09-20&dateTo=2026-09-20`,
+    );
+    const csv = await exported.text();
+    assert.equal(exported.status, 200, csv);
+    assert.equal(csv.split('\r\n').length, 1001);
+    assert.equal(csv.includes('First customer'), false);
+    assert.equal(csv.includes(marker), false);
+  } finally {
+    await db.payment.deleteMany({ where: { referenceNumber: { startsWith: marker } } });
   }
 });
 

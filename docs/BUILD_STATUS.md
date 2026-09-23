@@ -22,15 +22,30 @@ The parallel `apps/api-ts` service now provides the first migration slice:
   written audit entries, and customer record isolation.
 - Role-filtered server-sent events backed by a PostgreSQL event cursor, including reconnect
   recovery and cross-instance delivery without Redis.
+- External payment claims, Finance-only decisions, verified-only derived balances, duplicate
+  reference warnings, immutable reviewed records, operational statements/confirmations, and
+  customer-isolated verified history.
+- Assistive receipt OCR for GCash, Maya, bank-transfer and cash templates. Images are processed
+  transiently, extracted fields remain editable, and OCR never records or verifies money.
+- Optional receipt proofs use randomized private keys outside the web tree. Upload and read are
+  permission-scoped, customer access requires a verified own payment, and attachment is audited.
+- Permission-gated reporting provides date/batch-filtered verified and pending dashboard totals
+  plus a privacy-trimmed payment CSV that omits customer identity and payment references.
 
 The records increment now adds decimal batch terms, atomic enrollment/schedule generation,
 locked issued terms, idempotent legacy schedule issuance, and search/pagination. An opt-in
-TypeScript API mode connects the existing login, Records, Clients, dashboard and customer
-membership/schedule screens, with cookie refresh and live invalidation.
+TypeScript API mode connects the existing login, Records, Clients, Owner user management,
+dashboard and customer membership/schedule screens, with cookie refresh and live invalidation.
 
-Current verification: 8 API unit tests, 12 PostgreSQL integration tests and 4 web client tests.
+Current verification: 13 API unit tests, 16 PostgreSQL integration tests and 4 web client tests.
 Next.js/NestJS typechecks and the production workspace build pass. Browser checks cover
-enrollment, schedule totals, live draft preservation, customer membership and mobile width.
+the Owner account directory and creation dialog in light/dark/mobile layouts, plus enrollment,
+schedule totals, live draft preservation, customer membership and mobile width.
+The payments increment adds stale-response-safe client/receipt search, explicit unknown-date
+review, and server-side payment search/date/status pagination plus privacy-trimmed filtered CSV.
+The integration suite exercises both client search and payment pagination with 1,000 rows.
+Owner user management adds server-side name/email search, role/status filters, bounded pagination,
+audited role and activation changes, session revocation, and self-lockout protection.
 See [19-records-typescript-preview.md](19-records-typescript-preview.md) for setup, evidence,
 the fixed-day cadence policy, and remaining Gate 2 work. Django is still the default backend.
 
@@ -38,7 +53,7 @@ the fixed-day cadence policy, and remaining Gate 2 work. Django is still the def
 
 | Module | Status | Key endpoints | UI |
 |---|---|---|---|
-| **M2 Auth / Users & Roles** | ✅ Built | `/api/auth/token`, `/api/auth/me`, `/api/employees/` (CRUD, ROLE_ASSIGN), `/api/staff/` | `/login`, `/system/team` |
+| **M2 Auth / Users & Roles** | ✅ Built | Django `/api/employees/`; NestJS `/api/auth/*`, `/api/accounts` (list/create/update, ACCOUNT_MANAGE) | `/login`, Owner-only `/system/team` |
 | **M3 Paluwagan Records & Clients** | ✅ Built | `/api/batches/`, `/api/clients/` (+ auto-schedule), `/api/clients/{id}/schedule` | `/system/records`, `/system/clients` |
 | **M4 Payments & Finance** | ✅ Built | `/api/payments/` (record/list/verify), `/api/clients/{id}/balance|statement`, `/api/payments/{id}/proof|confirmation` | `/system/payments` |
 | **M5 Customer Portal** | ✅ Built | `/api/portal/summary|schedule|payments|support`, `/api/clients/{id}/portal-account` | `/portal` |

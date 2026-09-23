@@ -29,7 +29,7 @@ import { can, useMe } from "@/lib/useMe";
 const NAV = [
   { icon: SquaresFour, label: "Dashboard", href: "/system", perms: [] as string[] },
   { icon: Stack, label: "Paluwagan Records", href: "/system/records", perms: ["BATCH_MANAGE", "BATCH_READ"] },
-  { icon: Receipt, label: "Payments & Finance", href: "/system/payments", perms: ["PAYMENT_RECORD", "PAYMENT_VERIFY"] },
+  { icon: Receipt, label: "Payments & Finance", href: "/system/payments", perms: ["PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY"] },
   { icon: Users, label: "Clients", href: "/system/clients", perms: ["CLIENT_MANAGE", "CLIENT_READ"] },
   { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
   { icon: ChartBar, label: "Reports", href: null, perms: [] },
@@ -37,7 +37,7 @@ const NAV = [
   { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "CLIENT_MANAGE"] },
   { icon: Bell, label: "Notifications", href: null, perms: [] },
   { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
-  { icon: ShieldCheck, label: "Users & Roles", href: "/system/team", perms: ["ROLE_ASSIGN"] },
+  { icon: ShieldCheck, label: "User Management", href: "/system/team", perms: ["ROLE_ASSIGN", "ACCOUNT_MANAGE"] },
 ] as const;
 
 const formatRole = (role?: string | null) =>
