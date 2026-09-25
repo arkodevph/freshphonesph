@@ -55,7 +55,6 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md) | **Reference** — every PDF section mapped to current status and acceptance evidence | §1–§21, §A–§B |
 | [19-records-typescript-preview.md](19-records-typescript-preview.md) | Run the existing UI with TypeScript records, installments, customer membership and live updates | §3, §5, §6, §15, §16 |
 | [20-v6-architecture-decision.md](20-v6-architecture-decision.md) | Approved v6 production architecture, capacity baseline, recovery model, and pending deployment choices | §15–§15.2 |
-| [DEV_ACCOUNTS.md](DEV_ACCOUNTS.md) | Local dev login accounts + how to seed them | — |
 
 ## Legend (from the scope)
 

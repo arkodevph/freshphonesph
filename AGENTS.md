@@ -57,16 +57,14 @@ cd apps/api
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py seed_dev_accounts        # staff logins + roles (see docs/DEV_ACCOUNTS.md)
 python manage.py runserver 8000
 
 # 3) frontend (repo root)
 pnpm install
 pnpm --filter @fresh/web dev              # http://localhost:3000  (API at :8000)
 ```
-Local dev accounts (password `freshphones123`): `justine.rhey@freshphones.ph` (owner),
-`justine.cane@freshphones.ph` (finance), `rovic@freshphones.ph` (records),
-`ralph@freshphones.ph` (CS head). Customer portal demo: provision via
+Create local test accounts with a private seed script or through the application; keep
+account details outside Git. Customer portal accounts can be provisioned through
 `POST /api/clients/{id}/portal-account/`. Emails land in MailHog (http://localhost:8025).
 
 ## Target backend conventions (NestJS + TypeScript)

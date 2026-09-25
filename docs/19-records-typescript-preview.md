@@ -62,15 +62,14 @@ centavos than installments are rejected. Tests include maximum-size amounts and 
 
 Use a separate empty PostgreSQL database for the preview. Configure
 `apps/api-ts/.env` from its example with that database URL, a local JWT secret,
-`PORT=4101`, `WEB_ORIGIN=http://localhost:3001`, and a development `SEED_PASSWORD`
-of at least 12 characters.
+`PORT=4101`, and `WEB_ORIGIN=http://localhost:3001`. Provision local test accounts
+privately after migrating the database.
 
 ```bash
 pnpm install
 pnpm --filter @freshphones/contracts build
 pnpm db:generate
 pnpm db:migrate
-pnpm db:seed
 pnpm --filter @fresh/api-ts dev
 ```
 
@@ -81,10 +80,7 @@ NEXT_PUBLIC_API_BACKEND=typescript NEXT_PUBLIC_API_URL=http://localhost:4101 pnp
 pnpm --filter @fresh/web start --port 3001
 ```
 
-Open `http://localhost:3001/login`. Seed accounts are `owner@freshphones.test`,
-`records@freshphones.test`, `finance@freshphones.test`, and `customer@freshphones.test`;
-they use the seed password for a new database. Rerunning the seed preserves existing passwords
-and records.
+Open `http://localhost:3001/login` and use a privately provisioned test account.
 
 The backend selection is fixed at web build time. Without `NEXT_PUBLIC_API_BACKEND=typescript`,
 the web app retains its Django behavior. Changing the API URL alone is not a compatible

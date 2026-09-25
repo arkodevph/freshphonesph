@@ -36,11 +36,10 @@ Full status: [`BUILD_STATUS.md`](BUILD_STATUS.md).
 
 ## How to review / test
 1. `docker compose up -d` · set up `apps/api/.venv` · `pip install -r requirements.txt` ·
-   `migrate` · `seed_dev_accounts` · `runserver`.
+   `migrate` · provision local test accounts privately · `runserver`.
 2. `pnpm install` · `pnpm --filter @fresh/web dev`.
 3. `cd apps/api && python manage.py test` → **80 passing**.
-4. Log in (see `docs/DEV_ACCOUNTS.md`): owner `justine.rhey@freshphones.ph`,
-   finance `justine.cane@…`, records `rovic@…`, CS `ralph@…` (pw `freshphones123`).
+4. Log in using privately provisioned local test accounts for each role.
 5. Try: create batch → add client → record + verify a payment (balance moves, email in MailHog) →
    run reports/export → raise a support concern from the portal → verify an agent at `/verify`.
 
