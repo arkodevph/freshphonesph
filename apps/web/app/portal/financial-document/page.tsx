@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Printer } from "@phosphor-icons/react";
+import { ArrowLeft, DownloadSimple, Printer } from "@phosphor-icons/react";
 import type { Client, ClientBalance, Payment, User } from "@freshphones/contracts";
 import { tsRequest } from "@/lib/ts-api";
+import { downloadAccountPdf } from "@/lib/account-pdf";
 import styles from "./financial-document.module.css";
 
 type Statement = { title: string; notice: string; generatedAt: string; balance: ClientBalance; verifiedPayments: Pick<Payment, "id" | "amount" | "paymentDate" | "method" | "referenceNumber">[] };
@@ -18,6 +19,8 @@ export default function FinancialDocumentPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [document, setDocument] = useState<Statement | Confirmation | null>(null);
   const [error, setError] = useState("");
+  const [downloadError, setDownloadError] = useState("");
+  const [downloading, setDownloading] = useState(false);
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const paymentId = query.get("payment");
@@ -37,7 +40,8 @@ export default function FinancialDocumentPage() {
   }, [router]);
 
   return <main className={styles.page}>
-    <div className={styles.actions}><Link href="/portal/payments"><ArrowLeft aria-hidden="true" /> Back to payments</Link><button type="button" disabled={!document} onClick={() => window.print()}><Printer aria-hidden="true" /> Print or save PDF</button></div>
+    <div className={styles.actions}><Link href="/portal/payments"><ArrowLeft aria-hidden="true" /> Back to payments</Link><button type="button" disabled={!document || !client || downloading} onClick={() => { if (!document || !client) return; setDownloadError(""); setDownloading(true); void downloadAccountPdf(client, document).catch((caught) => setDownloadError(caught instanceof Error ? caught.message : "Could not download PDF.")).finally(() => setDownloading(false)); }}><DownloadSimple aria-hidden="true" /> {downloading ? "Preparing PDF…" : "Download PDF"}</button><button type="button" disabled={!document} onClick={() => window.print()}><Printer aria-hidden="true" /> Print</button></div>
+    {downloadError && <p className={styles.message} role="alert">{downloadError}</p>}
     {error ? <p className={styles.message} role="alert">{error}</p> : !document || !client ? <p className={styles.message}>Loading your document…</p> :
       <article className={styles.sheet}>
         <header><p className={styles.brand}>Fresh Phones <span>PH</span></p><p>FP Gadget Center</p><h1>{document.title}</h1><p>Generated {new Date(document.generatedAt).toLocaleString("en-PH")}</p></header>

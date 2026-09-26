@@ -5,7 +5,7 @@ import { Users, Plus, CalendarBlank } from "@phosphor-icons/react";
 import {
   listClients,
   createClient,
-  updateClientReleaseStatus,
+  addReleaseUpdate,
   listBatchChoices,
   getSchedule,
   type ClientRecord,
@@ -37,6 +37,7 @@ export default function ClientsPage() {
   const [saving, setSaving] = useState(false);
   const [schedule, setSchedule] = useState<{ id: RecordId; items: ScheduleItem[] } | null>(null);
   const [documentClient, setDocumentClient] = useState<RecordId | null>(null);
+  const [releaseDraft, setReleaseDraft] = useState<{ id: RecordId; status: "NOT_READY" | "PROCESSING" | "READY" | "RELEASED"; note: string; collectionDate: string } | null>(null);
   const [form, setForm] = useState({
     batch: "",
     full_name: "",
@@ -109,11 +110,14 @@ export default function ClientsPage() {
     }
   }
 
-  async function changeRelease(id: RecordId, status: "NOT_READY" | "PROCESSING" | "READY" | "RELEASED") {
+  async function saveRelease(c: ClientRecord) {
+    if (!releaseDraft || releaseDraft.id !== c.id || !c.version) return;
     setError(null);
     try {
-      await updateClientReleaseStatus(id, status);
-      flash("Release status updated. The customer has been notified.");
+      await addReleaseUpdate(c.id, { version: c.version, status: releaseDraft.status,
+        note: releaseDraft.note.trim(), collectionDate: releaseDraft.collectionDate || null });
+      setReleaseDraft(null);
+      flash("Release update posted. The customer has been notified.");
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Could not update release status."); }
   }
@@ -220,7 +224,7 @@ export default function ClientsPage() {
                     <td className="px-2 py-2.5 capitalize">
                       <span className="rounded-full bg-sky-2/70 px-2.5 py-1 text-xs font-700 text-blue-ink">{c.status}</span>
                     </td>
-                    {TYPESCRIPT_API && <td className="px-2 py-2.5">{canManage ? <select aria-label={`Release status for ${c.full_name}`} value={(c.release_status ?? "not_ready").toUpperCase()} onChange={(e) => changeRelease(c.id, e.target.value as "NOT_READY" | "PROCESSING" | "READY" | "RELEASED")} className="rounded-lg border border-white/70 bg-white/70 px-2 py-1 text-xs text-blue-ink"><option value="NOT_READY">Not ready</option><option value="PROCESSING">Processing</option><option value="READY">Ready</option><option value="RELEASED">Released</option></select> : <span className="text-xs capitalize">{(c.release_status ?? "not_ready").replaceAll("_", " ")}</span>}</td>}
+                    {TYPESCRIPT_API && <td className="px-2 py-2.5"><span className="text-xs capitalize">{(c.release_status ?? "not_ready").replaceAll("_", " ")}</span>{canManage && <button type="button" className="ml-2 rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700" onClick={() => setReleaseDraft((current) => current?.id === c.id ? null : { id: c.id, status: (c.release_status ?? "not_ready").toUpperCase() as "NOT_READY" | "PROCESSING" | "READY" | "RELEASED", note: "", collectionDate: "" })}>{releaseDraft?.id === c.id ? "Cancel" : "Post update"}</button>}</td>}
                     <td className="px-2 py-2.5 text-right">
                       <button onClick={() => toggleSchedule(c.id)} className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white">
                         <CalendarBlank weight="bold" className="h-3.5 w-3.5" />
@@ -229,6 +233,7 @@ export default function ClientsPage() {
                       {TYPESCRIPT_API && (me?.role === "owner" || me?.role === "records") && <button type="button" onClick={() => setDocumentClient((current) => current === c.id ? null : c.id)} className="ml-2 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white">{documentClient === c.id ? "Hide documents" : "Documents"}</button>}
                     </td>
                   </tr>
+                  {releaseDraft?.id === c.id && <tr><td colSpan={7} className="px-2 pb-3"><form onSubmit={(event) => { event.preventDefault(); void saveRelease(c); }} className="glass-tint grid gap-3 rounded-2xl p-4"><h2 className="text-sm font-700 text-blue-ink">Release update for {c.full_name}</h2><div className="grid gap-3 md:grid-cols-3"><label className="grid gap-1 text-xs text-blue-ink">Status<select value={releaseDraft.status} onChange={(event) => setReleaseDraft({ ...releaseDraft, status: event.target.value as typeof releaseDraft.status })} className={inputCls}><option value="NOT_READY">Not ready</option><option value="PROCESSING">Processing</option><option value="READY">Ready</option><option value="RELEASED">Released</option></select></label><label className="grid gap-1 text-xs text-blue-ink md:col-span-2">Collection date, if confirmed<input type="date" value={releaseDraft.collectionDate} onChange={(event) => setReleaseDraft({ ...releaseDraft, collectionDate: event.target.value })} disabled={!(["READY", "RELEASED"].includes(releaseDraft.status))} className={inputCls} /></label></div><label className="grid gap-1 text-xs text-blue-ink">Customer-visible update or collection instructions<textarea value={releaseDraft.note} onChange={(event) => setReleaseDraft({ ...releaseDraft, note: event.target.value })} maxLength={1000} rows={3} className={inputCls} placeholder="What changed, or how should the customer arrange collection?" /></label><button type="submit" className="justify-self-start rounded-xl bg-blue px-4 py-2 text-xs font-700 text-white">Post release update</button></form></td></tr>}
                   {schedule?.id === c.id && (
                     <tr>
                       <td colSpan={TYPESCRIPT_API ? 7 : 6} className="px-2 pb-3">

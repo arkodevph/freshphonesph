@@ -21,7 +21,11 @@ export function DocumentChecklist({ clientId, reviewer = false }: { clientId?: R
   const [notice, setNotice] = useState<string | null>(null);
   const [working, setWorking] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [previews, setPreviews] = useState<Record<string, { url: string; name: string; mime: string }>>({});
+  const previewUrls = useRef<Record<string, string>>({});
   const scrolledHash = useRef<string | null>(null);
+
+  useEffect(() => () => { Object.values(previewUrls.current).forEach((url) => URL.revokeObjectURL(url)); }, []);
 
   const load = useCallback(() => {
     void getCustomerDocuments(clientId).then((items) => { setRequirements(items); setError(null); })
@@ -46,10 +50,35 @@ export function DocumentChecklist({ clientId, reviewer = false }: { clientId?: R
     try {
       await uploadCustomerDocument(key, file, clientId);
       if (input) input.value = "";
-      setNotice("Document submitted for Records review.");
+      if (previewUrls.current[key]) URL.revokeObjectURL(previewUrls.current[key]);
+      delete previewUrls.current[key];
+      setPreviews((current) => { const next = { ...current }; delete next[key]; return next; });
+      setNotice(`${file.name} submitted for Records review. You can track its status below.`);
       load();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Upload failed."); }
     finally { setWorking(null); }
+  }
+
+  function chooseFile(key: string, input: HTMLInputElement) {
+    const file = input.files?.[0];
+    if (previewUrls.current[key]) URL.revokeObjectURL(previewUrls.current[key]);
+    delete previewUrls.current[key];
+    setPreviews((current) => { const next = { ...current }; delete next[key]; return next; });
+    setError(null);
+    if (!file) return;
+    if (/\.(heic|heif)$/i.test(file.name) || /image\/hei[cf]/i.test(file.type)) {
+      input.value = "";
+      setError("HEIC/HEIF photos cannot be reviewed here. On your phone, save or share the photo as JPG or PDF, then choose that file. This does not add another document requirement.");
+      return;
+    }
+    if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      input.value = "";
+      setError("Choose a PDF, JPG, PNG or WebP file up to 5 MB.");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    previewUrls.current[key] = url;
+    setPreviews((current) => ({ ...current, [key]: { url, name: file.name, mime: file.type } }));
   }
 
   async function review(item: DocumentRequirement, status: "APPROVED" | "NEEDS_CLARIFICATION") {
@@ -80,7 +109,7 @@ export function DocumentChecklist({ clientId, reviewer = false }: { clientId?: R
 
   return <div className={styles.wrapper}>
     <div className={styles.heading}><span className={styles.headingIcon}><FileArrowUp weight="duotone" aria-hidden="true" /></span><div><p>Requirements</p><h2>{reviewer ? "Client documents" : "My documents"}</h2></div></div>
-    <p className={styles.helper}>Upload a clear PDF, JPG, PNG or WebP file, up to 5 MB. Files are reviewed by Records.</p>
+    <p className={styles.helper}>Upload a clear PDF, JPG, PNG or WebP file, up to 5 MB. Files are reviewed by Records. If your phone uses HEIC, save or share the photo as JPG or PDF first.</p>
     {error && <p className={styles.error} role="alert">{error}</p>}
     {notice && <p className={styles.notice} role="status">{notice}</p>}
     {loading ? <p className={styles.empty}>Loading requirements…</p> : requirements.length === 0 ? <p className={styles.empty}>No requirements are configured.</p> :
@@ -89,9 +118,10 @@ export function DocumentChecklist({ clientId, reviewer = false }: { clientId?: R
         {item.latest?.clarification && item.status === "NEEDS_CLARIFICATION" && <p className={styles.clarification}><WarningCircle weight="fill" aria-hidden="true" /> {item.latest.clarification}</p>}
         {item.latest && <div className={styles.fileLine}><span>{item.latest.fileName} · {new Date(item.latest.uploadedAt).toLocaleDateString("en-PH")}</span><button type="button" onClick={() => download(item.latest!.id, item.latest!.fileName)}><ArrowDown weight="bold" aria-hidden="true" /> Download</button></div>}
         {(item.status === "MISSING" || item.status === "NEEDS_CLARIFICATION") && <form className={styles.uploadForm} onSubmit={(event) => upload(event, item.key)}>
-          <input type="file" aria-label={`Choose ${item.label}`} accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required />
+          <input type="file" aria-label={`Choose ${item.label}`} accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif" onChange={(event) => chooseFile(item.key, event.currentTarget)} required />
           <button type="submit" disabled={working === item.key}><FileArrowUp weight="bold" aria-hidden="true" />{working === item.key ? "Uploading…" : item.status === "MISSING" ? "Upload" : "Submit a corrected file"}</button>
         </form>}
+        {previews[item.key] && <div className={styles.preview}><strong>Check this file before uploading: {previews[item.key].name}</strong>{previews[item.key].mime === "application/pdf" ? <iframe src={previews[item.key].url} title={`Preview of ${previews[item.key].name}`} /> : <img src={previews[item.key].url} alt={`Preview of ${previews[item.key].name}`} />}</div>}
         {reviewer && item.status === "SUBMITTED" && item.latest && <div className={styles.review}>
           <label>Correction request<input value={reasons[item.key] ?? ""} onChange={(event) => setReasons((current) => ({ ...current, [item.key]: event.target.value }))} maxLength={1000} placeholder="What should the customer correct?" /></label>
           <div><button type="button" disabled={working === item.key} onClick={() => review(item, "APPROVED")}><CheckCircle weight="bold" aria-hidden="true" /> Approve</button><button type="button" disabled={working === item.key} onClick={() => review(item, "NEEDS_CLARIFICATION")}>Request clarification</button></div>

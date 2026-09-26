@@ -53,6 +53,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         if (!item.client.account?.active) continue;
         const all = await this.db.scheduleItem.findMany({ where: { clientId: item.clientId }, orderBy: { sequenceNo: 'asc' } });
         const verified = await this.db.payment.aggregate({ where: { clientId: item.clientId, status: 'VERIFIED' }, _sum: { amount: true } });
+        const pendingCount = await this.db.payment.count({ where: { clientId: item.clientId, status: 'PENDING' } });
         const allocation = allocateVerifiedPayments(all.map((row) => ({ sequenceNo: row.sequenceNo, dueDate: row.dueDate.toISOString().slice(0, 10), expectedAmount: row.expectedAmount.toFixed(2) })), (verified._sum.amount ?? 0).toString(), today);
         const current = allocation.find((row) => row.sequenceNo === item.sequenceNo);
         if (!current || current.status === 'PAID') continue;
@@ -62,7 +63,8 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
           await this.db.$transaction(async (tx) => {
             const notification = await tx.notification.create({ data: { userId: item.client.account!.id, kind: 'installment', dedupeKey: key,
               title: offset === 0 ? 'Installment due today' : 'Upcoming installment',
-              message: `Installment ${item.sequenceNo} is due ${dueDate}. Remaining scheduled amount: PHP ${outstanding}. Coordinate payment in Messenger; only Finance-verified payments update your record.`,
+              message: `Installment ${item.sequenceNo} is due ${dueDate}. Remaining scheduled amount: PHP ${outstanding}. ${pendingCount ? 'A staff-recorded payment is awaiting Finance review; it is not included in this amount. ' : ''}Coordinate payment in Messenger; only Finance-verified payments update your record.`,
+              targetPath: `/portal/schedule#installment-${item.sequenceNo}`,
             } });
             await tx.changeEvent.create({ data: { entity: 'notification', recordId: notification.id } });
           });
@@ -86,7 +88,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         continue;
       }
       try {
-        await this.send(notice.id, notice.user.email, notice.kind, notice.title, notice.message);
+        await this.send(notice.id, notice.user.email, notice.kind, notice.title, notice.message, notice.targetPath);
         await this.db.notification.update({ where: { id: notice.id }, data: { emailStatus: 'SENT', emailSentAt: new Date(), emailError: null } });
       } catch {
         const attempts = notice.emailAttempts + 1;
@@ -100,9 +102,9 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async send(id: string, to: string, kind: string, title: string, message: string) {
+  private async send(id: string, to: string, kind: string, title: string, message: string, targetPath: string | null) {
     const template = await this.settings.template(kind);
-    const { subject, text } = renderCustomerEmail(template, { title, message, url: `${this.config.WEB_ORIGIN}${address(kind)}` });
+    const { subject, text } = renderCustomerEmail(template, { title, message, url: `${this.config.WEB_ORIGIN}${targetPath ?? address(kind)}` });
     if (this.config.NODE_ENV !== 'production') {
       const directory = join(process.cwd(), '.local/mail');
       await mkdir(directory, { recursive: true, mode: 0o700 });

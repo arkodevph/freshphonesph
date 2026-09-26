@@ -134,6 +134,7 @@ export default function LoginPage() {
             </div>
 
             {TYPESCRIPT_API && <Link href="/forgot-password" className="login-recovery-link">Forgot password?</Link>}
+            {TYPESCRIPT_API && <Link href="/account-access" className="login-recovery-link">Haven’t received your account details?</Link>}
 
             {error && (
               <div id="login-error" className="login-error" role="alert">

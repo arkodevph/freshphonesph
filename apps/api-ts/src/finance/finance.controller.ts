@@ -60,6 +60,10 @@ export class FinanceController {
     return this.finance.payments(user, query);
   }
 
+  @Get('portal/payments/review') pendingForCustomer(@CurrentUser() user: User) {
+    return this.finance.customerPending(user);
+  }
+
   @Get('payments/summary') @Requires('PAYMENT_READ') summary(@CurrentUser() user: User) {
     return this.finance.summary(user);
   }

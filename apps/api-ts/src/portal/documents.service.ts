@@ -106,7 +106,8 @@ export class DocumentsService {
         before: json({ clientId: before.clientId, ...view(before) }), after: json({ clientId: row.clientId, ...view(row) }) } });
       await tx.changeEvent.create({ data: { entity: 'document', recordId: id } });
       await notifyCustomer(tx, row.clientId, 'document', 'Document reviewed',
-        input.status === 'APPROVED' ? `${requirement(row.requirementKey)?.label} was approved.` : `${requirement(row.requirementKey)?.label} needs clarification. See your documents.`);
+        input.status === 'APPROVED' ? `${requirement(row.requirementKey)?.label} was approved.` : `${requirement(row.requirementKey)?.label} needs clarification. See your documents.`,
+        `/portal/documents#document-${row.requirementKey}`);
       return view(row);
     });
   }

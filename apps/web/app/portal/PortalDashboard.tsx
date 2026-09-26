@@ -7,11 +7,12 @@ import Image from "next/image";
 import { ArrowRight, Bell, CalendarBlank, CaretDown, ChatCircleText, CheckCircle, Clock, FileText, House, Info, List, Package, Plus, SignOut, SquaresFour, Truck, Wallet, X } from "@phosphor-icons/react";
 import {
   getPortalSummary, getPortalRecords, getPortalSchedule, getPortalPayments,
-  getPortalSupport, createPortalSupport, getCustomerDocuments,
-  getPortalNotifications, readPortalNotification,
-  type PortalSummary, type PortalScheduleItem, type Payment, type SupportCase, type PortalNotification, type DocumentRequirement,
+  getPortalSupport, createPortalSupport, getSupportCaseDetail, replySupportCase, getCustomerDocuments,
+  getPortalNotifications, readPortalNotification, getPendingCustomerPayments, getReleaseUpdates,
+  type PortalSummary, type PortalScheduleItem, type Payment, type PendingCustomerPayment, type SupportCase, type SupportCaseDetail, type PortalNotification, type DocumentRequirement, type ReleaseUpdate,
 } from "@/lib/api";
-import { portalAttention } from "@/lib/portal-attention";
+import { manilaToday, portalAttention } from "@/lib/portal-attention";
+import { installmentState, scheduleDueNow } from "@/lib/portal-schedule";
 import { isAuthed, logoutSession } from "@/lib/auth";
 import { useMe } from "@/lib/useMe";
 import { TYPESCRIPT_API } from "@/lib/backend";
@@ -97,9 +98,18 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   const [summary, setSummary] = useState<PortalSummary | null>(null);
   const [schedule, setSchedule] = useState<PortalScheduleItem[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PendingCustomerPayment[]>([]);
+  const [pendingStatus, setPendingStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [releaseUpdates, setReleaseUpdates] = useState<ReleaseUpdate[]>([]);
+  const [releaseUpdatesStatus, setReleaseUpdatesStatus] = useState<"loading" | "ready" | "error">("loading");
   const [paymentPage, setPaymentPage] = useState(1);
   const [morePayments, setMorePayments] = useState(false);
   const [cases, setCases] = useState<SupportCase[]>([]);
+  const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
+  const [caseDetail, setCaseDetail] = useState<SupportCaseDetail | null>(null);
+  const [caseLoading, setCaseLoading] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [replying, setReplying] = useState(false);
   const [supportStatus, setSupportStatus] = useState<"loading" | "ready" | "error">("loading");
   const [attentionDocuments, setAttentionDocuments] = useState<DocumentRequirement[]>([]);
   const [attentionCases, setAttentionCases] = useState<SupportCase[]>([]);
@@ -166,6 +176,16 @@ export default function PortalDashboard({ section }: { section: PortalSection })
       .catch(() => setSupportStatus("error"));
   }, []);
   const loadNotifications = useCallback(() => { if (TYPESCRIPT_API) void getPortalNotifications().then(setNotifications).catch(() => {}); }, []);
+  const loadPending = useCallback(() => {
+    if (!TYPESCRIPT_API || !["payments", "notifications"].includes(section)) return;
+    void getPendingCustomerPayments().then((items) => { setPendingPayments(items); setPendingStatus("ready"); })
+      .catch(() => setPendingStatus("error"));
+  }, [section]);
+  const loadReleaseUpdates = useCallback(() => {
+    if (!TYPESCRIPT_API || !me?.client_id || !["overview", "release"].includes(section)) return;
+    void getReleaseUpdates(me.client_id).then((updates) => { setReleaseUpdates(updates); setReleaseUpdatesStatus("ready"); })
+      .catch(() => setReleaseUpdatesStatus("error"));
+  }, [me?.client_id, section]);
   const loadAttention = useCallback(() => {
     if (!TYPESCRIPT_API || section !== "overview") return;
     void Promise.all([getCustomerDocuments(), getPortalSupport()])
@@ -201,7 +221,12 @@ export default function PortalDashboard({ section }: { section: PortalSection })
       setError(caughtError instanceof Error ? caughtError.message : "Could not load membership.");
     });
   }, [paymentPage]);
-  const refresh = useCallback(() => { loadRecords(); loadAttention(); if (section === "support") loadSupport(); loadNotifications(); }, [section, loadRecords, loadAttention, loadSupport, loadNotifications]);
+  const refresh = useCallback(() => {
+    loadRecords(); loadAttention(); loadPending(); loadReleaseUpdates();
+    if (section === "support" || section === "membership") loadSupport();
+    if (section === "support" && activeCaseId) void getSupportCaseDetail(activeCaseId).then(setCaseDetail).catch(() => {});
+    loadNotifications();
+  }, [section, activeCaseId, loadRecords, loadAttention, loadPending, loadReleaseUpdates, loadSupport, loadNotifications]);
   useLiveRecords(refresh, me?.account_type === "customer");
 
   useEffect(() => {
@@ -221,8 +246,11 @@ export default function PortalDashboard({ section }: { section: PortalSection })
     const target = window.location.hash.slice(1);
     if (!target || scrolledHash.current === target) return;
     const element = document.getElementById(target);
-    if (element) { element.scrollIntoView({ block: "start" }); scrolledHash.current = target; }
-  }, [section, schedule, cases]);
+    if (element) {
+      element.scrollIntoView({ block: "start" }); scrolledHash.current = target;
+      if (section === "support" && target.startsWith("case-") && TYPESCRIPT_API) void openCase(target.slice(5));
+    }
+  }, [section, schedule, cases, releaseUpdates]);
 
   async function submitMembershipCorrection(event: React.FormEvent) {
     event.preventDefault();
@@ -270,6 +298,28 @@ export default function PortalDashboard({ section }: { section: PortalSection })
     } finally { setSubmitting(false); }
   }
 
+  async function openCase(id: string) {
+    if (activeCaseId === id) { setActiveCaseId(null); setCaseDetail(null); return; }
+    setActiveCaseId(id); setCaseDetail(null); setCaseLoading(true); setError(null);
+    try { setCaseDetail(await getSupportCaseDetail(id)); }
+    catch (caughtError) { setError(caughtError instanceof Error ? caughtError.message : "Could not load this request."); }
+    finally { setCaseLoading(false); }
+  }
+
+  async function submitReply(event: React.FormEvent) {
+    event.preventDefault();
+    if (!activeCaseId || !replyText.trim() || replying) return;
+    setReplying(true); setError(null);
+    try {
+      await replySupportCase(activeCaseId, replyText.trim());
+      setReplyText("");
+      setCaseDetail(await getSupportCaseDetail(activeCaseId));
+      loadSupport();
+      setNotice("Reply sent to Customer Service.");
+    } catch (caughtError) { setError(caughtError instanceof Error ? caughtError.message : "Could not send your reply."); }
+    finally { setReplying(false); }
+  }
+
   async function markRead(id: string) {
     try {
       const updated = await readPortalNotification(id);
@@ -288,6 +338,8 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   };
 
   const featuredInstallment = schedule.find((item) => !["paid", "completed"].includes(item.status.toLowerCase()));
+  const today = manilaToday();
+  const dueNow = scheduleDueNow(schedule, today);
   const totalDue = Number(summary?.total_due ?? 0);
   const verifiedPaid = Number(summary?.verified_paid ?? 0);
   const paidPercent = Number.isFinite(totalDue) && totalDue > 0 && Number.isFinite(verifiedPaid)
@@ -396,12 +448,16 @@ export default function PortalDashboard({ section }: { section: PortalSection })
             <button type="submit" disabled={reportSubmitting}>{reportSubmitting ? "Sending…" : "Send correction request"}</button>
           </form>}
           {reportCaseId && <p className={styles.correctionSuccess} role="status">Request sent to Customer Service. <Link href={`/portal/support#case-${reportCaseId}`}>View your support request</Link>.</p>}
+          {cases.some((item) => item.description.startsWith("Membership details correction request")) && <div className={styles.correctionHistory}><h3>Correction requests</h3><ul>{cases.filter((item) => item.description.startsWith("Membership details correction request")).map((item) => <li key={item.id}><span>Request #{String(item.id).slice(0, 8)} · {item.status.replaceAll("_", " ")}{item.resolution ? ` · ${item.resolution}` : ""}</span><Link href={`/portal/support#case-${item.id}`}>View request</Link></li>)}</ul></div>}
         </section>}
 
         {(section === "overview" || section === "release") && <section className={`${styles.releaseCard} ${section === "release" ? styles.standaloneCard : ""}`} aria-labelledby="release-title">
           <span className={styles.releaseIcon}><Truck weight="duotone" aria-hidden="true" /></span>
-          <div><p className={styles.eyebrow}>Unit status</p><h2 id="release-title">Release &amp; fulfillment</h2><p>{releaseDetails[releaseStatus] ?? "Your unit status will appear here when updated."}</p></div>
+          <div><p className={styles.eyebrow}>Unit status</p><h2 id="release-title">Release &amp; fulfillment</h2><p>{releaseDetails[releaseStatus] ?? "Your unit status will appear here when updated."}</p>{releaseUpdates[0] && <small>Last release update: {new Date(releaseUpdates[0].updated_at).toLocaleString("en-PH")}</small>}</div>
           <strong className={styles.releaseBadge}>{releaseStatus}</strong>
+        </section>}
+        {section === "release" && TYPESCRIPT_API && <section className={styles.sectionCard} aria-labelledby="release-updates-title"><div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.scheduleIcon}`}><Truck weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Staff updates</p><h2 id="release-updates-title">Release updates</h2></div></div>
+          {releaseUpdatesStatus === "loading" ? <p className={styles.emptyText} role="status">Checking release updates…</p> : releaseUpdatesStatus === "error" ? <div className={styles.attentionState} role="alert"><p>Could not load release updates.</p><button type="button" onClick={loadReleaseUpdates}>Try again</button></div> : releaseUpdates.length === 0 ? <p className={styles.emptyText}>No release milestones have been posted yet. The current status is shown above; Fresh Phones PH will share collection details when available.</p> : <ol className={styles.releaseTimeline}>{releaseUpdates.map((update, index) => <li id={`release-update-${update.id}`} key={update.id}><div><strong>{update.status}</strong><small>{new Date(update.updated_at).toLocaleString("en-PH")}</small></div>{update.note && <p>{update.note}</p>}{update.collection_date && <p><strong>{index === 0 ? "Collection date" : "Earlier collection date"}: {formatDate(update.collection_date)}</strong>{index === 0 ? " · Coordinate collection details with Fresh Phones PH." : " · Check the latest update for current instructions."}</p>}</li>)}</ol>}
         </section>}
 
         {(section === "overview" || section === "schedule") && <section className={styles.nextPayment} aria-labelledby="next-payment-title">
@@ -413,15 +469,16 @@ export default function PortalDashboard({ section }: { section: PortalSection })
         {(section === "schedule" || section === "payments") && <div className={`${styles.detailsGrid} ${styles.detailsGridSingle}`}>
           {section === "schedule" && <section className={styles.sectionCard} aria-labelledby="schedule-title">
             <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.scheduleIcon}`}><CalendarBlank weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Your plan</p><h2 id="schedule-title">Payment schedule</h2></div><span className={styles.count}>{schedule.length} installments</span></div>
+            {schedule.length > 0 && <div className={styles.dueSummary}><div><strong>Currently due</strong><p>Remaining on installments due by today, after Finance-verified payments.</p></div><strong>{formatMoney(dueNow)}</strong></div>}
             {schedule.length === 0 ? <p className={styles.emptyText}>Your schedule has not been issued yet. Please contact Records.</p> : (
-              <ol className={styles.scheduleList}>{schedule.map((item) => (
+              <ol className={styles.scheduleList}>{schedule.map((item) => { const state = installmentState(item, today); return (
                 <li key={item.sequence_no} id={`installment-${item.sequence_no}`} className={styles.scheduleRow}>
                   <span className={styles.sequence}>{item.sequence_no}</span>
-                  <div className={styles.scheduleDate}><span>Due date</span><strong>{formatDate(item.due_date)}</strong></div>
-                  <div className={styles.scheduleAmount}><span>Amount</span><strong>{formatMoney(item.expected_amount)}</strong>{Number(item.paid_applied) > 0 && <small>{formatMoney(item.paid_applied)} applied</small>}</div>
-                  <span className={`${styles.status} ${statusClass(item.status)}`}>{item.status.replaceAll("_", " ")}</span>
+                  <div className={styles.scheduleDate}><span>Due date</span><strong>{formatDate(item.due_date)}</strong><small className={state.timing === "Overdue" ? styles.dueLate : state.timing === "Due today" ? styles.dueToday : ""}>{state.timing}</small></div>
+                  <div className={styles.scheduleAmount}><span>Installment</span><strong>{formatMoney(item.expected_amount)}</strong><small>{formatMoney(item.paid_applied)} verified · {formatMoney(state.remaining)} remaining</small></div>
+                  <span className={`${styles.status} ${statusClass(item.status)}`}>{state.payment}</span>
                 </li>
-              ))}</ol>
+              ); })}</ol>
             )}
           </section>}
 
@@ -437,23 +494,40 @@ export default function PortalDashboard({ section }: { section: PortalSection })
           </section>}
         </div>}
 
+        {section === "payments" && TYPESCRIPT_API && <section className={styles.sectionCard} aria-labelledby="pending-title"><div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.paymentIcon}`}><Clock weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Recorded by staff</p><h2 id="pending-title">Awaiting Finance review</h2></div></div>
+          <p className={styles.pendingNote}>These records have not changed your verified paid amount or remaining balance. If you paid but do not see a record, contact Fresh Phones PH in Messenger with your reference.</p>
+          {pendingStatus === "loading" ? <p className={styles.emptyText} role="status">Checking recorded payments…</p> : pendingStatus === "error" ? <div className={styles.attentionState} role="alert"><p>Could not check payments awaiting review.</p><button type="button" onClick={loadPending}>Try again</button></div> : pendingPayments.length === 0 ? <p className={styles.emptyText}>No staff-recorded payments are awaiting Finance review.</p> : <ul className={styles.pendingList}>{pendingPayments.map((item) => <li key={item.id}><div><strong>{formatMoney(item.amount)}</strong><span>{formatDate(item.payment_date)} · {item.method}</span>{item.reference_no && <small>Ref: {item.reference_no}</small>}</div><span>Pending review</span></li>)}</ul>}
+        </section>}
+
         {section === "documents" && TYPESCRIPT_API && <section className={`${styles.sectionCard} ${styles.support} ${styles.standaloneCard}`} aria-label="Documents"><DocumentChecklist /></section>}
 
         {section === "notifications" && TYPESCRIPT_API && <section className={`${styles.sectionCard} ${styles.support} ${styles.standaloneCard}`} aria-labelledby="notifications-title">
           <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.notificationIcon}`}><Bell weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Updates</p><h2 id="notifications-title">Notifications</h2></div>{notifications.some((item) => !item.readAt) && <span className={styles.count}>{notifications.filter((item) => !item.readAt).length} new</span>}</div>
-          {notifications.length === 0 ? <p className={styles.emptyText}>No updates yet. Payment, release, and support changes will appear here.</p> : <ul className={styles.notificationList}>{notifications.map((item) => <li key={item.id} className={item.readAt ? "" : styles.unread}><div><strong>{item.title}</strong><p>{item.message}</p><small>{new Date(item.createdAt).toLocaleString("en-PH")}</small></div>{!item.readAt && <button type="button" onClick={() => markRead(item.id)}>Mark read</button>}</li>)}</ul>}
+          {notifications.length === 0 ? <p className={styles.emptyText}>No updates yet. Payment, release, and support changes will appear here.</p> : <ul className={styles.notificationList}>{notifications.map((item) => <li key={item.id} className={item.readAt ? "" : styles.unread}><div><strong>{item.title}</strong><p>{item.message}</p><small>{new Date(item.createdAt).toLocaleString("en-PH")}</small><div className={styles.notificationActions}>{item.targetPath?.startsWith("/portal/") && <Link href={item.targetPath} onClick={() => { if (!item.readAt) void markRead(item.id); }}>View record <ArrowRight weight="bold" aria-hidden="true" /></Link>}{!item.readAt && <button type="button" onClick={() => markRead(item.id)}>Mark read</button>}</div></div></li>)}</ul>}
         </section>}
 
         {section === "support" && <section className={`${styles.sectionCard} ${styles.support} ${styles.standaloneCard}`} aria-labelledby="support-title">
           <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.supportIcon}`}><ChatCircleText weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Need help?</p><h2 id="support-title">Support</h2></div></div>
           <form onSubmit={submitConcern} className={styles.supportForm}>
             <select aria-label="Concern category" value={concern.category} onChange={(event) => setConcern({ ...concern, category: event.target.value })}><option>Payment</option><option>Unit / device</option><option>Account</option><option>Other</option></select>
-            <input required minLength={10} maxLength={5000} aria-label="Describe your concern" value={concern.description} onChange={(event) => setConcern({ ...concern, description: event.target.value })} placeholder="Describe your concern…" />
+            <textarea required minLength={10} maxLength={5000} aria-label="Describe your concern" value={concern.description} onChange={(event) => setConcern({ ...concern, description: event.target.value })} placeholder="Describe your concern…" />
             <button type="submit" disabled={submitting}><Plus weight="bold" aria-hidden="true" /> {submitting ? "Sending…" : "Submit"}</button>
           </form>
           {supportStatus === "error" ? <div className={styles.attentionState} role="alert"><p>Couldn’t load your support requests.</p><button type="button" onClick={loadSupport}>Try again</button></div>
             : supportStatus === "loading" ? <p className={styles.emptyText} role="status">Loading your support requests…</p>
-            : cases.length === 0 ? <p className={styles.emptyText}>No concerns raised yet.</p> : <ul className={styles.supportList}>{cases.map((item) => <li key={item.id} id={`case-${item.id}`}><div><strong>{item.category}</strong><span>{item.description}</span>{item.assigned_staff_name && <small>Assigned to {item.assigned_staff_name}</small>}{item.resolution && <small>Resolution: {item.resolution}</small>}{item.status.toLowerCase() === "waiting_for_client" && <small>Customer Service is waiting for details. <a href="https://m.me/FreshPhonesPh" target="_blank" rel="noopener noreferrer">Contact Fresh Phones PH in Messenger</a> and include this request ID: {String(item.id).slice(0, 8)}.</small>}</div><span>{item.status.replaceAll("_", " ")}</span></li>)}</ul>}
+            : cases.length === 0 ? <p className={styles.emptyText}>No concerns raised yet.</p> : <ul className={styles.supportList}>{cases.map((item) => <li key={item.id} id={`case-${item.id}`}>
+              <div className={styles.supportCaseContent}><div className={styles.supportCaseHeader}><div><strong>{item.category}</strong><small>Request #{String(item.id).slice(0, 8)}</small></div><span className={styles.supportCaseStatus}>{item.status.replaceAll("_", " ")}</span></div>
+                <span>{item.description}</span>{item.assigned_staff_name && <small>Assigned to {item.assigned_staff_name}</small>}{item.resolution && <small>Resolution: {item.resolution}</small>}
+                {item.status.toLowerCase() === "waiting_for_client" && <p className={styles.replyPrompt}>Customer Service is waiting for your reply on this request.</p>}
+                {TYPESCRIPT_API && <button type="button" className={styles.caseToggle} aria-controls={`conversation-${item.id}`} aria-expanded={activeCaseId === String(item.id)} onClick={() => void openCase(String(item.id))}>{activeCaseId === String(item.id) ? "Hide conversation" : item.status.toLowerCase() === "waiting_for_client" ? "Reply to this request" : "View conversation"}</button>}
+                {activeCaseId === String(item.id) && <div id={`conversation-${item.id}`} className={styles.conversation}>
+                  {caseLoading ? <p role="status">Loading conversation…</p> : caseDetail?.id === item.id ? <>
+                    <ol>{caseDetail.messages.map((message) => <li key={message.id} className={message.author_type === "customer" ? styles.customerReply : ""}><strong>{message.author_type === "customer" ? "You" : "Customer Service"}</strong><p>{message.body}</p><small>{new Date(message.created_at).toLocaleString("en-PH")}</small></li>)}</ol>
+                    {!(["closed", "resolved"].includes(caseDetail.status.toLowerCase())) && <form onSubmit={submitReply} className={styles.replyForm}><label htmlFor={`reply-${item.id}`}>Your reply</label><textarea id={`reply-${item.id}`} value={replyText} onChange={(event) => setReplyText(event.target.value)} maxLength={5000} required placeholder="Add the details Customer Service needs…" /><button type="submit" disabled={replying || !replyText.trim()}>{replying ? "Sending…" : "Send reply"}</button></form>}
+                  </> : <p>Could not load this conversation. Try opening it again.</p>}
+                </div>}
+              </div>
+            </li>)}</ul>}
         </section>}
 
         {(section === "overview" || section === "schedule" || section === "payments") && <p className={styles.note}><Info weight="fill" aria-hidden="true" /> Payments are coordinated in Messenger. This portal shows Finance-verified records and your derived balance.</p>}
