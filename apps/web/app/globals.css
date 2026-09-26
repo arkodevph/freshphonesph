@@ -244,6 +244,13 @@ body {
 .login-error strong { display: block; font-size: 12px; }
 .login-error p { margin-top: 2px; font-size: 11px; line-height: 1.45; }
 .login-submit { display: inline-flex; min-height: 50px; cursor: pointer; align-items: center; justify-content: center; gap: 9px; border: 1px solid #1f5fcf; border-radius: 12px; background: #286be2; color: #fff; font-size: 13px; font-weight: 850; box-shadow: 0 10px 24px rgba(40,107,226,.2); transition: background-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.login-recovery-link { justify-self: end; margin-top: -8px; color: #286be2; font-size: 12px; font-weight: 800; text-decoration: none; }
+.login-recovery-link:hover, .login-recovery-help a:hover { text-decoration: underline; }
+.login-recovery-success { display: flex; gap: 12px; margin-top: 30px; border: 1px solid #b9ddc8; border-radius: 14px; background: #f1fbf4; padding: 17px; color: #246043; }
+.login-recovery-success > svg { flex: 0 0 22px; width: 22px; height: 22px; }
+.login-recovery-success strong { display: block; font-size: 15px; }
+.login-recovery-success p, .login-recovery-help { margin-top: 5px; font-size: 12px; line-height: 1.5; }
+.login-recovery-success a, .login-recovery-help a { display: inline-block; margin-top: 9px; color: #286be2; font-weight: 800; }
 .login-submit:hover:not(:disabled) { transform: translateY(-1px); background: #1f5fcf; box-shadow: 0 14px 28px rgba(40,107,226,.25); }
 .login-submit:focus-visible { outline: 3px solid rgba(40,107,226,.28); outline-offset: 3px; }
 .login-submit:disabled { cursor: wait; opacity: .72; }

@@ -23,6 +23,7 @@ until each NestJS vertical slice reaches behavioral parity and passes its cutove
 - [Scope traceability matrix](docs/18-scope-traceability-matrix.md)
 - [Current Django baseline](docs/BUILD_STATUS.md)
 - [Contributor and AI-agent guide](AGENTS.md)
+- [Branch flow: feature and fix → staging → main](docs/24-branch-flow.md)
 
 ## Non-negotiable boundaries
 

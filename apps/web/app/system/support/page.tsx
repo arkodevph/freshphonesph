@@ -24,6 +24,7 @@ export default function SupportPage() {
   const me = useMe();
   const canManage = can(me, "SUPPORT_MANAGE");
   const [cases, setCases] = useState<SupportCase[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, { status: string; resolution: string }>>({});
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,14 +45,25 @@ export default function SupportPage() {
     load();
   }, [load]);
 
-  async function setStatus(c: SupportCase, status: string) {
+  async function saveCase(c: SupportCase) {
     setError(null);
     try {
-      await updateSupportCase(c.id, { status });
-      load();
+      const draft = drafts[String(c.id)] ?? { status: c.status, resolution: c.resolution };
+      await updateSupportCase(c.id, { status: draft.status, resolution: draft.resolution, version: c.version });
+      await load();
+      setDrafts((current) => { const next = { ...current }; delete next[String(c.id)]; return next; });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Update failed.");
     }
+  }
+
+  async function assignToMe(c: SupportCase) {
+    if (!me?.id) return;
+    setError(null);
+    try {
+      await updateSupportCase(c.id, { assigned_staff: me.id, version: c.version });
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Assignment failed."); }
   }
 
   if (me && !canManage) {
@@ -96,7 +108,7 @@ export default function SupportPage() {
       </div>
 
       <div className="glass overflow-x-auto rounded-3xl p-5">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="text-xs uppercase tracking-wide text-ink-soft">
             <tr className="border-b border-white/60">
               <th className="px-2 py-2">#</th>
@@ -105,13 +117,16 @@ export default function SupportPage() {
               <th className="px-2 py-2">Concern</th>
               <th className="px-2 py-2">Received</th>
               <th className="px-2 py-2">Status</th>
+              <th className="px-2 py-2">Assignee</th>
+              <th className="px-2 py-2">Resolution</th>
+              <th className="px-2 py-2">Action</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-2 py-6 text-center text-ink-soft">Loading…</td></tr>
+              <tr><td colSpan={9} className="px-2 py-6 text-center text-ink-soft">Loading…</td></tr>
             ) : cases.length === 0 ? (
-              <tr><td colSpan={6} className="px-2 py-6 text-center text-ink-soft">No cases.</td></tr>
+              <tr><td colSpan={9} className="px-2 py-6 text-center text-ink-soft">No cases.</td></tr>
             ) : (
               cases.map((c) => (
                 <tr key={c.id} className="border-b border-white/40">
@@ -122,8 +137,9 @@ export default function SupportPage() {
                   <td className="px-2 py-2.5 text-ink-soft">{c.date_received.slice(0, 10)}</td>
                   <td className="px-2 py-2.5">
                     <select
-                      value={c.status}
-                      onChange={(e) => setStatus(c, e.target.value)}
+                      value={drafts[String(c.id)]?.status ?? c.status}
+                      onChange={(e) => setDrafts((current) => ({ ...current, [String(c.id)]: { status: e.target.value, resolution: current[String(c.id)]?.resolution ?? c.resolution } }))}
+                      disabled={c.status === "closed"}
                       className={`rounded-full px-2.5 py-1 text-xs font-700 outline-none ${STATUS_STYLES[c.status] ?? ""}`}
                     >
                       {SUPPORT_STATUSES.map(([v, l]) => (
@@ -131,6 +147,9 @@ export default function SupportPage() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-2 py-2.5 text-xs text-ink-soft">{c.assigned_staff_name ?? <button type="button" onClick={() => assignToMe(c)} className="rounded-lg bg-white/80 px-2 py-1 font-700 text-blue">Assign to me</button>}</td>
+                  <td className="px-2 py-2.5"><input aria-label={`Resolution for ${c.category}`} value={drafts[String(c.id)]?.resolution ?? c.resolution} onChange={(e) => setDrafts((current) => ({ ...current, [String(c.id)]: { status: current[String(c.id)]?.status ?? c.status, resolution: e.target.value } }))} disabled={c.status === "closed"} className="w-52 rounded-lg border border-white/70 bg-white/80 px-2 py-1 text-xs" placeholder="What was done?" /></td>
+                  <td className="px-2 py-2.5"><button type="button" onClick={() => saveCase(c)} disabled={!drafts[String(c.id)] || c.status === "closed"} className="rounded-lg bg-blue px-3 py-1 text-xs font-700 text-white disabled:opacity-40">Save</button></td>
                 </tr>
               ))
             )}

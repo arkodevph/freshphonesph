@@ -38,6 +38,7 @@ export const permissions = [
   'PAYMENT_READ',
   'PAYMENT_RECORD',
   'PAYMENT_VERIFY',
+  'SUPPORT_MANAGE',
   'REPORT_VIEW',
 ] as const;
 export type Permission = (typeof permissions)[number];
@@ -50,8 +51,8 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
   FINANCE_OFFICER: ['BATCH_READ', 'CLIENT_READ', 'PAYMENT_READ', 'PAYMENT_RECORD', 'PAYMENT_VERIFY', 'REPORT_VIEW'],
   HR_PAYROLL: ['REPORT_VIEW'],
   ANALYTICS: ['REPORT_VIEW'],
-  CS_HEAD: ['REPORT_VIEW'],
-  CS_TEAM: [],
+  CS_HEAD: ['REPORT_VIEW', 'SUPPORT_MANAGE'],
+  CS_TEAM: ['SUPPORT_MANAGE'],
   CORE_HANDLER: [],
   CUSTOMER: ['PAYMENT_READ'],
 };
@@ -240,6 +241,8 @@ export interface ScheduleItem {
   sequenceNo: number;
   dueDate: string;
   expectedAmount: string;
+  paidApplied?: string;
+  status?: 'PAID' | 'PARTIAL' | 'OVERDUE' | 'UPCOMING';
 }
 export interface ClientSchedule {
   clientId: string;

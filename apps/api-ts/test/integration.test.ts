@@ -3,11 +3,13 @@ import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { INestApplication } from '@nestjs/common';
 import { roles, rolePermissions, type Role } from '@freshphones/contracts';
 import { createApp } from '../src/app';
 import { Database } from '../src/database';
 import { AuthService } from '../src/auth/auth.service';
+import { EmailDeliveryService } from '../src/portal/email-delivery.service';
 import { hashPassword, tokenHash } from '../src/auth/password';
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -121,6 +123,9 @@ before(async () => {
     WEB_ORIGIN: origin,
     JWT_SECRET: 'integration-only-secret-at-least-32-characters',
     EMAIL_FROM: 'test@example.test',
+    CUSTOMER_REMINDER_DAYS_BEFORE: '',
+    PRIVATE_STORAGE_PROVIDER: 'local',
+    PRIVATE_STORAGE_S3_REGION: 'ap-southeast-1',
   });
   await app.listen(0, '127.0.0.1');
   base = await app.getUrl();
@@ -195,6 +200,9 @@ before(async () => {
     WEB_ORIGIN: origin,
     JWT_SECRET: 'integration-only-secret-at-least-32-characters',
     EMAIL_FROM: 'test@example.test',
+    CUSTOMER_REMINDER_DAYS_BEFORE: '',
+    PRIVATE_STORAGE_PROVIDER: 'local',
+    PRIVATE_STORAGE_S3_REGION: 'ap-southeast-1',
   });
   await second.listen(0, '127.0.0.1');
   secondBase = await second.getUrl();
@@ -223,6 +231,7 @@ test('role matrix is enforced for every foundation collection', async () => {
     '/accounts': 'ACCOUNT_MANAGE',
     '/audit': 'AUDIT_READ',
     '/payments': 'PAYMENT_READ',
+    '/support/cases': 'SUPPORT_MANAGE',
     '/reports/dashboard': 'REPORT_VIEW',
   } as const;
   for (const role of roles) {
@@ -621,6 +630,10 @@ test('Finance verification alone moves balances and customer-visible history', a
   assert.equal(pendingBalance.verifiedPaid, '0.00');
   assert.equal(pendingBalance.remainingBalance, '100.00');
   assert.equal(pendingBalance.pendingAmount, '20.50');
+  const unpaidSchedule = await (await customer.request(`/clients/${firstClient}/schedule`)).json();
+  assert.equal(unpaidSchedule.items[0].paidApplied, '0.00');
+  assert.equal(unpaidSchedule.items[0].status,
+    unpaidSchedule.items[0].dueDate < new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10) ? 'OVERDUE' : 'UPCOMING');
   assert.equal((await records.request(`/payments/${payment.id}/verify`, post({
     decision: 'VERIFIED', notes: 'Not permitted', version: payment.version,
   }))).status, 403);
@@ -634,9 +647,15 @@ test('Finance verification alone moves balances and customer-visible history', a
     }), secondBase),
   ]);
   assert.deepEqual(decisions.map((response) => response.status).sort(), [200, 409]);
+  assert.equal((await (await customer.request('/portal/notifications')).json()).filter(
+    (item: { kind: string }) => item.kind === 'payment',
+  ).length, 1);
   const verifiedBalance = await (await customer.request(`/clients/${firstClient}/balance`)).json();
   assert.equal(verifiedBalance.verifiedPaid, '10.25');
   assert.equal(verifiedBalance.remainingBalance, '89.75');
+  const allocatedSchedule = await (await customer.request(`/clients/${firstClient}/schedule`)).json();
+  assert.equal(allocatedSchedule.items[0].paidApplied, '10.25');
+  assert.equal(allocatedSchedule.items[0].status, 'PARTIAL');
   assert.equal((await customer.request(`/clients/${secondClient}/balance`)).status, 404);
   const customerPayments = await (await customer.request('/payments')).json();
   assert.deepEqual(customerPayments.items.map((item: { id: string }) => item.id), [payment.id]);
@@ -831,4 +850,157 @@ test('password reset is single-use and revokes existing sessions without exposin
     (await finance.request('/auth/reset-password', post({ token, password }))).status,
     401,
   );
+});
+
+test('customer documents stay private through clarification, resubmission and review', async () => {
+  await db.loginAttempt.deleteMany({ where: { key: tokenHash('login-ip:127.0.0.1') } });
+  await db.user.update({ where: { id: accounts.get('RECORDS')! }, data: { active: true } });
+  const customer = await new Session().login('CUSTOMER');
+  const records = await new Session().login('RECORDS');
+  const unrelatedStaff = await new Session().login('CS_TEAM');
+  const otherEmail = `${suffix}-other-customer@example.test`;
+  await db.user.create({ data: { name: 'Other customer', email: otherEmail,
+    passwordHash: await hashPassword(password), role: 'CUSTOMER', clientId: secondClient } });
+  const other = new Session();
+  assert.equal((await other.request('/auth/login', post({ email: otherEmail, password }))).status, 200);
+  const checklist = await (await customer.request('/portal/documents')).json();
+  assert.equal(checklist.length, 2);
+  assert.ok(checklist.every((item: { status: string }) => item.status === 'MISSING'));
+  assert.equal((await other.request(`/clients/${firstClient}/documents`)).status, 404);
+  assert.equal((await new Session().request('/portal/documents')).status, 401);
+
+  const badFile = new FormData();
+  badFile.append('file', new Blob(['not an image'], { type: 'image/png' }), 'fake.png');
+  assert.equal((await customer.upload('/portal/documents/PHOTO_ID', badFile)).status, 400);
+  assert.equal((await (await customer.request('/portal/documents')).json())[0].status, 'MISSING');
+
+  const photo = new FormData();
+  photo.append('file', new Blob([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 1])], { type: 'image/png' }), 'id.png');
+  const uploaded = await customer.upload('/portal/documents/PHOTO_ID', photo);
+  assert.equal(uploaded.status, 201);
+  const first = await uploaded.json();
+  assert.equal(first.status, 'SUBMITTED');
+  const uploadAudit = await db.auditEntry.findFirstOrThrow({ where: { recordId: first.id, action: 'document.submitted' } });
+  assert.equal((uploadAudit.after as { clientId: string }).clientId, firstClient);
+  assert.equal((await other.request(`/documents/${first.id}/file`)).status, 404);
+  assert.equal((await unrelatedStaff.request(`/documents/${first.id}/file`)).status, 404);
+  assert.equal((await other.request(`/documents/${first.id}/review`, post({ status: 'APPROVED', version: 1 }))).status, 403);
+  assert.equal((await customer.request(`/documents/${first.id}/file`)).status, 200);
+  assert.equal((await customer.upload('/portal/documents/PHOTO_ID', photo)).status, 409);
+
+  const clarification = await records.request(`/documents/${first.id}/review`, post({ status: 'NEEDS_CLARIFICATION', version: 1, clarification: 'Please include all four corners.' }));
+  assert.equal(clarification.status, 200);
+  assert.equal((await records.request(`/documents/${first.id}/review`, post({ status: 'APPROVED', version: 1 }))).status, 409);
+  const needs = (await (await customer.request('/portal/documents')).json())[0];
+  assert.equal(needs.status, 'NEEDS_CLARIFICATION');
+  assert.match(needs.latest.clarification, /four corners/);
+
+  const corrected = new FormData();
+  corrected.append('file', new Blob([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 2])], { type: 'image/png' }), 'corrected.png');
+  const replacement = await customer.upload('/portal/documents/PHOTO_ID', corrected);
+  assert.equal(replacement.status, 201);
+  const replacementId = (await replacement.json()).id;
+  const history = (await (await customer.request('/portal/documents')).json())[0];
+  assert.equal(history.history.length, 2);
+  assert.equal(history.latest.id, replacementId);
+  assert.equal((await records.request(`/documents/${replacementId}/review`, post({ status: 'APPROVED', version: 1 }))).status, 200);
+  assert.equal((await (await customer.request('/portal/documents')).json())[0].status, 'APPROVED');
+  assert.equal((await customer.request(`/documents/${first.id}/file`)).status, 200);
+  assert.equal((await other.request('/portal/documents')).status, 200);
+  assert.ok((await (await other.request('/portal/documents')).json()).every((item: { status: string }) => item.status === 'MISSING'));
+});
+
+test('support updates and notifications are scoped to the linked customer', async () => {
+  await db.loginAttempt.deleteMany({ where: { key: tokenHash('login-ip:127.0.0.1') } });
+  const customer = await new Session().login('CUSTOMER');
+  const staff = await new Session().login('CS_TEAM');
+  const owner = await new Session().login('OWNER');
+  const other = new Session();
+  assert.equal((await other.request('/auth/login', post({ email: `${suffix}-other-customer@example.test`, password }))).status, 200);
+  const created = await customer.request('/portal/support', post({ category: 'Payment', description: 'Please check my latest payment record.' }));
+  assert.equal(created.status, 201);
+  const supportCase = await created.json();
+  assert.equal((await other.request('/portal/support')).status, 200);
+  assert.ok(!(await (await other.request('/portal/support')).json()).some((item: { id: string }) => item.id === supportCase.id));
+  assert.equal((await other.request('/support/cases')).status, 403);
+  assert.equal((await staff.request(`/support/cases/${supportCase.id}`, patch({ status: 'RESOLVED', version: 1 }))).status, 400);
+  assert.equal((await staff.request(`/support/cases/${supportCase.id}`, patch({ status: 'IN_PROGRESS', version: 1 }))).status, 200);
+  assert.equal((await staff.request(`/support/cases/${supportCase.id}`, patch({ status: 'RESOLVED', resolution: 'Checked with Finance.', version: 2 }))).status, 200);
+  assert.equal((await staff.request(`/support/cases/${supportCase.id}`, patch({ status: 'CLOSED', version: 2 }))).status, 409);
+  assert.equal((await staff.request(`/support/cases/${supportCase.id}`, patch({ assignedStaffId: accounts.get('CS_TEAM'), version: 3 }))).status, 200);
+  const ownCase = (await (await customer.request('/portal/support')).json()).find((item: { id: string }) => item.id === supportCase.id);
+  assert.equal(ownCase.status, 'resolved');
+  assert.equal(ownCase.resolution, 'Checked with Finance.');
+  assert.equal(ownCase.assigned_staff, accounts.get('CS_TEAM'));
+
+  const current = await db.client.findUniqueOrThrow({ where: { id: firstClient } });
+  const releaseStatus = current.releaseStatus === 'READY' ? 'PROCESSING' : 'READY';
+  const update = await owner.request(`/clients/${firstClient}`, patch({ version: current.version, record: {
+    name: current.name, email: current.email, phone: current.phone, batchId: current.batchId,
+    status: current.status, releaseStatus,
+  } }));
+  assert.equal(update.status, 200);
+  const notices = await (await customer.request('/portal/notifications')).json();
+  assert.ok(notices.some((item: { kind: string }) => item.kind === 'support'));
+  assert.ok(notices.some((item: { kind: string }) => item.kind === 'release'));
+  const unread = notices.find((item: { readAt: string | null }) => !item.readAt);
+  assert.equal((await other.request(`/portal/notifications/${unread.id}/read`, post({}))).status, 404);
+  assert.equal((await customer.request(`/portal/notifications/${unread.id}/read`, post({}))).status, 200);
+  assert.ok((await (await customer.request(`/portal/notifications/${unread.id}/read`, post({}))).json()).readAt);
+  const delivery = app.get(EmailDeliveryService);
+  for (let attempt = 0; attempt < 10; attempt++) {
+    if ((await db.notification.findUniqueOrThrow({ where: { id: unread.id } })).emailStatus === 'SENT') break;
+    await delivery.deliver();
+  }
+  assert.equal((await db.notification.findUniqueOrThrow({ where: { id: unread.id } })).emailStatus, 'SENT');
+  const email = await readFile(join(process.cwd(), '.local/mail', `${unread.id}.txt`), 'utf8');
+  assert.match(email, /Fresh Phones PH/);
+});
+
+test('Owner can edit audited customer email templates while other roles cannot', async () => {
+  await db.loginAttempt.deleteMany({ where: { key: { in: [
+    'login-ip:127.0.0.1',
+    ...(['OWNER', 'CORE_HANDLER', 'CUSTOMER'] as const).map((role) => `login-email:${emails.get(role)}`),
+  ].map(tokenHash) } } });
+  const owner = await new Session().login('OWNER');
+  const handler = await new Session().login('CORE_HANDLER');
+  const customer = await new Session().login('CUSTOMER');
+  assert.equal((await handler.request('/customer-notification-settings')).status, 403);
+  assert.equal((await customer.request('/customer-notification-settings')).status, 403);
+  const settings = await (await owner.request('/customer-notification-settings')).json();
+  const current = settings.templates.find((item: { kind: string }) => item.kind === 'payment');
+  const input = { version: current.version, subject: 'Account update: {title}', body: 'Hello,\n\n{message}\n\nOpen {url}' };
+  assert.equal((await owner.request('/customer-notification-settings/templates/payment', patch({ ...input, body: 'No placeholders' }))).status, 400);
+  assert.equal((await handler.request('/customer-notification-settings/templates/payment', patch(input))).status, 403);
+  const updated = await owner.request('/customer-notification-settings/templates/payment', patch(input));
+  assert.equal(updated.status, 200);
+  assert.equal((await owner.request('/customer-notification-settings/templates/payment', patch(input))).status, 409);
+  assert.ok(await db.auditEntry.count({ where: { action: 'customer_email_template.updated' } }));
+  assert.equal((await owner.request('/customer-notification-settings/reminders', patch({ version: settings.reminderVersion, reminderDays: '31' }))).status, 400);
+  const reminder = await owner.request('/customer-notification-settings/reminders', patch({ version: settings.reminderVersion, reminderDays: '' }));
+  assert.equal(reminder.status, 200);
+  const savedReminder = await reminder.json();
+  const due = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  due.setUTCDate(due.getUTCDate() + 3);
+  const reminderClient = await db.client.create({ data: { name: 'Reminder customer', email: `${suffix}-reminder@example.test`, phone: '+63 900 000 0022', batchId } });
+  await db.user.create({ data: { name: 'Reminder customer', email: `${suffix}-reminder@example.test`, passwordHash: await hashPassword(password), role: 'CUSTOMER', clientId: reminderClient.id } });
+  const dueItem = await db.scheduleItem.create({ data: { clientId: reminderClient.id, sequenceNo: 1, dueDate: new Date(`${due.toISOString().slice(0, 10)}T00:00:00Z`), expectedAmount: '10.00' } });
+  const enabled = await owner.request('/customer-notification-settings/reminders', patch({ version: savedReminder.version, reminderDays: '3' }));
+  assert.equal(enabled.status, 200);
+  const reminderKey = `installment:${dueItem.id}:3`;
+  assert.equal(await db.notification.count({ where: { dedupeKey: reminderKey } }), 1);
+  await app.get(EmailDeliveryService).refreshReminders();
+  assert.equal(await db.notification.count({ where: { dedupeKey: reminderKey } }), 1);
+  const enabledSettings = await enabled.json();
+  assert.equal((await owner.request('/customer-notification-settings/reminders', patch({ version: enabledSettings.version, reminderDays: '' }))).status, 200);
+  const notice = await db.notification.create({ data: { userId: accounts.get('CUSTOMER')!, kind: 'payment', title: 'Payment verified', message: 'Finance checked your record.' } });
+  const delivery = app.get(EmailDeliveryService);
+  for (let attempt = 0; attempt < 10; attempt++) {
+    if ((await db.notification.findUniqueOrThrow({ where: { id: notice.id } })).emailStatus === 'SENT') break;
+    await delivery.deliver();
+  }
+  assert.equal((await db.notification.findUniqueOrThrow({ where: { id: notice.id } })).emailStatus, 'SENT');
+  const email = await readFile(join(process.cwd(), '.local/mail', `${notice.id}.txt`), 'utf8');
+  assert.match(email, /Account update: Payment verified/);
+  assert.match(email, /Finance checked your record/);
 });

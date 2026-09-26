@@ -5,7 +5,8 @@ Planning documentation for the system defined in **Full Scope v5 (Revision 1.4, 
 This repository (`freshphonesph`) is the **main repository** for the whole system. The
 existing landing page becomes the public-website surface (§4) of a larger product.
 
-> **Status:** The repository has a working Django baseline on `foundation`. The approved target
+> **Status:** The repository has a working Django baseline originating on `foundation`. Current work
+> follows the [feature/fix → staging → main branch flow](24-branch-flow.md). The approved target
 > now uses **TypeScript for both web and API**. Follow
 > **[17-full-scope-workflow.md](17-full-scope-workflow.md)** for the migration and delivery gates,
 > and use **[18-scope-traceability-matrix.md](18-scope-traceability-matrix.md)** for scope status.

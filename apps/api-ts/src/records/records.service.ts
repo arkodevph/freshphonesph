@@ -18,7 +18,9 @@ import { Prisma } from '../generated/prisma/client';
 import { allowed } from '../auth/access';
 import { hashPassword } from '../auth/password';
 import { generateSchedule } from './schedule';
+import { allocateVerifiedPayments } from './allocation';
 import type { Batch as StoredBatch } from '../generated/prisma/client';
+import { notifyCustomer } from '../portal/notifications.service';
 
 const batchInclude = { _count: { select: { clients: true } } } as const;
 const clientInclude = {
@@ -250,6 +252,8 @@ export class RecordsService {
         );
       const after = await tx.client.findUniqueOrThrow({ where: { id }, include: clientInclude });
       await this.record(tx, user.id, 'client', id, 'client.updated', before, after);
+      if (before.releaseStatus !== after.releaseStatus)
+        await notifyCustomer(tx, id, 'release', 'Release status updated', `Your unit is now ${after.releaseStatus.toLowerCase().replaceAll('_', ' ')}.`);
       return clientJson(after);
     });
   }
@@ -261,10 +265,14 @@ export class RecordsService {
     const items = await tx.scheduleItem.findMany({ where: { clientId: id }, orderBy: { sequenceNo: 'asc' } });
     if (!items.length) throw new ConflictException('This client does not have an issued schedule yet. Ask Records to review the batch terms.');
     const totalDue = items.reduce((sum, item) => sum.add(item.expectedAmount), new Prisma.Decimal(0)).toFixed(2);
-    return { clientId: id, totalDue, items: items.map((item) => ({
+    const verified = await tx.payment.aggregate({ where: { clientId: id, status: 'VERIFIED' }, _sum: { amount: true } });
+    const schedule = items.map((item) => ({
       id: item.id, sequenceNo: item.sequenceNo, dueDate: item.dueDate.toISOString().slice(0, 10),
       expectedAmount: item.expectedAmount.toFixed(2),
-    })) };
+    }));
+    return { clientId: id, totalDue, items: allocateVerifiedPayments(
+      schedule, (verified._sum.amount ?? new Prisma.Decimal(0)).toFixed(2), new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    ) };
   }
   async issueSchedule(user: User, id: string) {
     return this.write(user, 'CLIENT_MANAGE', async (tx) => {

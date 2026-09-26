@@ -47,6 +47,18 @@ enum PaymentStatus {
   REJECTED
   NEEDS_CLARIFICATION
 }
+enum SupportStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_CLIENT
+  RESOLVED
+  CLOSED
+}
+enum DocumentStatus {
+  SUBMITTED
+  APPROVED
+  NEEDS_CLARIFICATION
+}
 model User {
   id String @id @default(uuid()) @db.Uuid
   name String @db.VarChar(100)
@@ -63,6 +75,9 @@ model User {
   recordedPayments Payment[] @relation("PaymentRecorder")
   verifiedPayments Payment[] @relation("PaymentVerifier")
   uploadedFiles StoredFile[]
+  assignedCases SupportCase[] @relation("CaseAssignee")
+  notifications Notification[]
+  reviewedDocuments CustomerDocument[] @relation("DocumentReviewer")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -116,10 +131,76 @@ model Client {
   account User?
   schedule ScheduleItem[]
   payments Payment[]
+  supportCases SupportCase[]
+  documents CustomerDocument[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([batchId])
   @@index([status, createdAt])
+}
+model CustomerDocument {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  requirementKey String @db.VarChar(60)
+  fileId String @unique @db.Uuid
+  file StoredFile @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  status DocumentStatus @default(SUBMITTED)
+  clarification String @default("")
+  reviewedById String? @db.Uuid
+  reviewedBy User? @relation("DocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  @@index([clientId, requirementKey, createdAt])
+}
+model SupportCase {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  category String @db.VarChar(80)
+  description String
+  status SupportStatus @default(OPEN)
+  resolution String @default("")
+  assignedStaffId String? @db.Uuid
+  assignedStaff User? @relation("CaseAssignee", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  closedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([clientId, createdAt])
+  @@index([status, createdAt])
+}
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind String @db.VarChar(50)
+  title String @db.VarChar(120)
+  message String @db.VarChar(500)
+  readAt DateTime?
+  emailStatus String @default("PENDING") @db.VarChar(20)
+  emailAttempts Int @default(0)
+  emailNextAt DateTime @default(now())
+  emailSentAt DateTime?
+  emailError String? @db.VarChar(250)
+  dedupeKey String? @unique @db.VarChar(180)
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@index([emailStatus, emailNextAt])
+}
+model CustomerEmailTemplate {
+  kind String @id @db.VarChar(50)
+  subject String @db.VarChar(180)
+  body String
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+}
+model CustomerNotificationConfig {
+  key String @id @db.VarChar(40)
+  reminderDays String @default("") @db.VarChar(100)
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
 }
 model ScheduleItem {
   id String @id @default(uuid()) @db.Uuid
@@ -170,6 +251,7 @@ model StoredFile {
   uploadedById String @db.Uuid
   uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
   payment Payment?
+  document CustomerDocument?
   createdAt DateTime @default(now())
   @@index([createdAt])
 }

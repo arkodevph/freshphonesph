@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   turbopack: {
     // Monorepo: point Turbopack at the workspace root so hoisted (pnpm)
     // packages like `next` resolve correctly.

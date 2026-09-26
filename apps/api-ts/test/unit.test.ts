@@ -18,6 +18,28 @@ import { join } from 'node:path';
 import type { Cadence } from '@freshphones/contracts';
 import { spawnSync } from 'node:child_process';
 import { ReceiptService } from '../src/finance/receipt.service';
+import { allocateVerifiedPayments } from '../src/records/allocation';
+import { renderCustomerEmail } from '../src/portal/notification-settings.service';
+
+test('verified funds allocate by installment order with centavo precision', () => {
+  const items = [
+    { sequenceNo: 1, dueDate: '2026-01-01', expectedAmount: '33.33' },
+    { sequenceNo: 2, dueDate: '2026-02-01', expectedAmount: '33.33' },
+    { sequenceNo: 3, dueDate: '2026-12-01', expectedAmount: '33.34' },
+  ];
+  assert.deepEqual(allocateVerifiedPayments(items, '40.00', '2026-09-26').map(({ paidApplied, status }) => ({ paidApplied, status })), [
+    { paidApplied: '33.33', status: 'PAID' },
+    { paidApplied: '6.67', status: 'PARTIAL' },
+    { paidApplied: '0.00', status: 'UPCOMING' },
+  ]);
+  assert.equal(allocateVerifiedPayments(items, '0.00', '2026-09-26')[0].status, 'OVERDUE');
+  assert.equal(allocateVerifiedPayments(items, '120.00', '2026-09-26')[2].paidApplied, '33.34');
+});
+test('customer email templates substitute only approved event fields', () => {
+  assert.deepEqual(renderCustomerEmail({ subject: 'Update: {title}', body: '{message}\n{url}' },
+    { title: 'Payment verified', message: 'Finance checked this payment.', url: 'https://example.test/portal/payments' }),
+  { subject: 'Update: Payment verified', text: 'Finance checked this payment.\nhttps://example.test/portal/payments' });
+});
 
 test('schedule fixtures match the executed Django generate_schedule baseline', () => {
   const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures/django-schedules.json'), 'utf8')) as {
@@ -164,4 +186,16 @@ test('production startup rejects missing email and insecure origins', () => {
   } finally {
     process.env = previous;
   }
+});
+test('production startup requires private S3 storage configuration', () => {
+  const previous = { ...process.env };
+  try {
+    Object.assign(process.env, { NODE_ENV: 'production',
+      WEB_ORIGIN: 'https://freshphones.example.test', JWT_SECRET: 'generated-unit-test-secret-at-least-32-characters',
+      RESEND_API_KEY: 'unit-test-key', PRIVATE_STORAGE_PROVIDER: 'local' });
+    assert.throws(() => readConfig(), /private S3 storage/);
+    process.env.PRIVATE_STORAGE_PROVIDER = 's3';
+    delete process.env.PRIVATE_STORAGE_S3_ENDPOINT;
+    assert.throws(() => readConfig(), /Private S3 storage requires/);
+  } finally { process.env = previous; }
 });

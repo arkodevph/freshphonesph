@@ -59,6 +59,20 @@ export async function tsUpload<T>(path: string, body: FormData): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export async function tsDownload(path: string): Promise<Blob> {
+  const send = () => fetch(`${API_URL}/api${path}`, { credentials: "include", cache: "no-store" });
+  let response = await send();
+  if (response.status === 401) {
+    await refreshSession();
+    response = await send();
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({})) as { message?: string };
+    throw new ApiError(data.message ?? `Download failed (${response.status}).`, response.status);
+  }
+  return response.blob();
+}
+
 export const toMe = (user: User) => ({
   id: user.id, email: user.email, full_name: user.name, role: user.role.toLowerCase(),
   employee_id: user.role === "CUSTOMER" ? null : user.id,
@@ -75,7 +89,8 @@ export const toBatch = (batch: Batch) => ({
 export const toClient = (client: Client) => ({
   id: client.id, batch: client.batchId, batch_number: client.batch.code,
   full_name: client.name, contact_email: client.email, unit_model: client.unitModel || client.batch.model,
-  status: client.status.toLowerCase(), joined_at: client.joinedAt ?? "", created_at: client.createdAt,
+  status: client.status.toLowerCase(), release_status: client.releaseStatus.toLowerCase(),
+  version: client.version, joined_at: client.joinedAt ?? "", created_at: client.createdAt,
 });
 export const toSchedule = (schedule: ClientSchedule) => schedule.items.map((item) => ({
   id: item.id, sequence_no: item.sequenceNo, due_date: item.dueDate, expected_amount: item.expectedAmount,

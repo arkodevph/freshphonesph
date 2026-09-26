@@ -16,6 +16,7 @@ import { allowed } from '../auth/access';
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { PrivateStorageService, type PrivateUpload } from '../storage/private-storage.service';
+import { notifyCustomer } from '../portal/notifications.service';
 
 const pageSize = 20;
 const paymentInclude = {
@@ -251,6 +252,8 @@ export class FinanceService {
         throw new ConflictException('This payment was already reviewed. Refresh the queue.');
       const after = await tx.payment.findUniqueOrThrow({ where: { id }, include: paymentInclude });
       await this.record(tx, user.id, id, `payment.${decision.toLowerCase()}`, before, after);
+      if (decision === 'VERIFIED')
+        await notifyCustomer(tx, after.clientId, 'payment', 'Payment verified', 'Finance verified a payment. Your balance and payment history have been updated.');
       return this.view(tx, after);
     });
   }

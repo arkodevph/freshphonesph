@@ -1,0 +1,29 @@
+.page { max-width: 1100px; margin: 0 auto; padding: 28px 22px 75px; color: #1b2654; }
+:global(html[data-system-theme="dark"]) .page { color: #f4f2ff; }
+:global(html[data-system-theme="dark"]) .page header > p:last-child,
+:global(html[data-system-theme="dark"]) .note { color: #a6b4d3; }
+.page header { margin-bottom: 25px; }
+.eyebrow { color: #6546da; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.page h1 { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: clamp(27px, 3vw, 38px); font-weight: 900; }
+.page h1 svg { width: 34px; height: 34px; color: #6841d1; }
+.page header > p:last-child, .card > p { color: #687491; font-size: 13px; line-height: 1.6; }
+.card { min-width: 0; border: 1px solid #e1e4f2; border-radius: 17px; background: #fff; padding: 22px; color: #1b2654; box-shadow: 0 10px 25px #26356e0b; }
+.card h2 { margin: 0 0 10px; font-size: 18px; font-weight: 900; }
+.card label { display: block; margin: 16px 0 6px; font-size: 11px; font-weight: 900; }
+.card input, .card textarea { width: 100%; border: 1px solid #d8deef; border-radius: 10px; background: #fff; padding: 10px 12px; color: #1b2654; font-size: 13px; }
+.card textarea { min-height: 150px; resize: vertical; line-height: 1.5; }
+.card input:focus, .card textarea:focus { outline: 3px solid #d9d4ff; border-color: #7253d3; }
+.card button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; margin-top: 14px; border-radius: 10px; background: #5037ca; padding: 0 14px; color: #fff; font-size: 12px; font-weight: 900; cursor: pointer; }
+.card button:disabled { opacity: .6; cursor: default; }
+.card button svg { width: 17px; height: 17px; }
+.row { display: flex; gap: 10px; align-items: center; }
+.row input { max-width: 220px; }
+.row button { margin-top: 0; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.note { display: flex; align-items: center; gap: 10px; margin: 22px 0; color: #64718f; font-size: 12px; }
+.note svg { flex: 0 0 20px; width: 20px; height: 20px; color: #6748ce; }
+.note code { border-radius: 4px; background: #efeaff; padding: 2px 4px; color: #4c2fb2; }
+.error, .success { margin: 15px 0; border-radius: 10px; padding: 11px 14px; font-size: 12px; font-weight: 700; }
+.error { background: #fff0f2; color: #9a2840; }
+.success { background: #edfaef; color: #227247; }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .page { padding: 20px 12px 70px; } .row { flex-wrap: wrap; } }

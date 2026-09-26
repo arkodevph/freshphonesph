@@ -34,6 +34,18 @@ export class RealtimeController {
           select: { id: true },
         }));
     }
+    if (event.entity === 'support') {
+      if (allowed(user, 'SUPPORT_MANAGE')) return true;
+      if (user.role === 'CUSTOMER' && user.clientId)
+        return Boolean(await this.db.supportCase.findFirst({ where: { id: event.recordId, clientId: user.clientId }, select: { id: true } }));
+    }
+    if (event.entity === 'notification')
+      return Boolean(await this.db.notification.findFirst({ where: { id: event.recordId, userId: user.id }, select: { id: true } }));
+    if (event.entity === 'document') {
+      if (user.role === 'OWNER' || user.role === 'RECORDS') return true;
+      if (user.role === 'CUSTOMER' && user.clientId)
+        return Boolean(await this.db.customerDocument.findFirst({ where: { id: event.recordId, clientId: user.clientId }, select: { id: true } }));
+    }
     return false;
   }
   @Get()

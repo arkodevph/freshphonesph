@@ -35,7 +35,7 @@ const NAV = [
   { icon: ChartBar, label: "Reports", href: null, perms: [] },
   { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
   { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "CLIENT_MANAGE"] },
-  { icon: Bell, label: "Notifications", href: null, perms: [] },
+  { icon: Bell, label: "Notification settings", href: TYPESCRIPT_API ? "/system/notification-settings" : null, perms: ["ACCOUNT_MANAGE"] },
   { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
   { icon: ShieldCheck, label: "User Management", href: "/system/team", perms: ["ROLE_ASSIGN", "ACCOUNT_MANAGE"] },
 ] as const;
