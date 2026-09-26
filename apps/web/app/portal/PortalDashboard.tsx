@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowRight, Bell, CalendarBlank, ChatCircleText, CheckCircle, Clock, FileText, House, Info, List, Package, Plus, SignOut, SquaresFour, Truck, Wallet, X } from "@phosphor-icons/react";
+import { ArrowRight, Bell, CalendarBlank, CaretDown, ChatCircleText, CheckCircle, Clock, FileText, House, Info, List, Package, Plus, SignOut, SquaresFour, Truck, Wallet, X } from "@phosphor-icons/react";
 import {
   getPortalSummary, getPortalRecords, getPortalSchedule, getPortalPayments,
   getPortalSupport, createPortalSupport, getCustomerDocuments,
@@ -104,6 +104,7 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   const [attentionDocuments, setAttentionDocuments] = useState<DocumentRequirement[]>([]);
   const [attentionCases, setAttentionCases] = useState<SupportCase[]>([]);
   const [attentionStatus, setAttentionStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [attentionExpanded, setAttentionExpanded] = useState(false);
   const [recordsStatus, setRecordsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [notifications, setNotifications] = useState<PortalNotification[]>([]);
   const [concern, setConcern] = useState({ category: "Payment", description: "" });
@@ -294,6 +295,8 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   const deviceImage = section === "overview" && summary?.unit_model ? orderDeviceImage(summary.unit_model) : null;
   const attentionItems = attentionStatus === "ready" && recordsStatus === "ready"
     ? portalAttention(attentionDocuments, attentionCases, schedule) : [];
+  const hiddenAttentionCount = Math.max(0, attentionItems.length - 2);
+  const visibleAttentionItems = hiddenAttentionCount > 0 && !attentionExpanded ? attentionItems.slice(0, 2) : attentionItems;
   const trackedCases = attentionCases.filter((item) => ["open", "in_progress"].includes(item.status.toLowerCase()));
 
   return (
@@ -362,10 +365,14 @@ export default function PortalDashboard({ section }: { section: PortalSection })
           {attentionStatus === "error" || recordsStatus === "error" ? <div className={styles.attentionState} role="alert"><p>We couldn’t check all of your records right now.</p><button type="button" onClick={refresh}>Try again</button></div>
             : attentionStatus === "loading" || recordsStatus === "loading" ? <p className={styles.attentionState} role="status">Checking your documents, requests, and installment plan…</p>
             : attentionItems.length === 0 ? <p className={styles.attentionState} role="status">No action needed from the records available right now. Check back for updates.</p>
-            : <ul className={styles.attentionList}>{attentionItems.map((item) => <li key={item.key}>
+            : <ul id="attention-items" className={styles.attentionList}>{visibleAttentionItems.map((item) => <li key={item.key}>
               <div><h3>{item.title}</h3><p>{item.detail}</p></div>
               <Link href={item.href} className={styles.attentionAction}>{item.action} <ArrowRight weight="bold" aria-hidden="true" /></Link>
             </li>)}</ul>}
+          {hiddenAttentionCount > 0 && <button type="button" className={styles.attentionToggle} aria-controls="attention-items" aria-expanded={attentionExpanded} onClick={() => setAttentionExpanded((expanded) => !expanded)}>
+            {attentionExpanded ? "Show fewer items" : `Show ${hiddenAttentionCount} more ${hiddenAttentionCount === 1 ? "item" : "items"}`}
+            <CaretDown className={attentionExpanded ? styles.attentionToggleOpen : ""} weight="bold" aria-hidden="true" />
+          </button>}
           {attentionStatus === "ready" && recordsStatus === "ready" && trackedCases.length > 0 && <div className={styles.attentionTracking}><div><strong>{trackedCases.length === 1 ? "1 open support request" : `${trackedCases.length} open support requests`}</strong><p>Track the status and any update from Customer Service.</p></div><Link href={`/portal/support#case-${trackedCases[0].id}`}>Track support {trackedCases.length === 1 ? "request" : "requests"} <ArrowRight weight="bold" aria-hidden="true" /></Link></div>}
         </section>}
 

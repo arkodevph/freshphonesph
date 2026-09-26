@@ -182,6 +182,10 @@
 .attentionList p { margin-top: 4px; color: #5d6a88; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .attentionAction { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 9px 13px; border-radius: 11px; background: #543ad0; color: #fff; font-size: 12px; font-weight: 800; text-align: center; text-decoration: none; }
 .attentionAction svg { width: 15px; height: 15px; }
+.attentionToggle { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 12px; padding: 8px 14px; border: 1px solid #e7ddfc; border-radius: 12px; background: #f7f3ff; color: #5431b2; font-size: 12px; font-weight: 900; cursor: pointer; }
+.attentionToggle:hover { background: #efe7ff; }
+.attentionToggle svg { width: 16px; height: 16px; }
+.attentionToggleOpen { transform: rotate(180deg); }
 .attentionTracking { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 13px; padding: 13px 16px; border-radius: 13px; background: #f2f5ff; }
 .attentionTracking strong { color: #283c73; font-size: 13px; }
 .attentionTracking p { margin-top: 3px; color: #687793; font-size: 12px; line-height: 1.4; }

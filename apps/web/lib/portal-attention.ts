@@ -21,19 +21,6 @@ export function portalAttention(
 ): PortalAttention[] {
   const items: PortalAttention[] = [];
 
-  for (const document of documents) {
-    if (document.status !== "MISSING" && document.status !== "NEEDS_CLARIFICATION") continue;
-    items.push({
-      key: `document-${document.key}`,
-      title: document.status === "MISSING" ? `${document.label} needed` : `${document.label} needs a correction`,
-      detail: document.status === "NEEDS_CLARIFICATION"
-        ? document.latest?.clarification?.trim() || "Records asked for a corrected file."
-        : "Upload this requirement for Records review.",
-      href: `/portal/documents#document-${document.key}`,
-      action: document.status === "MISSING" ? "Upload document" : "Review correction",
-    });
-  }
-
   const waiting = cases.filter((item) => item.status.toLowerCase() === "waiting_for_client");
   if (waiting.length) {
     items.push({
@@ -57,6 +44,21 @@ export function portalAttention(
       detail: `${new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(total)} remaining across installments due by today. Payments are coordinated in Messenger; this amount reflects Finance-verified records.`,
       href: `/portal/schedule#installment-${due[0].sequence_no}`,
       action: "Review payment schedule",
+    });
+  }
+
+  const actionableDocuments = documents.filter((document) =>
+    document.status === "MISSING" || document.status === "NEEDS_CLARIFICATION",
+  ).sort((a, b) => Number(b.status === "NEEDS_CLARIFICATION") - Number(a.status === "NEEDS_CLARIFICATION"));
+  for (const document of actionableDocuments) {
+    items.push({
+      key: `document-${document.key}`,
+      title: document.status === "MISSING" ? `${document.label} needed` : `${document.label} needs a correction`,
+      detail: document.status === "NEEDS_CLARIFICATION"
+        ? document.latest?.clarification?.trim() || "Records asked for a corrected file."
+        : "Upload this requirement for Records review.",
+      href: `/portal/documents#document-${document.key}`,
+      action: document.status === "MISSING" ? "Upload document" : "Review correction",
     });
   }
 

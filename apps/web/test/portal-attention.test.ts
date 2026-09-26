@@ -28,7 +28,19 @@ test("attention links actual document corrections and waiting support requests",
   ] as SupportCase[];
   const attention = portalAttention(documents, cases, []);
   assert.deepEqual(attention.map((item) => item.href), [
-    "/portal/documents#document-PHOTO_ID", "/portal/support#case-waiting-1",
+    "/portal/support#case-waiting-1", "/portal/documents#document-PHOTO_ID",
   ]);
-  assert.match(attention[0].detail, /show all corners/);
+  assert.match(attention[1].detail, /show all corners/);
+});
+
+test("customer actions with time pressure appear before missing uploads", () => {
+  const documents = [
+    { key: "PHOTO_ID", label: "Valid photo ID", status: "MISSING" },
+    { key: "SIGNED_AGREEMENT", label: "Signed client agreement", status: "NEEDS_CLARIFICATION", latest: { clarification: "Sign page two." } },
+  ] as DocumentRequirement[];
+  const cases = [{ id: "waiting-1", status: "waiting_for_client" }] as SupportCase[];
+  const schedule = [{ sequence_no: 1, due_date: "2026-09-26", expected_amount: "100.00", paid_applied: "0.00", status: "overdue" }];
+  assert.deepEqual(portalAttention(documents, cases, schedule, "2026-09-26").map((item) => item.key), [
+    "support-waiting", "installments-due", "document-SIGNED_AGREEMENT", "document-PHOTO_ID",
+  ]);
 });
