@@ -56,12 +56,7 @@ export class AuthService {
       },
     );
   }
-  async login(email: string, password: string, ip: string) {
-    await this.limit(`login-ip:${ip}`, 50);
-    await this.limit(`login-email:${email}`, 15);
-    const user = await this.db.user.findUnique({ where: { email } });
-    const valid = await verifyPassword(password, user?.passwordHash ?? dummyHash);
-    if (!user?.active || !valid) throw new UnauthorizedException('Email or password is incorrect.');
+  private async issueSession(user: Parameters<typeof safeUser>[0]) {
     const refresh = newToken();
     const session = await this.db.session.create({
       data: {
@@ -71,6 +66,14 @@ export class AuthService {
       },
     });
     return { access: await this.access(user.id, session.id), refresh, user: safeUser(user) };
+  }
+  async login(email: string, password: string, ip: string) {
+    await this.limit(`login-ip:${ip}`, 50);
+    await this.limit(`login-email:${email}`, 15);
+    const user = await this.db.user.findUnique({ where: { email } });
+    const valid = await verifyPassword(password, user?.passwordHash ?? dummyHash);
+    if (!user?.active || !valid) throw new UnauthorizedException('Email or password is incorrect.');
+    return this.issueSession(user);
   }
   async authenticate(token: string) {
     let claims: { sub: string; sid: string };

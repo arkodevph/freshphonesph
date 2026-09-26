@@ -5,6 +5,7 @@ import { Users, Plus, CalendarBlank } from "@phosphor-icons/react";
 import {
   listClients,
   createClient,
+  updateClientReleaseStatus,
   listBatchChoices,
   getSchedule,
   type ClientRecord,
@@ -16,6 +17,7 @@ import { useMe, can } from "@/lib/useMe";
 import { TYPESCRIPT_API } from "@/lib/backend";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { RecordPagination } from "@/components/RecordPagination";
+import { DocumentChecklist } from "@/components/DocumentChecklist";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -34,6 +36,7 @@ export default function ClientsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [schedule, setSchedule] = useState<{ id: RecordId; items: ScheduleItem[] } | null>(null);
+  const [documentClient, setDocumentClient] = useState<RecordId | null>(null);
   const [form, setForm] = useState({
     batch: "",
     full_name: "",
@@ -104,6 +107,15 @@ export default function ClientsPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load schedule.");
     }
+  }
+
+  async function changeRelease(id: RecordId, status: "NOT_READY" | "PROCESSING" | "READY" | "RELEASED") {
+    setError(null);
+    try {
+      await updateClientReleaseStatus(id, status);
+      flash("Release status updated. The customer has been notified.");
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not update release status."); }
   }
 
   if (me && !canRead) {
@@ -180,7 +192,7 @@ export default function ClientsPage() {
       </label>}
 
       <div className="glass overflow-x-auto rounded-3xl p-5">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="text-xs uppercase tracking-wide text-ink-soft">
             <tr className="border-b border-white/60">
               <th className="px-2 py-2">#</th>
@@ -188,14 +200,15 @@ export default function ClientsPage() {
               <th className="px-2 py-2">Batch</th>
               <th className="px-2 py-2">Email</th>
               <th className="px-2 py-2">Status</th>
-              <th className="px-2 py-2 text-right">Schedule</th>
+              {TYPESCRIPT_API && <th className="px-2 py-2">Release</th>}
+              <th className="px-2 py-2 text-right">Records</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-2 py-6 text-center text-ink-soft">Loading…</td></tr>
+              <tr><td colSpan={TYPESCRIPT_API ? 7 : 6} className="px-2 py-6 text-center text-ink-soft">Loading…</td></tr>
             ) : clients.length === 0 ? (
-              <tr><td colSpan={6} className="px-2 py-6 text-center text-ink-soft">No clients yet.</td></tr>
+              <tr><td colSpan={TYPESCRIPT_API ? 7 : 6} className="px-2 py-6 text-center text-ink-soft">No clients yet.</td></tr>
             ) : (
               clients.map((c) => (
                 <Fragment key={c.id}>
@@ -207,16 +220,18 @@ export default function ClientsPage() {
                     <td className="px-2 py-2.5 capitalize">
                       <span className="rounded-full bg-sky-2/70 px-2.5 py-1 text-xs font-700 text-blue-ink">{c.status}</span>
                     </td>
+                    {TYPESCRIPT_API && <td className="px-2 py-2.5">{canManage ? <select aria-label={`Release status for ${c.full_name}`} value={(c.release_status ?? "not_ready").toUpperCase()} onChange={(e) => changeRelease(c.id, e.target.value as "NOT_READY" | "PROCESSING" | "READY" | "RELEASED")} className="rounded-lg border border-white/70 bg-white/70 px-2 py-1 text-xs text-blue-ink"><option value="NOT_READY">Not ready</option><option value="PROCESSING">Processing</option><option value="READY">Ready</option><option value="RELEASED">Released</option></select> : <span className="text-xs capitalize">{(c.release_status ?? "not_ready").replaceAll("_", " ")}</span>}</td>}
                     <td className="px-2 py-2.5 text-right">
                       <button onClick={() => toggleSchedule(c.id)} className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white">
                         <CalendarBlank weight="bold" className="h-3.5 w-3.5" />
                         {schedule?.id === c.id ? "Hide" : "View"}
                       </button>
+                      {TYPESCRIPT_API && (me?.role === "owner" || me?.role === "records") && <button type="button" onClick={() => setDocumentClient((current) => current === c.id ? null : c.id)} className="ml-2 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white">{documentClient === c.id ? "Hide documents" : "Documents"}</button>}
                     </td>
                   </tr>
                   {schedule?.id === c.id && (
                     <tr>
-                      <td colSpan={6} className="px-2 pb-3">
+                      <td colSpan={TYPESCRIPT_API ? 7 : 6} className="px-2 pb-3">
                         <div className="glass-tint rounded-2xl p-3">
                           <table className="w-full text-left text-xs">
                             <thead className="text-ink-soft">
@@ -240,6 +255,7 @@ export default function ClientsPage() {
                       </td>
                     </tr>
                   )}
+                  {documentClient === c.id && <tr><td colSpan={TYPESCRIPT_API ? 7 : 6} className="px-2 pb-3"><div className="glass-tint rounded-2xl p-4"><DocumentChecklist clientId={c.id} reviewer /></div></td></tr>}
                 </Fragment>
               ))
             )}

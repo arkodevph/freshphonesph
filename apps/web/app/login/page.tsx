@@ -16,6 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { login, fetchMe } from "@/lib/api";
 import { saveTokens, saveMe } from "@/lib/auth";
+import { TYPESCRIPT_API } from "@/lib/backend";
 
 const accessPrinciples = [
   "Role-based access for staff and customers",
@@ -131,6 +132,8 @@ export default function LoginPage() {
                 </button>
               </span>
             </div>
+
+            {TYPESCRIPT_API && <Link href="/forgot-password" className="login-recovery-link">Forgot password?</Link>}
 
             {error && (
               <div id="login-error" className="login-error" role="alert">

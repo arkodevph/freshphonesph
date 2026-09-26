@@ -1,6 +1,7 @@
 # Build Status
 
-Current implementation state of the `foundation` branch. The planning docs (00–16) describe the
+Implementation status, including the Django baseline originally built on `foundation` and the
+TypeScript work now moving through `staging`. The planning docs (00–16) describe the
 *intended* system; this file describes what was built in the Django baseline. The suite contains
 **80 tests** and was historically green; rerun it against a working local PostgreSQL service
 before treating that result as current.
@@ -48,6 +49,15 @@ Owner user management adds server-side name/email search, role/status filters, b
 audited role and activation changes, session revocation, and self-lockout protection.
 See [19-records-typescript-preview.md](19-records-typescript-preview.md) for setup, evidence,
 the fixed-day cadence policy, and remaining Gate 2 work. Django is still the default backend.
+
+The 2026-09-25 TypeScript customer increment adds a responsive portal with release status,
+customer document submission and Records review, support case tracking, and in-app notifications.
+It uses audited database writes and private local files; customer-to-Records and cross-customer
+authorization flows pass PostgreSQL integration tests. The document policy is in
+[22-customer-portal-policy.md](22-customer-portal-policy.md). Customer email delivery,
+Owner-managed templates, reminders and a private S3-compatible storage adapter are now
+implemented and locally tested. Client-owned production services, privacy/retention decisions,
+and named UAT remain open; see [23-customer-launch-uat.md](23-customer-launch-uat.md).
 
 ## Module status
 

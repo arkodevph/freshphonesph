@@ -1,6 +1,6 @@
 import type { Batch as TsBatch, BatchInput, Client as TsClient, ClientBalance, ClientSchedule, Page, Payment as TsPayment, ReceiptScan, ReceiptType, Role, User } from "@freshphones/contracts";
 import { API_URL, TYPESCRIPT_API } from "./backend";
-import { ApiError, tsRequest, tsUpload, toBatch, toClient, toMe, toPage, toSchedule } from "./ts-api";
+import { ApiError, tsDownload, tsRequest, tsUpload, toBatch, toClient, toMe, toPage, toSchedule } from "./ts-api";
 export { API_URL } from "./backend";
 export type RecordId = string | number;
 
@@ -250,6 +250,8 @@ export type ClientRecord = {
   status: string;
   joined_at: string;
   created_at: string;
+  release_status?: string;
+  version?: number;
 };
 
 export type ScheduleItem = {
@@ -336,6 +338,18 @@ export function createClient(body: {
   }) as Promise<ClientRecord>;
 }
 
+export function updateClientReleaseStatus(id: RecordId, releaseStatus: TsClient["releaseStatus"]) {
+  if (!TYPESCRIPT_API) return Promise.reject(new Error("Release updates require the TypeScript API."));
+  return tsRequest<TsClient>(`/clients/${id}`).then((current) => tsRequest<TsClient>(`/clients/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ version: current.version, record: {
+      name: current.name, email: current.email, phone: current.phone, batchId: current.batchId,
+      status: current.status, releaseStatus, unitModel: current.unitModel,
+      ...(current.joinedAt ? { joinedAt: current.joinedAt } : {}),
+    } }),
+  })).then(toClient);
+}
+
 export function getSchedule(clientId: RecordId) {
   if (TYPESCRIPT_API)
     return tsRequest<ClientSchedule>(`/clients/${clientId}/schedule`).then(toSchedule);
@@ -369,9 +383,12 @@ export type PortalSummary = {
   verified_paid: string | null;
   remaining_balance: string | null;
   release_status?: string;
+  joined_at?: string | null;
+  batch_start_date?: string | null;
+  batch_end_date?: string | null;
 };
 
-export async function getPortalRecords() {
+export async function getPortalRecords(paymentPage = 1) {
   const user = await tsRequest<User>("/auth/me");
   if (user.role !== "CUSTOMER" || !user.clientId) throw new Error("A customer account is required.");
   const [client, schedule, balance, payments] = await Promise.all([
@@ -381,7 +398,7 @@ export async function getPortalRecords() {
       throw error;
     }),
     getBalance(user.clientId),
-    listPayments({ status: "verified" }).then((page) => page.results),
+    listPayments({ status: "verified", page: String(paymentPage) }),
   ]);
   return { client, schedule, balance, payments };
 }
@@ -415,17 +432,19 @@ export function createPortalAccount(clientId: number, body: { email: string; pas
 
 // ── Customer Service (M8) ──────────────────────────────────────────────────
 export type SupportCase = {
-  id: number;
-  client: number;
+  id: RecordId;
+  client: RecordId;
   client_name: string;
   category: string;
   description: string;
-  assigned_staff: number | null;
+  assigned_staff: RecordId | null;
+  assigned_staff_name?: string | null;
   status: string;
   resolution: string;
   date_received: string;
   closed_date: string | null;
   turnaround_hours: number | null;
+  version?: number;
 };
 
 export const SUPPORT_STATUSES: [string, string][] = [
@@ -438,12 +457,22 @@ export const SUPPORT_STATUSES: [string, string][] = [
 
 export function listSupportCases(params: Record<string, string> = {}) {
   const qs = new URLSearchParams(params).toString();
+  if (TYPESCRIPT_API) return tsRequest<Paginated<SupportCase>>(`/support/cases${qs ? `?${qs}` : ""}`);
   return apiFetch(`/api/support/cases/${qs ? `?${qs}` : ""}`) as Promise<
     Paginated<SupportCase>
   >;
 }
 
-export function updateSupportCase(id: number, body: { status?: string; resolution?: string }) {
+export function updateSupportCase(id: RecordId, body: { status?: string; resolution?: string; assigned_staff?: RecordId | null; version?: number }) {
+  if (TYPESCRIPT_API) return tsRequest<SupportCase>(`/support/cases/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      version: body.version,
+      ...(body.status ? { status: body.status.toUpperCase() } : {}),
+      ...(body.resolution !== undefined ? { resolution: body.resolution } : {}),
+      ...(body.assigned_staff !== undefined ? { assignedStaffId: body.assigned_staff } : {}),
+    }),
+  });
   return apiFetch(`/api/support/cases/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(body),
@@ -451,15 +480,60 @@ export function updateSupportCase(id: number, body: { status?: string; resolutio
 }
 
 export function getPortalSupport() {
+  if (TYPESCRIPT_API) return tsRequest<SupportCase[]>("/portal/support");
   return apiFetch("/api/portal/support/") as Promise<SupportCase[]>;
 }
 
 export function createPortalSupport(body: { category: string; description: string }) {
+  if (TYPESCRIPT_API) return tsRequest<SupportCase>("/portal/support", { method: "POST", body: JSON.stringify(body) });
   return apiFetch("/api/portal/support/", {
     method: "POST",
     body: JSON.stringify(body),
   }) as Promise<SupportCase>;
 }
+
+export type PortalNotification = {
+  id: string;
+  kind: string;
+  title: string;
+  message: string;
+  readAt: string | null;
+  createdAt: string;
+};
+export const getPortalNotifications = () => tsRequest<PortalNotification[]>("/portal/notifications");
+export const readPortalNotification = (id: string) => tsRequest<PortalNotification>(`/portal/notifications/${id}/read`, { method: "POST" });
+
+export type CustomerDocument = {
+  id: string;
+  requirementKey: string;
+  status: "SUBMITTED" | "APPROVED" | "NEEDS_CLARIFICATION";
+  fileName: string;
+  mimeType: string;
+  size: number;
+  clarification: string;
+  version: number;
+  uploadedAt: string;
+  reviewedAt: string | null;
+};
+export type DocumentRequirement = {
+  key: string;
+  label: string;
+  description: string;
+  status: CustomerDocument["status"] | "MISSING";
+  latest: CustomerDocument | null;
+  history: CustomerDocument[];
+};
+export const getCustomerDocuments = (clientId?: RecordId) => tsRequest<DocumentRequirement[]>(
+  clientId ? `/clients/${clientId}/documents` : "/portal/documents",
+);
+export function uploadCustomerDocument(key: string, file: File, clientId?: RecordId) {
+  const body = new FormData();
+  body.append("file", file);
+  return tsUpload<CustomerDocument>(clientId ? `/clients/${clientId}/documents/${key}` : `/portal/documents/${key}`, body);
+}
+export const reviewCustomerDocument = (id: string, status: "APPROVED" | "NEEDS_CLARIFICATION", version: number, clarification = "") =>
+  tsRequest<CustomerDocument>(`/documents/${id}/review`, { method: "POST", body: JSON.stringify({ status, version, clarification }) });
+export const downloadCustomerDocument = (id: string) => tsDownload(`/documents/${id}/file`);
 
 // ── Employee Tasks & KPI (M6) ──────────────────────────────────────────────
 export type Task = {

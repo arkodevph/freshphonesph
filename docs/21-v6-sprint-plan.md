@@ -36,6 +36,10 @@ These are draft ticket specifications, not published tracker issues. Configure t
 
 ## Implementation progress — 2026-09-23
 
+2026-09-25 update: The project owner delegated the initial D1 and D3 choices. The selected local workflow is recorded in [22-customer-portal-policy.md](22-customer-portal-policy.md). S1-02/03/04 now have a Records and customer journey with private local storage, API authorization, review history, and integration evidence. They remain **in review** pending authenticated staff/customer UAT and D2 production storage/privacy decisions. The 2026-09-23 table below remains the historical snapshot for that date.
+
+2026-09-26 update: The customer portal now includes verified installment allocation, membership dates, password recovery pages, printable account documents, post-commit customer email, Owner-managed templates/reminder timing, and an S3-compatible private storage adapter. Unit/integration tests and local MinIO migration checks pass. The [customer launch/UAT checklist](23-customer-launch-uat.md) records the client-owned setup and sign-off still required.
+
 | Ticket | State | Evidence / remaining work |
 | --- | --- | --- |
 | S1-01 | In review | Client and balance pickers now use deliberate search/selection with loading, empty and retry states; stale search/OCR responses are ignored; keyboard focus scrolls into view; receipt type/image changes invalidate an active scan; browser-side type/5 MB validation and explicit missing-date review are implemented. Integration coverage searches 1,000 clients. Authenticated light/dark/mobile browser walkthrough remains open. |

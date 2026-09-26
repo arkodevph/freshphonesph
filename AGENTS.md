@@ -106,9 +106,11 @@ Justine Rhey Tambong = Auth/Records spine · **Justine Cane Bacurin = Payments/F
 Recruitment + Notifications. See `docs/10-team-roles.md`.
 
 ## Branch / PR status
-Active work is on the **`foundation`** branch (this is where all modules were built).
-`main` = original landing page; `Planning` = docs only. PR description is prepared in
-[`docs/PULL_REQUEST.md`](docs/PULL_REQUEST.md) — open `foundation → main` when the team is ready.
+`main` is the production release branch and remains the GitHub default. `staging` is the shared
+integration branch. Develop on short-lived `feature/<scope>` or `fix/<issue>` branches, merge
+reviewed work into `staging`, and promote tested `staging` changes to `main` by pull request.
+See [`docs/24-branch-flow.md`](docs/24-branch-flow.md). The older `foundation` branch remains
+as historical migration work; do not use it as the active integration branch.
 
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
