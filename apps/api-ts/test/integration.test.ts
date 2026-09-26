@@ -603,6 +603,9 @@ test('Finance verification alone moves balances and customer-visible history', a
   const payment = await recorded.json();
   assert.equal(payment.status, 'PENDING');
   assert.equal(payment.duplicateReference, false);
+  const pendingForCustomer = await customer.request('/portal/payments/review');
+  assert.equal(pendingForCustomer.status, 200);
+  assert.ok((await pendingForCustomer.json()).some((item: { id: string; amount: string }) => item.id === payment.id && item.amount === '10.25'));
   const proof = new FormData();
   const proofBytes = Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
@@ -957,6 +960,45 @@ test('support updates and notifications are scoped to the linked customer', asyn
   assert.match(email, /Fresh Phones PH/);
 });
 
+test('support replies stay on the linked case and release milestones stay private', async () => {
+  await db.loginAttempt.deleteMany({ where: { key: tokenHash('login-ip:127.0.0.1') } });
+  const customer = await new Session().login('CUSTOMER');
+  const staff = await new Session().login('CS_TEAM');
+  const owner = await new Session().login('OWNER');
+  const other = new Session();
+  assert.equal((await other.request('/auth/login', post({ email: `${suffix}-other-customer@example.test`, password }))).status, 200);
+  const created = await customer.request('/portal/support', post({ category: 'Account', description: 'Please correct the unit in my membership.' }));
+  assert.equal(created.status, 201);
+  const supportCase = await created.json();
+  assert.equal((await other.request(`/portal/support/${supportCase.id}`)).status, 404);
+  assert.equal((await other.request(`/portal/support/${supportCase.id}/replies`, post({ body: 'Trying to read another case.' }))).status, 404);
+  assert.equal((await customer.request(`/portal/support/${supportCase.id}/replies`, post({ body: 'Extra detail', needsReply: true }))).status, 400);
+  const staffReply = await staff.request(`/support/cases/${supportCase.id}/replies`, post({ body: 'Which model should be on your record?', needsReply: true }));
+  assert.equal(staffReply.status, 201);
+  assert.equal((await staffReply.json()).status, 'waiting_for_client');
+  const customerReply = await customer.request(`/portal/support/${supportCase.id}/replies`, post({ body: 'It should say iPhone 16 Pro.' }));
+  assert.equal(customerReply.status, 201);
+  assert.equal((await customerReply.json()).status, 'in_progress');
+  const detail = await (await customer.request(`/portal/support/${supportCase.id}`)).json();
+  assert.deepEqual(detail.messages.map((item: { author_type: string }) => item.author_type), ['staff', 'customer']);
+  assert.equal(detail.last_message.by_customer, true);
+  assert.ok((await (await staff.request('/support/cases')).json()).results.some((item: { id: string; last_message: { by_customer: boolean } }) =>
+    item.id === supportCase.id && item.last_message.by_customer));
+  const supportNotice = (await (await customer.request('/portal/notifications')).json()).find((item: { targetPath: string }) => item.targetPath === `/portal/support#case-${supportCase.id}`);
+  assert.ok(supportNotice);
+  assert.equal((await staff.request(`/support/cases/${supportCase.id}`, patch({ status: 'RESOLVED', resolution: 'Corrected the membership record.', version: 3 }))).status, 200);
+  assert.equal((await customer.request(`/portal/support/${supportCase.id}/replies`, post({ body: 'Another reply' }))).status, 409);
+
+  const current = await db.client.findUniqueOrThrow({ where: { id: firstClient } });
+  const release = await owner.request(`/clients/${firstClient}/release-updates`, post({ version: current.version, status: 'READY', note: 'Please arrange collection with the team.', collectionDate: '2026-10-01' }));
+  assert.equal(release.status, 201);
+  assert.equal((await other.request(`/clients/${firstClient}/release-updates`)).status, 404);
+  const updates = await (await customer.request(`/clients/${firstClient}/release-updates`)).json();
+  assert.equal(updates[0].collection_date, '2026-10-01');
+  assert.match(updates[0].note, /arrange collection/);
+  assert.ok((await (await customer.request('/portal/notifications')).json()).some((item: { targetPath: string }) => item.targetPath?.startsWith('/portal/release#release-update-')));
+});
+
 test('Owner can edit audited customer email templates while other roles cannot', async () => {
   await db.loginAttempt.deleteMany({ where: { key: { in: [
     'login-ip:127.0.0.1',
@@ -985,10 +1027,14 @@ test('Owner can edit audited customer email templates while other roles cannot',
   const reminderClient = await db.client.create({ data: { name: 'Reminder customer', email: `${suffix}-reminder@example.test`, phone: '+63 900 000 0022', batchId } });
   await db.user.create({ data: { name: 'Reminder customer', email: `${suffix}-reminder@example.test`, passwordHash: await hashPassword(password), role: 'CUSTOMER', clientId: reminderClient.id } });
   const dueItem = await db.scheduleItem.create({ data: { clientId: reminderClient.id, sequenceNo: 1, dueDate: new Date(`${due.toISOString().slice(0, 10)}T00:00:00Z`), expectedAmount: '10.00' } });
+  await db.payment.create({ data: { clientId: reminderClient.id, batchId, amount: '3.00', paymentDate: new Date(`${due.toISOString().slice(0, 10)}T00:00:00Z`), method: 'GCash', recordedById: accounts.get('RECORDS')! } });
   const enabled = await owner.request('/customer-notification-settings/reminders', patch({ version: savedReminder.version, reminderDays: '3' }));
   assert.equal(enabled.status, 200);
   const reminderKey = `installment:${dueItem.id}:3`;
   assert.equal(await db.notification.count({ where: { dedupeKey: reminderKey } }), 1);
+  const reminderNotice = await db.notification.findUniqueOrThrow({ where: { dedupeKey: reminderKey } });
+  assert.match(reminderNotice.message, /awaiting Finance review/);
+  assert.equal(reminderNotice.targetPath, '/portal/schedule#installment-1');
   await app.get(EmailDeliveryService).refreshReminders();
   assert.equal(await db.notification.count({ where: { dedupeKey: reminderKey } }), 1);
   const enabledSettings = await enabled.json();

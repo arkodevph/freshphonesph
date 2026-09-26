@@ -349,6 +349,10 @@ export function updateClientReleaseStatus(id: RecordId, releaseStatus: TsClient[
     } }),
   })).then(toClient);
 }
+export type ReleaseUpdate = { id: string; status: string; note: string; collection_date: string | null; updated_at: string };
+export const getReleaseUpdates = (clientId: RecordId) => tsRequest<ReleaseUpdate[]>(`/clients/${clientId}/release-updates`);
+export const addReleaseUpdate = (clientId: RecordId, body: { version: number; status: TsClient["releaseStatus"]; note: string; collectionDate?: string | null }) =>
+  tsRequest<ReleaseUpdate>(`/clients/${clientId}/release-updates`, { method: "POST", body: JSON.stringify(body) });
 
 export function getSchedule(clientId: RecordId) {
   if (TYPESCRIPT_API)
@@ -422,6 +426,8 @@ export function getPortalSchedule() {
 export function getPortalPayments() {
   return apiFetch("/api/portal/payments/") as Promise<Payment[]>;
 }
+export type PendingCustomerPayment = { id: string; amount: string; payment_date: string; method: string; reference_no: string | null; recorded_at: string };
+export const getPendingCustomerPayments = () => tsRequest<PendingCustomerPayment[]>("/portal/payments/review");
 
 export function createPortalAccount(clientId: number, body: { email: string; password: string }) {
   return apiFetch(`/api/clients/${clientId}/portal-account/`, {
@@ -445,7 +451,10 @@ export type SupportCase = {
   closed_date: string | null;
   turnaround_hours: number | null;
   version?: number;
+  last_message?: { by_customer: boolean; created_at: string } | null;
 };
+export type SupportMessage = { id: string; body: string; author_type: "customer" | "staff"; created_at: string };
+export type SupportCaseDetail = SupportCase & { messages: SupportMessage[] };
 
 export const SUPPORT_STATUSES: [string, string][] = [
   ["open", "Open"],
@@ -491,12 +500,19 @@ export function createPortalSupport(body: { category: string; description: strin
     body: JSON.stringify(body),
   }) as Promise<SupportCase>;
 }
+export const getSupportCaseDetail = (id: RecordId, staff = false) =>
+  tsRequest<SupportCaseDetail>(staff ? `/support/cases/${id}` : `/portal/support/${id}`);
+export const replySupportCase = (id: RecordId, body: string, staff = false, needsReply = false) =>
+  tsRequest<SupportMessage>(staff ? `/support/cases/${id}/replies` : `/portal/support/${id}/replies`, {
+    method: "POST", body: JSON.stringify(staff ? { body, needsReply } : { body }),
+  });
 
 export type PortalNotification = {
   id: string;
   kind: string;
   title: string;
   message: string;
+  targetPath: string | null;
   readAt: string | null;
   createdAt: string;
 };

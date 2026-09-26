@@ -7,6 +7,7 @@ Prepared 2026-09-26. The code and local test evidence below are ready for review
 - API unit suite: verified installment waterfall including partial, overdue, upcoming and overpayment cases.
 - API integration suite: customer record isolation, Finance-only verification, schedule allocation, private document review/download, support and notifications, statement/confirmation, reset, and local email delivery.
 - Web and API production builds: pass.
+- Customer journey follow-up: support reply ownership and privacy, pending payment visibility, release milestones, reminder wording and record links pass API integration tests; mobile screens and a downloaded account PDF have been checked locally.
 - Private S3-compatible storage: upload/read/delete verified against local MinIO; migration dry run and copy verified 14/14 local fixture files by SHA-256. Local originals remain.
 
 ## Customer walkthrough
@@ -15,13 +16,13 @@ Use synthetic records and two separate customer accounts. Repeat at a narrow mob
 
 | Check | Expected result | Reviewer / result |
 | --- | --- | --- |
-| Sign in and recover password | Sign-in uses the approved split layout. Reset email contains a single-use 30-minute link; use revokes prior sessions. Unknown email receives the same response. | Pending |
-| Membership and key dates | Correct assigned batch and unit/model, joined date, batch start, and planned end are visible. | Pending |
-| Installment plan | Verified funds fill due installments in order. Paid, partial, overdue, and upcoming states and applied amounts agree with Finance records. | Pending |
-| Payments and account documents | Only Finance-verified payments appear. Statement and payment confirmation print/save as PDF with a clear non-BIR notice. | Pending |
-| Documents | Customer can upload their own permitted file, view review status and clarification, replace after clarification, and download only their own files. | Pending |
-| Release and support | Release status updates reach the linked customer. Support cases show customer-visible resolution only. | Pending |
-| Notifications and email | In-app and email updates match payment verification, release, support, and document review. No unrelated customer receives them. | Pending |
+| Sign in and recover password | Sign-in uses the approved split layout. Account access help is reachable from login. Reset email contains a single-use 30-minute link; use revokes prior sessions. Unknown email receives the same response. | Pending |
+| Membership and key dates | Correct assigned batch and unit/model, joined date, batch start, and planned end are visible. Correction requests show their status and outcome. | Pending |
+| Installment plan | Verified funds fill due installments in order. Payment state and due timing are separate; each remainder and the total currently due agree with Finance records. | Pending |
+| Payments and account documents | Pending staff-recorded payments are visible separately and never change the verified balance. Verified history remains isolated. Statement and confirmation download directly as PDFs with a clear non-BIR notice. | Pending |
+| Documents | Customer can preview a selected file, upload their own permitted file, see the result and review status, replace after clarification, and download only their own files. HEIC guidance is clear. | Pending |
+| Release and support | Staff-entered milestones, last update time, and confirmed collection details reach only the linked customer. Customer and staff can reply on a case; a customer reply moves Waiting for client back to In progress. | Pending |
+| Notifications and email | In-app and email updates link to the exact payment, release milestone, support case, document or installment. Reminders acknowledge a staff-recorded payment awaiting Finance review. No unrelated customer receives them. | Pending |
 | Reminders | If approved offsets are configured, due reminders are sent once per configured offset and omit fully paid installments. | Pending |
 | Navigation and accessibility | Pages work with keyboard, readable focus, mobile navigation, zoom and reduced motion. | Pending |
 

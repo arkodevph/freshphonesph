@@ -13,6 +13,8 @@ import { DocumentsService } from './documents.service';
 import type { PrivateUpload } from '../storage/private-storage.service';
 
 const createCaseSchema = z.object({ category: z.string().trim().min(1).max(80), description: z.string().trim().min(10).max(5000) }).strict();
+const customerReplySchema = z.object({ body: z.string().trim().min(1).max(5000) }).strict();
+const staffReplySchema = customerReplySchema.extend({ needsReply: z.boolean().optional() });
 const updateCaseSchema = z.object({
   version: z.number().int().positive(),
   status: z.enum(['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CLIENT', 'RESOLVED', 'CLOSED']).optional(),
@@ -43,12 +45,26 @@ export class PortalController {
   @Post('portal/support') create(@CurrentUser() user: User, @Body(new Validate(createCaseSchema)) body: z.infer<typeof createCaseSchema>) {
     return this.support.create(user, body);
   }
+  @Get('portal/support/:id') myCase(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.support.detail(user, id);
+  }
+  @Post('portal/support/:id/replies') replyToMyCase(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string,
+    @Body(new Validate(customerReplySchema)) body: z.infer<typeof customerReplySchema>) {
+    return this.support.reply(user, id, body);
+  }
   @Get('support/cases') @Requires('SUPPORT_MANAGE') cases(
     @CurrentUser() user: User, @Query('status') status?: string, @Query('page') rawPage?: string,
   ) {
     const page = rawPage === undefined ? 1 : Number(rawPage);
     if (!Number.isInteger(page) || page < 1 || page > 10000) throw new BadRequestException('Invalid page number.');
     return this.support.list(user, status?.toUpperCase(), page);
+  }
+  @Get('support/cases/:id') @Requires('SUPPORT_MANAGE') caseDetail(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.support.detail(user, id);
+  }
+  @Post('support/cases/:id/replies') @Requires('SUPPORT_MANAGE') staffReply(@CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string, @Body(new Validate(staffReplySchema)) body: z.infer<typeof staffReplySchema>) {
+    return this.support.reply(user, id, body);
   }
   @Patch('support/cases/:id') @Requires('SUPPORT_MANAGE') update(
     @CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string,

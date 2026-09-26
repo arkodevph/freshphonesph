@@ -26,9 +26,14 @@ import {
 import { CurrentUser, Requires } from '../auth/access';
 import { Validate } from '../http';
 import { RecordsService } from './records.service';
-import type { z } from 'zod';
+import { z } from 'zod';
 type ListQuery = z.infer<typeof listQuerySchema>;
 type AccountListQuery = z.infer<typeof accountListQuerySchema>;
+const releaseUpdateSchema = z.object({ version: z.number().int().positive(),
+  status: z.enum(['NOT_READY', 'PROCESSING', 'READY', 'RELEASED']),
+  note: z.string().trim().max(1000).default(''),
+  collectionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+}).strict();
 
 @Controller()
 export class RecordsController {
@@ -61,6 +66,13 @@ export class RecordsController {
   }
   @Get('clients/:id') client(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
     return this.records.client(user, id);
+  }
+  @Get('clients/:id/release-updates') releaseUpdates(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.records.releaseUpdates(user, id);
+  }
+  @Post('clients/:id/release-updates') @Requires('CLIENT_MANAGE') addReleaseUpdate(@CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string, @Body(new Validate(releaseUpdateSchema)) body: z.infer<typeof releaseUpdateSchema>) {
+    return this.records.addReleaseUpdate(user, id, body);
   }
   @Post('clients') @Requires('CLIENT_MANAGE') createClient(
     @CurrentUser() user: User,

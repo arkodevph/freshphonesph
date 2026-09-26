@@ -19,7 +19,7 @@ import { allowed } from '../auth/access';
 import { hashPassword } from '../auth/password';
 import { generateSchedule } from './schedule';
 import { allocateVerifiedPayments } from './allocation';
-import type { Batch as StoredBatch } from '../generated/prisma/client';
+import type { Batch as StoredBatch, ReleaseStatus } from '../generated/prisma/client';
 import { notifyCustomer } from '../portal/notifications.service';
 
 const batchInclude = { _count: { select: { clients: true } } } as const;
@@ -252,9 +252,47 @@ export class RecordsService {
         );
       const after = await tx.client.findUniqueOrThrow({ where: { id }, include: clientInclude });
       await this.record(tx, user.id, 'client', id, 'client.updated', before, after);
-      if (before.releaseStatus !== after.releaseStatus)
-        await notifyCustomer(tx, id, 'release', 'Release status updated', `Your unit is now ${after.releaseStatus.toLowerCase().replaceAll('_', ' ')}.`);
+      if (before.releaseStatus !== after.releaseStatus) {
+        const update = await tx.releaseUpdate.create({ data: { clientId: id, actorId: user.id, status: after.releaseStatus } });
+        await notifyCustomer(tx, id, 'release', 'Release status updated', `Your unit is now ${after.releaseStatus.toLowerCase().replaceAll('_', ' ')}.`, `/portal/release#release-update-${update.id}`);
+      }
       return clientJson(after);
+    });
+  }
+
+  async releaseUpdates(user: User, id: string) {
+    await this.client(user, id);
+    const rows = await this.db.releaseUpdate.findMany({ where: { clientId: id },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 30 });
+    return rows.map((row) => ({ id: row.id, status: row.status.toLowerCase().replaceAll('_', ' '),
+      note: row.note, collection_date: row.collectionDate?.toISOString().slice(0, 10) ?? null,
+      updated_at: row.createdAt.toISOString() }));
+  }
+
+  async addReleaseUpdate(user: User, id: string, input: { status: ReleaseStatus; note: string; collectionDate?: string | null; version: number }) {
+    if (input.collectionDate && !['READY', 'RELEASED'].includes(input.status))
+      throw new BadRequestException('Collection date is only available when the unit is ready or released.');
+    if (input.collectionDate) {
+      const parsed = new Date(`${input.collectionDate}T00:00:00Z`);
+      if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== input.collectionDate)
+        throw new BadRequestException('Enter a valid collection date.');
+    }
+    return this.write(user, 'CLIENT_MANAGE', async (tx) => {
+      const before = await tx.client.findUnique({ where: { id } });
+      if (!before) throw new NotFoundException('Client not found.');
+      if (before.releaseStatus === input.status && !input.note && !input.collectionDate)
+        throw new BadRequestException('Add a note, a collection date, or a new status.');
+      const changed = await tx.client.updateMany({ where: { id, version: input.version },
+        data: { releaseStatus: input.status, version: { increment: 1 } } });
+      if (!changed.count) throw new ConflictException('This client changed. Refresh and review the latest record.');
+      const update = await tx.releaseUpdate.create({ data: { clientId: id, actorId: user.id, status: input.status,
+        note: input.note, collectionDate: input.collectionDate ? new Date(`${input.collectionDate}T00:00:00Z`) : null } });
+      await this.record(tx, user.id, 'client', id, 'release.updated', before,
+        { status: update.status, note: update.note, collectionDate: input.collectionDate ?? null });
+      await notifyCustomer(tx, id, 'release', 'Release update',
+        `Your unit status is ${input.status.toLowerCase().replaceAll('_', ' ')}. Open your portal for the latest details.`, `/portal/release#release-update-${update.id}`);
+      return { id: update.id, status: update.status.toLowerCase().replaceAll('_', ' '), note: update.note,
+        collection_date: input.collectionDate ?? null, updated_at: update.createdAt.toISOString() };
     });
   }
   async schedule(user: User, id: string) {

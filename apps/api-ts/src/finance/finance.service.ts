@@ -117,6 +117,19 @@ export class FinanceService {
     return {};
   }
 
+  async customerPending(user: User) {
+    if (user.role !== 'CUSTOMER' || !user.clientId)
+      throw new ForbiddenException('A linked customer account is required.');
+    const rows = await this.db.payment.findMany({
+      where: { clientId: user.clientId, status: 'PENDING' },
+      select: { id: true, amount: true, paymentDate: true, method: true, referenceNumber: true, createdAt: true },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 50,
+    });
+    return rows.map((row) => ({ id: row.id, amount: row.amount.toFixed(2),
+      payment_date: row.paymentDate.toISOString(), method: row.method,
+      reference_no: row.referenceNumber, recorded_at: row.createdAt.toISOString() }));
+  }
+
   async payments(user: User, query: Query) {
     const where: Prisma.PaymentWhereInput = {
       ...this.scope(user),
@@ -253,7 +266,7 @@ export class FinanceService {
       const after = await tx.payment.findUniqueOrThrow({ where: { id }, include: paymentInclude });
       await this.record(tx, user.id, id, `payment.${decision.toLowerCase()}`, before, after);
       if (decision === 'VERIFIED')
-        await notifyCustomer(tx, after.clientId, 'payment', 'Payment verified', 'Finance verified a payment. Your balance and payment history have been updated.');
+        await notifyCustomer(tx, after.clientId, 'payment', 'Payment verified', 'Finance verified a payment. Your balance and payment history have been updated.', `/portal/financial-document?payment=${after.id}`);
       return this.view(tx, after);
     });
   }

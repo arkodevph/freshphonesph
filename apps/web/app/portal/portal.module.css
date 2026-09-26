@@ -102,7 +102,14 @@
 .releaseIcon svg { width: 25px; height: 25px; }
 .releaseCard > div { flex: 1; min-width: 0; }
 .releaseCard h2 { margin-top: 3px; color: #203971; font-size: 16px; font-weight: 900; }
-.releaseCard > div > p:last-child { margin-top: 5px; color: #607293; font-size: 12px; line-height: 1.5; }
+.releaseCard > div > p:last-of-type { margin-top: 5px; color: #607293; font-size: 12px; line-height: 1.5; }
+.releaseCard small { display: block; margin-top: 7px; color: #6f7d9a; font-size: 10px; }
+.releaseTimeline { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.releaseTimeline li { padding: 14px; border: 1px solid #e1e8f5; border-radius: 13px; background: #fbfcff; }
+.releaseTimeline li > div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px; }
+.releaseTimeline strong { color: #273a6d; font-size: 13px; text-transform: capitalize; }
+.releaseTimeline small { color: #7888a2; font-size: 10px; }
+.releaseTimeline p { margin-top: 7px; color: #5f6f8e; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
 .releaseBadge { padding: 7px 12px; border-radius: 999px; background: #fff; color: #3158aa; font-size: 11px; font-weight: 900; text-transform: capitalize; white-space: nowrap; }
 .nextIcon { width: 46px; height: 46px; border-radius: 14px; background: #fff; color: #466ce4; }
 .nextIcon svg { width: 25px; height: 25px; }
@@ -130,6 +137,13 @@
 .membershipDates dt { color: #7180a1; font-size: 11px; font-weight: 700; }
 .membershipDates dd { margin: 5px 0 0; color: #1c2758; font-size: 14px; font-weight: 800; }
 .scheduleAmount small { display: block; margin-top: 3px; color: #6380ad; font-size: 10px; }
+.scheduleDate small { color: #687b9d; font-size: 10px; }
+.scheduleDate small.dueLate { color: #a1304c; font-weight: 900; }
+.scheduleDate small.dueToday { color: #8a5d19; font-weight: 900; }
+.scheduleAmount small { white-space: normal; overflow-wrap: anywhere; }
+.dueSummary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; padding: 14px; border-radius: 13px; background: #f4f0ff; }
+.dueSummary strong { color: #321b78; font-size: 15px; }
+.dueSummary p { margin-top: 3px; color: #63708d; font-size: 11px; line-height: 1.4; }
 @media (max-width: 700px) { .membershipDates { grid-template-columns: 1fr; gap: 8px; } }
 .scheduleRow { display: grid; grid-template-columns: 34px minmax(0,1.15fr) minmax(0,1fr) auto; align-items: center; gap: 14px; min-height: 72px; border-top: 1px solid #edf0f8; }
 .sequence { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; background: #f0f3fd; color: #4d63ae; font-size: 12px; font-weight: 900; }
@@ -154,23 +168,45 @@
 .paymentsList li > div { display: grid; gap: 3px; min-width: 0; }
 .paymentsList strong { color: #233766; font-size: 14px; }
 .paymentsList li > div > span, .paymentsList small { color: #75839e; font-size: 11px; overflow-wrap: anywhere; }
+.pendingNote { margin: -3px 0 13px; color: #61718e; font-size: 12px; line-height: 1.5; }
+.pendingList { list-style: none; margin: 0; padding: 0; }
+.pendingList li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid #edf0f8; }
+.pendingList li div { display: grid; gap: 3px; }
+.pendingList strong { color: #283766; font-size: 13px; }
+.pendingList li div span, .pendingList small { color: #6d7a96; font-size: 11px; }
+.pendingList li > span { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: #fff2d9; color: #8a5d19; font-size: 10px; font-weight: 800; }
 .pageActions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; color: #667590; font-size: 11px; }
 .documentLink { display: inline-flex; width: fit-content; margin-top: 10px; color: #6841cb; font-size: 11px; font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
 .pageActions button { padding: 7px 10px; border-radius: 9px; background: #edf2ff; color: #315cb5; font-size: 11px; font-weight: 800; cursor: pointer; }
 .pageActions button:disabled { opacity: .45; cursor: default; }
 .support { margin-top: 18px; }
 .supportForm { display: grid; grid-template-columns: 160px minmax(0,1fr) auto; gap: 10px; }
-.supportForm select, .supportForm input { min-width: 0; min-height: 42px; padding: 9px 12px; border: 1px solid #dce4f3; border-radius: 11px; background: #fff; color: #26385f; font: inherit; font-size: 12px; }
+.supportForm select, .supportForm textarea { min-width: 0; min-height: 42px; padding: 9px 12px; border: 1px solid #dce4f3; border-radius: 11px; background: #fff; color: #26385f; font: inherit; font-size: 12px; }
+.supportForm textarea { min-height: 86px; resize: vertical; }
 .supportForm button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 42px; padding: 0 16px; border-radius: 11px; background: #386be1; color: white; font-size: 12px; font-weight: 800; cursor: pointer; }
 .supportForm button:disabled { opacity: .65; cursor: wait; }
 .supportForm button svg { width: 16px; height: 16px; }
 .supportList { list-style: none; padding: 0; margin: 15px 0 0; }
-.supportList li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid #edf0f8; }
-.supportList li div { display: grid; min-width: 0; gap: 3px; }
+.supportList > li { padding: 15px 0; border-top: 1px solid #edf0f8; }
+.supportCaseContent { display: grid; min-width: 0; gap: 7px; }
+.supportCaseHeader { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.supportCaseHeader > div { display: grid; gap: 3px; }
+.supportCaseStatus { padding: 5px 8px; border-radius: 999px; background: #f0f3fa; color: #526688; font-size: 10px; font-weight: 800; text-transform: capitalize; white-space: nowrap; }
 .supportList strong { font-size: 12px; color: #26385f; }
-.supportList li div span { color: #6e7e9c; font-size: 11px; overflow-wrap: anywhere; white-space: pre-line; }
-.supportList li div small { color: #315c9f; font-size: 11px; line-height: 1.5; }
-.supportList li > span { padding: 5px 8px; border-radius: 999px; background: #f0f3fa; color: #526688; font-size: 10px; font-weight: 800; text-transform: capitalize; white-space: nowrap; }
+.supportCaseContent > span { color: #6e7e9c; font-size: 12px; overflow-wrap: anywhere; white-space: pre-line; }
+.supportList small { color: #315c9f; font-size: 11px; line-height: 1.5; }
+.replyPrompt { color: #6b39ba; font-size: 12px; font-weight: 800; }
+.caseToggle { justify-self: start; min-height: 40px; padding: 8px 12px; border: 1px solid #dcd2f5; border-radius: 10px; background: #f7f3ff; color: #5635ad; font-size: 12px; font-weight: 800; cursor: pointer; }
+.conversation { margin-top: 7px; padding: 14px; border: 1px solid #e4e3f4; border-radius: 14px; background: #fafaff; }
+.conversation > ol { display: grid; gap: 9px; list-style: none; margin: 0; padding: 0; }
+.conversation > ol > li { padding: 11px 13px; border-radius: 11px; background: #fff; }
+.conversation > ol > li.customerReply { background: #f1eaff; }
+.conversation li p { margin: 4px 0; color: #34436b; font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.replyForm { display: grid; gap: 8px; margin-top: 13px; }
+.replyForm label { color: #26385f; font-size: 12px; font-weight: 800; }
+.replyForm textarea { min-height: 90px; resize: vertical; padding: 10px 12px; border: 1px solid #dce4f3; border-radius: 10px; background: #fff; color: #26385f; font: inherit; font-size: 12px; }
+.replyForm button { justify-self: start; min-height: 42px; padding: 9px 14px; border-radius: 10px; background: #5339be; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; }
+.replyForm button:disabled { opacity: .6; cursor: default; }
 .attentionCard { margin-top: 18px; }
 .attentionIcon { background: #f2e9ff; color: #7140cb; }
 .attentionState { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; padding: 16px; border-radius: 14px; background: #f8f7ff; color: #59698a; font-size: 13px; line-height: 1.5; }
@@ -207,7 +243,12 @@
 .correctionForm .correctionError { color: #a52b53; font-weight: 800; }
 .correctionForm button:disabled { opacity: .65; cursor: wait; }
 .correctionSuccess { margin-top: 15px; padding: 13px 15px; border-radius: 12px; background: #e9f9f0; color: #176448; font-size: 13px; line-height: 1.5; }
-.attentionCard :focus-visible, .membershipGuidance :focus-visible, .correctionArea :focus-visible, .correctionForm :focus-visible, .correctionSuccess :focus-visible, .supportList a:focus-visible { outline: 3px solid #648aff; outline-offset: 2px; }
+.correctionHistory { margin-top: 18px; padding-top: 16px; border-top: 1px solid #e9ebf5; }
+.correctionHistory h3 { color: #25245a; font-size: 13px; font-weight: 900; }
+.correctionHistory ul { display: grid; gap: 8px; margin: 9px 0 0; padding: 0; list-style: none; }
+.correctionHistory li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: #5e6b87; font-size: 12px; }
+.correctionHistory a { color: #6041bd; font-weight: 800; }
+.attentionCard :focus-visible, .membershipGuidance :focus-visible, .correctionArea :focus-visible, .correctionForm :focus-visible, .correctionSuccess :focus-visible, .supportList :focus-visible { outline: 3px solid #648aff; outline-offset: 2px; }
 .scheduleRow:target, .supportList li:target { border-radius: 12px; background: #f3eeff; }
 .notificationList { list-style: none; padding: 0; margin: 0; }
 .notificationList li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 10px; border-top: 1px solid #edf0f8; border-radius: 10px; }
@@ -217,6 +258,9 @@
 .notificationList p { margin-top: 3px; color: #5f7192; font-size: 12px; line-height: 1.4; }
 .notificationList small { display: block; margin-top: 4px; color: #8b98ad; font-size: 10px; }
 .notificationList button { flex: 0 0 auto; padding: 7px 9px; border-radius: 9px; background: #e4ecff; color: #2f58b4; font-size: 11px; font-weight: 800; cursor: pointer; }
+.notificationActions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
+.notificationActions a { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; color: #5339be; font-size: 11px; font-weight: 800; }
+.notificationActions svg { width: 13px; height: 13px; }
 .note { display: flex; align-items: start; justify-content: center; gap: 7px; margin: 25px 8px 0; color: #71809b; font-size: 11px; line-height: 1.5; text-align: center; }
 .note svg { flex: 0 0 15px; width: 15px; height: 15px; margin-top: 1px; color: #6d84b7; }
 @media (max-width: 900px) {

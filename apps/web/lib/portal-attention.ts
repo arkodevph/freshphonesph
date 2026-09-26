@@ -26,9 +26,9 @@ export function portalAttention(
     items.push({
       key: "support-waiting",
       title: waiting.length === 1 ? "Support request needs your attention" : `${waiting.length} support requests need your attention`,
-      detail: "Customer Service is waiting for details. Review the request and contact them in Messenger.",
+      detail: "Customer Service is waiting for details. Open the request and reply in the portal.",
       href: `/portal/support#case-${waiting[0].id}`,
-      action: "View support request",
+      action: "Reply to request",
     });
   }
 

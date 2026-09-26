@@ -76,6 +76,8 @@ model User {
   verifiedPayments Payment[] @relation("PaymentVerifier")
   uploadedFiles StoredFile[]
   assignedCases SupportCase[] @relation("CaseAssignee")
+  supportMessages SupportMessage[]
+  releaseUpdates ReleaseUpdate[]
   notifications Notification[]
   reviewedDocuments CustomerDocument[] @relation("DocumentReviewer")
   createdAt DateTime @default(now())
@@ -132,6 +134,7 @@ model Client {
   schedule ScheduleItem[]
   payments Payment[]
   supportCases SupportCase[]
+  releaseUpdates ReleaseUpdate[]
   documents CustomerDocument[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -164,12 +167,35 @@ model SupportCase {
   resolution String @default("")
   assignedStaffId String? @db.Uuid
   assignedStaff User? @relation("CaseAssignee", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  messages SupportMessage[]
   closedAt DateTime?
   version Int @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([clientId, createdAt])
   @@index([status, createdAt])
+}
+model SupportMessage {
+  id String @id @default(uuid()) @db.Uuid
+  caseId String @db.Uuid
+  supportCase SupportCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  authorId String @db.Uuid
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body String @db.VarChar(5000)
+  createdAt DateTime @default(now())
+  @@index([caseId, createdAt, id])
+}
+model ReleaseUpdate {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  actorId String @db.Uuid
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  status ReleaseStatus
+  note String @default("") @db.VarChar(1000)
+  collectionDate DateTime? @db.Date
+  createdAt DateTime @default(now())
+  @@index([clientId, createdAt, id])
 }
 model Notification {
   id String @id @default(uuid()) @db.Uuid
@@ -178,6 +204,7 @@ model Notification {
   kind String @db.VarChar(50)
   title String @db.VarChar(120)
   message String @db.VarChar(500)
+  targetPath String? @db.VarChar(300)
   readAt DateTime?
   emailStatus String @default("PENDING") @db.VarChar(20)
   emailAttempts Int @default(0)

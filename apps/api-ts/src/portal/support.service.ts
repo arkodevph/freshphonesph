@@ -5,7 +5,11 @@ import { allowed } from '../auth/access';
 import { Prisma, type SupportStatus } from '../generated/prisma/client';
 import { notifyCustomer } from './notifications.service';
 
-const include = { client: { select: { name: true } }, assignedStaff: { select: { name: true } } } as const;
+const include = {
+  client: { select: { name: true } }, assignedStaff: { select: { name: true } },
+  messages: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1,
+    select: { createdAt: true, author: { select: { role: true } } } },
+} satisfies Prisma.SupportCaseInclude;
 type CaseRow = Prisma.SupportCaseGetPayload<{ include: typeof include }>;
 const json = (value: unknown): Prisma.InputJsonValue => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 const view = (row: CaseRow) => ({
@@ -16,6 +20,8 @@ const view = (row: CaseRow) => ({
   date_received: row.createdAt.toISOString(), closed_date: row.closedAt?.toISOString() ?? null,
   turnaround_hours: row.closedAt ? Math.round((row.closedAt.getTime() - row.createdAt.getTime()) / 360000) / 10 : null,
   version: row.version,
+  last_message: row.messages[0] ? { by_customer: row.messages[0].author.role === 'CUSTOMER',
+    created_at: row.messages[0].createdAt.toISOString() } : null,
 });
 
 @Injectable()
@@ -32,6 +38,55 @@ export class SupportService {
     const clientId = this.customer(user);
     return (await this.db.supportCase.findMany({ where: { clientId }, include,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 100 })).map(view);
+  }
+
+  async detail(user: User, id: string) {
+    const clientId = user.role === 'CUSTOMER' ? this.customer(user) : null;
+    if (!clientId && !allowed(user, 'SUPPORT_MANAGE')) throw new ForbiddenException('Support access required.');
+    const row = await this.db.supportCase.findFirst({
+      where: { id, ...(clientId ? { clientId } : {}) },
+      include: { client: { select: { name: true } }, assignedStaff: { select: { name: true } },
+        messages: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          include: { author: { select: { role: true } } } } },
+    });
+    if (!row) throw new NotFoundException('Case not found.');
+    return { ...view(row),
+      last_message: row.messages.length ? { by_customer: row.messages.at(-1)!.author.role === 'CUSTOMER',
+        created_at: row.messages.at(-1)!.createdAt.toISOString() } : null,
+      messages: row.messages.map((message) => ({ id: message.id, body: message.body,
+        author_type: message.author.role === 'CUSTOMER' ? 'customer' : 'staff',
+        created_at: message.createdAt.toISOString() })),
+    };
+  }
+
+  async reply(user: User, id: string, input: { body: string; needsReply?: boolean }) {
+    const clientId = user.role === 'CUSTOMER' ? this.customer(user) : null;
+    if (!clientId && !allowed(user, 'SUPPORT_MANAGE')) throw new ForbiddenException('Support access required.');
+    return this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+      const current = await tx.user.findUnique({ where: { id: user.id } });
+      if (!current?.active || (clientId
+        ? current.role !== 'CUSTOMER' || current.clientId !== clientId
+        : !allowed(current, 'SUPPORT_MANAGE')))
+        throw new ForbiddenException('Your access has changed.');
+      const before = await tx.supportCase.findFirst({ where: { id, ...(clientId ? { clientId } : {}) }, include });
+      if (!before) throw new NotFoundException('Case not found.');
+      if (before.status === 'CLOSED' || before.status === 'RESOLVED')
+        throw new ConflictException('This case is finished. Create a follow-up case.');
+      const status = clientId
+        ? before.status === 'WAITING_FOR_CLIENT' ? 'IN_PROGRESS' : before.status
+        : input.needsReply ? 'WAITING_FOR_CLIENT' : before.status === 'WAITING_FOR_CLIENT' ? 'IN_PROGRESS' : before.status;
+      const message = await tx.supportMessage.create({ data: { caseId: id, authorId: user.id, body: input.body } });
+      await tx.supportCase.update({ where: { id }, data: { status, version: { increment: 1 } } });
+      await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.replied', entity: 'support', recordId: id,
+        after: json({ messageId: message.id, authorType: clientId ? 'customer' : 'staff', status }) } });
+      await tx.changeEvent.create({ data: { entity: 'support', recordId: id } });
+      if (!clientId) await notifyCustomer(tx, before.clientId, 'support', 'Customer Service replied',
+        input.needsReply ? `Customer Service needs your reply on your ${before.category} request.` : `Customer Service replied to your ${before.category} request.`,
+        `/portal/support#case-${id}`);
+      return { id: message.id, body: message.body, author_type: clientId ? 'customer' : 'staff',
+        created_at: message.createdAt.toISOString(), status: status.toLowerCase() };
+    });
   }
 
   async create(user: User, input: { category: string; description: string }) {
@@ -54,7 +109,7 @@ export class SupportService {
       throw new BadRequestException('Invalid case status.');
     const where: Prisma.SupportCaseWhereInput = status ? { status: status as SupportStatus } : {};
     const [rows, total] = await this.db.$transaction([
-      this.db.supportCase.findMany({ where, include, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20 }),
+      this.db.supportCase.findMany({ where, include, orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20 }),
       this.db.supportCase.count({ where }),
     ]);
     return { count: total, next: page * 20 < total ? String(page + 1) : null, results: rows.map(view), page };
@@ -87,7 +142,7 @@ export class SupportService {
       await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.updated', entity: 'support', recordId: id, before: json(view(before)), after: json(view(row)) } });
       await tx.changeEvent.create({ data: { entity: 'support', recordId: id } });
       if (before.status !== row.status || before.resolution !== row.resolution)
-        await notifyCustomer(tx, row.clientId, 'support', 'Support case updated', `Your ${row.category} concern is now ${row.status.toLowerCase().replaceAll('_', ' ')}.`);
+        await notifyCustomer(tx, row.clientId, 'support', 'Support case updated', `Your ${row.category} concern is now ${row.status.toLowerCase().replaceAll('_', ' ')}.`, `/portal/support#case-${id}`);
       return view(row);
     });
   }
