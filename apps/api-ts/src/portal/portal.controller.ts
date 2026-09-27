@@ -53,11 +53,12 @@ export class PortalController {
     return this.support.reply(user, id, body);
   }
   @Get('support/cases') @Requires('SUPPORT_MANAGE') cases(
-    @CurrentUser() user: User, @Query('status') status?: string, @Query('page') rawPage?: string,
+    @CurrentUser() user: User, @Query('status') status?: string, @Query('page') rawPage?: string, @Query('case') caseId?: string,
   ) {
     const page = rawPage === undefined ? 1 : Number(rawPage);
     if (!Number.isInteger(page) || page < 1 || page > 10000) throw new BadRequestException('Invalid page number.');
-    return this.support.list(user, status?.toUpperCase(), page);
+    if (caseId && !z.string().uuid().safeParse(caseId).success) throw new BadRequestException('Invalid case ID.');
+    return this.support.list(user, status?.toUpperCase(), page, caseId);
   }
   @Get('support/cases/:id') @Requires('SUPPORT_MANAGE') caseDetail(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
     return this.support.detail(user, id);

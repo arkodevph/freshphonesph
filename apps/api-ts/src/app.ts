@@ -25,6 +25,8 @@ import { NotificationsService } from './portal/notifications.service';
 import { EmailDeliveryService } from './portal/email-delivery.service';
 import { NotificationSettingsService } from './portal/notification-settings.service';
 import { DocumentsService } from './portal/documents.service';
+import { CustomerWorkController } from './portal/customer-work.controller';
+import { CustomerWorkService } from './portal/customer-work.service';
 
 @Controller('health')
 class HealthController {
@@ -45,7 +47,7 @@ export async function createApp(config: Config = readConfig()) {
   const app = await NestFactory.create(
     {
       module: AppModule,
-      controllers: [HealthController, AuthController, RecordsController, FinanceController, ReportsController, RealtimeController, PortalController],
+      controllers: [HealthController, AuthController, RecordsController, FinanceController, ReportsController, RealtimeController, PortalController, CustomerWorkController],
       providers: [
         { provide: CONFIG, useValue: config },
         Database,
@@ -60,6 +62,7 @@ export async function createApp(config: Config = readConfig()) {
         NotificationSettingsService,
         EmailDeliveryService,
         DocumentsService,
+        CustomerWorkService,
         { provide: APP_GUARD, useClass: AccessGuard },
       ],
     },

@@ -3,5 +3,5 @@ export const API_URL = (process.env.NEXT_PUBLIC_API_URL ??
   (TYPESCRIPT_API ? "http://localhost:4100" : "http://localhost:8000")).replace(/\/$/, "");
 
 export function availableRoute(path: string) {
-  return !TYPESCRIPT_API || ["/system", "/system/records", "/system/clients", "/system/payments", "/system/support", "/system/team", "/system/notification-settings"].includes(path);
+  return !TYPESCRIPT_API || ["/system", "/system/records", "/system/clients", "/system/payments", "/system/support", "/system/customer-work", "/system/team", "/system/notification-settings"].includes(path);
 }

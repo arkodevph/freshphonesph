@@ -156,6 +156,7 @@ model CustomerDocument {
   version Int @default(1)
   createdAt DateTime @default(now())
   @@index([clientId, requirementKey, createdAt])
+  @@index([status, createdAt, id])
 }
 model SupportCase {
   id String @id @default(uuid()) @db.Uuid
@@ -174,6 +175,7 @@ model SupportCase {
   updatedAt DateTime @updatedAt
   @@index([clientId, createdAt])
   @@index([status, createdAt])
+  @@index([status, updatedAt, id])
 }
 model SupportMessage {
   id String @id @default(uuid()) @db.Uuid

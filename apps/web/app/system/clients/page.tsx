@@ -27,6 +27,7 @@ export default function ClientsPage() {
   const canRead = can(me, "CLIENT_READ", "CLIENT_MANAGE");
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
+  const [focusedClient, setFocusedClient] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(false);
   const requestVersion = useRef(0);
   const [clients, setClients] = useState<ClientRecord[]>([]);
@@ -50,7 +51,7 @@ export default function ClientsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [c, b] = await Promise.all([listClients(TYPESCRIPT_API ? { page: String(page), q: query } : {}), listBatchChoices()]);
+      const [c, b] = await Promise.all([listClients(TYPESCRIPT_API ? { page: String(page), q: query, ...(focusedClient ? { id: focusedClient } : {}) } : {}), listBatchChoices()]);
       if (version !== requestVersion.current) return;
       setClients(c.results);
       setHasNext(Boolean(c.next));
@@ -60,7 +61,7 @@ export default function ClientsPage() {
     } finally {
       if (version === requestVersion.current) setLoading(false);
     }
-  }, [page, query]);
+  }, [page, query, focusedClient]);
   useLiveRecords(() => {
     void load();
     if (schedule) void getSchedule(schedule.id).then((items) =>
@@ -71,6 +72,16 @@ export default function ClientsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!TYPESCRIPT_API) return;
+    const params = new URLSearchParams(window.location.search);
+    const client = params.get("client");
+    if (client && /^[0-9a-f-]{36}$/i.test(client)) {
+      setFocusedClient(client);
+      if (params.get("documents") === client) setDocumentClient(client);
+    }
+  }, []);
 
   function flash(m: string) {
     setNotice(m);
@@ -192,8 +203,10 @@ export default function ClientsPage() {
       </form>}
       {TYPESCRIPT_API && <label className="mb-4 flex flex-col gap-1 text-sm text-blue-ink">
         Search clients
-        <input className={inputCls} value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Name, email or batch number" />
+        <input className={inputCls} value={query} onChange={(e) => { setFocusedClient(null); setQuery(e.target.value); setPage(1); }} placeholder="Name, email or batch number" />
       </label>}
+
+      {focusedClient && <div className="mb-4 flex items-center gap-3 rounded-xl bg-violet-100 px-4 py-2 text-sm text-violet-700">Viewing a client from the work queue <button type="button" onClick={() => { setFocusedClient(null); setDocumentClient(null); window.history.replaceState(null, "", "/system/clients"); }} className="font-700 underline">Show all clients</button></div>}
 
       <div className="glass overflow-x-auto rounded-3xl p-5">
         <table className="w-full min-w-[800px] text-left text-sm">

@@ -159,6 +159,7 @@ export const listQuerySchema = z.object({
   status: z.string().max(30).optional(),
   batchId: z.string().uuid().optional(),
 });
+export const clientListQuerySchema = listQuerySchema.extend({ id: z.string().uuid().optional() });
 export const accountListQuerySchema = z.object({
   q: z.string().max(100).default(''),
   page: z.coerce.number().int().min(1).max(100000).default(1),
@@ -190,6 +191,7 @@ export const paymentCorrectionSchema = z.object({
   version: z.number().int().positive(),
 }).strict();
 export const paymentListQuerySchema = listQuerySchema.extend({
+  id: z.string().uuid().optional(),
   clientId: z.string().uuid().optional(),
   dateFrom: z.string().date().optional(),
   dateTo: z.string().date().optional(),

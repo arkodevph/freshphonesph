@@ -999,6 +999,69 @@ test('support replies stay on the linked case and release milestones stay privat
   assert.ok((await (await customer.request('/portal/notifications')).json()).some((item: { targetPath: string }) => item.targetPath?.startsWith('/portal/release#release-update-')));
 });
 
+test('staff work queues show only authorized, actionable records and open exact items', async () => {
+  await db.loginAttempt.deleteMany({ where: { key: tokenHash('login-ip:127.0.0.1') } });
+  const customer = await new Session().login('CUSTOMER');
+  const support = await new Session().login('CS_TEAM');
+  const records = await new Session().login('RECORDS');
+  const finance = new Session();
+  assert.equal((await finance.request('/auth/login', post({ email: emails.get('FINANCE_OFFICER'), password: 'New-integration-password-123!' }))).status, 200);
+  const owner = await new Session().login('OWNER');
+
+  for (const kind of ['support', 'documents', 'payments'])
+    assert.equal((await customer.request(`/operations/customer-work?kind=${kind}`)).status, 403);
+  assert.equal((await support.request('/operations/customer-work?kind=documents')).status, 403);
+  assert.equal((await support.request('/operations/customer-work?kind=payments')).status, 403);
+  assert.equal((await records.request('/operations/customer-work?kind=payments')).status, 403);
+  assert.equal((await finance.request('/operations/customer-work?kind=documents')).status, 403);
+  assert.equal((await finance.request('/operations/customer-work?kind=support')).status, 403);
+  assert.equal((await owner.request('/operations/customer-work?kind=invalid')).status, 400);
+  assert.equal((await owner.request('/operations/customer-work?kind=support&page=0')).status, 400);
+
+  const supportBefore = await (await support.request('/operations/customer-work?kind=support')).json();
+  const created = await customer.request('/portal/support', post({ category: 'Delivery', description: 'Please check the collection arrangements.' }));
+  assert.equal(created.status, 201);
+  const caseId = (await created.json()).id;
+  const supportQueue = await (await support.request('/operations/customer-work?kind=support')).json();
+  assert.equal(supportQueue.count, supportBefore.count + 1);
+  assert.equal(supportQueue.results[0].href, `/system/support?case=${supportQueue.results[0].id}`);
+  const focusedCase = await (await support.request(`/support/cases?case=${caseId}`)).json();
+  assert.deepEqual(focusedCase.results.map((item: { id: string }) => item.id), [caseId]);
+  assert.equal((await support.request('/support/cases?case=bad')).status, 400);
+  assert.equal((await support.request(`/support/cases/${caseId}`, patch({ status: 'WAITING_FOR_CLIENT', version: 1 }))).status, 200);
+  assert.equal((await (await support.request('/operations/customer-work?kind=support')).json()).count, supportBefore.count);
+
+  const documentBefore = await (await records.request('/operations/customer-work?kind=documents')).json();
+  const document = new FormData();
+  document.append('file', new Blob([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 3])], { type: 'image/png' }), 'agreement.png');
+  const submitted = await customer.upload('/portal/documents/SIGNED_AGREEMENT', document);
+  assert.equal(submitted.status, 201);
+  const documentId = (await submitted.json()).id;
+  const documentQueue = await (await records.request('/operations/customer-work?kind=documents')).json();
+  assert.equal(documentQueue.count, documentBefore.count + 1);
+  assert.ok(documentQueue.results[0].href.startsWith('/system/clients?client='));
+  const focusedClient = await (await records.request(`/clients?id=${firstClient}`)).json();
+  assert.deepEqual(focusedClient.items.map((item: { id: string }) => item.id), [firstClient]);
+  assert.equal((await records.request('/clients?id=bad')).status, 400);
+  assert.equal((await records.request(`/documents/${documentId}/review`, post({ status: 'APPROVED', version: 1 }))).status, 200);
+  assert.equal((await (await records.request('/operations/customer-work?kind=documents')).json()).count, documentBefore.count);
+
+  const paymentQueue = await (await finance.request('/operations/customer-work?kind=payments')).json();
+  assert.ok(paymentQueue.count > 0);
+  const paymentId = paymentQueue.results[0].id;
+  const focusedPayment = await (await finance.request(`/payments?id=${paymentId}`)).json();
+  assert.deepEqual(focusedPayment.items.map((item: { id: string }) => item.id), [paymentId]);
+  assert.equal((await finance.request('/payments?id=bad')).status, 400);
+  const newPayment = await db.payment.create({ data: { clientId: firstClient, batchId, amount: '1.00',
+    paymentDate: new Date('2026-09-27'), method: 'GCash', recordedById: accounts.get('RECORDS')! } });
+  assert.equal((await (await finance.request('/operations/customer-work?kind=payments')).json()).count, paymentQueue.count + 1);
+  assert.equal((await finance.request(`/payments/${newPayment.id}/verify`, post({
+    decision: 'NEEDS_CLARIFICATION', notes: 'Need the transaction reference.', version: 1,
+  }))).status, 200);
+  assert.equal((await (await finance.request('/operations/customer-work?kind=payments')).json()).count, paymentQueue.count);
+  assert.equal((await owner.request('/operations/customer-work?kind=payments&page=2')).status, 200);
+});
+
 test('Owner can edit audited customer email templates while other roles cannot', async () => {
   await db.loginAttempt.deleteMany({ where: { key: { in: [
     'login-ip:127.0.0.1',

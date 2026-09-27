@@ -16,6 +16,7 @@ import {
   batchSchema,
   batchUpdateSchema,
   clientSchema,
+  clientListQuerySchema,
   clientUpdateSchema,
   listQuerySchema,
   type AccountInput,
@@ -28,6 +29,7 @@ import { Validate } from '../http';
 import { RecordsService } from './records.service';
 import { z } from 'zod';
 type ListQuery = z.infer<typeof listQuerySchema>;
+type ClientListQuery = z.infer<typeof clientListQuerySchema>;
 type AccountListQuery = z.infer<typeof accountListQuerySchema>;
 const releaseUpdateSchema = z.object({ version: z.number().int().positive(),
   status: z.enum(['NOT_READY', 'PROCESSING', 'READY', 'RELEASED']),
@@ -60,7 +62,7 @@ export class RecordsController {
     return this.records.updateBatch(user, id, body.record, body.version);
   }
   @Get('clients') @Requires('CLIENT_READ') clients(
-    @Query(new Validate(listQuerySchema)) query: ListQuery,
+    @Query(new Validate(clientListQuerySchema)) query: ClientListQuery,
   ) {
     return this.records.clients(query);
   }

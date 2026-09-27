@@ -37,7 +37,7 @@ const accountSelect = {
   version: true,
   createdAt: true,
 } as const;
-type Query = { page: number; q: string; status?: string; batchId?: string };
+type Query = { page: number; q: string; status?: string; batchId?: string; id?: string };
 type AccountQuery = { page: number; q: string; status?: 'ACTIVE' | 'INACTIVE'; role?: User['role'] };
 const pageSize = 20;
 const json = (value: unknown): Prisma.InputJsonValue =>
@@ -168,6 +168,7 @@ export class RecordsService {
   }
   async clients(query: Query) {
     const where: Prisma.ClientWhereInput = {
+      ...(query.id ? { id: query.id } : {}),
       OR: [
         { name: { contains: query.q, mode: 'insensitive' } },
         { email: { contains: query.q, mode: 'insensitive' } },
