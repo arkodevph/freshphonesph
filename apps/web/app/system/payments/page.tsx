@@ -62,6 +62,7 @@ export default function PaymentsPage() {
     : can(me, "PAYMENT_RECORD", "PAYMENT_VERIFY");
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filter, setFilter] = useState("");
+  const [focusedPayment, setFocusedPayment] = useState<string | null>(null);
   const [paymentQuery, setPaymentQuery] = useState("");
   const [appliedPaymentQuery, setAppliedPaymentQuery] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -109,6 +110,7 @@ export default function PaymentsPage() {
     if (!preserveError) setError(null);
     try {
       const data = await listPayments({
+        ...(focusedPayment ? { id: focusedPayment } : {}),
         ...(filter ? { status: filter } : {}),
         ...(appliedPaymentQuery ? { q: appliedPaymentQuery } : {}),
         ...(dateFrom ? { dateFrom } : {}),
@@ -126,11 +128,17 @@ export default function PaymentsPage() {
     } finally {
       if (requestVersion === paymentLoadVersion.current) setLoading(false);
     }
-  }, [appliedPaymentQuery, dateFrom, dateTo, filter, paymentPage]);
+  }, [appliedPaymentQuery, dateFrom, dateTo, filter, focusedPayment, paymentPage]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!TYPESCRIPT_API) return;
+    const payment = new URLSearchParams(window.location.search).get("payment");
+    if (payment && /^[0-9a-f-]{36}$/i.test(payment)) setFocusedPayment(payment);
+  }, []);
 
   useEffect(() => () => {
     if (noticeTimer.current) clearTimeout(noticeTimer.current);
@@ -614,9 +622,11 @@ export default function PaymentsPage() {
 
       {/* List */}
       <div className="glass rounded-3xl p-5">
+        {focusedPayment && <div className="mb-4 flex items-center gap-3 rounded-xl bg-violet-100 px-4 py-2 text-sm text-violet-700">Viewing a payment from the work queue <button type="button" onClick={() => { setFocusedPayment(null); window.history.replaceState(null, "", "/system/payments"); }} className="font-700 underline">Show all payments</button></div>}
         <form className="payment-list-search mb-3 grid gap-2 md:grid-cols-[minmax(15rem,1fr)_9rem_9rem_auto]" onSubmit={(event) => {
           event.preventDefault();
           const term = paymentQuery.trim();
+          if (focusedPayment) { setFocusedPayment(null); window.history.replaceState(null, "", "/system/payments"); }
           resetPaymentPage();
           if (term === appliedPaymentQuery && paymentPage === 1) void load();
           else setAppliedPaymentQuery(term);
@@ -652,7 +662,7 @@ export default function PaymentsPage() {
             {FILTERS.map((f) => (
               <button
                 key={f.value}
-                onClick={() => { setFilter(f.value); resetPaymentPage(); }}
+                onClick={() => { setFocusedPayment(null); window.history.replaceState(null, "", "/system/payments"); setFilter(f.value); resetPaymentPage(); }}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-700 transition-colors ${
                   filter === f.value
                     ? "bg-blue text-white"

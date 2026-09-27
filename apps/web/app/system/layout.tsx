@@ -34,6 +34,7 @@ const NAV = [
   { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
   { icon: ChartBar, label: "Reports", href: null, perms: [] },
   { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
+  { icon: ListChecks, label: "Customer work", href: "/system/customer-work", perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"] },
   { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "CLIENT_MANAGE"] },
   { icon: Bell, label: "Notification settings", href: TYPESCRIPT_API ? "/system/notification-settings" : null, perms: ["ACCOUNT_MANAGE"] },
   { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
@@ -138,6 +139,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
 
   const visibleNav = NAV.filter((item) =>
     (!TYPESCRIPT_API || (item.href && availableRoute(item.href))) &&
+    (item.href !== "/system/customer-work" || can(me, "SUPPORT_MANAGE", "PAYMENT_VERIFY") || me?.role === "owner" || me?.role === "records") &&
     (item.perms.length === 0 || can(me, ...item.perms)));
   const current = visibleNav.find((item) => item.href === pathname)?.label ?? "Workspace";
   const searchResults = visibleNav.filter(

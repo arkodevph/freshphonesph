@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Headset } from "@phosphor-icons/react";
 import {
   listSupportCases,
@@ -28,8 +28,12 @@ export default function SupportPage() {
   const me = useMe();
   const canManage = can(me, "SUPPORT_MANAGE");
   const [cases, setCases] = useState<SupportCase[]>([]);
+  const loadVersion = useRef(0);
   const [drafts, setDrafts] = useState<Record<string, { status: string; resolution: string }>>({});
   const [filter, setFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [count, setCount] = useState(0);
+  const [focusedCase, setFocusedCase] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
@@ -40,24 +44,40 @@ export default function SupportPage() {
   const [sendingReply, setSendingReply] = useState(false);
 
   const load = useCallback(async () => {
+    const version = ++loadVersion.current;
     setLoading(true);
     setError(null);
     try {
-      setCases((await listSupportCases(filter ? { status: filter } : {})).results);
+      const result = await listSupportCases(focusedCase ? { case: focusedCase } : { ...(filter ? { status: filter } : {}), page: String(page) });
+      if (version !== loadVersion.current) return;
+      setCases(result.results);
+      setCount(result.count);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load cases.");
+      if (version === loadVersion.current) setError(e instanceof Error ? e.message : "Failed to load cases.");
     } finally {
-      setLoading(false);
+      if (version === loadVersion.current) setLoading(false);
     }
-  }, [filter]);
+  }, [filter, focusedCase, page]);
 
   useEffect(() => {
     load();
   }, [load]);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("case");
+    if (id && /^[0-9a-f-]{36}$/i.test(id)) setFocusedCase(id);
+  }, []);
+  useEffect(() => {
+    if (!focusedCase || !cases.some((item) => String(item.id) === focusedCase) || activeCaseId === focusedCase) return;
+    setActiveCaseId(focusedCase);
+    setCaseLoading(true);
+    void getSupportCaseDetail(focusedCase, true).then(setCaseDetail)
+      .catch((caught) => setError(caught instanceof Error ? caught.message : "Could not load conversation."))
+      .finally(() => setCaseLoading(false));
+  }, [focusedCase, cases, activeCaseId]);
   useLiveRecords(() => { void load(); if (activeCaseId) void getSupportCaseDetail(activeCaseId, true).then(setCaseDetail).catch(() => {}); }, canManage);
 
   async function openCase(id: string) {
-    if (activeCaseId === id) { setActiveCaseId(null); setCaseDetail(null); return; }
+    if (activeCaseId === id) { setActiveCaseId(null); setCaseDetail(null); if (focusedCase === id) { setFocusedCase(null); window.history.replaceState(null, "", "/system/support"); } return; }
     setActiveCaseId(id); setCaseDetail(null); setReplyText(""); setNeedsReply(false); setCaseLoading(true); setError(null);
     try { setCaseDetail(await getSupportCaseDetail(id, true)); }
     catch (caught) { setError(caught instanceof Error ? caught.message : "Could not load conversation."); }
@@ -126,10 +146,11 @@ export default function SupportPage() {
       )}
 
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        {focusedCase && <button type="button" onClick={() => { setFocusedCase(null); setActiveCaseId(null); setCaseDetail(null); window.history.replaceState(null, "", "/system/support"); }} className="rounded-full bg-violet-100 px-3.5 py-1.5 text-sm font-700 text-violet-700">Show all cases</button>}
         {FILTERS.map(([v, l]) => (
           <button
             key={v}
-            onClick={() => setFilter(v)}
+            onClick={() => { setFocusedCase(null); setActiveCaseId(null); setFilter(v); setPage(1); if (focusedCase) window.history.replaceState(null, "", "/system/support"); }}
             className={`rounded-full px-3.5 py-1.5 text-sm font-700 transition-colors ${
               filter === v ? "bg-blue text-white" : "bg-white/60 text-ink-soft hover:bg-white"
             }`}
@@ -138,6 +159,7 @@ export default function SupportPage() {
           </button>
         ))}
       </div>
+      {!focusedCase && count > 20 && <nav className="mt-3 flex items-center justify-between text-xs text-ink-soft" aria-label="Support case pages"><button type="button" disabled={page === 1 || loading} onClick={() => setPage((current) => current - 1)} className="rounded-lg bg-white px-3 py-1.5 font-700 text-blue-ink disabled:opacity-40">Previous</button><span>Page {page} of {Math.ceil(count / 20)}</span><button type="button" disabled={page * 20 >= count || loading} onClick={() => setPage((current) => current + 1)} className="rounded-lg bg-white px-3 py-1.5 font-700 text-blue-ink disabled:opacity-40">Next</button></nav>}
 
       <div className="glass overflow-x-auto rounded-3xl p-5">
         <table className="w-full min-w-[900px] text-left text-sm">

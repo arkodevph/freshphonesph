@@ -8,6 +8,7 @@ Prepared 2026-09-26. The code and local test evidence below are ready for review
 - API integration suite: customer record isolation, Finance-only verification, schedule allocation, private document review/download, support and notifications, statement/confirmation, reset, and local email delivery.
 - Web and API production builds: pass.
 - Customer journey follow-up: support reply ownership and privacy, pending payment visibility, release milestones, reminder wording and record links pass API integration tests; mobile screens and a downloaded account PDF have been checked locally.
+- Staff follow-up queue: role-scoped support, Records document review, and Finance verification lists show oldest waiting items, counts, and links to the exact records. API integration verifies access and that reviewed items leave the queue. The work queue renders at desktop and 390 px mobile widths.
 - Private S3-compatible storage: upload/read/delete verified against local MinIO; migration dry run and copy verified 14/14 local fixture files by SHA-256. Local originals remain.
 
 ## Customer walkthrough
@@ -25,6 +26,7 @@ Use synthetic records and two separate customer accounts. Repeat at a narrow mob
 | Notifications and email | In-app and email updates link to the exact payment, release milestone, support case, document or installment. Reminders acknowledge a staff-recorded payment awaiting Finance review. No unrelated customer receives them. | Pending |
 | Reminders | If approved offsets are configured, due reminders are sent once per configured offset and omit fully paid installments. | Pending |
 | Navigation and accessibility | Pages work with keyboard, readable focus, mobile navigation, zoom and reduced motion. | Pending |
+| Staff follow-up | Customer Service, Records, and Finance see only their permitted queues. Links open the exact case, document, or payment; actioning it removes it from the queue. Check the oldest items with a realistic backlog. | Pending |
 
 ## Production setup
 

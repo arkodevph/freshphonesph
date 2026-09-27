@@ -103,11 +103,14 @@ export class SupportService {
     });
   }
 
-  async list(user: User, status?: string, page = 1) {
+  async list(user: User, status?: string, page = 1, caseId?: string) {
     if (!allowed(user, 'SUPPORT_MANAGE')) throw new ForbiddenException('Support access required.');
     if (status && !['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CLIENT', 'RESOLVED', 'CLOSED'].includes(status))
       throw new BadRequestException('Invalid case status.');
-    const where: Prisma.SupportCaseWhereInput = status ? { status: status as SupportStatus } : {};
+    const where: Prisma.SupportCaseWhereInput = {
+      ...(status ? { status: status as SupportStatus } : {}),
+      ...(caseId ? { id: caseId } : {}),
+    };
     const [rows, total] = await this.db.$transaction([
       this.db.supportCase.findMany({ where, include, orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20 }),
       this.db.supportCase.count({ where }),

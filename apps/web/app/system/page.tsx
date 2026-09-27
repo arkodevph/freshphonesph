@@ -11,9 +11,10 @@ import {
   Stack,
   Users,
 } from "@phosphor-icons/react";
-import { useMe } from "@/lib/useMe";
+import { useMe, can } from "@/lib/useMe";
 import DashboardCards from "./DashboardCards";
 import PaymentsCta from "./PaymentsCta";
+import CustomerWorkQueues from "./CustomerWorkQueues";
 import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
 
 const SHORTCUTS = [
@@ -25,6 +26,7 @@ const SHORTCUTS = [
 
 export default function DashboardPage() {
   const me = useMe();
+  const hasCustomerWork = TYPESCRIPT_API && (can(me, "SUPPORT_MANAGE", "PAYMENT_VERIFY") || me?.role === "owner" || me?.role === "records");
   const displayName = me?.full_name?.split(" ")[0] ?? "there";
   const date = new Intl.DateTimeFormat("en-PH", {
     weekday: "long",
@@ -85,6 +87,11 @@ export default function DashboardPage() {
       </div>
 
       <DashboardCards />
+
+      {hasCustomerWork && <section className="mb-6" aria-label="Customer work waiting for staff">
+        <div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-xs font-700 uppercase tracking-widest text-violet-700">Customer follow-up</p><h3 className="font-display text-lg font-700 text-blue-ink">Waiting for your team</h3></div><Link href="/system/customer-work" className="text-xs font-700 text-violet-700 hover:underline">Open work queue</Link></div>
+        <CustomerWorkQueues compact />
+      </section>}
 
       <div className="system-dashboard-grid">
         <section className="system-panel system-shortcuts-panel">

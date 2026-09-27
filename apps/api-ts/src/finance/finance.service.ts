@@ -28,6 +28,7 @@ const paymentInclude = {
 type Query = {
   page: number;
   q: string;
+  id?: string;
   status?: string;
   batchId?: string;
   clientId?: string;
@@ -133,6 +134,7 @@ export class FinanceService {
   async payments(user: User, query: Query) {
     const where: Prisma.PaymentWhereInput = {
       ...this.scope(user),
+      ...(query.id ? { id: query.id } : {}),
       OR: query.q ? [
         { referenceNumber: { contains: query.q, mode: 'insensitive' } },
         { client: { name: { contains: query.q, mode: 'insensitive' } } },
