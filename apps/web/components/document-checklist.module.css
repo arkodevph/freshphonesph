@@ -65,3 +65,53 @@
 :global(html[data-system-theme="dark"] .system-shell) .review label { color: #bdc8df; }
 :global(html[data-system-theme="dark"] .system-shell) .error { background: #4e2834; color: #ffc6d5; }
 :global(html[data-system-theme="dark"] .system-shell) .notice { background: #214637; color: #acf1ca; }
+
+/* Customer document cards inherit the portal workspace palette. */
+:global(.portal-shell) .headingIcon { background: var(--portal-accent-soft); color: var(--portal-accent); }
+:global(.portal-shell) .heading p { color: var(--portal-accent); }
+:global(.portal-shell) .heading h2, :global(.portal-shell) .itemHeading h3, :global(.portal-shell) .preview strong { color: var(--portal-text); }
+:global(.portal-shell) .helper, :global(.portal-shell) .empty, :global(.portal-shell) .itemHeading p,
+:global(.portal-shell) .fileLine, :global(.portal-shell) .history, :global(.portal-shell) .uploadForm input { color: var(--portal-muted); }
+:global(.portal-shell) .item, :global(.portal-shell) .preview { border-color: var(--portal-border); background: var(--portal-surface-alt); }
+:global(.portal-shell) .preview { background: var(--portal-surface); }
+:global(.portal-shell) .fileLine button, :global(.portal-shell) .history button { background: var(--portal-accent-soft); color: var(--portal-accent); }
+:global(.portal-shell) .uploadForm button { background: var(--portal-accent); }
+:global(.portal-shell) .review, :global(.portal-shell) .history li { border-color: var(--portal-border); }
+:global(.portal-shell) .review label { color: var(--portal-muted); }
+:global(.portal-shell) .review input { border-color: var(--portal-border); background: var(--portal-surface); color: var(--portal-text); }
+:global(html[data-system-theme="dark"] .portal-shell) .MISSING { background: #303138; color: #d6d7dd; }
+:global(html[data-system-theme="dark"] .portal-shell) .SUBMITTED { background: #292d40; color: #aebdff; }
+:global(html[data-system-theme="dark"] .portal-shell) .APPROVED { background: #18372d; color: #72ddb1; }
+:global(html[data-system-theme="dark"] .portal-shell) .NEEDS_CLARIFICATION,
+:global(html[data-system-theme="dark"] .portal-shell) .clarification { background: #3a301c; color: #f0c66c; }
+:global(html[data-system-theme="dark"] .portal-shell) .error { background: #3e242a; color: #ff9aaa; }
+:global(html[data-system-theme="dark"] .portal-shell) .notice { background: #18372d; color: #72ddb1; }
+
+:global(.portal-shell) .heading p { font-size: 11px; line-height: 1.4; }
+:global(.portal-shell) .helper { max-width: 900px; }
+:global(.portal-shell) .heading h2 { font-size: 21px; line-height: 1.3; }
+:global(.portal-shell) .helper, :global(.portal-shell) .empty,
+:global(.portal-shell) .itemHeading p, :global(.portal-shell) .clarification,
+:global(.portal-shell) .fileLine, :global(.portal-shell) .history { font-size: 14px; line-height: 1.55; }
+:global(.portal-shell) .itemHeading h3 { font-size: 16px; line-height: 1.4; }
+:global(.portal-shell) .status, :global(.portal-shell) .preview strong,
+:global(.portal-shell) .review label { font-size: 12px; line-height: 1.4; }
+:global(.portal-shell) .fileLine button, :global(.portal-shell) .history button,
+:global(.portal-shell) .uploadForm button, :global(.portal-shell) .review button,
+:global(.portal-shell) .uploadForm input { font-size: 13px; line-height: 1.4; }
+:global(.portal-shell) .uploadForm button, :global(.portal-shell) .review button { min-height: 44px; }
+:global(.portal-shell) .review input { font-size: 14px; line-height: 1.5; }
+
+.skeletonSrOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+.documentSkeleton > div { display: grid; gap: 12px; }
+.documentSkeletonItem { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 14px; padding: 16px; border: 1px solid var(--portal-border, #e4eaf6); border-radius: 16px; background: var(--portal-surface-alt, #fbfcff); }
+.documentSkeletonItem > div { display: grid; flex: 1 1 200px; gap: 9px; }
+.documentSkeletonItem > .documentSkeletonBar:last-child { flex-basis: 100%; }
+.documentSkeletonBar { display: block; max-width: 100%; flex: 0 0 auto; border-radius: 8px; background: linear-gradient(100deg, #e7e9ee 25%, #f5f6f8 45%, #e7e9ee 65%); background-size: 220% 100%; animation: documentSkeletonPulse 1.7s linear infinite; }
+@media (min-width: 1200px) {
+  :global(.portal-shell) .list,
+  :global(.portal-shell) .documentSkeleton > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+:global(html[data-system-theme="dark"]) .documentSkeletonBar { background-image: linear-gradient(100deg, #34363d 25%, #44464f 45%, #34363d 65%); }
+@keyframes documentSkeletonPulse { to { background-position-x: -220%; } }
+@media (prefers-reduced-motion: reduce) { .documentSkeletonBar { animation: none; background: #e7e9ee; } :global(html[data-system-theme="dark"]) .documentSkeletonBar { background: #34363d; } }

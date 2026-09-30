@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import {
   paymentCorrectionSchema,
   paymentDecisionSchema,
+  paymentDuplicateQuerySchema,
   paymentListQuerySchema,
   paymentSchema,
   type PaymentInput,
@@ -58,6 +59,13 @@ export class FinanceController {
     @Query(new Validate(paymentListQuerySchema)) query: z.infer<typeof paymentListQuerySchema>,
   ) {
     return this.finance.payments(user, query);
+  }
+
+  @Get('payments/duplicates') @Requires('PAYMENT_RECORD') duplicateMatches(
+    @CurrentUser() user: User,
+    @Query(new Validate(paymentDuplicateQuerySchema)) query: z.infer<typeof paymentDuplicateQuerySchema>,
+  ) {
+    return this.finance.duplicateMatches(user, query.method, query.referenceNumber, query.excludeId);
   }
 
   @Get('portal/payments/review') pendingForCustomer(@CurrentUser() user: User) {

@@ -1,6 +1,21 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+export function hasProductionSender(value: string | undefined) {
+  const sender = value?.trim();
+  const address = sender?.includes('<') ? sender.match(/<([^<>]+)>$/)?.[1] : sender;
+  const domain = address?.split('@')[1]?.toLowerCase();
+  return Boolean(address && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address) &&
+    domain && domain !== 'resend.dev' && !/^example\.(com|net|org|test)$/.test(domain) &&
+    !/\.(test|invalid|local)$/.test(domain));
+}
+
+export function hasResendTestSender(value: string | undefined) {
+  const sender = value?.trim();
+  const address = sender?.includes('<') ? sender.match(/<([^<>]+)>$/)?.[1] : sender;
+  return address?.toLowerCase() === 'onboarding@resend.dev';
+}
+
 export function readConfig() {
   const config = z
     .object({
@@ -27,7 +42,7 @@ export function readConfig() {
   if (
     config.NODE_ENV === 'production' &&
     (!config.WEB_ORIGIN.startsWith('https://') ||
-      !config.RESEND_API_KEY ||
+      !config.RESEND_API_KEY?.trim() ||
       config.PRIVATE_STORAGE_PROVIDER !== 's3' ||
       config.JWT_SECRET.startsWith('replace-'))
   ) {
@@ -35,6 +50,8 @@ export function readConfig() {
       'Production requires HTTPS, a generated JWT secret, Resend email and private S3 storage.',
     );
   }
+  if (config.NODE_ENV === 'production' && !hasProductionSender(process.env.EMAIL_FROM))
+    throw new Error('Production requires an explicit EMAIL_FROM address; verify its sending domain with the email provider.');
   if (config.PRIVATE_STORAGE_PROVIDER === 's3' &&
     (!config.PRIVATE_STORAGE_S3_ENDPOINT || !config.PRIVATE_STORAGE_S3_BUCKET ||
       !config.PRIVATE_STORAGE_S3_ACCESS_KEY || !config.PRIVATE_STORAGE_S3_SECRET_KEY ||

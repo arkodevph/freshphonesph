@@ -1,7 +1,9 @@
-import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CONFIG, type Config } from '../config';
+import { CONFIG, hasProductionSender, hasResendTestSender, type Config } from '../config';
+import { AuthService } from '../auth/auth.service';
 import { Database } from '../database';
 import { allocateVerifiedPayments } from '../records/allocation';
 import { NotificationSettingsService, renderCustomerEmail } from './notification-settings.service';
@@ -16,7 +18,8 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
   private busy = false;
   private reminderDay = '';
   constructor(@Inject(Database) private readonly db: Database, @Inject(CONFIG) private readonly config: Config,
-    @Inject(NotificationSettingsService) private readonly settings: NotificationSettingsService) {}
+    @Inject(NotificationSettingsService) private readonly settings: NotificationSettingsService,
+    @Inject(AuthService) private readonly auth: AuthService) {}
 
   onModuleInit() {
     if (this.config.NODE_ENV === 'test') return;
@@ -102,6 +105,24 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async sendTestReminder(ownerId: string, to: string) {
+    await this.auth.limit(`test-reminder:${ownerId}`, 3);
+    if (!this.config.RESEND_API_KEY?.trim() || !(hasProductionSender(this.config.EMAIL_FROM) ||
+      (this.config.NODE_ENV === 'development' && hasResendTestSender(this.config.EMAIL_FROM))))
+      throw new ServiceUnavailableException('Real email is not configured. Add RESEND_API_KEY and an EMAIL_FROM sender to the API environment, then restart it.');
+    const due = new Date(`${philippineDate()}T00:00:00Z`);
+    due.setUTCDate(due.getUTCDate() + 3);
+    const dueDate = due.toISOString().slice(0, 10);
+    const template = await this.settings.template('installment');
+    const rendered = renderCustomerEmail(template, {
+      title: 'TEST · Upcoming installment',
+      message: `This is a test reminder for ${dueDate}. Example remaining amount: PHP 5,000.00. No payment is due from this email. Only Finance-verified payments update your record.`,
+      url: `${this.config.WEB_ORIGIN}/portal/schedule`,
+    });
+    await this.sendViaResend(randomUUID(), to, rendered.subject, rendered.text);
+    return { sent: true };
+  }
+
   private async send(id: string, to: string, kind: string, title: string, message: string, targetPath: string | null) {
     const template = await this.settings.template(kind);
     const { subject, text } = renderCustomerEmail(template, { title, message, url: `${this.config.WEB_ORIGIN}${targetPath ?? address(kind)}` });
@@ -111,9 +132,15 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
       await writeFile(join(directory, `${id}.txt`), `To: ${to}\nSubject: ${subject}\n\n${text}`, { mode: 0o600 });
       return;
     }
+    await this.sendViaResend(id, to, subject, text);
+  }
+
+  private async sendViaResend(id: string, to: string, subject: string, text: string) {
     const response = await fetch('https://api.resend.com/emails', { method: 'POST', signal: AbortSignal.timeout(10_000),
       headers: { Authorization: `Bearer ${this.config.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': `notification/${id}` },
       body: JSON.stringify({ from: this.config.EMAIL_FROM, to: [to], subject, text }) });
-    if (!response.ok) throw new Error('Email provider rejected notification.');
+    if (!response.ok) throw new ServiceUnavailableException(hasResendTestSender(this.config.EMAIL_FROM)
+      ? 'Resend rejected the message. Its test sender can email only the address used to sign up for Resend.'
+      : 'Email provider rejected the message. Check the sender and recipient settings.');
   }
 }

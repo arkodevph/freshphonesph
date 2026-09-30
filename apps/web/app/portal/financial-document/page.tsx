@@ -7,6 +7,7 @@ import { ArrowLeft, DownloadSimple, Printer } from "@phosphor-icons/react";
 import type { Client, ClientBalance, Payment, User } from "@freshphones/contracts";
 import { tsRequest } from "@/lib/ts-api";
 import { downloadAccountPdf } from "@/lib/account-pdf";
+import DocumentSheetSkeleton from "./DocumentSheetSkeleton";
 import styles from "./financial-document.module.css";
 
 type Statement = { title: string; notice: string; generatedAt: string; balance: ClientBalance; verifiedPayments: Pick<Payment, "id" | "amount" | "paymentDate" | "method" | "referenceNumber">[] };
@@ -40,9 +41,11 @@ export default function FinancialDocumentPage() {
   }, [router]);
 
   return <main className={styles.page}>
-    <div className={styles.actions}><Link href="/portal/payments"><ArrowLeft aria-hidden="true" /> Back to payments</Link><button type="button" disabled={!document || !client || downloading} onClick={() => { if (!document || !client) return; setDownloadError(""); setDownloading(true); void downloadAccountPdf(client, document).catch((caught) => setDownloadError(caught instanceof Error ? caught.message : "Could not download PDF.")).finally(() => setDownloading(false)); }}><DownloadSimple aria-hidden="true" /> {downloading ? "Preparing PDF…" : "Download PDF"}</button><button type="button" disabled={!document} onClick={() => window.print()}><Printer aria-hidden="true" /> Print</button></div>
+    <header className={styles.documentHeader}><div className={styles.documentHeading}><p>Fresh Phones PH</p><h1>Account document</h1></div>
+      <div className={styles.actions}><Link href="/portal/payments"><ArrowLeft aria-hidden="true" /> Back to payments</Link><button type="button" disabled={!document || !client || downloading} onClick={() => { if (!document || !client) return; setDownloadError(""); setDownloading(true); void downloadAccountPdf(client, document).catch((caught) => setDownloadError(caught instanceof Error ? caught.message : "Could not download PDF.")).finally(() => setDownloading(false)); }}><DownloadSimple aria-hidden="true" /> {downloading ? "Preparing PDF…" : "Download PDF"}</button><button type="button" disabled={!document} onClick={() => window.print()}><Printer aria-hidden="true" /> Print</button></div>
+    </header>
     {downloadError && <p className={styles.message} role="alert">{downloadError}</p>}
-    {error ? <p className={styles.message} role="alert">{error}</p> : !document || !client ? <p className={styles.message}>Loading your document…</p> :
+    {error ? <p className={styles.message} role="alert">{error}</p> : !document || !client ? <DocumentSheetSkeleton /> :
       <article className={styles.sheet}>
         <header><p className={styles.brand}>Fresh Phones <span>PH</span></p><p>FP Gadget Center</p><h1>{document.title}</h1><p>Generated {new Date(document.generatedAt).toLocaleString("en-PH")}</p></header>
         <dl className={styles.details}><div><dt>Customer</dt><dd>{client.name}</dd></div><div><dt>Batch</dt><dd>{client.batch.code}</dd></div><div><dt>Unit</dt><dd>{client.unitModel || client.batch.model}</dd></div></dl>

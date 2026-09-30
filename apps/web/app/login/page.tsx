@@ -23,7 +23,6 @@ const accessPrinciples = [
   "Only Finance-verified payments affect balances",
   "Sensitive account changes are recorded",
 ];
-
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -31,7 +30,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);

@@ -10,6 +10,7 @@ import { createApp } from '../src/app';
 import { Database } from '../src/database';
 import { AuthService } from '../src/auth/auth.service';
 import { EmailDeliveryService } from '../src/portal/email-delivery.service';
+import { CONFIG, type Config } from '../src/config';
 import { hashPassword, tokenHash } from '../src/auth/password';
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -593,6 +594,9 @@ test('Finance verification alone moves balances and customer-visible history', a
     paymentDate: '2026-09-22',
     method: 'GCash',
     referenceNumber: `GC-${suffix}`,
+    receiptTime: '5:42 PM',
+    receiptName: 'MI•••••E T.',
+    receiptPhone: '+63 9•••••2050',
     notes: 'Claim shared in Messenger',
   };
   assert.equal((await support.request('/payments/receipt-scan', post({ template: 'gcash' }))).status, 403);
@@ -603,6 +607,10 @@ test('Finance verification alone moves balances and customer-visible history', a
   const payment = await recorded.json();
   assert.equal(payment.status, 'PENDING');
   assert.equal(payment.duplicateReference, false);
+  assert.equal(payment.receiptTime, '5:42 PM');
+  assert.equal(payment.receiptName, 'MI•••••E T.');
+  assert.equal(payment.receiptPhone, '+63 9•••••2050');
+  assert.equal((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).receiptPhone, '+63 9•••••2050');
   const pendingForCustomer = await customer.request('/portal/payments/review');
   assert.equal(pendingForCustomer.status, 200);
   assert.ok((await pendingForCustomer.json()).some((item: { id: string; amount: string }) => item.id === payment.id && item.amount === '10.25'));
@@ -662,6 +670,7 @@ test('Finance verification alone moves balances and customer-visible history', a
   assert.equal((await customer.request(`/clients/${secondClient}/balance`)).status, 404);
   const customerPayments = await (await customer.request('/payments')).json();
   assert.deepEqual(customerPayments.items.map((item: { id: string }) => item.id), [payment.id]);
+  assert.equal(customerPayments.items[0].receiptTime, '5:42 PM');
   const statement = await (await customer.request(`/clients/${firstClient}/statement`)).json();
   assert.equal(statement.officialTaxInvoice, false);
   assert.match(statement.notice, /not an official BIR sales invoice/i);
@@ -681,7 +690,9 @@ test('Finance verification alone moves balances and customer-visible history', a
     record: { ...input, amount: '11.00', referenceNumber: `GC-CORRECTED-${suffix}` },
   }));
   assert.equal(corrected.status, 200);
-  assert.equal((await corrected.json()).status, 'PENDING');
+  const correctedPayment = await corrected.json();
+  assert.equal(correctedPayment.status, 'PENDING');
+  assert.equal(correctedPayment.receiptName, 'MI•••••E T.');
   assert.equal((await records.request(`/payments/${payment.id}`, patch({
     version: payment.version + 1, record: input,
   }))).status, 409);
@@ -710,6 +721,35 @@ test('Finance verification alone moves balances and customer-visible history', a
   assert.match(csv, /"VERIFIED"/);
   assert.equal(csv.includes('First customer'), false);
   assert.equal(csv.includes(`GC-${suffix}`), false);
+});
+
+test('payment duplicate precheck finds matching references across clients', async () => {
+  const records = await new Session().login('RECORDS');
+  const support = await new Session().login('CS_TEAM');
+  const reference = `CHECK ${suffix}`;
+  const query = `/payments/duplicates?${new URLSearchParams({ method: 'gcash', referenceNumber: `CHECK-${suffix}` })}`;
+  assert.equal((await support.request(query)).status, 403);
+  assert.deepEqual(await (await records.request(query)).json(), []);
+  const created: string[] = [];
+  try {
+    for (const clientId of [firstClient, secondClient]) {
+      const response = await records.request('/payments', post({
+        clientId, amount: '2.00', paymentDate: '2026-09-24', method: 'GCash', referenceNumber: reference,
+      }));
+      assert.equal(response.status, 201);
+      created.push((await response.json()).id);
+    }
+    const matches = await (await records.request(query)).json() as Array<{ id: string; clientId: string; referenceNumber: string }>;
+    assert.equal(matches.length, 2);
+    assert.deepEqual(new Set(matches.map((match) => match.clientId)), new Set([firstClient, secondClient]));
+    assert.ok(matches.every((match) => match.referenceNumber === reference));
+    const otherMethod = query.replace('method=gcash', 'method=maya');
+    assert.deepEqual(await (await records.request(otherMethod)).json(), []);
+    const excluding = await (await records.request(`${query}&excludeId=${created[0]}`)).json() as Array<{ id: string }>;
+    assert.deepEqual(excluding.map((match) => match.id), [created[1]]);
+  } finally {
+    await db.payment.deleteMany({ where: { id: { in: created } } });
+  }
 });
 
 test('payment search and stable pagination find claims in a 1,000-row queue', async () => {
@@ -829,12 +869,16 @@ test('password reset is single-use and revokes existing sessions without exposin
   assert.deepEqual(await known.json(), await unknown.json());
   const files = await readdir('.local/mail');
   let token = '';
+  let resetMail = '';
   for (const file of files) {
     const text = await readFile(`.local/mail/${file}`, 'utf8');
-    if (text.startsWith(`To: ${emails.get('FINANCE_OFFICER')}\n`))
+    if (text.startsWith(`To: ${emails.get('FINANCE_OFFICER')}\n`)) {
       token = text.match(/reset-password#([A-Za-z0-9_-]+)/)?.[1] ?? '';
+      resetMail = text;
+    }
   }
   assert.ok(token);
+  assert.ok(resetMail.includes(`Reset code: ${token}`));
   const stored = await db.passwordReset.findUniqueOrThrow({
     where: { tokenHash: tokenHash(token) },
   });
@@ -853,6 +897,39 @@ test('password reset is single-use and revokes existing sessions without exposin
     (await finance.request('/auth/reset-password', post({ token, password }))).status,
     401,
   );
+});
+
+test('changing a customer password keeps the current session and revokes other sessions', async () => {
+  const userId = accounts.get('CUSTOMER')!;
+  const email = emails.get('CUSTOMER')!;
+  await db.loginAttempt.deleteMany({ where: { key: { in: [tokenHash(`login-email:${email}`), tokenHash('login-ip:127.0.0.1')] } } });
+  const original = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { passwordHash: true } });
+  const current = await new Session().login('CUSTOMER');
+  const other = await new Session().login('CUSTOMER');
+  const newPassword = 'Changed-integration-password-456!';
+  try {
+    assert.equal((await current.request('/auth/forgot-password', post({ email }))).status, 200);
+    let resetCode = '';
+    for (const file of await readdir('.local/mail')) {
+      const text = await readFile(`.local/mail/${file}`, 'utf8');
+      if (text.startsWith(`To: ${email}\n`)) {
+        resetCode = text.match(/portal\/settings#reset-code=([A-Za-z0-9_-]+)/)?.[1] ?? '';
+        assert.ok(text.includes(`Reset code: ${resetCode}`));
+      }
+    }
+    assert.ok(resetCode);
+    assert.equal((await current.request('/auth/change-password', post({ currentPassword: 'wrong', newPassword }))).status, 400);
+    assert.equal((await current.request('/auth/change-password', post({ currentPassword: password, newPassword: password }))).status, 400);
+    assert.equal((await current.request('/auth/change-password', post({ currentPassword: password, newPassword }))).status, 200);
+    assert.equal((await current.request('/auth/me')).status, 200);
+    assert.equal((await other.request('/auth/me')).status, 401);
+    assert.equal((await new Session().request('/auth/login', post({ email: emails.get('CUSTOMER'), password }))).status, 401);
+    assert.equal((await new Session().request('/auth/login', post({ email: emails.get('CUSTOMER'), password: newPassword }))).status, 200);
+    assert.equal((await current.request('/auth/reset-password', post({ token: resetCode, password: 'Another-integration-password-789!' }))).status, 401);
+    assert.ok(await db.auditEntry.findFirst({ where: { actorId: userId, action: 'password.changed', recordId: userId } }));
+  } finally {
+    await db.user.update({ where: { id: userId }, data: { passwordHash: original.passwordHash } });
+  }
 });
 
 test('customer documents stay private through clarification, resubmission and review', async () => {
@@ -958,6 +1035,13 @@ test('support updates and notifications are scoped to the linked customer', asyn
   assert.equal((await db.notification.findUniqueOrThrow({ where: { id: unread.id } })).emailStatus, 'SENT');
   const email = await readFile(join(process.cwd(), '.local/mail', `${unread.id}.txt`), 'utf8');
   assert.match(email, /Fresh Phones PH/);
+  const ownUnread = await db.notification.create({ data: { userId: accounts.get('CUSTOMER')!, kind: 'support', title: 'Another update', message: 'Please review.' } });
+  const otherUnread = await db.notification.create({ data: { userId: (await db.user.findUniqueOrThrow({ where: { email: `${suffix}-other-customer@example.test` } })).id, kind: 'support', title: 'Private update', message: 'For another customer.' } });
+  assert.equal((await staff.request('/portal/notifications/read-all', post({}))).status, 403);
+  assert.equal((await customer.request('/portal/notifications/read-all', post({}))).status, 200);
+  assert.ok((await db.notification.findUniqueOrThrow({ where: { id: ownUnread.id } })).readAt);
+  assert.equal((await db.notification.findUniqueOrThrow({ where: { id: otherUnread.id } })).readAt, null);
+  assert.equal((await (await customer.request('/portal/notifications/read-all', post({}))).json()).updated, 0);
 });
 
 test('support replies stay on the linked case and release milestones stay private', async () => {
@@ -1073,6 +1157,42 @@ test('Owner can edit audited customer email templates while other roles cannot',
   assert.equal((await handler.request('/customer-notification-settings')).status, 403);
   assert.equal((await customer.request('/customer-notification-settings')).status, 403);
   const settings = await (await owner.request('/customer-notification-settings')).json();
+  assert.equal(settings.testEmailConfigured, false);
+  const testAddress = `${suffix}-owner-test@example.test`;
+  assert.equal((await customer.request('/customer-notification-settings/test-reminder', post({ email: testAddress }))).status, 403);
+  assert.equal((await owner.request('/customer-notification-settings/test-reminder', post({ email: 'invalid' }))).status, 400);
+  assert.equal((await owner.request('/customer-notification-settings/test-reminder', post({ email: testAddress }))).status, 503);
+  const configured = app.get<Config>(CONFIG);
+  const originalKey = configured.RESEND_API_KEY;
+  const originalFrom = configured.EMAIL_FROM;
+  const originalEnvironment = configured.NODE_ENV;
+  const originalFetch = globalThis.fetch;
+  let submitted: { to: string[]; subject: string; text: string } | undefined;
+  configured.NODE_ENV = 'development';
+  configured.RESEND_API_KEY = 'test-only';
+  configured.EMAIL_FROM = 'Fresh Phones Test <onboarding@resend.dev>';
+  globalThis.fetch = (input, init) => {
+    if (String(input) === 'https://api.resend.com/emails') {
+      submitted = JSON.parse(String(init?.body));
+      return Promise.resolve(new Response(JSON.stringify({ id: randomUUID() }), { status: 200 }));
+    }
+    return originalFetch(input, init);
+  };
+  try {
+    const ready = await (await owner.request('/customer-notification-settings')).json();
+    assert.equal(ready.testEmailConfigured, true);
+    assert.equal(ready.usingResendTestSender, true);
+    assert.equal((await owner.request('/customer-notification-settings/test-reminder', post({ email: testAddress }))).status, 200);
+  } finally {
+    globalThis.fetch = originalFetch;
+    configured.RESEND_API_KEY = originalKey;
+    configured.EMAIL_FROM = originalFrom;
+    configured.NODE_ENV = originalEnvironment;
+  }
+  assert.deepEqual(submitted?.to, [testAddress]);
+  assert.match(submitted?.subject ?? '', /TEST · Upcoming installment/);
+  assert.match(submitted?.text ?? '', /No payment is due from this email/);
+  assert.match(submitted?.text ?? '', /\/portal\/schedule/);
   const current = settings.templates.find((item: { kind: string }) => item.kind === 'payment');
   const input = { version: current.version, subject: 'Account update: {title}', body: 'Hello,\n\n{message}\n\nOpen {url}' };
   assert.equal((await owner.request('/customer-notification-settings/templates/payment', patch({ ...input, body: 'No placeholders' }))).status, 400);
@@ -1100,6 +1220,12 @@ test('Owner can edit audited customer email templates while other roles cannot',
   assert.equal(reminderNotice.targetPath, '/portal/schedule#installment-1');
   await app.get(EmailDeliveryService).refreshReminders();
   assert.equal(await db.notification.count({ where: { dedupeKey: reminderKey } }), 1);
+  assert.equal((await db.notification.findUniqueOrThrow({ where: { dedupeKey: reminderKey } })).emailStatus, 'SENT');
+  const reminderEmail = await readFile(join(process.cwd(), '.local/mail', `${reminderNotice.id}.txt`), 'utf8');
+  assert.match(reminderEmail, /Upcoming installment/);
+  assert.match(reminderEmail, new RegExp(`due ${due.toISOString().slice(0, 10)}`));
+  assert.match(reminderEmail, /Remaining scheduled amount: PHP 10\.00/);
+  assert.match(reminderEmail, /awaiting Finance review/);
   const enabledSettings = await enabled.json();
   assert.equal((await owner.request('/customer-notification-settings/reminders', patch({ version: enabledSettings.version, reminderDays: '' }))).status, 200);
   const notice = await db.notification.create({ data: { userId: accounts.get('CUSTOMER')!, kind: 'payment', title: 'Payment verified', message: 'Finance checked your record.' } });
@@ -1112,4 +1238,83 @@ test('Owner can edit audited customer email templates while other roles cannot',
   const email = await readFile(join(process.cwd(), '.local/mail', `${notice.id}.txt`), 'utf8');
   assert.match(email, /Account update: Payment verified/);
   assert.match(email, /Finance checked your record/);
+});
+
+test('staff tasks enforce ownership, private evidence, objective lateness and human KPI review', async () => {
+  await db.loginAttempt.deleteMany({ where: { key: { in: [
+    'login-ip:127.0.0.1',
+    ...(['OWNER', 'HR_PAYROLL', 'CORE_HANDLER', 'CS_TEAM', 'CUSTOMER'] as const)
+      .map((role) => `login-email:${emails.get(role)}`),
+  ].map(tokenHash) } } });
+  const owner = await new Session().login('OWNER');
+  const hr = await new Session().login('HR_PAYROLL');
+  const handler = await new Session().login('CORE_HANDLER');
+  const otherStaff = await new Session().login('CS_TEAM');
+  const customer = await new Session().login('CUSTOMER');
+  assert.equal((await customer.request('/tasks')).status, 403);
+  assert.equal((await otherStaff.request('/tasks/assignees')).status, 403);
+  assert.equal((await hr.request('/tasks/assignees')).status, 200);
+
+  const assignment = { title: `Check stock ${suffix}`, instructions: 'Count the units and report the result.',
+    assigneeId: accounts.get('CORE_HANDLER'), priority: 'HIGH', deadline: new Date(Date.now() + 3_600_000).toISOString() };
+  const createdResponse = await owner.request('/tasks', post(assignment));
+  assert.equal(createdResponse.status, 201);
+  const firstTask = await createdResponse.json();
+  assert.equal(firstTask.status, 'TODO');
+  assert.equal((await otherStaff.request(`/tasks/${firstTask.id}`)).status, 404);
+  assert.equal((await customer.request(`/tasks/${firstTask.id}`)).status, 403);
+  assert.equal((await (await handler.request('/tasks')).json()).results.some((task: { id: string }) => task.id === firstTask.id), true);
+  assert.equal((await otherStaff.request(`/tasks/${firstTask.id}/start`, patch({ version: 1 }))).status, 404);
+  const started = await handler.request(`/tasks/${firstTask.id}/start`, patch({ version: 1 }));
+  assert.equal(started.status, 200);
+  assert.equal((await started.json()).version, 2);
+  assert.equal((await handler.request(`/tasks/${firstTask.id}/start`, patch({ version: 1 }))).status, 409);
+  assert.equal((await handler.upload(`/tasks/${firstTask.id}/submit`, (() => {
+    const data = new FormData(); data.set('version', '2'); data.set('report', ''); return data;
+  })())).status, 400);
+  const invalid = new FormData(); invalid.set('version', '2'); invalid.set('report', 'Counted.');
+  invalid.set('attachment', new Blob(['not an image'], { type: 'image/png' }), 'fake.png');
+  assert.equal((await handler.upload(`/tasks/${firstTask.id}/submit`, invalid)).status, 400);
+  const valid = new FormData(); valid.set('version', '2'); valid.set('report', 'Counted 12 units.');
+  valid.set('attachment', new Blob([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 1])], { type: 'image/png' }), 'count.png');
+  const submittedResponse = await handler.upload(`/tasks/${firstTask.id}/submit`, valid);
+  assert.equal(submittedResponse.status, 200);
+  const submitted = await submittedResponse.json();
+  assert.equal(submitted.status, 'SUBMITTED');
+  assert.equal(submitted.lateFlag, false);
+  assert.equal((await handler.upload(`/tasks/${firstTask.id}/submit`, valid)).status, 409);
+  assert.equal((await otherStaff.request(`/tasks/${firstTask.id}/attachment`)).status, 404);
+  assert.equal((await owner.request(`/tasks/${firstTask.id}/attachment`)).status, 200);
+  assert.equal((await handler.request(`/tasks/${firstTask.id}/attachment`)).status, 200);
+  assert.equal((await owner.request(`/tasks/${firstTask.id}/complete`, post({ version: submitted.version }))).status, 200);
+
+  const lateResponse = await owner.request('/tasks', post({ ...assignment, title: `Late stock check ${suffix}` }));
+  assert.equal(lateResponse.status, 201);
+  const lateTask = await lateResponse.json();
+  await db.task.update({ where: { id: lateTask.id }, data: { deadline: new Date(Date.now() - 3_600_000) } });
+  const lateForm = new FormData(); lateForm.set('version', '1'); lateForm.set('report', 'Counted after the deadline.');
+  const lateSubmittedResponse = await handler.upload(`/tasks/${lateTask.id}/submit`, lateForm);
+  assert.equal(lateSubmittedResponse.status, 200);
+  const lateSubmitted = await lateSubmittedResponse.json();
+  assert.equal(lateSubmitted.lateFlag, true);
+  assert.equal((await owner.request(`/tasks/${lateTask.id}/complete`, post({ version: lateSubmitted.version }))).status, 409);
+  assert.equal((await otherStaff.request('/kpi/queue')).status, 403);
+  const queue = await (await hr.request('/kpi/queue')).json();
+  assert.ok(queue.results.some((task: { id: string }) => task.id === lateTask.id));
+  const reviewInput = { taskId: lateTask.id, version: lateSubmitted.version,
+    evaluation: 'Delivery was delayed by the late inventory handover.',
+    recommendation: 'Discuss the handover process with the team.', decision: 'NOTED' };
+  assert.equal((await otherStaff.request('/kpi/reviews', post(reviewInput))).status, 403);
+  const reviewedResponse = await hr.request('/kpi/reviews', post(reviewInput));
+  assert.equal(reviewedResponse.status, 201);
+  const reviewed = await reviewedResponse.json();
+  assert.match(reviewed.factualEvidence, /LATE/);
+  assert.equal((await hr.request('/kpi/reviews', post(reviewInput))).status, 409);
+  const taskAfterReview = await (await owner.request(`/tasks/${lateTask.id}`)).json();
+  assert.equal(taskAfterReview.reviewed, true);
+  assert.equal(taskAfterReview.review.evaluation, reviewInput.evaluation);
+  assert.equal((await owner.request(`/tasks/${lateTask.id}/complete`, post({ version: taskAfterReview.version }))).status, 200);
+  assert.ok(!(await (await hr.request('/kpi/queue')).json()).results.some((task: { id: string }) => task.id === lateTask.id));
+  assert.ok((await (await hr.request('/kpi/reviews')).json()).results.some((item: { taskId: string }) => item.taskId === lateTask.id));
+  assert.equal((await db.auditEntry.count({ where: { recordId: lateTask.id, entity: 'task' } })), 4);
 });

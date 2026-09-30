@@ -30,6 +30,7 @@ const templateSchema = z.object({ version: z.number().int().min(0), subject: z.s
   body: z.string().trim().min(20).max(2500).refine((value) => value.includes('{message}') && value.includes('{url}'), 'Body must include {message} and {url}.') }).strict();
 const reminderSchema = z.object({ version: z.number().int().min(0), reminderDays: z.string().trim().max(100).refine((value) =>
   !value || value.split(',').every((part) => /^\d{1,2}$/.test(part.trim()) && Number(part.trim()) <= 30), 'Use comma-separated whole days from 0 to 30.') }).strict();
+const testReminderSchema = z.object({ email: z.string().trim().email().max(254) }).strict();
 
 @Controller()
 export class PortalController {
@@ -73,6 +74,9 @@ export class PortalController {
   ) { return this.support.update(user, id, body); }
 
   @Get('portal/notifications') notificationsList(@CurrentUser() user: User) { return this.notifications.list(user); }
+  @Post('portal/notifications/read-all') @HttpCode(200) readAllNotifications(@CurrentUser() user: User) {
+    return this.notifications.readAll(user);
+  }
   @Post('portal/notifications/:id/read') @HttpCode(200) readNotification(
     @CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string,
   ) { return this.notifications.read(user, id); }
@@ -90,6 +94,10 @@ export class PortalController {
     const updated = await this.notificationSettings.updateReminders(user, body);
     await this.emailDelivery.refreshReminders();
     return updated;
+  }
+  @Post('customer-notification-settings/test-reminder') @Requires('ACCOUNT_MANAGE') @HttpCode(200)
+  testReminder(@CurrentUser() user: User, @Body(new Validate(testReminderSchema)) body: z.infer<typeof testReminderSchema>) {
+    return this.emailDelivery.sendTestReminder(user.id, body.email);
   }
 
   @Get('portal/documents') myDocuments(@CurrentUser() user: User) { return this.documents.mine(user); }

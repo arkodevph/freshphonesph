@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import type {
   PaymentInput,
+  PaymentDuplicateMatch,
   PaymentStatus,
   Permission,
   User,
@@ -97,6 +98,23 @@ export class FinanceService {
       },
       select: { id: true },
     }));
+  }
+
+  async duplicateMatches(user: User, method: string, referenceNumber: string, excludeId?: string): Promise<PaymentDuplicateMatch[]> {
+    if (!allowed(user, 'PAYMENT_RECORD')) throw new ForbiddenException('You cannot record payments.');
+    const normalized = referenceNumber.replace(/[^a-z0-9]/gi, '').toUpperCase();
+    if (!normalized) return [];
+    return this.db.$queryRaw<PaymentDuplicateMatch[]>`
+      SELECT p.id, p."clientId", c.name AS "clientName", p.amount::text AS amount,
+        p."paymentDate"::text AS "paymentDate", p.method, p."referenceNumber", p.status
+      FROM "Payment" p
+      JOIN "Client" c ON c.id = p."clientId"
+      WHERE lower(p.method) = lower(${method})
+        AND upper(regexp_replace(p."referenceNumber", '[^[:alnum:]]', '', 'g')) = ${normalized}
+        ${excludeId ? Prisma.sql`AND p.id <> ${excludeId}::uuid` : Prisma.empty}
+      ORDER BY p."createdAt" DESC
+      LIMIT 10
+    `;
   }
 
   private async view(tx: Prisma.TransactionClient | Database, payment: PaymentRow) {
@@ -195,6 +213,9 @@ export class FinanceService {
           paymentDate: new Date(input.paymentDate),
           method: input.method,
           referenceNumber: input.referenceNumber || null,
+          receiptTime: input.receiptTime || null,
+          receiptName: input.receiptName || null,
+          receiptPhone: input.receiptPhone || null,
           notes: input.notes || null,
           recordedById: user.id,
         },
@@ -226,6 +247,9 @@ export class FinanceService {
           paymentDate: new Date(input.paymentDate),
           method: input.method,
           referenceNumber: input.referenceNumber || null,
+          receiptTime: input.receiptTime || null,
+          receiptName: input.receiptName || null,
+          receiptPhone: input.receiptPhone || null,
           notes: input.notes || null,
           status: 'PENDING',
           verificationNotes: null,

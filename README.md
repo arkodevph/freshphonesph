@@ -5,6 +5,12 @@ centralizes batches, clients, externally made payment records, Finance verificat
 status, tasks and KPI review, reporting, support, recruitment, agent verification, and
 notifications.
 
+## Canonical local checkout
+
+Use `/home/jaycee/Projects/freshphonesph` for local work. It points to this checkout at
+`/home/jaycee/Projects/freshphonesph-main-run`. The previous duplicate checkout is preserved as
+`freshphonesph-legacy` and refuses to start the dev server, so it cannot serve the old login page.
+
 The target stack uses TypeScript for both deployables:
 
 - Next.js 16 and React 19 web app on Vercel
@@ -37,17 +43,8 @@ until each NestJS vertical slice reaches behavioral parity and passes its cutove
 ## Run the current baseline
 
 ```bash
-docker compose up -d
-
-cd apps/api
-source .venv/bin/activate
-python manage.py migrate
-python manage.py runserver 8000
-
-# From the repository root in another terminal
-pnpm install
-pnpm --filter @fresh/web dev
+./freshphones.sh
 ```
 
-The web app runs at `http://localhost:3000`; the current API runs at
-`http://localhost:8000`. See [AGENTS.md](AGENTS.md) for setup details and local accounts.
+This starts the local infrastructure, TypeScript API at `http://localhost:4101`, and web app at
+`http://localhost:3000` together. See [AGENTS.md](AGENTS.md) for setup details and local accounts.

@@ -131,6 +131,8 @@ test('finance payment contracts preserve the human verification boundary', () =>
     amount: '2000.00', paymentDate: '2026-09-22', method: 'GCash', referenceNumber: 'GC123',
   };
   assert.ok(paymentSchema.safeParse(payment).success);
+  assert.ok(paymentSchema.safeParse({ ...payment, receiptTime: '5:42 PM', receiptName: 'MI•••••E T.', receiptPhone: '+63 9•••••2050' }).success);
+  assert.equal(paymentSchema.safeParse({ ...payment, receiptTime: '25:99 PM' }).success, false);
   assert.equal(paymentSchema.safeParse({ ...payment, amount: '0.00' }).success, false);
   assert.ok(paymentDecisionSchema.safeParse({ decision: 'VERIFIED', notes: 'Matched GCash', version: 1 }).success);
   assert.equal(paymentDecisionSchema.safeParse({ decision: 'PENDING', notes: 'Reset', version: 1 }).success, false);
@@ -170,6 +172,31 @@ test('receipt extraction leaves an unknown payment date for human review', () =>
   assert.equal(parsed.paymentDate, null);
   assert.ok(parsed.warnings.some((warning) => warning.includes('Payment date was not found')));
 });
+test('GCash receipt reference continues below a date on the same line', () => {
+  const result = spawnSync('python3', [join(__dirname, '../scripts/receipt_ocr.py'), 'gcash', '--text'], {
+    input: 'MleceeeE T.\n+63 Qeeeee2050\nSent via GCash\nAmount 460.00\nRef No, 0045 429 Sep 25, 2026 5:42\n643381 PM\n279g CO2e',
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout) as { referenceNumber: string; paymentDate: string; amount: string;
+    receiptTime: string; receiptName: string; receiptPhone: string };
+  assert.equal(parsed.referenceNumber, '0045 429 643381');
+  assert.equal(parsed.paymentDate, '2026-09-25');
+  assert.equal(parsed.amount, '460.00');
+  assert.equal(parsed.receiptTime, '5:42 PM');
+  assert.equal(parsed.receiptName, 'MI•••••E T.');
+  assert.equal(parsed.receiptPhone, '+63 9•••••2050');
+});
+test('GCash receipt reads a partly masked name and spaced full phone', () => {
+  const result = spawnSync('python3', [join(__dirname, '../scripts/receipt_ocr.py'), 'gcash', '--text'], {
+    input: 'MA+-K Gee T.\n+63 912 345 6789\nAmount 130.00\nRef No. 0045 037 Sep 14, 2026 3:47\n198439 PM',
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout) as { receiptName: string; receiptPhone: string };
+  assert.equal(parsed.receiptName, 'MA•K G•• T.');
+  assert.equal(parsed.receiptPhone, '+63 912 345 6789');
+});
 test('receipt scanner rejects unsupported templates and non-images before OCR', async () => {
   const scanner = new ReceiptService();
   await assert.rejects(scanner.scan('unknown', undefined), /supported receipt type/);
@@ -192,10 +219,29 @@ test('production startup requires private S3 storage configuration', () => {
   try {
     Object.assign(process.env, { NODE_ENV: 'production',
       WEB_ORIGIN: 'https://freshphones.example.test', JWT_SECRET: 'generated-unit-test-secret-at-least-32-characters',
-      RESEND_API_KEY: 'unit-test-key', PRIVATE_STORAGE_PROVIDER: 'local' });
+      RESEND_API_KEY: 'unit-test-key', EMAIL_FROM: 'Fresh Phones PH <updates@freshphones.ph>', PRIVATE_STORAGE_PROVIDER: 'local' });
     assert.throws(() => readConfig(), /private S3 storage/);
     process.env.PRIVATE_STORAGE_PROVIDER = 's3';
     delete process.env.PRIVATE_STORAGE_S3_ENDPOINT;
     assert.throws(() => readConfig(), /Private S3 storage requires/);
+  } finally { process.env = previous; }
+});
+test('production startup rejects the example email sender', () => {
+  const previous = { ...process.env };
+  try {
+    Object.assign(process.env, { NODE_ENV: 'production',
+      WEB_ORIGIN: 'https://freshphones.example.test', JWT_SECRET: 'generated-unit-test-secret-at-least-32-characters',
+      RESEND_API_KEY: 'unit-test-key', PRIVATE_STORAGE_PROVIDER: 's3',
+      PRIVATE_STORAGE_S3_ENDPOINT: 'https://storage.example.test/storage/v1/s3',
+      PRIVATE_STORAGE_S3_BUCKET: 'private-files', PRIVATE_STORAGE_S3_ACCESS_KEY: 'key',
+      PRIVATE_STORAGE_S3_SECRET_KEY: 'secret' });
+    delete process.env.EMAIL_FROM;
+    assert.throws(() => readConfig(), /explicit EMAIL_FROM/);
+    process.env.EMAIL_FROM = 'Fresh Phones PH <updates@example.com>';
+    assert.throws(() => readConfig(), /explicit EMAIL_FROM/);
+    process.env.EMAIL_FROM = 'Fresh Phones Test <onboarding@resend.dev>';
+    assert.throws(() => readConfig(), /explicit EMAIL_FROM/);
+    process.env.EMAIL_FROM = 'Fresh Phones PH <updates@freshphones.ph>';
+    assert.equal(readConfig().EMAIL_FROM, process.env.EMAIL_FROM);
   } finally { process.env = previous; }
 });

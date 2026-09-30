@@ -2,7 +2,7 @@ import { ConflictException, ForbiddenException, Inject, Injectable } from '@nest
 import type { User } from '@freshphones/contracts';
 import { allowed } from '../auth/access';
 import { Database } from '../database';
-import { CONFIG, type Config } from '../config';
+import { CONFIG, hasProductionSender, hasResendTestSender, type Config } from '../config';
 import { Prisma } from '../generated/prisma/client';
 
 export const customerEmailKinds = ['payment', 'release', 'support', 'document', 'installment'] as const;
@@ -26,6 +26,10 @@ export class NotificationSettingsService {
   async list() {
     const [stored, config] = await Promise.all([this.db.customerEmailTemplate.findMany(), this.db.customerNotificationConfig.findUnique({ where: { key: 'customer' } })]);
     return { reminderDays: config?.reminderDays ?? this.config.CUSTOMER_REMINDER_DAYS_BEFORE, reminderVersion: config?.version ?? 0,
+      testEmailConfigured: Boolean(this.config.RESEND_API_KEY?.trim() &&
+        (hasProductionSender(this.config.EMAIL_FROM) ||
+          (this.config.NODE_ENV === 'development' && hasResendTestSender(this.config.EMAIL_FROM)))),
+      usingResendTestSender: this.config.NODE_ENV === 'development' && hasResendTestSender(this.config.EMAIL_FROM),
       templates: customerEmailKinds.map((kind) => {
         const row = stored.find((item) => item.kind === kind);
         return { kind, subject: row?.subject ?? defaultCustomerSubject, body: row?.body ?? defaultCustomerBody, version: row?.version ?? 0 };

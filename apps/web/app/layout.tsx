@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka, Nunito } from "next/font/google";
 import "./globals.css";
 
@@ -32,6 +32,12 @@ export const metadata: Metadata = {
       "Quality pre-owned and brand-new iPhones and iPad through paluwagan. Flexible payments as low as ₱59 a day. DTI registered.",
     type: "website",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -27,5 +27,19 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+echo "==> Starting TypeScript API (http://localhost:4101)"
+pnpm --filter @fresh/api-ts dev &
+api_pid=$!
+
 echo "==> Starting web dev server (http://localhost:3000)"
-exec pnpm --filter @fresh/web dev
+pnpm --filter @fresh/web dev &
+web_pid=$!
+
+cleanup() {
+  trap - EXIT INT TERM
+  kill "$api_pid" "$web_pid" 2>/dev/null || true
+  wait "$api_pid" "$web_pid" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+wait -n "$api_pid" "$web_pid"

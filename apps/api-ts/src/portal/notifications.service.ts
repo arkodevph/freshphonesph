@@ -40,4 +40,12 @@ export class NotificationsService {
       id: true, kind: true, title: true, message: true, targetPath: true, readAt: true, createdAt: true,
     } });
   }
+
+  async readAll(user: User) {
+    if (user.role !== 'CUSTOMER') throw new ForbiddenException('Customer account required.');
+    const result = await this.db.notification.updateMany({
+      where: { userId: user.id, readAt: null }, data: { readAt: new Date() },
+    });
+    return { updated: result.count };
+  }
 }

@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { CONFIG, type Config } from '../config';
 import { Validate } from '../http';
-import { CurrentUser, Public } from './access';
+import { CurrentUser, Public, type AuthRequest } from './access';
 import { AuthService, refreshSeconds } from './auth.service';
 
 @Controller('auth')
@@ -62,6 +62,18 @@ export class AuthController {
   }
   @Get('me') me(@CurrentUser() user: User) {
     return user;
+  }
+  @Post('change-password')
+  @HttpCode(200)
+  async changePassword(
+    @CurrentUser() user: User,
+    @Req() req: AuthRequest,
+    @Body(new Validate(z.object({ currentPassword: z.string().min(1).max(128), newPassword: passwordSchema }).strict()))
+    body: { currentPassword: string; newPassword: string },
+  ) {
+    await this.auth.limit(`change-password:${user.id}`, 10);
+    await this.auth.changePassword(user.id, req.sessionId, body.currentPassword, body.newPassword);
+    return { ok: true };
   }
   @Public()
   @Post('forgot-password')

@@ -1,4 +1,4 @@
-import type { Batch as TsBatch, BatchInput, Client as TsClient, ClientBalance, ClientSchedule, Page, Payment as TsPayment, ReceiptScan, ReceiptType, Role, User } from "@freshphones/contracts";
+import type { Batch as TsBatch, BatchInput, Client as TsClient, ClientBalance, ClientSchedule, Page, Payment as TsPayment, PaymentDuplicateMatch, ReceiptScan, ReceiptType, Role, User } from "@freshphones/contracts";
 import { API_URL, TYPESCRIPT_API } from "./backend";
 import { ApiError, tsDownload, tsRequest, tsUpload, toBatch, toClient, toMe, toPage, toSchedule } from "./ts-api";
 export { API_URL } from "./backend";
@@ -71,10 +71,20 @@ export type Payment = {
   payment_date: string;
   method: string;
   reference_no: string;
+  receipt_time?: string | null;
+  receipt_name?: string | null;
+  receipt_phone?: string | null;
   proof_file: RecordId | null;
   status: PaymentStatus;
+  notes?: string | null;
+  verification_notes?: string | null;
+  batch_code?: string | null;
+  recorded_by_name?: string | null;
+  verifier_name?: string | null;
   verified_by: RecordId | null;
   created_at: string;
+  updated_at?: string | null;
+  verified_at?: string | null;
   version?: number;
   duplicate_reference?: boolean;
 };
@@ -100,9 +110,16 @@ const toPayment = (payment: TsPayment): Payment => ({
   id: payment.id, client: payment.clientId, client_name: payment.client.name,
   batch: payment.batchId, amount: payment.amount, payment_date: payment.paymentDate,
   method: payment.method, reference_no: payment.referenceNumber ?? "",
+  receipt_time: payment.receiptTime, receipt_name: payment.receiptName,
+  receipt_phone: payment.receiptPhone,
   proof_file: payment.proofFile?.id ?? null,
   status: payment.status.toLowerCase() as PaymentStatus,
-  verified_by: payment.verifier ? 1 : null, created_at: payment.createdAt,
+  notes: payment.notes, verification_notes: payment.verificationNotes,
+  batch_code: payment.client.batch.code,
+  recorded_by_name: payment.recordedBy.name,
+  verifier_name: payment.verifier?.name ?? null,
+  verified_by: payment.verifier?.id ?? null, created_at: payment.createdAt,
+  updated_at: payment.updatedAt, verified_at: payment.verifiedAt,
   version: payment.version, duplicate_reference: payment.duplicateReference,
 });
 
@@ -125,12 +142,17 @@ export function createPayment(body: {
   payment_date: string;
   method: string;
   reference_no?: string;
+  receipt_time?: string;
+  receipt_name?: string;
+  receipt_phone?: string;
 }) {
   if (TYPESCRIPT_API) return tsRequest<TsPayment>("/payments", {
     method: "POST",
     body: JSON.stringify({ clientId: String(body.client), amount: body.amount,
       paymentDate: body.payment_date, method: body.method,
-      referenceNumber: body.reference_no || null }),
+      referenceNumber: body.reference_no || null,
+      receiptTime: body.receipt_time || null, receiptName: body.receipt_name || null,
+      receiptPhone: body.receipt_phone || null }),
   }).then(toPayment);
   return apiFetch("/api/payments/", {
     method: "POST",
@@ -144,6 +166,9 @@ export function updatePayment(id: RecordId, version: number, body: {
   payment_date: string;
   method: string;
   reference_no?: string;
+  receipt_time?: string;
+  receipt_name?: string;
+  receipt_phone?: string;
 }) {
   if (!TYPESCRIPT_API) return Promise.reject(new Error("Payment correction is available in the TypeScript workflow."));
   return tsRequest<TsPayment>(`/payments/${id}`, {
@@ -151,6 +176,8 @@ export function updatePayment(id: RecordId, version: number, body: {
     body: JSON.stringify({ version, record: {
       clientId: String(body.client), amount: body.amount, paymentDate: body.payment_date,
       method: body.method, referenceNumber: body.reference_no || null,
+      receiptTime: body.receipt_time || null, receiptName: body.receipt_name || null,
+      receiptPhone: body.receipt_phone || null,
     } }),
   }).then(toPayment);
 }
@@ -161,6 +188,13 @@ export function scanPaymentReceipt(receipt: File, template: ReceiptType) {
   body.append("template", template);
   body.append("receipt", receipt);
   return tsUpload<ReceiptScan>("/payments/receipt-scan", body);
+}
+
+export function findDuplicatePayments(method: string, referenceNumber: string, excludeId?: RecordId) {
+  if (!TYPESCRIPT_API) return Promise.resolve([] as PaymentDuplicateMatch[]);
+  const query = new URLSearchParams({ method, referenceNumber });
+  if (excludeId) query.set('excludeId', String(excludeId));
+  return tsRequest<PaymentDuplicateMatch[]>(`/payments/duplicates?${query}`);
 }
 
 export function decidePayment(id: RecordId, decision: PaymentStatus, version = 1, notes = "Finance reviewed") {
@@ -518,6 +552,7 @@ export type PortalNotification = {
 };
 export const getPortalNotifications = () => tsRequest<PortalNotification[]>("/portal/notifications");
 export const readPortalNotification = (id: string) => tsRequest<PortalNotification>(`/portal/notifications/${id}/read`, { method: "POST" });
+export const readAllPortalNotifications = () => tsRequest<{ updated: number }>("/portal/notifications/read-all", { method: "POST" });
 
 export type CustomerDocument = {
   id: string;

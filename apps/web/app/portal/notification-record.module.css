@@ -1,0 +1,64 @@
+.panel { min-width: 0; padding: 22px; border: 1px solid var(--portal-border); border-radius: 16px; background: var(--portal-surface); color: var(--portal-text); }
+.panelHeader { display: flex; align-items: start; justify-content: space-between; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--portal-border); }
+.panelHeader p, .recordLabel { color: var(--portal-accent); font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.panelHeader h2 { margin-top: 4px; font-size: 21px; font-weight: 800; line-height: 1.3; }
+.panelHeader button { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; border: 1px solid var(--portal-border); border-radius: 10px; background: var(--portal-surface-alt); color: var(--portal-text); cursor: pointer; }
+.panelHeader button svg { width: 18px; height: 18px; }
+.notificationContext { padding: 15px 0 18px; color: var(--portal-muted); }
+.notificationContext p { font-size: 14px; line-height: 1.55; }
+.notificationContext small { display: block; margin-top: 7px; font-size: 12px; }
+.state { padding: 28px 14px; border: 1px dashed var(--portal-border); border-radius: 12px; color: var(--portal-muted); text-align: center; }
+.state button { min-height: 40px; margin-top: 12px; padding: 8px 14px; border-radius: 10px; background: var(--portal-accent-soft); color: var(--portal-accent); font-weight: 800; cursor: pointer; }
+.sheet { max-width: 760px; margin: 0 auto; overflow: hidden; border: 1px solid #d8d8de; border-radius: 15px; background: #fff; color: #20202a; box-shadow: 0 10px 30px #08061012; }
+.sheetTop { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 26px; border-bottom: 1px solid #24242a; }
+.sheetBrand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sheetBrand img { flex: 0 0 40px; border-radius: 9px; }
+.sheetBrand strong { display: block; font-size: 16px; font-weight: 800; line-height: 1.25; }
+.sheetBrand span { color: #6e35c5; }
+.sheetBrand small { display: block; margin-top: 2px; color: #737183; font-size: 12px; }
+.sheetType { color: #6e35c5; font-size: 12px; font-weight: 800; letter-spacing: .08em; line-height: 1.35; text-align: right; text-transform: uppercase; }
+.sheetHero { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin: 22px 26px 0; padding: 23px 24px; border-radius: 13px; background: #f8f5ff; }
+.sheetHero p { color: #624399; font-size: 13px; font-weight: 700; }
+.sheetHero strong { display: block; margin: 7px 0 3px; color: #271a3f; font-size: clamp(30px, 2.3vw, 38px); font-weight: 850; letter-spacing: -.04em; line-height: 1.13; font-variant-numeric: tabular-nums; }
+.sheetHero span:not(.verifiedBadge) { color: #625c70; font-size: 13px; }
+.verifiedBadge { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; padding: 6px 9px; border-radius: 999px; background: #e6f7ed; color: #18734e; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.verifiedBadge svg { width: 15px; height: 15px; }
+.sheetDetails { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 22px 26px 0; }
+.sheetDetails div { min-width: 0; }
+.sheetDetails .sheetDetailWide { grid-column: 1 / -1; }
+.sheetDetails dt { color: #737183; font-size: 13px; }
+.sheetDetails dd { min-height: 44px; margin: 6px 0 0; padding: 10px 12px; border: 1px solid #bdb8c9; border-radius: 8px; background: #fff; font-size: 15px; font-weight: 750; line-height: 1.45; overflow-wrap: anywhere; }
+.sheetFooter { display: grid; gap: 5px; padding: 18px 26px 22px; color: #706d7c; font-size: 12px; line-height: 1.5; }
+.sheetFooter strong { color: #805169; font-weight: 750; }
+.sheetFooter p:first-child { margin-bottom: 8px; color: #777383; }
+.recordCard { padding: 19px; border: 1px solid var(--portal-border); border-radius: 13px; background: var(--portal-surface-alt); }
+.sheet, .recordCard { animation: recordContentEnter .24s ease-out both; }
+@keyframes recordContentEnter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.recordCard h3 { margin-top: 5px; font-size: 21px; font-weight: 800; text-transform: capitalize; }
+.recordCard dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 18px 0 0; }
+.recordCard dl div { min-width: 0; padding: 10px; border: 1px solid var(--portal-border); border-radius: 10px; background: var(--portal-surface); }
+.recordCard dt { color: var(--portal-muted); font-size: 12px; }
+.recordCard dd { margin: 3px 0 0; font-size: 14px; font-weight: 800; overflow-wrap: anywhere; text-transform: capitalize; }
+.recordCard > p { margin-top: 16px; color: var(--portal-muted); font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
+.messages { margin-top: 20px; }
+.messages h4 { margin-bottom: 10px; font-size: 14px; }
+.messages > div { margin-top: 8px; padding: 11px; border: 1px solid var(--portal-border); border-radius: 10px; background: var(--portal-surface); }
+.messages strong { font-size: 13px; }
+.messages small { display: block; color: var(--portal-muted); font-size: 11px; }
+.messages p { margin-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fullLink { display: inline-flex; align-items: center; gap: 6px; min-height: 42px; margin-top: 16px; color: var(--portal-accent); font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.fullLink svg { width: 15px; height: 15px; }
+.panel :focus-visible { outline: 3px solid var(--portal-accent); outline-offset: 2px; }
+@media (max-width: 560px) {
+  .panel { padding: 16px; }
+  .sheetTop { align-items: flex-start; padding: 18px; }
+  .sheetType { max-width: 95px; }
+  .sheetHero { flex-direction: column-reverse; gap: 12px; margin: 18px 18px 0; padding: 18px; }
+  .sheetDetails { margin-right: 18px; margin-left: 18px; }
+  .sheetFooter { padding: 16px 18px 20px; }
+}
+@media (max-width: 420px) {
+  .sheetDetails { grid-template-columns: 1fr; }
+  .sheetDetails .sheetDetailWide { grid-column: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .sheet, .recordCard { animation: none; } }

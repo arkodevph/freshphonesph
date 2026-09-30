@@ -13,6 +13,8 @@ import {
   type StaffMember,
 } from "@/lib/api";
 import { useMe, can } from "@/lib/useMe";
+import { TYPESCRIPT_API } from "@/lib/backend";
+import StaffTasksDashboard from "./StaffTasksDashboard";
 
 const PRIORITY_STYLES: Record<string, string> = {
   low: "bg-sky-2/70 text-blue-ink",
@@ -27,6 +29,10 @@ function defaultDeadline() {
 }
 
 export default function TasksPage() {
+  return TYPESCRIPT_API ? <StaffTasksDashboard /> : <LegacyTasksPage />;
+}
+
+function LegacyTasksPage() {
   const me = useMe();
   const canAssign = can(me, "TASK_ASSIGN");
   const canReview = can(me, "KPI_REVIEW");

@@ -1,4 +1,4 @@
-import { HttpException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { rolePermissions, type User } from '@freshphones/contracts';
 import { Database } from '../database';
@@ -136,6 +136,35 @@ export class AuthService {
         data: { revokedAt: new Date() },
       });
   }
+  async changePassword(userId: string, sessionId: string, currentPassword: string, newPassword: string) {
+    const user = await this.db.user.findUnique({
+      where: { id: userId }, select: { passwordHash: true, active: true },
+    });
+    const valid = await verifyPassword(currentPassword, user?.passwordHash ?? dummyHash);
+    if (!user?.active || !valid) throw new BadRequestException('Current password is incorrect.');
+    if (currentPassword === newPassword) throw new BadRequestException('Choose a different new password.');
+    const passwordHash = await hashPassword(newPassword);
+    await this.db.$transaction(async (tx) => {
+      const session = await tx.session.findFirst({
+        where: { id: sessionId, userId, revokedAt: null, expiresAt: { gt: new Date() } },
+        select: { id: true },
+      });
+      if (!session) throw new UnauthorizedException('Please sign in again.');
+      const updated = await tx.user.updateMany({
+        where: { id: userId, active: true, passwordHash: user.passwordHash },
+        data: { passwordHash },
+      });
+      if (updated.count !== 1) throw new ConflictException('Password changed elsewhere. Refresh and try again.');
+      await tx.session.updateMany({
+        where: { userId, id: { not: sessionId }, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      await tx.passwordReset.updateMany({
+        where: { userId, usedAt: null }, data: { usedAt: new Date() },
+      });
+      await tx.auditEntry.create({ data: { actorId: userId, action: 'password.changed', entity: 'account', recordId: userId } });
+    });
+  }
   async forgot(email: string, ip: string) {
     await this.limit(`reset-ip:${ip}`, 20);
     await this.limit(`reset-email:${email}`, 5);
@@ -150,7 +179,10 @@ export class AuthService {
       },
     });
     const url = `${this.config.WEB_ORIGIN}/reset-password#${token}`;
-    const text = `Hello ${user.name},\n\nReset your Fresh Phones password: ${url}\n\nThis link expires in 30 minutes. If you did not request it, ignore this message.`;
+    const settingsLink = user.role === 'CUSTOMER'
+      ? `Reset in customer Settings while signed in: ${this.config.WEB_ORIGIN}/portal/settings#reset-code=${token}\n\n`
+      : '';
+    const text = `Hello ${user.name},\n\n${settingsLink}Reset your Fresh Phones password if signed out: ${url}\n\nReset code: ${token}\n\nThese links and the code expire in 30 minutes. If you did not request it, ignore this message.`;
     try {
       if (this.config.NODE_ENV === 'production') {
         const response = await fetch('https://api.resend.com/emails', {

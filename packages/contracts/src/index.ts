@@ -40,16 +40,18 @@ export const permissions = [
   'PAYMENT_VERIFY',
   'SUPPORT_MANAGE',
   'REPORT_VIEW',
+  'TASK_ASSIGN',
+  'KPI_REVIEW',
 ] as const;
 export type Permission = (typeof permissions)[number];
 const records: Permission[] = ['BATCH_READ', 'BATCH_MANAGE', 'CLIENT_READ', 'CLIENT_MANAGE'];
 export const rolePermissions: Record<Role, readonly Permission[]> = {
   OWNER: permissions,
-  COO: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW'],
-  GENERAL_MANAGER: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW'],
+  COO: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'TASK_ASSIGN'],
+  GENERAL_MANAGER: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'TASK_ASSIGN'],
   RECORDS: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW'],
   FINANCE_OFFICER: ['BATCH_READ', 'CLIENT_READ', 'PAYMENT_READ', 'PAYMENT_RECORD', 'PAYMENT_VERIFY', 'REPORT_VIEW'],
-  HR_PAYROLL: ['REPORT_VIEW'],
+  HR_PAYROLL: ['REPORT_VIEW', 'TASK_ASSIGN', 'KPI_REVIEW'],
   ANALYTICS: ['REPORT_VIEW'],
   CS_HEAD: ['REPORT_VIEW', 'SUPPORT_MANAGE'],
   CS_TEAM: ['SUPPORT_MANAGE'],
@@ -179,6 +181,9 @@ export const paymentSchema = z.object({
   paymentDate: z.string().date(),
   method: z.string().trim().min(2).max(40),
   referenceNumber: z.string().trim().max(120).nullable().optional(),
+  receiptTime: z.string().trim().regex(/^(?:(?:[1-9]|1[0-2]):[0-5]\d\s+[AP]M|(?:[01]?\d|2[0-3]):[0-5]\d)$/i).nullable().optional(),
+  receiptName: z.string().trim().max(120).nullable().optional(),
+  receiptPhone: z.string().trim().max(40).nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
 }).strict();
 export const paymentDecisionSchema = z.object({
@@ -198,6 +203,11 @@ export const paymentListQuerySchema = listQuerySchema.extend({
 }).refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
 });
+export const paymentDuplicateQuerySchema = z.object({
+  method: z.string().trim().min(2).max(40),
+  referenceNumber: z.string().trim().min(1).max(120),
+  excludeId: z.string().uuid().optional(),
+}).strict();
 export const reportQuerySchema = z.object({
   q: z.string().max(100).optional(),
   dateFrom: z.string().date().optional(),
@@ -251,11 +261,14 @@ export interface ClientSchedule {
   totalDue: string;
   items: ScheduleItem[];
 }
-export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'notes'> {
+export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'receiptTime' | 'receiptName' | 'receiptPhone' | 'notes'> {
   id: string;
   batchId: string;
   scheduleItemId: string | null;
   referenceNumber: string | null;
+  receiptTime: string | null;
+  receiptName: string | null;
+  receiptPhone: string | null;
   notes: string | null;
   verificationNotes: string | null;
   status: PaymentStatus;
@@ -283,8 +296,21 @@ export interface ReceiptScan {
   amount: string | null;
   referenceNumber: string | null;
   paymentDate: string | null;
+  receiptTime: string | null;
+  receiptName: string | null;
+  receiptPhone: string | null;
   confidence: number;
   warnings: string[];
+}
+export interface PaymentDuplicateMatch {
+  id: string;
+  clientId: string;
+  clientName: string;
+  amount: string;
+  paymentDate: string;
+  method: string;
+  referenceNumber: string;
+  status: PaymentStatus;
 }
 export interface Account {
   id: string;
