@@ -20,6 +20,7 @@ import {
   SquaresFour,
   Stack,
   Sun,
+  TrayArrowDown,
   Users,
 } from "@phosphor-icons/react";
 import { logoutSession, isAuthed } from "@/lib/auth";
@@ -34,7 +35,7 @@ const NAV = [
   { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
   { icon: ChartBar, label: "Reports", href: null, perms: [] },
   { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
-  { icon: ListChecks, label: "Customer work", href: "/system/customer-work", perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"] },
+  { icon: TrayArrowDown, label: "Customer work", href: "/system/customer-work", perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"] },
   { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "CLIENT_MANAGE"] },
   { icon: Bell, label: "Notification settings", href: TYPESCRIPT_API ? "/system/notification-settings" : null, perms: ["ACCOUNT_MANAGE"] },
   { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
