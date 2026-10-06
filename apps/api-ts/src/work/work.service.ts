@@ -18,7 +18,7 @@ const taskInclude = {
   assignee: { select: { id: true, name: true, role: true } },
   creator: { select: { id: true, name: true } },
   attachments: { include: { storedFile: { select: { id: true, originalName: true, mimeType: true, size: true } } }, orderBy: { createdAt: 'asc' as const } },
-  reviews: { include: { reviewer: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' as const } },
+  review: { include: { reviewer: { select: { id: true, name: true } } } },
 } as const;
 
 @Injectable()
@@ -117,7 +117,7 @@ export class WorkService {
       if (['SUBMITTED', 'DONE'].includes(before.status)) throw new ConflictException('This task was already submitted.');
       const submittedAt = new Date();
       const changed = await tx.task.updateMany({ where: { id, version, assigneeId: user.id }, data: {
-        status: 'SUBMITTED', submissionTimestamp: submittedAt,
+        status: 'SUBMITTED', submittedAt: submittedAt,
         lateFlag: submittedAt > before.deadline, version: { increment: 1 },
       } });
       if (!changed.count) throw new ConflictException('This task changed. Refresh and try again.');
@@ -181,9 +181,9 @@ export class WorkService {
 
   kpiQueue() {
     return this.db.task.findMany({
-      where: { status: 'SUBMITTED', lateFlag: true, reviews: { none: {} } },
+      where: { status: 'SUBMITTED', lateFlag: true, review: null },
       include: taskInclude,
-      orderBy: { submissionTimestamp: 'asc' },
+      orderBy: { submittedAt: 'asc' },
     });
   }
 
@@ -194,8 +194,8 @@ export class WorkService {
     return this.write(user, 'KPI_REVIEW', async (tx) => {
       const task = await tx.task.findUnique({ where: { id: input.taskId } });
       if (!task) throw new NotFoundException('Task not found.');
-      const evidence = task.submissionTimestamp
-        ? `Submitted ${task.submissionTimestamp.toISOString()} vs deadline ${task.deadline.toISOString()} (${task.lateFlag ? 'LATE' : 'ON TIME'}).`
+      const evidence = task.submittedAt
+        ? `Submitted ${task.submittedAt.toISOString()} vs deadline ${task.deadline.toISOString()} (${task.lateFlag ? 'LATE' : 'ON TIME'}).`
         : 'Not yet submitted.';
       const review = await tx.kpiReview.create({ data: {
         ...input, reviewerId: user.id, factualEvidence: evidence,

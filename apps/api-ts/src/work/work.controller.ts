@@ -15,7 +15,7 @@ import { Validate } from '../http';
 import type { PrivateUpload } from '../storage/private-storage.service';
 import { WorkService } from './work.service';
 
-@Controller()
+@Controller('work')
 export class WorkController {
   constructor(@Inject(WorkService) private readonly work: WorkService) {}
 

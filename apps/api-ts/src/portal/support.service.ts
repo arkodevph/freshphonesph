@@ -4,6 +4,7 @@ import { Database } from '../database';
 import { allowed } from '../auth/access';
 import { Prisma, type SupportStatus } from '../generated/prisma/client';
 import { notifyCustomer } from './notifications.service';
+import { notifySupport } from '../staff/support-alerts';
 
 const include = {
   client: { select: { name: true } }, assignedStaff: { select: { name: true } },
@@ -77,10 +78,12 @@ export class SupportService {
         ? before.status === 'WAITING_FOR_CLIENT' ? 'IN_PROGRESS' : before.status
         : input.needsReply ? 'WAITING_FOR_CLIENT' : before.status === 'WAITING_FOR_CLIENT' ? 'IN_PROGRESS' : before.status;
       const message = await tx.supportMessage.create({ data: { caseId: id, authorId: user.id, body: input.body } });
-      await tx.supportCase.update({ where: { id }, data: { status, version: { increment: 1 } } });
+      const updated = await tx.supportCase.update({ where: { id }, data: { status, version: { increment: 1 } } });
       await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.replied', entity: 'support', recordId: id,
         after: json({ messageId: message.id, authorType: clientId ? 'customer' : 'staff', status }) } });
       await tx.changeEvent.create({ data: { entity: 'support', recordId: id } });
+      if (clientId) await notifySupport(tx, updated, 'SUPPORT_CUSTOMER_REPLY');
+      else await tx.supportAlert.updateMany({ where: { caseId: id, kind: 'SUPPORT_CUSTOMER_REPLY', handledAt: null }, data: { handledAt: new Date() } });
       if (!clientId) await notifyCustomer(tx, before.clientId, 'support', 'Customer Service replied',
         input.needsReply ? `Customer Service needs your reply on your ${before.category} request.` : `Customer Service replied to your ${before.category} request.`,
         `/portal/support#case-${id}`);
@@ -99,6 +102,7 @@ export class SupportService {
       const row = await tx.supportCase.create({ data: { clientId, ...input }, include });
       await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.created', entity: 'support', recordId: row.id, after: json(view(row)) } });
       await tx.changeEvent.create({ data: { entity: 'support', recordId: row.id } });
+      await notifySupport(tx, row, 'SUPPORT_NEW_CASE');
       return view(row);
     });
   }
@@ -144,6 +148,10 @@ export class SupportService {
       }, include });
       await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.updated', entity: 'support', recordId: id, before: json(view(before)), after: json(view(row)) } });
       await tx.changeEvent.create({ data: { entity: 'support', recordId: id } });
+      if (['RESOLVED', 'CLOSED'].includes(row.status) || before.assignedStaffId !== row.assignedStaffId)
+        await tx.supportAlert.updateMany({ where: { caseId: id, handledAt: null }, data: { handledAt: new Date() } });
+      if (before.assignedStaffId !== row.assignedStaffId || (before.status === 'RESOLVED' && !['RESOLVED', 'CLOSED'].includes(row.status)))
+        await notifySupport(tx, row, row.assignedStaffId ? 'SUPPORT_ASSIGNED' : 'SUPPORT_NEW_CASE');
       if (before.status !== row.status || before.resolution !== row.resolution)
         await notifyCustomer(tx, row.clientId, 'support', 'Support case updated', `Your ${row.category} concern is now ${row.status.toLowerCase().replaceAll('_', ' ')}.`, `/portal/support#case-${id}`);
       return view(row);

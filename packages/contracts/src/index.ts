@@ -33,42 +33,42 @@ export const permissions = [
   'BATCH_MANAGE',
   'CLIENT_READ',
   'CLIENT_MANAGE',
+  'AGENT_MANAGE',
   'ACCOUNT_MANAGE',
   'AUDIT_READ',
   'PAYMENT_READ',
   'PAYMENT_RECORD',
   'PAYMENT_VERIFY',
+  'SUPPORT_MANAGE',
   'REPORT_VIEW',
+  'TASK_ASSIGN',
+  'KPI_REVIEW',
   'DOCUMENT_READ',
   'DOCUMENT_UPLOAD',
   'DOCUMENT_REVIEW',
   'REQUIREMENT_MANAGE',
   'TASK_READ',
-  'TASK_ASSIGN',
   'TASK_SUBMIT',
-  'KPI_REVIEW',
   'SUPPORT_READ',
   'SUPPORT_CREATE',
-  'SUPPORT_MANAGE',
   'RECRUITMENT_MANAGE',
-  'AGENT_MANAGE',
   'NOTIFICATION_READ',
   'NOTIFICATION_MANAGE',
 ] as const;
 export type Permission = (typeof permissions)[number];
-const records: Permission[] = ['BATCH_READ', 'BATCH_MANAGE', 'CLIENT_READ', 'CLIENT_MANAGE'];
+const records: Permission[] = ['BATCH_READ', 'BATCH_MANAGE', 'CLIENT_READ', 'CLIENT_MANAGE', 'AGENT_MANAGE'];
 const ownWork: Permission[] = ['TASK_READ', 'TASK_SUBMIT', 'NOTIFICATION_READ'];
 export const rolePermissions: Record<Role, readonly Permission[]> = {
   OWNER: permissions,
-  COO: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'DOCUMENT_READ', 'DOCUMENT_REVIEW', 'REQUIREMENT_MANAGE', 'TASK_READ', 'TASK_ASSIGN', 'TASK_SUBMIT', 'SUPPORT_READ', 'SUPPORT_CREATE', 'SUPPORT_MANAGE', 'RECRUITMENT_MANAGE', 'AGENT_MANAGE', 'NOTIFICATION_READ', 'NOTIFICATION_MANAGE'],
-  GENERAL_MANAGER: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'DOCUMENT_READ', 'TASK_READ', 'TASK_ASSIGN', 'TASK_SUBMIT', 'NOTIFICATION_READ'],
-  RECORDS: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'DOCUMENT_READ', 'DOCUMENT_UPLOAD', 'DOCUMENT_REVIEW', 'REQUIREMENT_MANAGE', 'AGENT_MANAGE', ...ownWork],
+  COO: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'TASK_ASSIGN', 'DOCUMENT_READ', 'DOCUMENT_REVIEW', 'REQUIREMENT_MANAGE', 'SUPPORT_READ', 'SUPPORT_CREATE', 'RECRUITMENT_MANAGE', 'NOTIFICATION_MANAGE', ...ownWork],
+  GENERAL_MANAGER: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'TASK_ASSIGN', 'DOCUMENT_READ', ...ownWork],
+  RECORDS: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'DOCUMENT_READ', 'DOCUMENT_UPLOAD', 'DOCUMENT_REVIEW', 'REQUIREMENT_MANAGE', ...ownWork],
   FINANCE_OFFICER: ['BATCH_READ', 'CLIENT_READ', 'PAYMENT_READ', 'PAYMENT_RECORD', 'PAYMENT_VERIFY', 'REPORT_VIEW', ...ownWork],
-  HR_PAYROLL: ['REPORT_VIEW', 'TASK_READ', 'TASK_ASSIGN', 'TASK_SUBMIT', 'KPI_REVIEW', 'RECRUITMENT_MANAGE', 'NOTIFICATION_READ'],
+  HR_PAYROLL: ['REPORT_VIEW', 'TASK_ASSIGN', 'KPI_REVIEW', 'RECRUITMENT_MANAGE', ...ownWork],
   ANALYTICS: ['REPORT_VIEW', ...ownWork],
-  CS_HEAD: ['REPORT_VIEW', 'SUPPORT_READ', 'SUPPORT_CREATE', 'SUPPORT_MANAGE', ...ownWork],
-  CS_TEAM: ['SUPPORT_READ', 'SUPPORT_CREATE', 'SUPPORT_MANAGE', ...ownWork],
-  CORE_HANDLER: ownWork,
+  CS_HEAD: ['REPORT_VIEW', 'SUPPORT_MANAGE', 'SUPPORT_READ', 'SUPPORT_CREATE', ...ownWork],
+  CS_TEAM: ['SUPPORT_MANAGE', 'SUPPORT_READ', 'SUPPORT_CREATE', ...ownWork],
+  CORE_HANDLER: ['BATCH_READ', 'CLIENT_READ', ...ownWork],
   CUSTOMER: ['PAYMENT_READ', 'DOCUMENT_READ', 'DOCUMENT_UPLOAD', 'SUPPORT_READ', 'SUPPORT_CREATE', 'NOTIFICATION_READ'],
 };
 export const passwordSchema = z.string().min(12, 'Use at least 12 characters.').max(128);
@@ -173,7 +173,47 @@ export const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
   status: z.string().max(30).optional(),
   batchId: z.string().uuid().optional(),
+  handlerId: z.string().uuid().optional(),
+  agentId: z.string().uuid().optional(),
 });
+export const batchAssignmentSchema = z.object({
+  version: z.number().int().positive(),
+  handlerId: z.string().uuid().nullable(),
+  agentId: z.string().uuid().nullable(),
+}).strict();
+export const agentSchema = z.object({
+  name: z.string().trim().min(2).max(200),
+  code: z.string().trim().min(2).max(60).regex(/^[A-Za-z0-9-]+$/, 'Use letters, numbers and hyphens.').transform((v) => v.toUpperCase()),
+  active: z.boolean(),
+}).strict();
+export const agentUpdateSchema = z.object({ version: z.number().int().positive(), record: agentSchema }).strict();
+export const agentListQuerySchema = z.object({
+  q: z.string().trim().max(100).default(''),
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+}).strict();
+export type BatchAssignmentInput = z.infer<typeof batchAssignmentSchema>;
+export type AgentInput = z.infer<typeof agentSchema>;
+export interface Agent extends AgentInput { id: string; version: number; createdAt: string; updatedAt: string }
+export interface AssignmentOptions {
+  handlers: { id: string; name: string; active: boolean }[];
+  agents: { id: string; name: string; active: boolean }[];
+}
+const recordFilterFields = {
+  q: z.string().trim().max(100).default(''),
+  model: z.string().trim().max(100).optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+};
+const orderedRecordDates = (value: { dateFrom?: string; dateTo?: string }) =>
+  !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom;
+const recordDateError = { path: ['dateTo'], message: 'End date must be on or after the start date.' };
+export const batchListQuerySchema = listQuerySchema.omit({ batchId: true }).extend({
+  ...recordFilterFields, status: z.enum(['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED']).optional(),
+}).strict().refine(orderedRecordDates, recordDateError);
+export const clientListQuerySchema = listQuerySchema.extend({
+  ...recordFilterFields, id: z.string().uuid().optional(), status: z.enum(['ACTIVE', 'ON_HOLD', 'COMPLETED']).optional(),
+}).strict().refine(orderedRecordDates, recordDateError);
 export const accountListQuerySchema = z.object({
   q: z.string().max(100).default(''),
   page: z.coerce.number().int().min(1).max(100000).default(1),
@@ -193,6 +233,9 @@ export const paymentSchema = z.object({
   paymentDate: z.string().date(),
   method: z.string().trim().min(2).max(40),
   referenceNumber: z.string().trim().max(120).nullable().optional(),
+  receiptTime: z.string().trim().regex(/^(?:(?:[1-9]|1[0-2]):[0-5]\d\s+[AP]M|(?:[01]?\d|2[0-3]):[0-5]\d)$/i).nullable().optional(),
+  receiptName: z.string().trim().max(120).nullable().optional(),
+  receiptPhone: z.string().trim().max(40).nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
 }).strict();
 export const paymentDecisionSchema = z.object({
@@ -205,12 +248,18 @@ export const paymentCorrectionSchema = z.object({
   version: z.number().int().positive(),
 }).strict();
 export const paymentListQuerySchema = listQuerySchema.extend({
+  id: z.string().uuid().optional(),
   clientId: z.string().uuid().optional(),
   dateFrom: z.string().date().optional(),
   dateTo: z.string().date().optional(),
 }).refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
 });
+export const paymentDuplicateQuerySchema = z.object({
+  method: z.string().trim().min(2).max(40),
+  referenceNumber: z.string().trim().min(1).max(120),
+  excludeId: z.string().uuid().optional(),
+}).strict();
 export const reportQuerySchema = z.object({
   q: z.string().max(100).optional(),
   dateFrom: z.string().date().optional(),
@@ -220,6 +269,249 @@ export const reportQuerySchema = z.object({
 }).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
 });
+export type BatchInput = z.infer<typeof batchSchema>;
+export type ClientInput = z.infer<typeof clientSchema>;
+export type AccountInput = z.infer<typeof accountSchema>;
+export type PaymentInput = z.infer<typeof paymentSchema>;
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  permissions: Permission[];
+  clientId: string | null;
+}
+export interface Batch extends Omit<BatchInput, 'contractPrice' | 'installmentCount' | 'cadence'> {
+  handlerId?: string | null;
+  agentId?: string | null;
+  handler?: { id: string; name: string; active: boolean; role: Role } | null;
+  agent?: { id: string; name: string; active: boolean } | null;
+  termsLocked?: boolean;
+  contractPrice: string | null;
+  installmentCount: number | null;
+  cadence: Cadence | null;
+  id: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  _count: { clients: number };
+}
+export interface Client extends Omit<ClientInput, 'joinedAt'> {
+  scheduleIssued?: boolean;
+  joinedAt: string | null;
+  id: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  batch: Pick<Batch, 'id' | 'code' | 'model' | 'startDate' | 'endDate'>;
+  account: { id: string } | null;
+}
+export interface ScheduleItem {
+  id: string;
+  sequenceNo: number;
+  dueDate: string;
+  expectedAmount: string;
+  paidApplied?: string;
+  status?: 'PAID' | 'PARTIAL' | 'OVERDUE' | 'UPCOMING';
+}
+export interface ClientSchedule {
+  clientId: string;
+  totalDue: string;
+  items: ScheduleItem[];
+}
+export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'receiptTime' | 'receiptName' | 'receiptPhone' | 'notes'> {
+  id: string;
+  batchId: string;
+  scheduleItemId: string | null;
+  referenceNumber: string | null;
+  receiptTime: string | null;
+  receiptName: string | null;
+  receiptPhone: string | null;
+  notes: string | null;
+  verificationNotes: string | null;
+  status: PaymentStatus;
+  duplicateReference: boolean;
+  version: number;
+  recordedBy: { id: string; name: string };
+  verifier: { id: string; name: string } | null;
+  proofFile: { id: string } | null;
+  client: { id: string; name: string; batch: { id: string; code: string } };
+  createdAt: string;
+  updatedAt: string;
+  verifiedAt: string | null;
+}
+export interface ClientBalance {
+  clientId: string;
+  totalDue: string;
+  verifiedPaid: string;
+  remainingBalance: string;
+  overpaid: string;
+  pendingAmount: string;
+}
+export interface ReceiptScan {
+  template: ReceiptType;
+  method: string;
+  amount: string | null;
+  referenceNumber: string | null;
+  paymentDate: string | null;
+  receiptTime: string | null;
+  receiptName: string | null;
+  receiptPhone: string | null;
+  confidence: number;
+  warnings: string[];
+}
+export interface PaymentDuplicateMatch {
+  id: string;
+  clientId: string;
+  clientName: string;
+  amount: string;
+  paymentDate: string;
+  method: string;
+  referenceNumber: string;
+  status: PaymentStatus;
+}
+export interface Account {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  active: boolean;
+  clientId: string | null;
+  version: number;
+  createdAt: string;
+}
+export interface Audit {
+  id: string;
+  action: string;
+  entity: string;
+  recordId: string;
+  createdAt: string;
+  actor: { name: string };
+}
+export interface RecordHistoryEntry {
+  id: string;
+  action: string;
+  createdAt: string;
+  actor: { name: string };
+  changes: { field: string; label: string; before: string | null; after: string | null }[];
+}
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+export const financeAlertQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  unreadOnly: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+}).strict();
+export const financeAlertReadSchema = z.object({ version: z.number().int().positive() }).strict();
+export interface FinanceAlert {
+  id: string;
+  version: number;
+  title: string;
+  message: string;
+  targetPath: string;
+  readAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface FinanceAlertPage extends Page<FinanceAlert> {
+  pendingCount: number;
+  unreadCount: number;
+}
+export const taskAlertKinds = ['TASK_ASSIGNED', 'TASK_DUE_SOON', 'TASK_OVERDUE'] as const;
+export type TaskAlertKind = (typeof taskAlertKinds)[number];
+export const paymentResultKinds = ['PAYMENT_VERIFIED', 'PAYMENT_REJECTED', 'PAYMENT_CLARIFICATION'] as const;
+export type PaymentResultKind = (typeof paymentResultKinds)[number];
+export const supportAlertKinds = ['SUPPORT_NEW_CASE', 'SUPPORT_ASSIGNED', 'SUPPORT_CUSTOMER_REPLY'] as const;
+export type SupportAlertKind = typeof supportAlertKinds[number];
+export const accountAlertKinds = ['ACCOUNT_CREATED', 'ACCOUNT_ROLE_CHANGED', 'ACCOUNT_ACTIVATED', 'ACCOUNT_DEACTIVATED'] as const;
+export type AccountAlertKind = typeof accountAlertKinds[number];
+export const staffAlertScopeSchema = z.enum(['all', 'tasks', 'finance', 'results', 'support', 'accounts']);
+export type StaffAlertScope = z.infer<typeof staffAlertScopeSchema>;
+export const staffAlertQuerySchema = financeAlertQuerySchema.extend({ scope: staffAlertScopeSchema.default('all') });
+export const staffAlertReadSchema = z.discriminatedUnion('entity', [
+  z.object({ entity: z.literal('payment'), version: z.number().int().positive() }).strict(),
+  z.object({ entity: z.literal('task'), kind: z.enum(taskAlertKinds), deadline: z.string().datetime({ offset: true }) }).strict(),
+  z.object({ entity: z.literal('payment-result') }).strict(),
+  z.object({ entity: z.literal('support') }).strict(),
+  z.object({ entity: z.literal('account') }).strict(),
+]);
+export type StaffAlertReadInput = z.infer<typeof staffAlertReadSchema>;
+export const staffAlertReadAllSchema = z.object({ scope: staffAlertScopeSchema.default('all') }).strict();
+type StaffAlertBase = { id: string; title: string; message: string; targetPath: string; readAt: string | null; occurredAt: string };
+export type StaffAlert = StaffAlertBase & (
+  { entity: 'payment'; kind: 'FINANCE_PENDING'; version: number } |
+  { entity: 'task'; kind: TaskAlertKind; deadline: string } |
+  { entity: 'payment-result'; kind: PaymentResultKind; paymentId: string; version: number } |
+  { entity: 'support'; kind: SupportAlertKind; caseId: string; version: number } |
+  { entity: 'account'; kind: AccountAlertKind; accountId: string; version: number }
+);
+export interface StaffAlertPage extends Page<StaffAlert> {
+  activeCount: number;
+  unreadCount: number;
+  filteredCount: number;
+  filteredUnreadCount: number;
+  taskCount: number;
+  financeCount: number;
+  resultCount: number;
+  supportCount: number;
+  accountCount: number;
+}
+export interface PaymentResultDetail {
+  id: string;
+  paymentId: string;
+  version: number;
+  decision: Exclude<PaymentStatus, 'PENDING'>;
+  amount: string;
+  clientName: string;
+  batchCode: string;
+  notes: string;
+  verifierName: string;
+  occurredAt: string;
+  currentStatus: PaymentStatus;
+  currentVersion: number;
+}
+export const staffEmailKinds = [...taskAlertKinds, 'FINANCE_PENDING', ...paymentResultKinds, ...supportAlertKinds, ...accountAlertKinds] as const;
+export type StaffEmailKind = typeof staffEmailKinds[number];
+export const staffEmailStatuses = ['PENDING', 'SENDING', 'SENT', 'FAILED', 'SKIPPED'] as const;
+export type StaffEmailStatus = typeof staffEmailStatuses[number];
+const knownEmailPlaceholders = (value: string) => !/\{(?!title\}|message\}|url\})[^{}]*\}/.test(value);
+export const staffEmailTemplateSchema = z.object({
+  version: z.number().int().min(0), enabled: z.boolean(),
+  subject: z.string().trim().min(1).max(180).refine((value) => !/[\r\n]/.test(value) && value.includes('{title}') && knownEmailPlaceholders(value), 'Use {title} and a single-line subject with supported placeholders.'),
+  body: z.string().trim().min(20).max(2500).refine((value) => value.includes('{message}') && value.includes('{url}') && knownEmailPlaceholders(value), 'Include {message} and {url}; supported placeholders are {title}, {message} and {url}.'),
+}).strict();
+export const staffEmailTimingSchema = z.object({
+  version: z.number().int().min(0), dueSoonHours: z.number().int().min(1).max(168), overdueHours: z.number().int().min(0).max(168),
+}).strict();
+export const staffEmailQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  status: z.enum(staffEmailStatuses).optional(), kind: z.enum(staffEmailKinds).optional(),
+}).strict();
+export const staffEmailRetrySchema = z.object({ version: z.number().int().positive() }).strict();
+export interface StaffEmailTemplate { kind: StaffEmailKind; enabled: boolean; subject: string; body: string; version: number }
+export interface StaffEmailSettings {
+  dueSoonHours: number; overdueHours: number; timingVersion: number; templates: StaffEmailTemplate[];
+  deliveryMode: 'local' | 'provider';
+}
+export interface StaffEmailDelivery {
+  id: string; kind: StaffEmailKind; status: StaffEmailStatus; recipient: { name: string; email: string };
+  attempts: number; totalAttempts: number; createdAt: string; nextAt: string; sentAt: string | null;
+  error: string | null; version: number; canRetry: boolean;
+}
+export interface Overview {
+  activeBatches: number | null;
+  clients: number | null;
+  readyForRelease: number | null;
+  employees: number | null;
+}
+export interface ChangeEvent {
+  entity: 'batch' | 'client' | 'account' | 'payment';
+  recordId: string;
+}
+
 export const reportExportQuerySchema = z.object({
   kind: z.enum(['payments', 'tasks', 'support']),
   format: z.enum(['csv', 'xlsx']),
@@ -231,7 +523,6 @@ export const reportExportQuerySchema = z.object({
 }).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
 });
-export const requirementStatuses = ['MISSING', 'SUBMITTED', 'APPROVED', 'NEEDS_CLARIFICATION'] as const;
 export const requirementTypeSchema = z.object({
   code: z.string().trim().min(2).max(40).regex(/^[A-Za-z0-9_-]+$/).transform((value) => value.toUpperCase()),
   label: z.string().trim().min(2).max(120),
@@ -312,15 +603,15 @@ export const applicantUpdateSchema = z.object({
 }).strict().refine((value) => value.status !== undefined || value.reviewerNotes !== undefined, {
   message: 'Choose an applicant detail to update.',
 });
-export const agentSchema = z.object({
+export const recruitmentAgentSchema = z.object({
   fullName: z.string().trim().min(2).max(200),
   agentCode: z.string().trim().min(2).max(60),
   phone: z.string().trim().max(40).default(''),
   active: z.boolean().default(true),
 }).strict();
-export const agentUpdateSchema = z.object({
+export const recruitmentAgentUpdateSchema = z.object({
   version: z.number().int().positive(),
-  record: agentSchema,
+  record: recruitmentAgentSchema,
 }).strict();
 export const notificationTemplateSchema = z.object({
   key: z.string().trim().min(2).max(80).regex(/^[a-z0-9._-]+$/),
@@ -344,114 +635,3 @@ export const reportSnapshotSchema = z.object({
 }).strict().refine((value) => value.periodEnd >= value.periodStart, {
   path: ['periodEnd'], message: 'End date must be on or after the start date.',
 });
-export type BatchInput = z.infer<typeof batchSchema>;
-export type ClientInput = z.infer<typeof clientSchema>;
-export type AccountInput = z.infer<typeof accountSchema>;
-export type PaymentInput = z.infer<typeof paymentSchema>;
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-  permissions: Permission[];
-  clientId: string | null;
-}
-export interface Batch extends Omit<BatchInput, 'contractPrice' | 'installmentCount' | 'cadence'> {
-  contractPrice: string | null;
-  installmentCount: number | null;
-  cadence: Cadence | null;
-  id: string;
-  version: number;
-  createdAt: string;
-  updatedAt: string;
-  _count: { clients: number };
-}
-export interface Client extends Omit<ClientInput, 'joinedAt'> {
-  joinedAt: string | null;
-  id: string;
-  version: number;
-  createdAt: string;
-  updatedAt: string;
-  batch: Pick<Batch, 'id' | 'code' | 'model' | 'startDate' | 'endDate'>;
-  account: { id: string } | null;
-}
-export interface ScheduleItem {
-  id: string;
-  sequenceNo: number;
-  dueDate: string;
-  expectedAmount: string;
-}
-export interface ClientSchedule {
-  clientId: string;
-  totalDue: string;
-  items: ScheduleItem[];
-}
-export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'notes'> {
-  id: string;
-  batchId: string;
-  scheduleItemId: string | null;
-  referenceNumber: string | null;
-  notes: string | null;
-  verificationNotes: string | null;
-  status: PaymentStatus;
-  duplicateReference: boolean;
-  version: number;
-  recordedBy: { id: string; name: string };
-  verifier: { id: string; name: string } | null;
-  proofFile: { id: string } | null;
-  client: { id: string; name: string; batch: { id: string; code: string } };
-  createdAt: string;
-  updatedAt: string;
-  verifiedAt: string | null;
-}
-export interface ClientBalance {
-  clientId: string;
-  totalDue: string;
-  verifiedPaid: string;
-  remainingBalance: string;
-  overpaid: string;
-  pendingAmount: string;
-}
-export interface ReceiptScan {
-  template: ReceiptType;
-  method: string;
-  amount: string | null;
-  referenceNumber: string | null;
-  paymentDate: string | null;
-  confidence: number;
-  warnings: string[];
-}
-export interface Account {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-  active: boolean;
-  clientId: string | null;
-  version: number;
-  createdAt: string;
-}
-export interface Audit {
-  id: string;
-  action: string;
-  entity: string;
-  recordId: string;
-  createdAt: string;
-  actor: { name: string };
-}
-export interface Page<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-export interface Overview {
-  activeBatches: number | null;
-  clients: number | null;
-  readyForRelease: number | null;
-  employees: number | null;
-}
-export interface ChangeEvent {
-  entity: 'batch' | 'client' | 'account' | 'payment';
-  recordId: string;
-}

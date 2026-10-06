@@ -90,7 +90,7 @@ function LegacyTasksPage() {
     }
   }
 
-  async function onSubmitTask(id: number) {
+  async function onSubmitTask(id: Task["id"]) {
     setError(null);
     try {
       await submitTask(id);

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { ListChecks, Plus, X } from "@phosphor-icons/react";
-import { tsDownload, tsRequest, tsUpload } from "@/lib/ts-api";
+import { ApiError, tsDownload, tsRequest, tsUpload } from "@/lib/ts-api";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { can, useMe } from "@/lib/useMe";
 import styles from "./staff-tasks.module.css";
@@ -21,13 +22,21 @@ type Page<T> = { results: T[]; count: number; page: number; pageSize: number };
 type Assignee = { id: string; name: string; role: string };
 type Review = { id: string; taskId: string; taskTitle: string; assigneeName: string; reviewerName: string; factualEvidence: string; evaluation: string; recommendation: string; decision: string; createdAt: string };
 
-const formatDate = (date: string) => new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(date));
+const formatDate = (date: string) => new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(date)) + " PHT";
 const label = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 const deadlineDefault = () => {
   const date = new Date(Date.now() + 24 * 60 * 60 * 1000);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 };
 const message = (error: unknown) => error instanceof Error ? error.message : "Something went wrong. Please try again.";
+
+function TaskLocationSync({ onTask }: { onTask: (id: string | null) => void }) {
+  const raw = useSearchParams().get("task");
+  useEffect(() => {
+    onTask(raw && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw) ? raw : null);
+  }, [raw, onTask]);
+  return null;
+}
 
 export default function StaffTasksDashboard() {
   const me = useMe();
@@ -43,6 +52,8 @@ export default function StaffTasksDashboard() {
   const [historyPage, setHistoryPage] = useState(1);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [active, setActive] = useState<Task | null>(null);
+  const [linkedId, setLinkedId] = useState<string | null>(null);
+  const [activeChanged, setActiveChanged] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -54,40 +65,100 @@ export default function StaffTasksDashboard() {
   const [recommendation, setRecommendation] = useState("");
   const [decision, setDecision] = useState("NOTED");
   const dialog = useRef<HTMLDialogElement>(null);
+  const activeTaskId = useRef<string | null>(null);
+  const detailSequence = useRef(0);
+  const listSequence = useRef(0);
+  const draft = useRef(false);
+  const activeSnapshot = useRef(active); activeSnapshot.current = active;
+  const mutationBusy = useRef(busy); mutationBusy.current = busy;
+  draft.current = Boolean(report.trim() || attachment || evaluation.trim() || recommendation.trim() || decision !== "NOTED");
+  const staff = Boolean(me && me.account_type === "employee");
 
   const reload = useCallback(async () => {
+    if (!staff) return;
+    const request = ++listSequence.current;
     try {
       const [taskData, queueData, historyData] = await Promise.all([
         tsRequest<Page<Task>>(`/tasks?page=${page}${status ? `&status=${status}` : ""}`),
         canReview ? tsRequest<Page<Task>>(`/kpi/queue?page=${queuePage}`) : Promise.resolve(null),
         canReview ? tsRequest<Page<Review>>(`/kpi/reviews?page=${historyPage}`) : Promise.resolve(null),
       ]);
+      if (request !== listSequence.current) return;
       setTasks(taskData);
       setQueue(queueData);
       setHistory(historyData);
-      if (activeId) setActive(await tsRequest<Task>(`/tasks/${activeId}`));
-    } catch (caught) { setError(message(caught)); }
-  }, [page, status, canReview, queuePage, historyPage, activeId]);
+    } catch (caught) { if (request === listSequence.current) setError(message(caught)); }
+  }, [staff, page, status, canReview, queuePage, historyPage]);
 
-  useEffect(() => { if (me) void reload(); }, [me, reload]);
+  const refreshActive = useCallback(async () => {
+    const id = activeTaskId.current;
+    if (!staff || !id || mutationBusy.current || activeSnapshot.current?.id !== id) return;
+    const request = ++detailSequence.current;
+    try {
+      const latest = await tsRequest<Task>(`/tasks/${id}`);
+      if (request !== detailSequence.current || activeTaskId.current !== id) return;
+      // Keep the record version captured when the report/review editor opened.
+      if (activeSnapshot.current?.id === id && activeSnapshot.current.version !== latest.version) setActiveChanged(true);
+      else setActive(latest);
+    } catch (caught) {
+      if (request !== detailSequence.current || activeTaskId.current !== id) return;
+      setError(message(caught));
+      if (caught instanceof ApiError && [403, 404].includes(caught.status)) {
+        dialog.current?.close(); activeTaskId.current = null; setActiveId(null); setActive(null);
+      }
+    }
+  }, [staff]);
+
+  useEffect(() => { void reload(); return () => { listSequence.current++; }; }, [reload]);
   useEffect(() => {
     if (!canAssign) return;
     void tsRequest<Assignee[]>("/tasks/assignees").then(setAssignees).catch((caught) => setError(message(caught)));
   }, [canAssign]);
-  useLiveRecords(() => { if (me) void reload(); }, Boolean(me));
+  useLiveRecords(() => { void reload(); void refreshActive(); }, staff);
 
-  async function openTask(id: string) {
+  const openTask = useCallback(async (id: string) => {
+    if (activeTaskId.current === id) return;
+    if (activeTaskId.current && draft.current && !window.confirm("Discard your unsaved task report or review and open the linked task?")) {
+      window.history.replaceState(null, "", `/system/tasks?task=${activeTaskId.current}`); return;
+    }
+    const request = ++detailSequence.current;
+    activeTaskId.current = id; setActiveChanged(false);
     setActiveId(id); setActive(null); setLoadingDetail(true); setError(""); setNotice(""); setReport(""); setAttachment(null);
     setEvaluation(""); setRecommendation(""); setDecision("NOTED");
-    dialog.current?.showModal();
-    try { setActive(await tsRequest<Task>(`/tasks/${id}`)); }
-    catch (caught) { setError(message(caught)); dialog.current?.close(); setActiveId(null); }
-    finally { setLoadingDetail(false); }
+    if (!dialog.current?.open) dialog.current?.showModal();
+    try {
+      const task = await tsRequest<Task>(`/tasks/${id}`);
+      if (request === detailSequence.current && activeTaskId.current === id) setActive(task);
+    }
+    catch (caught) { if (request === detailSequence.current) { setError(message(caught)); dialog.current?.close(); activeTaskId.current = null; setActiveId(null); } }
+    finally { if (request === detailSequence.current) setLoadingDetail(false); }
+  }, []);
+  useEffect(() => { if (staff && linkedId) void openTask(linkedId); }, [staff, linkedId, openTask]);
+  function clearTask() {
+    detailSequence.current++; activeTaskId.current = null; setActiveId(null); setActive(null); setActiveChanged(false);
+    setReport(""); setAttachment(null); setEvaluation(""); setRecommendation(""); setDecision("NOTED");
+    if (new URLSearchParams(window.location.search).has("task")) window.history.replaceState(null, "", "/system/tasks");
   }
-  function closeTask() { dialog.current?.close(); setActiveId(null); setActive(null); }
+  function closeTask() {
+    if (busy || (draft.current && !window.confirm("Discard your unsaved task report or review?"))) return;
+    dialog.current?.close(); clearTask();
+  }
+  async function loadLatestTask() {
+    if (!active || (draft.current && !window.confirm("Discard your unsaved task report or review and load the latest task?"))) return;
+    const id = active.id; activeTaskId.current = null;
+    await openTask(id);
+  }
   async function mutate(run: () => Promise<unknown>, success: string) {
     setBusy(true); setError(""); setNotice("");
-    try { await run(); setNotice(success); await reload(); if (activeId) setActive(await tsRequest<Task>(`/tasks/${activeId}`)); return true; }
+    try {
+      await run(); setNotice(success); await reload();
+      if (activeId && activeTaskId.current === activeId) {
+        const request = ++detailSequence.current;
+        const latest = await tsRequest<Task>(`/tasks/${activeId}`);
+        if (request === detailSequence.current && activeTaskId.current === activeId) { setActive(latest); setActiveChanged(false); }
+      }
+      return true;
+    }
     catch (caught) { setError(message(caught)); return false; }
     finally { setBusy(false); }
   }
@@ -97,7 +168,7 @@ export default function StaffTasksDashboard() {
       setForm((current) => ({ ...current, title: "", instructions: "" }));
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (!active || (!report.trim() && !attachment)) return;
+    event.preventDefault(); if (!active || activeChanged || (!report.trim() && !attachment)) return;
     const data = new FormData(); data.set("version", String(active.version)); data.set("report", report.trim());
     if (attachment) data.set("attachment", attachment);
     if (await mutate(() => tsUpload(`/tasks/${active.id}/submit`, data), "Work submitted for review.")) {
@@ -105,7 +176,7 @@ export default function StaffTasksDashboard() {
     }
   }
   async function review(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (!active) return;
+    event.preventDefault(); if (!active || activeChanged) return;
     await mutate(() => tsRequest("/kpi/reviews", { method: "POST", body: JSON.stringify({
       taskId: active.id, version: active.version, evaluation: evaluation.trim(), recommendation: recommendation.trim(), decision,
     }) }), "KPI review recorded.");
@@ -119,7 +190,9 @@ export default function StaffTasksDashboard() {
     } catch (caught) { setError(message(caught)); }
   }
 
+  if (me && !staff) return <section><h1>No access</h1><p>Staff access is required for tasks.</p></section>;
   return <main className={styles.page}>
+    <Suspense fallback={null}><TaskLocationSync onTask={setLinkedId} /></Suspense>
     <header className={styles.header}>
       <div className={styles.icon}><ListChecks weight="duotone" /></div>
       <div><span className={styles.eyebrow}>Staff operations</span><h1>Tasks &amp; KPI</h1><p>Assign work, submit evidence, and record a human review of late submissions.</p></div>
@@ -162,19 +235,21 @@ export default function StaffTasksDashboard() {
       </section>
     </div>}
 
-    <dialog ref={dialog} className={styles.dialog} onClose={() => { setActiveId(null); setActive(null); }}>
-      <div className={styles.dialogHead}><div><span className={styles.eyebrow}>Task details</span><h2>{active?.title ?? "Loading…"}</h2></div><button type="button" className={styles.iconButton} onClick={closeTask} aria-label="Close task"><X /></button></div>
+    <dialog ref={dialog} className={styles.dialog} aria-labelledby="staff-task-title" onClose={clearTask}
+      onCancel={(event) => { if (busy || (draft.current && !window.confirm("Discard your unsaved task report or review?"))) event.preventDefault(); }}>
+      <div className={styles.dialogHead}><div><span className={styles.eyebrow}>Task details</span><h2 id="staff-task-title">{active?.title ?? "Loading…"}</h2></div><button type="button" className={styles.iconButton} onClick={closeTask} disabled={busy} aria-label="Close task"><X /></button></div>
+      {activeChanged && <p role="status" className={styles.dialogNotice}>This task changed. Your draft and original version are preserved. <button type="button" disabled={busy} onClick={() => void loadLatestTask()}>Load latest task</button></p>}
       {error && <p className={styles.dialogAlert} role="alert">{error}</p>}
       {notice && <p className={styles.dialogNotice} role="status">{notice}</p>}
       {loadingDetail || !active ? <p className={styles.empty}>Loading task…</p> : <div className={styles.dialogBody}>
         <div className={styles.facts}><div><span>Assignee</span><strong>{active.assigneeName}</strong></div><div><span>Priority</span><strong>{label(active.priority)}</strong></div><div><span>Deadline</span><strong>{formatDate(active.deadline)}</strong></div><div><span>Status</span><strong>{label(active.status)}</strong></div></div>
         <section><h3>Instructions</h3><p className={styles.preWrap}>{active.instructions || "No extra instructions."}</p></section>
         {active.submittedAt && <section><h3>Submission</h3><p>Submitted {formatDate(active.submittedAt)} · <strong>{active.lateFlag ? "Late" : "On time"}</strong></p><p className={styles.preWrap}>{active.report || "No written report."}</p>{active.attachment && <button type="button" className={styles.secondary} onClick={() => void download(active)}>Download {active.attachment.fileName}</button>}</section>}
-        {active.review && <section><h3>KPI review</h3><p>{active.review.factualEvidence}</p><p className={styles.preWrap}><strong>Evaluation:</strong> {active.review.evaluation}</p><p className={styles.preWrap}><strong>Recommendation:</strong> {active.review.recommendation || "None"}</p><p><strong>Decision:</strong> {label(active.review.decision)} · {active.review.reviewerName}</p></section>}
-        {active.assigneeId === me?.id && active.status === "TODO" && <button type="button" className={styles.secondary} disabled={busy} onClick={() => void mutate(() => tsRequest(`/tasks/${active.id}/start`, { method: "PATCH", body: JSON.stringify({ version: active.version }) }), "Task started.")}>Start task</button>}
-        {active.assigneeId === me?.id && (active.status === "TODO" || active.status === "IN_PROGRESS") && <form onSubmit={submit} className={styles.stacked}><h3>Submit your work</h3><label>Report<textarea maxLength={5000} rows={4} value={report} onChange={(event) => setReport(event.target.value)} placeholder="Describe what you completed" /></label><label>Evidence (optional PDF or image, up to 5 MB)<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setAttachment(event.target.files?.[0] ?? null)} /></label><button type="submit" className={styles.primary} disabled={busy || (!report.trim() && !attachment)}>{busy ? "Submitting…" : "Submit work"}</button></form>}
-        {canReview && active.status === "SUBMITTED" && !active.reviewed && active.lateFlag && <form onSubmit={review} className={styles.stacked}><h3>Human KPI review</h3><p className={styles.help}>Submitted {active.submittedAt ? formatDate(active.submittedAt) : "—"}; deadline {formatDate(active.deadline)}. Record the context before deciding. No wage change is made here.</p><label>Evaluation<textarea required minLength={3} maxLength={5000} rows={4} value={evaluation} onChange={(event) => setEvaluation(event.target.value)} placeholder="What happened and what context did you consider?" /></label><label>Recommendation<input maxLength={200} value={recommendation} onChange={(event) => setRecommendation(event.target.value)} placeholder="Optional" /></label><label>Decision<select value={decision} onChange={(event) => setDecision(event.target.value)}><option value="NOTED">Noted</option><option value="ACTION_RECOMMENDED">Action recommended</option></select></label><button type="submit" className={styles.primary} disabled={busy || evaluation.trim().length < 3}>{busy ? "Recording…" : "Record review"}</button></form>}
-        {canAssign && active.status === "SUBMITTED" && (!active.lateFlag || active.reviewed) && <button type="button" className={styles.primary} disabled={busy} onClick={() => void mutate(() => tsRequest(`/tasks/${active.id}/complete`, { method: "POST", body: JSON.stringify({ version: active.version }) }), "Task completed.")}>{busy ? "Completing…" : "Mark complete"}</button>}
+        {canReview && active.review && <section><h3>KPI review</h3><p>{active.review.factualEvidence}</p><p className={styles.preWrap}><strong>Evaluation:</strong> {active.review.evaluation}</p><p className={styles.preWrap}><strong>Recommendation:</strong> {active.review.recommendation || "None"}</p><p><strong>Decision:</strong> {label(active.review.decision)} · {active.review.reviewerName}</p></section>}
+        {active.assigneeId === me?.id && active.status === "TODO" && <button type="button" className={styles.secondary} disabled={busy || activeChanged} onClick={() => void mutate(() => tsRequest(`/tasks/${active.id}/start`, { method: "PATCH", body: JSON.stringify({ version: active.version }) }), "Task started.")}>Start task</button>}
+        {active.assigneeId === me?.id && (active.status === "TODO" || active.status === "IN_PROGRESS") && <form onSubmit={submit} className={styles.stacked}><h3>Submit your work</h3><label>Report<textarea maxLength={5000} rows={4} value={report} onChange={(event) => setReport(event.target.value)} placeholder="Describe what you completed" /></label><label>Evidence (optional PDF or image, up to 5 MB)<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setAttachment(event.target.files?.[0] ?? null)} /></label><button type="submit" className={styles.primary} disabled={busy || activeChanged || (!report.trim() && !attachment)}>{busy ? "Submitting…" : "Submit work"}</button></form>}
+        {canReview && active.status === "SUBMITTED" && !active.reviewed && active.lateFlag && <form onSubmit={review} className={styles.stacked}><h3>Human KPI review</h3><p className={styles.help}>Submitted {active.submittedAt ? formatDate(active.submittedAt) : "—"}; deadline {formatDate(active.deadline)}. Record the context before deciding. No wage change is made here.</p><label>Evaluation<textarea required minLength={3} maxLength={5000} rows={4} value={evaluation} onChange={(event) => setEvaluation(event.target.value)} placeholder="What happened and what context did you consider?" /></label><label>Recommendation<input maxLength={200} value={recommendation} onChange={(event) => setRecommendation(event.target.value)} placeholder="Optional" /></label><label>Decision<select value={decision} onChange={(event) => setDecision(event.target.value)}><option value="NOTED">Noted</option><option value="ACTION_RECOMMENDED">Action recommended</option></select></label><button type="submit" className={styles.primary} disabled={busy || activeChanged || evaluation.trim().length < 3}>{busy ? "Recording…" : "Record review"}</button></form>}
+        {canAssign && active.status === "SUBMITTED" && (!active.lateFlag || active.reviewed) && <button type="button" className={styles.primary} disabled={busy || activeChanged} onClick={() => void mutate(() => tsRequest(`/tasks/${active.id}/complete`, { method: "POST", body: JSON.stringify({ version: active.version }) }), "Task completed.")}>{busy ? "Completing…" : "Mark complete"}</button>}
       </div>}
     </dialog>
   </main>;

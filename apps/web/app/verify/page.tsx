@@ -10,15 +10,19 @@ export default function VerifyAgentPage() {
   const [result, setResult] = useState<AgentVerifyResult | null>(null);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
+    if (!q.trim() || loading) return;
     setLoading(true);
+    setError(null);
+    setResult(null);
     setSearched(true);
     try {
-      setResult(await verifyAgent(q));
+      setResult(await verifyAgent(q.trim()));
     } catch {
-      setResult({ found: false });
+      setError("Could not check the agent directory. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -37,24 +41,28 @@ export default function VerifyAgentPage() {
           </span>
           <h1 className="font-display text-2xl font-800 tracking-tight text-blue-ink">Verify an agent</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Confirm a Fresh Phones PH agent by their code or name before transacting.
+            Confirm a Fresh Phones PH agent by their code or complete name before transacting.
           </p>
         </div>
 
         <form onSubmit={search} className="flex gap-2">
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Agent code or name"
+            maxLength={200}
+            disabled={loading}
+            aria-label="Agent code or name"
+            onChange={(e) => { setQ(e.target.value); setResult(null); setError(null); setSearched(false); }}
+            placeholder="Agent code or complete name"
             className="w-full rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-sm text-ink outline-none focus:border-blue focus:bg-white"
           />
-          <button type="submit" className="btn-candy inline-flex shrink-0 items-center gap-1.5 rounded-2xl px-4 py-3 text-sm font-700">
-            <MagnifyingGlass weight="bold" className="h-4 w-4" /> Verify
+          <button type="submit" disabled={loading || !q.trim()} className="btn-candy inline-flex shrink-0 items-center gap-1.5 rounded-2xl px-4 py-3 text-sm font-700 disabled:opacity-60">
+            <MagnifyingGlass weight="bold" className="h-4 w-4" /> {loading ? "Checking…" : "Verify"}
           </button>
         </form>
+        {error && <p role="alert" className="mt-4 rounded-2xl bg-rose-100 p-4 text-sm text-rose-700">{error}</p>}
 
         {searched && !loading && result && (
-          <div className="mt-5">
+          <div className="mt-5" aria-live="polite">
             {result.found ? (
               <div className="glass-tint flex items-center gap-3 rounded-2xl p-4">
                 <CheckCircle weight="fill" className="h-8 w-8 shrink-0 text-emerald-600" />
@@ -70,7 +78,7 @@ export default function VerifyAgentPage() {
               <div className="flex items-center gap-3 rounded-2xl bg-rose-100 p-4 text-rose-700">
                 <XCircle weight="fill" className="h-8 w-8 shrink-0" />
                 <p className="text-sm font-600">
-                  No matching active agent found. Be cautious — verify before sending money.
+                  No matching agent found. Be cautious — verify before sending money.
                 </p>
               </div>
             )}

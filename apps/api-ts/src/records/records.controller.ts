@@ -15,8 +15,10 @@ import {
   accountUpdateSchema,
   batchSchema,
   batchUpdateSchema,
+  batchAssignmentSchema,
   clientSchema,
   clientListQuerySchema,
+  batchListQuerySchema,
   clientUpdateSchema,
   listQuerySchema,
   type AccountInput,
@@ -30,12 +32,14 @@ import { RecordsService } from './records.service';
 import { z } from 'zod';
 type ListQuery = z.infer<typeof listQuerySchema>;
 type ClientListQuery = z.infer<typeof clientListQuerySchema>;
+type BatchListQuery = z.infer<typeof batchListQuerySchema>;
 type AccountListQuery = z.infer<typeof accountListQuerySchema>;
 const releaseUpdateSchema = z.object({ version: z.number().int().positive(),
   status: z.enum(['NOT_READY', 'PROCESSING', 'READY', 'RELEASED']),
   note: z.string().trim().max(1000).default(''),
   collectionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 }).strict();
+const historyQuerySchema = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict();
 
 @Controller()
 export class RecordsController {
@@ -44,9 +48,10 @@ export class RecordsController {
     return this.records.overview(user);
   }
   @Get('batches') @Requires('BATCH_READ') batches(
-    @Query(new Validate(listQuerySchema)) query: ListQuery,
+    @CurrentUser() user: User,
+    @Query(new Validate(batchListQuerySchema)) query: BatchListQuery,
   ) {
-    return this.records.batches(query);
+    return this.records.batches(user, query);
   }
   @Post('batches') @Requires('BATCH_MANAGE') createBatch(
     @CurrentUser() user: User,
@@ -54,6 +59,19 @@ export class RecordsController {
   ) {
     return this.records.createBatch(user, body);
   }
+  @Get('records/assignment-options') @Requires('BATCH_READ') assignmentOptions(@CurrentUser() user: User) {
+    return this.records.assignmentOptions(user);
+  }
+  @Patch('batches/:id/assignments') @Requires('BATCH_MANAGE') assignBatch(@CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string, @Body(new Validate(batchAssignmentSchema)) body: z.infer<typeof batchAssignmentSchema>) {
+    return this.records.assignBatch(user, id, body);
+  }
+  @Get('batches/:id') @Requires('BATCH_READ') batch(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.records.batch(user, id);
+  }
+  @Get('batches/:id/history') @Requires('BATCH_MANAGE') batchHistory(
+    @Param('id', ParseUUIDPipe) id: string, @Query(new Validate(historyQuerySchema)) query: z.infer<typeof historyQuerySchema>,
+  ) { return this.records.history('batch', id, query.page); }
   @Patch('batches/:id') @Requires('BATCH_MANAGE') updateBatch(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
@@ -62,13 +80,17 @@ export class RecordsController {
     return this.records.updateBatch(user, id, body.record, body.version);
   }
   @Get('clients') @Requires('CLIENT_READ') clients(
+    @CurrentUser() user: User,
     @Query(new Validate(clientListQuerySchema)) query: ClientListQuery,
   ) {
-    return this.records.clients(query);
+    return this.records.clients(user, query);
   }
   @Get('clients/:id') client(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
     return this.records.client(user, id);
   }
+  @Get('clients/:id/history') @Requires('CLIENT_MANAGE') clientHistory(
+    @Param('id', ParseUUIDPipe) id: string, @Query(new Validate(historyQuerySchema)) query: z.infer<typeof historyQuerySchema>,
+  ) { return this.records.history('client', id, query.page); }
   @Get('clients/:id/release-updates') releaseUpdates(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
     return this.records.releaseUpdates(user, id);
   }
@@ -107,6 +129,9 @@ export class RecordsController {
     @Body(new Validate(accountSchema)) body: AccountInput,
   ) {
     return this.records.createAccount(user, body);
+  }
+  @Get('accounts/:id') @Requires('ACCOUNT_MANAGE') account(@Param('id', ParseUUIDPipe) id: string) {
+    return this.records.account(id);
   }
   @Patch('accounts/:id') @Requires('ACCOUNT_MANAGE') updateAccount(
     @CurrentUser() user: User,

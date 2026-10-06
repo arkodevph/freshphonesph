@@ -94,7 +94,7 @@ export class NotificationsService {
   async enqueue(tx: Transaction, input: EventInput) {
     const override = await tx.notificationTemplate.findUnique({ where: { key: input.eventKey } });
     const template = override?.active ? override : defaults[input.eventKey];
-    const notification = await tx.notification.upsert({
+    const notification = await tx.staffNotification.upsert({
       where: { dedupeKey: input.dedupeKey },
       update: {},
       create: {
@@ -126,34 +126,34 @@ export class NotificationsService {
   }
 
   async list(user: User, page: number, unreadOnly = false) {
-    const where: Prisma.NotificationWhereInput = {
+    const where: Prisma.StaffNotificationWhereInput = {
       recipientId: user.id,
       ...(unreadOnly ? { readAt: null } : {}),
     };
     const [items, total, unread] = await this.db.$transaction([
-      this.db.notification.findMany({
+      this.db.staffNotification.findMany({
         where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * 20,
         take: 20,
       }),
-      this.db.notification.count({ where }),
-      this.db.notification.count({ where: { recipientId: user.id, readAt: null } }),
+      this.db.staffNotification.count({ where }),
+      this.db.staffNotification.count({ where: { recipientId: user.id, readAt: null } }),
     ]);
     return { items, total, unread, page, pageSize: 20 };
   }
 
   async markRead(user: User, id: string) {
-    const changed = await this.db.notification.updateMany({
+    const changed = await this.db.staffNotification.updateMany({
       where: { id, recipientId: user.id },
       data: { readAt: new Date() },
     });
     if (!changed.count) throw new NotFoundException('Notification not found.');
-    return this.db.notification.findUniqueOrThrow({ where: { id } });
+    return this.db.staffNotification.findUniqueOrThrow({ where: { id } });
   }
 
   async readAll(user: User) {
-    const result = await this.db.notification.updateMany({
+    const result = await this.db.staffNotification.updateMany({
       where: { recipientId: user.id, readAt: null },
       data: { readAt: new Date() },
     });

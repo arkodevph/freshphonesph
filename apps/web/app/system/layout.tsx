@@ -27,14 +27,16 @@ import { logoutSession, isAuthed } from "@/lib/auth";
 import { listNotifications, readAllNotifications, readNotification, type NotificationRecord } from "@/lib/api";
 import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
 import { can, useMe } from "@/lib/useMe";
+import { StaffAlerts } from "@/components/StaffAlerts";
 
 const NAV = [
   { icon: SquaresFour, label: "Dashboard", href: "/system", perms: [] as string[] },
   { icon: Stack, label: "Paluwagan Records", href: "/system/records", perms: ["BATCH_MANAGE", "BATCH_READ"] },
   { icon: Receipt, label: "Payments & Finance", href: "/system/payments", perms: ["PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY"] },
   { icon: Users, label: "Clients", href: "/system/clients", perms: ["CLIENT_MANAGE", "CLIENT_READ"] },
-  { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: ["TASK_READ"] },
-  { icon: ChartBar, label: "Reports", href: "/system/reports", perms: ["REPORT_VIEW"] },
+  { icon: ShieldCheck, label: "Agents", href: TYPESCRIPT_API ? "/system/agents" : null, perms: ["AGENT_MANAGE"] },
+  { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
+  { icon: ChartBar, label: "Reports", href: null, perms: [] },
   { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
   { icon: TrayArrowDown, label: "Customer work", href: "/system/customer-work", perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"] },
   { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "AGENT_MANAGE"] },
@@ -264,8 +266,8 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
             <button className="system-icon-button" type="button" onClick={toggleTheme} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
               {theme === "dark" ? <Sun className="h-[19px] w-[19px]" /> : <Moon className="h-[19px] w-[19px]" />}
             </button>
-            <div className="system-popover-anchor">
-              <button className="system-icon-button system-notification-button" aria-label={`${unread} unread notifications`} aria-expanded={openPanel === "notifications"} aria-controls="notifications-panel" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell className="h-[19px] w-[19px]" />{unread > 0 && <span>{unread > 9 ? "9+" : unread}</span>}</button>
+            {TYPESCRIPT_API && me?.account_type === "employee" ? <StaffAlerts canFinance={can(me, "PAYMENT_VERIFY")} canResults={can(me, "PAYMENT_READ") && can(me, "PAYMENT_RECORD")} canSupport={can(me, "SUPPORT_MANAGE")} canAccounts={can(me, "ACCOUNT_MANAGE")} open={openPanel === "notifications"} onToggle={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")} onClose={() => setOpenPanel(null)} /> : <div className="system-popover-anchor">
+              <button className="system-icon-button" aria-label="Notifications" aria-expanded={openPanel === "notifications"} aria-controls="notifications-panel" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell className="h-[19px] w-[19px]" /></button>
               {openPanel === "notifications" && (
                 <section id="notifications-panel" className="system-popover system-notifications-popover" aria-label="Notifications">
                   <div className="system-popover-heading"><strong>Notifications</strong>{unread > 0 ? <button type="button" onClick={markAllRead}>Mark all read</button> : <small>All read</small>}</div>
@@ -276,7 +278,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
                   ))}</div> : <div className="system-notification-empty"><span><Bell weight="fill" /></span><strong>You&apos;re all caught up</strong><p>No new staff notifications.</p></div>}
                 </section>
               )}
-            </div>
+            </div>}
             <div className="system-popover-anchor">
               <button className="system-top-profile system-profile-button" type="button" aria-expanded={openPanel === "profile"} aria-controls="profile-panel" onClick={() => setOpenPanel(openPanel === "profile" ? null : "profile")}>
                 <span className="system-avatar">{initials}</span><span className="hidden min-w-0 sm:block"><strong className="block max-w-36 truncate">{me?.full_name ?? "Staff"}</strong><small>{formatRole(me?.role)}</small></span><CaretDown className="hidden h-3.5 w-3.5 sm:block" />

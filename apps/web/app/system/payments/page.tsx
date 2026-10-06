@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useId, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Receipt,
   CheckCircle,
@@ -36,6 +37,8 @@ import {
 import type { PaymentDuplicateMatch, ReceiptScan, ReceiptType } from "@freshphones/contracts";
 import { useMe, can } from "@/lib/useMe";
 import { TYPESCRIPT_API } from "@/lib/backend";
+import { useLiveRecords } from "@/lib/useLiveRecords";
+import { PaymentResultDetails } from "@/components/PaymentResultDetails";
 
 const FILTERS: { label: string; value: string }[] = [
   { label: "All", value: "" },
@@ -70,6 +73,18 @@ const formatTimestamp = (value?: string | null) => {
 type ClientChoice = Pick<ClientRecord, "id" | "batch" | "batch_number" | "full_name" | "unit_model">;
 const duplicateKey = (method: string, reference: string, client: string, matches: PaymentDuplicateMatch[]) =>
   `${method.toLowerCase()}:${reference.replace(/[^a-z0-9]/gi, '').toUpperCase()}:${client}:${matches.map((match) => match.id).sort().join(',')}`;
+
+function PaymentLocationSync({ onLocation }: { onLocation: (payment: string | null, status: string) => void }) {
+  const params = useSearchParams();
+  const rawPayment = params.get("payment");
+  const rawStatus = params.get("status");
+  useEffect(() => {
+    const payment = rawPayment && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawPayment) ? rawPayment : null;
+    const status = FILTERS.some((item) => item.value === rawStatus) ? rawStatus! : "";
+    onLocation(payment, status);
+  }, [rawPayment, rawStatus, onLocation]);
+  return null;
+}
 
 export default function PaymentsPage() {
   const me = useMe();
@@ -139,6 +154,7 @@ export default function PaymentsPage() {
   const [balance, setBalance] = useState<Balance | null>(null);
 
   const load = useCallback(async (preserveError = false) => {
+    if (!canRead) return;
     const requestVersion = ++paymentLoadVersion.current;
     setLoading(true);
     if (!preserveError) setError(null);
@@ -162,16 +178,24 @@ export default function PaymentsPage() {
     } finally {
       if (requestVersion === paymentLoadVersion.current) setLoading(false);
     }
-  }, [appliedPaymentQuery, dateFrom, dateTo, filter, focusedPayment, paymentPage]);
+  }, [canRead, appliedPaymentQuery, dateFrom, dateTo, filter, focusedPayment, paymentPage]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  useEffect(() => {
-    if (!TYPESCRIPT_API) return;
-    const payment = new URLSearchParams(window.location.search).get("payment");
-    if (payment && /^[0-9a-f-]{36}$/i.test(payment)) setFocusedPayment(payment);
+  useLiveRecords(() => { void load(); }, canRead);
+
+  const openLocation = useCallback((payment: string | null, status: string) => {
+    setFocusedPayment(payment);
+    // Clearing a URL from the search/filter controls keeps their local choices.
+    // An alert target starts a clean search so old filters cannot hide the payment.
+    if (payment || status) {
+      paymentLoadVersion.current++;
+      setFilter(payment ? "" : status);
+      setPaymentQuery(""); setAppliedPaymentQuery("");
+      setDateFrom(""); setDateTo(""); setPaymentPage(1);
+    }
   }, []);
 
   useEffect(() => () => {
@@ -469,6 +493,8 @@ export default function PaymentsPage() {
 
   return (
     <>
+      {TYPESCRIPT_API && <Suspense fallback={null}><PaymentLocationSync onLocation={openLocation} /></Suspense>}
+      {TYPESCRIPT_API && <Suspense fallback={null}><PaymentResultDetails enabled={canRead && canRecord} /></Suspense>}
       <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
         <span className="grid h-10 w-10 place-items-center rounded-2xl chrome">
           <Receipt weight="fill" className="h-5 w-5 text-blue" />
@@ -935,7 +961,7 @@ export default function PaymentsPage() {
 
       {/* List */}
       <div className="glass rounded-3xl p-5">
-        {focusedPayment && <div className="mb-4 flex items-center gap-3 rounded-xl bg-violet-100 px-4 py-2 text-sm text-violet-700">Viewing a payment from the work queue <button type="button" onClick={() => { setFocusedPayment(null); window.history.replaceState(null, "", "/system/payments"); }} className="font-700 underline">Show all payments</button></div>}
+        {focusedPayment && <div className="mb-4 flex items-center gap-3 rounded-xl bg-violet-100 px-4 py-2 text-sm text-violet-700">Viewing the linked payment <button type="button" onClick={() => { setFocusedPayment(null); setFilter(""); resetPaymentPage(); window.history.replaceState(null, "", "/system/payments"); }} className="font-700 underline">Show all payments</button></div>}
         <form className="payment-list-search mb-3 grid gap-2 md:grid-cols-[minmax(15rem,1fr)_9rem_9rem_auto]" onSubmit={(event) => {
           event.preventDefault();
           const term = paymentQuery.trim();
@@ -1038,7 +1064,7 @@ export default function PaymentsPage() {
               ) : payments.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-2 py-6 text-center text-ink-soft">
-                    No payments.
+                    {focusedPayment ? "This payment is no longer available. Refresh or show all payments." : "No payments."}
                   </td>
                 </tr>
               ) : (

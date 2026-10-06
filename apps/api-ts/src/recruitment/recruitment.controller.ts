@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  agentSchema,
-  agentUpdateSchema,
+  recruitmentAgentSchema,
+  recruitmentAgentUpdateSchema,
   applicantSchema,
   applicantUpdateSchema,
   jobOpeningSchema,
@@ -30,7 +30,7 @@ export class RecruitmentController {
     @UploadedFile() file?: PrivateUpload,
   ) { return this.recruitment.apply(body, file); }
 
-  @Public() @Get('agents/verify') verify(@Query('q') query = '') {
+  @Public() @Get('recruitment/agents/verify') verify(@Query('q') query = '') {
     return this.recruitment.verifyAgent(query);
   }
 
@@ -69,18 +69,18 @@ export class RecruitmentController {
     response.send(file.data);
   }
 
-  @Get('agents') @Requires('AGENT_MANAGE') agents(
+  @Get('recruitment/agents') @Requires('AGENT_MANAGE') agents(
     @Query(new Validate(listQuerySchema)) query: z.infer<typeof listQuerySchema>,
   ) { return this.recruitment.agents(query); }
 
-  @Post('agents') @Requires('AGENT_MANAGE') createAgent(
+  @Post('recruitment/agents') @Requires('AGENT_MANAGE') createAgent(
     @CurrentUser() user: User,
-    @Body(new Validate(agentSchema)) body: z.infer<typeof agentSchema>,
+    @Body(new Validate(recruitmentAgentSchema)) body: z.infer<typeof recruitmentAgentSchema>,
   ) { return this.recruitment.createAgent(user, body); }
 
-  @Patch('agents/:id') @Requires('AGENT_MANAGE') updateAgent(
+  @Patch('recruitment/agents/:id') @Requires('AGENT_MANAGE') updateAgent(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new Validate(agentUpdateSchema)) body: z.infer<typeof agentUpdateSchema>,
+    @Body(new Validate(recruitmentAgentUpdateSchema)) body: z.infer<typeof recruitmentAgentUpdateSchema>,
   ) { return this.recruitment.updateAgent(user, id, body.record, body.version); }
 }

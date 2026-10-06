@@ -7,6 +7,7 @@ import { AuthService } from '../auth/auth.service';
 import { Database } from '../database';
 import { allocateVerifiedPayments } from '../records/allocation';
 import { NotificationSettingsService, renderCustomerEmail } from './notification-settings.service';
+import { StaffEmailService } from '../staff/staff-email.service';
 
 const philippineDate = () => new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const address = (kind: string) => ({ payment: '/portal/payments', release: '/portal/release',
@@ -19,7 +20,8 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
   private reminderDay = '';
   constructor(@Inject(Database) private readonly db: Database, @Inject(CONFIG) private readonly config: Config,
     @Inject(NotificationSettingsService) private readonly settings: NotificationSettingsService,
-    @Inject(AuthService) private readonly auth: AuthService) {}
+    @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(StaffEmailService) private readonly staffEmails: StaffEmailService) {}
 
   onModuleInit() {
     if (this.config.NODE_ENV === 'test') return;
@@ -39,8 +41,9 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         await this.queueReminders(today);
         this.reminderDay = today;
       }
+      await this.staffEmails.queueReminders();
       await this.deliver();
-    } catch { console.error('Customer notification job failed.'); }
+    } catch { console.error('Notification job failed.'); }
     finally { this.busy = false; }
   }
 
@@ -103,6 +106,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         console.error('Customer notification email delivery failed.');
       }
     }
+    await this.staffEmails.deliver((id, to, subject, body, sender) => this.sendRendered(id, to, subject, body, sender));
   }
 
   async sendTestReminder(ownerId: string, to: string) {
@@ -126,19 +130,23 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
   private async send(id: string, to: string, kind: string, title: string, message: string, targetPath: string | null) {
     const template = await this.settings.template(kind);
     const { subject, text } = renderCustomerEmail(template, { title, message, url: `${this.config.WEB_ORIGIN}${targetPath ?? address(kind)}` });
+    await this.sendRendered(id, to, subject, text);
+  }
+
+  private async sendRendered(id: string, to: string, subject: string, text: string, sender = this.config.EMAIL_FROM) {
     if (this.config.NODE_ENV !== 'production') {
       const directory = join(process.cwd(), '.local/mail');
       await mkdir(directory, { recursive: true, mode: 0o700 });
       await writeFile(join(directory, `${id}.txt`), `To: ${to}\nSubject: ${subject}\n\n${text}`, { mode: 0o600 });
       return;
     }
-    await this.sendViaResend(id, to, subject, text);
+    await this.sendViaResend(id, to, subject, text, sender);
   }
 
-  private async sendViaResend(id: string, to: string, subject: string, text: string) {
+  private async sendViaResend(id: string, to: string, subject: string, text: string, sender = this.config.EMAIL_FROM) {
     const response = await fetch('https://api.resend.com/emails', { method: 'POST', signal: AbortSignal.timeout(10_000),
       headers: { Authorization: `Bearer ${this.config.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': `notification/${id}` },
-      body: JSON.stringify({ from: this.config.EMAIL_FROM, to: [to], subject, text }) });
+      body: JSON.stringify({ from: sender, to: [to], subject, text }) });
     if (!response.ok) throw new ServiceUnavailableException(hasResendTestSender(this.config.EMAIL_FROM)
       ? 'Resend rejected the message. Its test sender can email only the address used to sign up for Resend.'
       : 'Email provider rejected the message. Check the sender and recipient settings.');

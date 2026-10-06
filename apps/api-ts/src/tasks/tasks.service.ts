@@ -4,6 +4,7 @@ import { allowed } from '../auth/access';
 import { Database } from '../database';
 import { Prisma, type KpiDecision, type TaskPriority } from '../generated/prisma/client';
 import { PrivateStorageService, type PrivateUpload } from '../storage/private-storage.service';
+import { queueTaskEmail } from '../staff/email-queue';
 
 const taskInclude = {
   assignee: { select: { id: true, name: true, role: true } },
@@ -99,6 +100,7 @@ export class TasksService {
         assigneeId: input.assigneeId, creatorId: user.id, priority: input.priority, deadline }, include: taskInclude });
       await this.record(tx, user.id, row.id, 'task.assigned', null,
         { title: row.title, assigneeId: row.assigneeId, deadline: row.deadline.toISOString(), priority: row.priority });
+      await queueTaskEmail(tx, row, 'TASK_ASSIGNED');
       return view(row, allowed(current, 'KPI_REVIEW'));
     });
   }

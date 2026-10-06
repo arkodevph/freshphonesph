@@ -85,12 +85,17 @@ export const toBatch = (batch: Batch) => ({
   contract_price: batch.contractPrice, num_installments: batch.installmentCount,
   cadence: batch.cadence?.toLowerCase() ?? "", start_date: batch.startDate, end_date: batch.endDate,
   member_count: batch._count.clients, created_at: batch.createdAt,
+  version: batch.version, terms_locked: batch.termsLocked,
+  handler_name: batch.handler?.name ?? null, agent_name: batch.agent?.name ?? null,
+  handler_available: Boolean(batch.handler?.active && batch.handler.role === "CORE_HANDLER"),
+  agent_available: Boolean(batch.agent?.active),
 });
 export const toClient = (client: Client) => ({
   id: client.id, batch: client.batchId, batch_number: client.batch.code,
   full_name: client.name, contact_email: client.email, unit_model: client.unitModel || client.batch.model,
   status: client.status.toLowerCase(), release_status: client.releaseStatus.toLowerCase(),
   version: client.version, joined_at: client.joinedAt ?? "", created_at: client.createdAt,
+  contact_phone: client.phone, schedule_issued: client.scheduleIssued,
 });
 export const toSchedule = (schedule: ClientSchedule) => schedule.items.map((item) => ({
   id: item.id, sequence_no: item.sequenceNo, due_date: item.dueDate, expected_amount: item.expectedAmount,

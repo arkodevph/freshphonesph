@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { User } from '@freshphones/contracts';
 import { allowed } from '../auth/access';
+import { notifySupport } from '../staff/support-alerts';
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -56,6 +57,9 @@ export class SupportService {
     if (user.role !== 'CUSTOMER' && !allowed(user, 'SUPPORT_MANAGE'))
       throw new ForbiddenException('Support management access is required.');
     return this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+      const current = await tx.user.findUnique({ where: { id: user.id } });
+      if (!current?.active || !allowed(current, "SUPPORT_CREATE")) throw new ForbiddenException("Your access has changed.");
       const client = await tx.client.findUnique({ where: { id: clientId } });
       if (!client) throw new NotFoundException('Client not found.');
       const result = await tx.supportCase.create({
@@ -67,6 +71,7 @@ export class SupportService {
         recordId: result.id, after: json(result),
       } });
       await tx.changeEvent.create({ data: { entity: 'support_case', recordId: result.id } });
+      await notifySupport(tx, result, "SUPPORT_NEW_CASE");
       return this.view(result);
     });
   }

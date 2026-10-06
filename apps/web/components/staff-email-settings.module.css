@@ -1,0 +1,47 @@
+.panel { display: grid; gap: 18px; color: #1b2654; }
+.heading { display: flex; justify-content: space-between; align-items: start; gap: 15px; }
+.heading h2 { font-size: 24px; font-weight: 850; margin: 0 0 8px; }
+.panel p { color: #64718f; font-size: 13px; line-height: 1.6; margin: 9px 0; }
+.panel button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid transparent; border-radius: 10px; background: #5037ca; padding: 10px 14px; color: #fff; font-size: 12px; font-weight: 750; cursor: pointer; }
+.panel button:disabled { opacity: .6; cursor: default; }
+.panel button:focus-visible { outline: 3px solid #aa96ed; outline-offset: 3px; }
+.panel button svg { width: 17px; height: 17px; flex-shrink: 0; }
+.panel button.secondary { background: transparent; border-color: #d5daeb; color: #4934a7; }
+.card { min-width: 0; border: 1px solid #e1e4f2; border-radius: 17px; background: #fff; padding: 22px; box-shadow: 0 10px 25px #26356e0b; }
+.card h3 { font-size: 18px; font-weight: 850; margin: 0 0 12px; }
+.panel label { display: block; font-size: 12px; font-weight: 750; margin: 14px 0 6px; }
+.panel input:not([type="checkbox"]), .panel textarea, .panel select { width: 100%; border: 1px solid #d8deef; border-radius: 10px; background: #fff; padding: 10px 12px; color: #1b2654; font-size: 13px; margin-top: 6px; }
+.panel input:focus, .panel textarea:focus, .panel select:focus { outline: 3px solid #d9d4ff; border-color: #7253d3; }
+.panel textarea { resize: vertical; line-height: 1.5; }
+.card > button { margin-top: 14px; }
+.panel label.check { display: flex; gap: 9px; align-items: center; line-height: 1.5; }
+.check input { width: 17px; height: 17px; flex-shrink: 0; accent-color: #5037ca; }
+.grid, .timing { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.timing { max-width: 600px; }
+.note { border-left: 3px solid #7860d2; padding: 5px 13px; }
+.note code { color: #4934a7; background: #efeaff; border-radius: 4px; padding: 2px 4px; }
+.panel p.error, .panel p.success { padding: 12px 14px; border-radius: 10px; }
+.panel p.error { background: #fff0f2; color: #9a2840; }
+.panel p.success { background: #edfaef; color: #227247; }
+.delivery { margin-top: 6px; }
+.filters { display: flex; gap: 14px; flex-wrap: wrap; }
+.filters label { flex: 1 1 180px; max-width: 300px; }
+.list { list-style: none; padding: 0; margin: 15px 0; }
+.item { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(100px, .7fr) minmax(0, 1.6fr) auto; gap: 14px; border-top: 1px solid #e1e4f2; padding: 16px 0; font-size: 12px; line-height: 1.6; }
+.item > div { min-width: 0; display: flex; flex-direction: column; align-items: start; gap: 3px; }
+.item span, .item strong { overflow-wrap: anywhere; }
+.item strong { font-size: 13px; }
+.email { overflow-wrap: anywhere; }
+.badge { border-radius: 6px; padding: 2px 8px; background: #eeecfa; color: #48328a; font-weight: 800; }
+.sent { background: #e8f8ee; color: #196443; }.failed { background: #ffedf0; color: #a12744; }.skipped { background: #edf0f6; color: #536079; }
+.pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; }
+:global(html[data-system-theme="dark"]) .panel { color: #f4f2ff; }
+:global(html[data-system-theme="dark"]) .panel p { color: #adb9d5; }
+:global(html[data-system-theme="dark"]) .panel p.success { background: #153c2a; color: #b6edcd; }
+:global(html[data-system-theme="dark"]) .panel p.error { background: #431b2b; color: #ffbdca; }
+:global(html[data-system-theme="dark"]) .card { background: #151d35; border-color: #354261; }
+:global(html[data-system-theme="dark"]) .panel input:not([type="checkbox"]), :global(html[data-system-theme="dark"]) .panel textarea, :global(html[data-system-theme="dark"]) .panel select { background: #10182d; color: #f4f2ff; border-color: #485475; }
+:global(html[data-system-theme="dark"]) .panel button.secondary { color: #d5caff; border-color: #6c668d; }
+:global(html[data-system-theme="dark"]) .item { border-color: #354261; }
+:global(html[data-system-theme="dark"]) .note code { color: #ddd2ff; background: #35265a; }
+@media(max-width: 700px) { .heading { flex-direction: column; }.grid, .timing { grid-template-columns: 1fr; }.card { padding: 17px; }.item { grid-template-columns: 1fr 1fr; }.item > div:nth-child(3) { grid-column: 1 / -1; }.pagination { flex-wrap: wrap; }.pagination button { max-width: 45%; }.pagination span { order: -1; width: 100%; text-align: center; } }

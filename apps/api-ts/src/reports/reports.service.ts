@@ -75,7 +75,7 @@ export class ReportsService {
     const createdAt = this.dateRange(query);
     const tasks = await this.db.task.findMany({
       where: { ...(createdAt ? { createdAt } : {}) },
-      select: { status: true, lateFlag: true, submissionTimestamp: true, reviews: { select: { id: true } } },
+      select: { status: true, lateFlag: true, submittedAt: true, review: { select: { id: true } } },
     });
     const byStatus = Object.fromEntries(['TODO', 'IN_PROGRESS', 'SUBMITTED', 'DONE'].map((status) => [
       status, tasks.filter((task) => task.status === status).length,
@@ -83,9 +83,9 @@ export class ReportsService {
     return {
       total: tasks.length,
       byStatus,
-      submitted: tasks.filter((task) => task.submissionTimestamp).length,
+      submitted: tasks.filter((task) => task.submittedAt).length,
       late: tasks.filter((task) => task.lateFlag === true).length,
-      reviewed: tasks.filter((task) => task.reviews.length > 0).length,
+      reviewed: tasks.filter((task) => Boolean(task.review)).length,
       disclaimer: 'Late status is an objective timing fact only and does not trigger a wage or disciplinary action.',
     };
   }
@@ -131,25 +131,13 @@ export class ReportsService {
     let rows: unknown[][];
     if (kind === 'payments') rows = await this.paymentRows(query);
     else if (kind === 'tasks') {
-      const createdAt = this.dateRange(query);
-      const tasks = await this.db.task.findMany({
-        where: { ...(createdAt ? { createdAt } : {}) },
-        include: { assignee: { select: { name: true } }, reviews: { select: { decision: true } } },
-        orderBy: { createdAt: 'asc' },
-      });
-      rows = [['Task', 'Assignee', 'Status', 'Deadline', 'Submitted', 'Late', 'KPI decision'], ...tasks.map((task) => [
-        task.title, task.assignee.name, task.status, task.deadline.toISOString(),
-        task.submissionTimestamp?.toISOString() ?? '', task.lateFlag === null ? '' : task.lateFlag ? 'Late' : 'On time',
-        task.reviews[0]?.decision ?? '',
-      ])];
+      const report = await this.taskReport(query);
+      rows = [['Status', 'Tasks'], ...Object.entries(report.byStatus).map(([status, total]) => [status, total]),
+        ['Submitted', report.submitted], ['Late', report.late], ['Reviewed', report.reviewed]];
     } else {
-      const createdAt = this.dateRange(query);
-      const cases = await this.db.supportCase.findMany({
-        where: { ...(createdAt ? { createdAt } : {}) }, include: { client: { select: { name: true } } }, orderBy: { createdAt: 'asc' },
-      });
-      rows = [['Client', 'Category', 'Status', 'Received', 'Closed', 'Turnaround hours'], ...cases.map((item) => [
-        item.client.name, item.category, item.status, item.createdAt.toISOString(), item.closedAt?.toISOString() ?? '',
-        item.closedAt ? ((item.closedAt.getTime() - item.createdAt.getTime()) / 3_600_000).toFixed(1) : '',
+      const report = await this.supportReport(query);
+      rows = [['Category', 'Cases', 'Closed', 'Average turnaround hours'], ...report.categories.map(item => [
+        item.category, item.total, item.closed, item.averageTurnaroundHours ?? '',
       ])];
     }
     return format === 'xlsx' ? workbook(rows, kind) : rows.map((row) => row.map(csv).join(',')).join('\r\n');

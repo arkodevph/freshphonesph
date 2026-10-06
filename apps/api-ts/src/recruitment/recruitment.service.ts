@@ -175,11 +175,11 @@ export class RecruitmentService {
 
   async agents(query: { page: number; q: string }) {
     const where: Prisma.AgentWhereInput = query.q ? { OR: [
-      { fullName: { contains: query.q, mode: 'insensitive' } },
-      { agentCode: { contains: query.q, mode: 'insensitive' } },
+      { name: { contains: query.q, mode: 'insensitive' } },
+      { code: { contains: query.q, mode: 'insensitive' } },
     ] } : {};
     const [items, total] = await this.db.$transaction([
-      this.db.agent.findMany({ where, orderBy: { fullName: 'asc' }, skip: (query.page - 1) * 20, take: 20 }),
+      this.db.agent.findMany({ where, orderBy: { name: 'asc' }, skip: (query.page - 1) * 20, take: 20 }),
       this.db.agent.count({ where }),
     ]);
     return { items, total, page: query.page, pageSize: 20 };
@@ -187,7 +187,7 @@ export class RecruitmentService {
 
   async createAgent(user: User, input: { fullName: string; agentCode: string; phone: string; active: boolean }) {
     return this.write(user, 'AGENT_MANAGE', async (tx) => {
-      const result = await tx.agent.create({ data: input });
+      const result = await tx.agent.create({ data: { name: input.fullName, code: input.agentCode, active: input.active } });
       await tx.auditEntry.create({ data: {
         actorId: user.id, action: 'agent.created', entity: 'agent', recordId: result.id, after: json(result),
       } });
@@ -199,7 +199,7 @@ export class RecruitmentService {
     return this.write(user, 'AGENT_MANAGE', async (tx) => {
       const before = await tx.agent.findUnique({ where: { id } });
       if (!before) throw new NotFoundException('Agent not found.');
-      const changed = await tx.agent.updateMany({ where: { id, version }, data: { ...input, version: { increment: 1 } } });
+      const changed = await tx.agent.updateMany({ where: { id, version }, data: { name: input.fullName, code: input.agentCode, active: input.active, version: { increment: 1 } } });
       if (!changed.count) throw new ConflictException('This agent changed. Refresh and try again.');
       const after = await tx.agent.findUniqueOrThrow({ where: { id } });
       await tx.auditEntry.create({ data: {
@@ -215,14 +215,14 @@ export class RecruitmentService {
     if (!value) return { found: false } as const;
     const agent = await this.db.agent.findFirst({
       where: { OR: [
-        { agentCode: { equals: value, mode: 'insensitive' } },
-        { fullName: { contains: value, mode: 'insensitive' } },
+        { code: { equals: value, mode: 'insensitive' } },
+        { name: { contains: value, mode: 'insensitive' } },
       ] },
-      orderBy: { fullName: 'asc' },
+      orderBy: { name: 'asc' },
     });
     if (!agent) return { found: false } as const;
-    const code = agent.agentCode;
+    const code = agent.code;
     const masked = code.length <= 4 ? '*'.repeat(code.length) : `${code.slice(0, 2)}${'*'.repeat(code.length - 4)}${code.slice(-2)}`;
-    return { found: true, fullName: agent.fullName, agentCode: masked, active: agent.active } as const;
+    return { found: true, fullName: agent.name, agentCode: masked, active: agent.active } as const;
   }
 }

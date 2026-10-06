@@ -56,6 +56,18 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md) | **Reference** — every PDF section mapped to current status and acceptance evidence | §1–§21, §A–§B |
 | [19-records-typescript-preview.md](19-records-typescript-preview.md) | Run the existing UI with TypeScript records, installments, customer membership and live updates | §3, §5, §6, §15, §16 |
 | [20-v6-architecture-decision.md](20-v6-architecture-decision.md) | Approved v6 production architecture, capacity baseline, recovery model, and pending deployment choices | §15–§15.2 |
+| [25-record-edit-history.md](25-record-edit-history.md) | Client/batch editing, schedule locks, safe conflicts, scoped change history and UAT checks | §6 |
+| [26-batch-assignments.md](26-batch-assignments.md) | Handler/agent assignment, scoped record access, filters, agent directory, migration and UAT | §3, §6, §11 |
+| [27-finance-pending-alerts.md](27-finance-pending-alerts.md) | Finance bell, per-account unread state, pending-payment links, read/decision races and UAT | §7, §12 |
+| [28-staff-task-alerts.md](28-staff-task-alerts.md) | Shared staff bell, task assignment/deadline reminders, scoped receipts, exact task links and UAT | §8, §12 |
+| [29-finance-result-alerts.md](29-finance-result-alerts.md) | Recipient-scoped Finance decisions, historical notes, shared Results filter and UAT | §7, §12 |
+| [30-staff-email-delivery.md](30-staff-email-delivery.md) | Staff task/Finance emails, Owner templates/timing, delivery history, bounded retries and UAT | §8, §12 |
+| [31-support-staff-alerts.md](31-support-staff-alerts.md) | Customer Service bell/email events, triage/assignee routing, exact case links, safe drafts and UAT | §5, §12 |
+| [32-account-access-alerts.md](32-account-access-alerts.md) | Owner account creation/role/access bell and email events, historical snapshots, exact account links, safe drafts and UAT | §3, §12 |
+| [33-staff-email-launch.md](33-staff-email-launch.md) | Client-owned sender setup, read-only configuration checks, isolated email smoke tests and named Owner sign-off | §12, §16 |
+| [34-records-client-filters.md](34-records-client-filters.md) | Combined model/status/date/assignment filters, accurate paging, exact client links, safe drafts and UAT | §3, §6 |
+| [35-upstream-merge.md](35-upstream-merge.md) | Operations/recruitment/landing import, local-work preservation, migration reconciliation and verification | §4, §6, §9, §11 |
+| [36-scope-handoff.md](36-scope-handoff.md) | Completed local work, remaining implementation/client dependencies, coworker handoff and validation commands | §1–§21 |
 
 ## Legend (from the scope)
 

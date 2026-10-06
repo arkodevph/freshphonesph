@@ -18,10 +18,10 @@ import CustomerWorkQueues from "./CustomerWorkQueues";
 import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
 
 const SHORTCUTS = [
-  { icon: Stack, label: "Manage batches", detail: "Paluwagan records", href: "/system/records" },
-  { icon: Users, label: "Open clients", detail: "Members and schedules", href: "/system/clients" },
-  { icon: Receipt, label: "Review payments", detail: "Record and verify", href: "/system/payments" },
-  { icon: Headset, label: "Support cases", detail: "Customer concerns", href: "/system/support" },
+  { icon: Stack, label: "Open batches", detail: "Paluwagan records", href: "/system/records", perms: ["BATCH_READ", "BATCH_MANAGE"] },
+  { icon: Users, label: "Open clients", detail: "Members and schedules", href: "/system/clients", perms: ["CLIENT_READ", "CLIENT_MANAGE"] },
+  { icon: Receipt, label: "Review payments", detail: "Record and verify", href: "/system/payments", perms: ["PAYMENT_READ", "PAYMENT_RECORD"] },
+  { icon: Headset, label: "Support cases", detail: "Customer concerns", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
 ] as const;
 
 export default function DashboardPage() {
@@ -103,7 +103,7 @@ export default function DashboardPage() {
             <span className="system-panel-note">Core modules</span>
           </div>
           <div className="system-shortcuts">
-            {SHORTCUTS.filter(({ href }) => availableRoute(href)).map(({ icon: Icon, label, detail, href }) => (
+            {SHORTCUTS.filter(({ href, perms }) => availableRoute(href) && can(me, ...perms)).map(({ icon: Icon, label, detail, href }) => (
               <Link key={href} href={href} className="system-shortcut">
                 <span className="system-shortcut-icon"><Icon weight="fill" /></span>
                 <span className="min-w-0 flex-1">

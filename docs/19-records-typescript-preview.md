@@ -18,7 +18,8 @@ This is a local migration preview, not a production cutover or completion of Gat
 - Authorized staff can issue a schedule for a legacy client after reviewing the batch terms.
   Repeating that command, including concurrently, returns the existing schedule without
   duplicate installments, audit entries or events.
-- Staff can search and page through the existing Records/Clients tables. Batch choices load
+- Staff can combine search/model/status/date/handler/agent filters and page through the
+  Records/Clients tables with scoped totals; see [34-records-client-filters.md](34-records-client-filters.md). Batch choices load
   every page of eligible batches. Finance has read access and cannot submit record writes.
 - Customer accounts see their own membership, schedule, release status, Finance-verified
   payment history and a derived remaining balance. Support remains unavailable in this preview.

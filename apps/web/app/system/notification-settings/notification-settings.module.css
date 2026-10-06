@@ -3,6 +3,10 @@
 :global(html[data-system-theme="dark"]) .page header > p:last-child,
 :global(html[data-system-theme="dark"]) .note { color: #a6b4d3; }
 .page header { margin-bottom: 25px; }
+.audience { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.audience button { border: 1px solid #cdd2e9; border-radius: 10px; padding: 9px 15px; font-size: 13px; font-weight: 800; cursor: pointer; }
+.audience button[aria-pressed="true"] { background: #5037ca; color: #fff; border-color: #5037ca; }
+.audience button:focus-visible { outline: 3px solid #aa96ed; outline-offset: 3px; }
 .eyebrow { color: #6546da; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
 .page h1 { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: clamp(27px, 3vw, 38px); font-weight: 900; }
 .page h1 svg { width: 34px; height: 34px; color: #6841d1; }
