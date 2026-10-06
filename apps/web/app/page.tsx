@@ -7,13 +7,14 @@ import Footer from "@/components/Footer";
 import { Process, RequirementsAndPayments, Trust } from "@/components/RecentLandingSections";
 import ScrollPhoneStory from "@/components/ScrollPhoneStory";
 import LandingLoader from "@/components/LandingLoader";
+import JobBoard from "@/components/JobBoard";
 import "./landing.css";
 
 export default function Home() {
   return (
     <>
       <LandingLoader />
-      <Navbar />
+      <Navbar immersive />
       <main>
         <Hero />
         <Trust />
@@ -21,6 +22,7 @@ export default function Home() {
         <Models />
         <Process />
         <RequirementsAndPayments />
+        <JobBoard />
         <Faq />
         <CtaJoin />
       </main>

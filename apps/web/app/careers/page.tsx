@@ -1,112 +1,238 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Briefcase, PaperPlaneTilt } from "@phosphor-icons/react";
-import { getCareers, applyToJob, type JobOpening } from "@/lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Briefcase,
+  CheckCircle,
+  FileArrowUp,
+  MapPin,
+  PaperPlaneTilt,
+  ShieldCheck,
+} from "@phosphor-icons/react";
+import { applyToJob, getCareers, type JobOpening } from "@/lib/api";
+import styles from "./careers.module.css";
+
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_ATTACHMENT_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+
+type LoadState = "loading" | "ready" | "error";
 
 export default function CareersPage() {
   const [jobs, setJobs] = useState<JobOpening[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [form, setForm] = useState({ job: "", full_name: "", email: "", phone: "", message: "" });
+  const [attachment, setAttachment] = useState<File | undefined>();
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    getCareers().then(setJobs).catch(() => {});
+  const selectedJob = useMemo(
+    () => jobs.find((job) => String(job.id) === form.job),
+    [form.job, jobs],
+  );
+
+  const loadJobs = useCallback(async () => {
+    setLoadState("loading");
+    try {
+      const openings = await getCareers();
+      setJobs(openings);
+      const requestedJob = new URLSearchParams(window.location.search).get("job");
+      if (requestedJob && openings.some((job) => String(job.id) === requestedJob)) {
+        setForm((current) => ({ ...current, job: requestedJob }));
+      }
+      setLoadState("ready");
+    } catch {
+      setLoadState("error");
+    }
   }, []);
 
-  async function apply(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    void loadJobs();
+  }, [loadJobs]);
+
+  function chooseRole(job: JobOpening) {
+    setForm((current) => ({ ...current, job: String(job.id) }));
+    setNotice(null);
+    setError(null);
+  }
+
+  function chooseAttachment(file?: File) {
+    setError(null);
+    if (!file) {
+      setAttachment(undefined);
+      return;
+    }
+    if (!ACCEPTED_ATTACHMENT_TYPES.includes(file.type)) {
+      setAttachment(undefined);
+      setFileInputKey((value) => value + 1);
+      setError("Attach a PDF, JPG, PNG, or WebP file.");
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setAttachment(undefined);
+      setFileInputKey((value) => value + 1);
+      setError("The attachment must be 5 MB or smaller.");
+      return;
+    }
+    setAttachment(file);
+  }
+
+  async function apply(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setSending(true);
     setError(null);
+    setNotice(null);
     try {
       await applyToJob({
-        job: Number(form.job),
+        job: form.job,
         full_name: form.full_name,
         email: form.email,
         phone: form.phone,
         message: form.message,
-      });
-      setNotice("Application received — thank you! We'll be in touch.");
-      setForm((f) => ({ ...f, full_name: "", email: "", phone: "", message: "" }));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not submit.");
+      }, attachment);
+      setNotice(`Application sent for ${selectedJob?.title ?? "the selected role"}. Our team will review it.`);
+      setForm((current) => ({ ...current, full_name: "", email: "", phone: "", message: "" }));
+      setAttachment(undefined);
+      setFileInputKey((value) => value + 1);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "We couldn't submit your application. Please try again.");
     } finally {
       setSending(false);
     }
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/" className="mb-6 inline-flex items-center gap-1.5 text-sm font-600 text-ink-soft hover:text-blue">
-        <ArrowLeft className="h-4 w-4" /> Back to site
-      </Link>
-      <h1 className="font-display text-3xl font-800 tracking-tight text-blue-ink">
-        Careers at <span className="holo-text">Fresh Phones PH</span>
-      </h1>
-      <p className="mt-1 text-ink-soft">Join the team. Open roles below — apply in a minute.</p>
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <Link href="/#careers" className={styles.backLink}>
+          <ArrowLeft aria-hidden="true" /> Back to Fresh Phones PH
+        </Link>
 
-      <div className="mt-6 grid gap-3">
-        {jobs.length === 0 ? (
-          <p className="glass rounded-3xl p-6 text-center text-ink-soft">No open roles right now.</p>
-        ) : (
-          jobs.map((j) => (
-            <div key={j.id} className="glass rounded-3xl p-5">
-              <div className="flex items-center gap-2">
-                <Briefcase weight="fill" className="h-5 w-5 text-blue" />
-                <h2 className="font-display text-lg font-700 text-blue-ink">{j.title}</h2>
-              </div>
-              {(j.location || j.employment_type) && (
-                <p className="mt-1 text-xs font-600 text-ink-soft">
-                  {[j.employment_type, j.location].filter(Boolean).join(" · ")}
-                </p>
-              )}
-              {j.description && <p className="mt-2 text-sm text-ink-soft">{j.description}</p>}
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="glass mt-6 rounded-3xl p-6">
-        <h2 className="mb-3 font-display text-lg font-700 text-blue-ink">Apply</h2>
-        {(error || notice) && (
-          <div className={`mb-3 rounded-2xl px-4 py-2.5 text-sm font-600 ${error ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
-            {error ?? notice}
+        <header className={styles.hero}>
+          <div>
+            <span className={styles.eyebrow}>Careers at Fresh Phones PH</span>
+            <h1>Find work where <span className="holo-text">people come first.</span></h1>
+            <p>Review every open role, choose the right fit, and send one focused application to our recruitment team.</p>
           </div>
-        )}
-        <form onSubmit={apply} className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 sm:col-span-2">
-            <span className="text-xs font-600 text-ink-soft">Role</span>
-            <select required value={form.job} onChange={(e) => setForm({ ...form, job: e.target.value })} className={inputCls}>
-              <option value="">Select a role…</option>
-              {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-600 text-ink-soft">Full name</span>
-            <input required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className={inputCls} />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-600 text-ink-soft">Email</span>
-            <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputCls} />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-600 text-ink-soft">Phone (optional)</span>
-            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputCls} />
-          </label>
-          <label className="flex flex-col gap-1 sm:col-span-2">
-            <span className="text-xs font-600 text-ink-soft">Message (optional)</span>
-            <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={3} className={inputCls} />
-          </label>
-          <button type="submit" disabled={sending} className="btn-candy inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-700 disabled:opacity-70 sm:col-span-2">
-            <PaperPlaneTilt weight="fill" className="h-5 w-5" /> {sending ? "Sending…" : "Submit application"}
-          </button>
-        </form>
+          <div className={styles.promise}>
+            <ShieldCheck weight="duotone" aria-hidden="true" />
+            <div><strong>Human-reviewed applications</strong><span>No automated hiring decisions.</span></div>
+          </div>
+        </header>
+
+        <section className={styles.openings} aria-labelledby="openings-heading" aria-live="polite" aria-busy={loadState === "loading"}>
+          <div className={styles.sectionHeading}>
+            <div><span>Current opportunities</span><h2 id="openings-heading">Open roles</h2></div>
+            {loadState === "ready" && <p>{jobs.length} {jobs.length === 1 ? "opening" : "openings"}</p>}
+          </div>
+
+          {loadState === "loading" && <div className={styles.loading} aria-label="Loading job openings"><span /><span /></div>}
+          {loadState === "error" && (
+            <div className={styles.stateMessage} role="alert">
+              <Briefcase weight="duotone" aria-hidden="true" />
+              <strong>Open roles are temporarily unavailable.</strong>
+              <p>Check your connection and try loading them again.</p>
+              <button type="button" onClick={loadJobs}>Try again</button>
+            </div>
+          )}
+          {loadState === "ready" && jobs.length === 0 && (
+            <div className={styles.stateMessage}>
+              <Briefcase weight="duotone" aria-hidden="true" />
+              <strong>No roles are open right now.</strong>
+              <p>Please check back soon for new opportunities.</p>
+            </div>
+          )}
+          {loadState === "ready" && jobs.length > 0 && (
+            <div className={styles.jobList}>
+              {jobs.map((job) => {
+                const selected = String(job.id) === form.job;
+                return (
+                  <article key={job.id} className={selected ? styles.selectedJob : styles.jobCard}>
+                    <div className={styles.jobTopline}>
+                      <div className={styles.jobIcon}><Briefcase weight="fill" aria-hidden="true" /></div>
+                      <div>
+                        <h3>{job.title}</h3>
+                        <div className={styles.meta}>
+                          {job.employment_type && <span>{job.employment_type}</span>}
+                          {job.location && <span><MapPin weight="fill" aria-hidden="true" />{job.location}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    {job.description && <p className={styles.description}>{job.description}</p>}
+                    <a href="#application" onClick={() => chooseRole(job)} aria-current={selected ? "true" : undefined}>
+                      {selected ? <><CheckCircle weight="fill" aria-hidden="true" /> Selected</> : <>Apply for this role <ArrowRight weight="bold" aria-hidden="true" /></>}
+                    </a>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section id="application" className={styles.application} aria-labelledby="application-heading">
+          <div className={styles.applicationIntro}>
+            <span className={styles.eyebrow}>Application</span>
+            <h2 id="application-heading">Tell us how to reach you.</h2>
+            <p>Required fields are marked. Your details are used only to review and respond to this application.</p>
+            {selectedJob && (
+              <div className={styles.selectedSummary}>
+                <CheckCircle weight="fill" aria-hidden="true" />
+                <div><span>Applying for</span><strong>{selectedJob.title}</strong></div>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={apply} className={styles.form}>
+            <div className={styles.formGrid}>
+              <label className={styles.fullField}>
+                <span>Role <em>Required</em></span>
+                <select required value={form.job} onChange={(event) => setForm({ ...form, job: event.target.value })}>
+                  <option value="">Choose an open role</option>
+                  {jobs.map((job) => <option key={job.id} value={String(job.id)}>{job.title}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Full name <em>Required</em></span>
+                <input required autoComplete="name" value={form.full_name} onChange={(event) => setForm({ ...form, full_name: event.target.value })} />
+              </label>
+              <label>
+                <span>Email address <em>Required</em></span>
+                <input type="email" required autoComplete="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+              </label>
+              <label className={styles.fullField}>
+                <span>Phone number <small>Optional</small></span>
+                <input type="tel" autoComplete="tel" inputMode="tel" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="e.g. 09XX XXX XXXX" />
+              </label>
+              <label className={styles.fullField}>
+                <span>Why are you interested? <small>Optional</small></span>
+                <textarea rows={5} maxLength={4000} value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} placeholder="Share relevant experience or what interests you about this role." />
+              </label>
+              <label className={`${styles.fullField} ${styles.fileField}`}>
+                <span>Résumé or portfolio <small>Optional</small></span>
+                <span className={styles.fileControl}>
+                  <FileArrowUp weight="duotone" aria-hidden="true" />
+                  <span><strong>{attachment?.name ?? "Choose a file"}</strong><small>PDF, JPG, PNG, or WebP · up to 5 MB</small></span>
+                  <input key={fileInputKey} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => chooseAttachment(event.currentTarget.files?.[0])} />
+                </span>
+              </label>
+            </div>
+
+            {(error || notice) && (
+              <div className={error ? styles.error : styles.success} role={error ? "alert" : "status"}>
+                {error ? error : <><CheckCircle weight="fill" aria-hidden="true" />{notice}</>}
+              </div>
+            )}
+
+            <button type="submit" className={styles.submit} disabled={sending || loadState !== "ready" || jobs.length === 0}>
+              <PaperPlaneTilt weight="fill" aria-hidden="true" /> {sending ? "Sending application…" : "Send application"}
+            </button>
+          </form>
+        </section>
       </div>
     </main>
   );
 }
-
-const inputCls =
-  "w-full rounded-2xl border border-white/70 bg-white/70 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-blue focus:bg-white";

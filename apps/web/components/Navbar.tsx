@@ -9,10 +9,11 @@ const links = [
   { href: "/about", label: "About" },
   { href: "/#units", label: "Units" },
   { href: "/#how", label: "How it Works" },
+  { href: "/#careers", label: "Careers" },
   { href: "/#contact", label: "Contact" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ immersive = false }: { immersive?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const sentinel = useRef<HTMLSpanElement | null>(null);
@@ -31,11 +32,16 @@ export default function Navbar() {
 
   return (
     <>
-      <span ref={sentinel} aria-hidden className="absolute left-0 top-0 h-px w-px" />
+      <span
+        ref={sentinel}
+        aria-hidden
+        className="absolute left-0 top-0 h-px w-px"
+        style={immersive ? { top: "calc(100svh - 5rem)" } : undefined}
+      />
       <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5">
         <nav
           className={`mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full px-3 transition-all duration-300 sm:px-4 ${
-            scrolled ? "glass !bg-white" : "bg-white/30 backdrop-blur-sm"
+            scrolled ? "glass !bg-white" : immersive ? "bg-transparent" : "bg-white/30 backdrop-blur-sm"
           }`}
         >
           <a href="/#top" className="flex items-center gap-2.5 pl-1">

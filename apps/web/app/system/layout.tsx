@@ -24,6 +24,7 @@ import {
   Users,
 } from "@phosphor-icons/react";
 import { logoutSession, isAuthed } from "@/lib/auth";
+import { listNotifications, readAllNotifications, readNotification, type NotificationRecord } from "@/lib/api";
 import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
 import { can, useMe } from "@/lib/useMe";
 
@@ -32,11 +33,11 @@ const NAV = [
   { icon: Stack, label: "Paluwagan Records", href: "/system/records", perms: ["BATCH_MANAGE", "BATCH_READ"] },
   { icon: Receipt, label: "Payments & Finance", href: "/system/payments", perms: ["PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY"] },
   { icon: Users, label: "Clients", href: "/system/clients", perms: ["CLIENT_MANAGE", "CLIENT_READ"] },
-  { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
-  { icon: ChartBar, label: "Reports", href: null, perms: [] },
+  { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: ["TASK_READ"] },
+  { icon: ChartBar, label: "Reports", href: "/system/reports", perms: ["REPORT_VIEW"] },
   { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
   { icon: TrayArrowDown, label: "Customer work", href: "/system/customer-work", perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"] },
-  { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "CLIENT_MANAGE"] },
+  { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "AGENT_MANAGE"] },
   { icon: Bell, label: "Notification settings", href: TYPESCRIPT_API ? "/system/notification-settings" : null, perms: ["ACCOUNT_MANAGE"] },
   { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
   { icon: ShieldCheck, label: "User Management", href: "/system/team", perms: ["ROLE_ASSIGN", "ACCOUNT_MANAGE"] },
@@ -57,6 +58,8 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
   const [openPanel, setOpenPanel] = useState<"search" | "notifications" | "profile" | null>(null);
   const [query, setQuery] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  const [unread, setUnread] = useState(0);
   const actionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,6 +74,32 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     setTheme(document.documentElement.dataset.systemTheme === "dark" ? "dark" : "light");
   }, []);
+
+  useEffect(() => {
+    if (!TYPESCRIPT_API || !me || !can(me, "NOTIFICATION_READ")) return;
+    const load = () => listNotifications().then((page) => {
+      setNotifications(page.items); setUnread(page.unread);
+    }).catch(() => undefined);
+    void load();
+    const timer = window.setInterval(load, 30_000);
+    return () => window.clearInterval(timer);
+  }, [me]);
+
+  async function openNotification(item: NotificationRecord) {
+    if (!item.readAt) {
+      await readNotification(item.id);
+      setNotifications((items) => items.map((candidate) => candidate.id === item.id ? { ...candidate, readAt: new Date().toISOString() } : candidate));
+      setUnread((value) => Math.max(0, value - 1));
+    }
+    setOpenPanel(null);
+    if (item.link) router.push(item.link);
+  }
+
+  async function markAllRead() {
+    await readAllNotifications();
+    setNotifications((items) => items.map((item) => ({ ...item, readAt: item.readAt ?? new Date().toISOString() })));
+    setUnread(0);
+  }
 
   useEffect(() => {
     function closeOnOutsideClick(event: PointerEvent) {
@@ -236,11 +265,15 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
               {theme === "dark" ? <Sun className="h-[19px] w-[19px]" /> : <Moon className="h-[19px] w-[19px]" />}
             </button>
             <div className="system-popover-anchor">
-              <button className="system-icon-button" aria-label="Notifications" aria-expanded={openPanel === "notifications"} aria-controls="notifications-panel" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell className="h-[19px] w-[19px]" /></button>
+              <button className="system-icon-button system-notification-button" aria-label={`${unread} unread notifications`} aria-expanded={openPanel === "notifications"} aria-controls="notifications-panel" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell className="h-[19px] w-[19px]" />{unread > 0 && <span>{unread > 9 ? "9+" : unread}</span>}</button>
               {openPanel === "notifications" && (
                 <section id="notifications-panel" className="system-popover system-notifications-popover" aria-label="Notifications">
-                  <div className="system-popover-heading"><strong>Notifications</strong><small>Staff activity</small></div>
-                  <div className="system-notification-empty"><span><Bell weight="fill" /></span><strong>You&apos;re all caught up</strong><p>No new staff notifications.</p></div>
+                  <div className="system-popover-heading"><strong>Notifications</strong>{unread > 0 ? <button type="button" onClick={markAllRead}>Mark all read</button> : <small>All read</small>}</div>
+                  {notifications.length ? <div className="system-notification-list">{notifications.slice(0, 8).map((item) => (
+                    <button key={item.id} type="button" className={item.readAt ? "" : "is-unread"} onClick={() => openNotification(item)}>
+                      <span aria-hidden="true" /><div><strong>{item.title}</strong><p>{item.body}</p><time>{new Date(item.createdAt).toLocaleString()}</time></div>
+                    </button>
+                  ))}</div> : <div className="system-notification-empty"><span><Bell weight="fill" /></span><strong>You&apos;re all caught up</strong><p>No new staff notifications.</p></div>}
                 </section>
               )}
             </div>

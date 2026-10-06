@@ -47,14 +47,8 @@ enum PaymentStatus {
   REJECTED
   NEEDS_CLARIFICATION
 }
-enum SupportStatus {
-  OPEN
-  IN_PROGRESS
-  WAITING_FOR_CLIENT
-  RESOLVED
-  CLOSED
-}
-enum DocumentStatus {
+enum RequirementStatus {
+  MISSING
   SUBMITTED
   APPROVED
   NEEDS_CLARIFICATION
@@ -71,8 +65,28 @@ enum TaskStatus {
   DONE
 }
 enum KpiDecision {
+  PENDING
   NOTED
   ACTION_RECOMMENDED
+}
+enum SupportStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_CLIENT
+  RESOLVED
+  CLOSED
+}
+enum ApplicantStatus {
+  RECEIVED
+  REVIEWING
+  SHORTLISTED
+  REJECTED
+  HIRED
+}
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
 }
 model User {
   id String @id @default(uuid()) @db.Uuid
@@ -90,14 +104,14 @@ model User {
   recordedPayments Payment[] @relation("PaymentRecorder")
   verifiedPayments Payment[] @relation("PaymentVerifier")
   uploadedFiles StoredFile[]
-  assignedCases SupportCase[] @relation("CaseAssignee")
-  supportMessages SupportMessage[]
-  releaseUpdates ReleaseUpdate[]
-  notifications Notification[]
-  reviewedDocuments CustomerDocument[] @relation("DocumentReviewer")
-  assignedTasks Task[] @relation("TaskAssignee")
+  requirementReviews RequirementReview[] @relation("RequirementReviewer")
+  notifications Notification[] @relation("NotificationRecipient")
   createdTasks Task[] @relation("TaskCreator")
+  assignedTasks Task[] @relation("TaskAssignee")
   kpiReviews KpiReview[]
+  assignedSupportCases SupportCase[] @relation("SupportAssignee")
+  reviewedApplicants Applicant[] @relation("ApplicantReviewer")
+  reportSnapshots ReportSnapshot[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -151,103 +165,13 @@ model Client {
   account User?
   schedule ScheduleItem[]
   payments Payment[]
-  supportCases SupportCase[]
-  releaseUpdates ReleaseUpdate[]
+  requirements ClientRequirement[]
   documents CustomerDocument[]
+  supportCases SupportCase[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([batchId])
   @@index([status, createdAt])
-}
-model CustomerDocument {
-  id String @id @default(uuid()) @db.Uuid
-  clientId String @db.Uuid
-  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  requirementKey String @db.VarChar(60)
-  fileId String @unique @db.Uuid
-  file StoredFile @relation(fields: [fileId], references: [id], onDelete: Restrict)
-  status DocumentStatus @default(SUBMITTED)
-  clarification String @default("")
-  reviewedById String? @db.Uuid
-  reviewedBy User? @relation("DocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  reviewedAt DateTime?
-  version Int @default(1)
-  createdAt DateTime @default(now())
-  @@index([clientId, requirementKey, createdAt])
-  @@index([status, createdAt, id])
-}
-model SupportCase {
-  id String @id @default(uuid()) @db.Uuid
-  clientId String @db.Uuid
-  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  category String @db.VarChar(80)
-  description String
-  status SupportStatus @default(OPEN)
-  resolution String @default("")
-  assignedStaffId String? @db.Uuid
-  assignedStaff User? @relation("CaseAssignee", fields: [assignedStaffId], references: [id], onDelete: SetNull)
-  messages SupportMessage[]
-  closedAt DateTime?
-  version Int @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([clientId, createdAt])
-  @@index([status, createdAt])
-  @@index([status, updatedAt, id])
-}
-model SupportMessage {
-  id String @id @default(uuid()) @db.Uuid
-  caseId String @db.Uuid
-  supportCase SupportCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
-  authorId String @db.Uuid
-  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  body String @db.VarChar(5000)
-  createdAt DateTime @default(now())
-  @@index([caseId, createdAt, id])
-}
-model ReleaseUpdate {
-  id String @id @default(uuid()) @db.Uuid
-  clientId String @db.Uuid
-  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  actorId String @db.Uuid
-  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
-  status ReleaseStatus
-  note String @default("") @db.VarChar(1000)
-  collectionDate DateTime? @db.Date
-  createdAt DateTime @default(now())
-  @@index([clientId, createdAt, id])
-}
-model Notification {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  kind String @db.VarChar(50)
-  title String @db.VarChar(120)
-  message String @db.VarChar(500)
-  targetPath String? @db.VarChar(300)
-  readAt DateTime?
-  emailStatus String @default("PENDING") @db.VarChar(20)
-  emailAttempts Int @default(0)
-  emailNextAt DateTime @default(now())
-  emailSentAt DateTime?
-  emailError String? @db.VarChar(250)
-  dedupeKey String? @unique @db.VarChar(180)
-  createdAt DateTime @default(now())
-  @@index([userId, createdAt])
-  @@index([emailStatus, emailNextAt])
-}
-model CustomerEmailTemplate {
-  kind String @id @db.VarChar(50)
-  subject String @db.VarChar(180)
-  body String
-  version Int @default(1)
-  updatedAt DateTime @updatedAt
-}
-model CustomerNotificationConfig {
-  key String @id @db.VarChar(40)
-  reminderDays String @default("") @db.VarChar(100)
-  version Int @default(1)
-  updatedAt DateTime @updatedAt
 }
 model ScheduleItem {
   id String @id @default(uuid()) @db.Uuid
@@ -271,9 +195,6 @@ model Payment {
   paymentDate DateTime @db.Date
   method String @db.VarChar(40)
   referenceNumber String? @db.VarChar(120)
-  receiptTime String? @db.VarChar(20)
-  receiptName String? @db.VarChar(120)
-  receiptPhone String? @db.VarChar(40)
   notes String?
   verificationNotes String?
   proofFileId String? @unique @db.Uuid
@@ -298,13 +219,73 @@ model StoredFile {
   originalName String @db.VarChar(255)
   mimeType String @db.VarChar(80)
   size Int
-  uploadedById String @db.Uuid
-  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  uploadedById String? @db.Uuid
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
   payment Payment?
-  document CustomerDocument?
-  taskAttachment Task?
+  customerDocument CustomerDocument?
+  taskAttachment TaskAttachment?
+  applicantAttachment ApplicantAttachment?
   createdAt DateTime @default(now())
   @@index([createdAt])
+}
+model RequirementType {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(40)
+  label String @db.VarChar(120)
+  description String @default("") @db.VarChar(500)
+  allowedMimeTypes String[]
+  maxBytes Int @default(5242880)
+  customerCanUpload Boolean @default(true)
+  active Boolean @default(true)
+  version Int @default(1)
+  requirements ClientRequirement[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([active, label])
+}
+model ClientRequirement {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  typeId String @db.Uuid
+  type RequirementType @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  status RequirementStatus @default(MISSING)
+  customerNote String @default("")
+  internalNote String @default("")
+  version Int @default(1)
+  documents CustomerDocument[]
+  reviews RequirementReview[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([clientId, typeId])
+  @@index([clientId, status])
+  @@index([status, updatedAt])
+}
+model CustomerDocument {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  requirementId String @db.Uuid
+  requirement ClientRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  storedFileId String @unique @db.Uuid
+  storedFile StoredFile @relation(fields: [storedFileId], references: [id], onDelete: Restrict)
+  revision Int
+  createdAt DateTime @default(now())
+  @@unique([requirementId, revision])
+  @@index([clientId, createdAt])
+}
+model RequirementReview {
+  id String @id @default(uuid()) @db.Uuid
+  requirementId String @db.Uuid
+  requirement ClientRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  reviewerId String @db.Uuid
+  reviewer User @relation("RequirementReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  fromStatus RequirementStatus
+  toStatus RequirementStatus
+  customerNote String
+  internalNote String @default("")
+  createdAt DateTime @default(now())
+  @@index([requirementId, createdAt])
 }
 model Task {
   id String @id @default(uuid()) @db.Uuid
@@ -317,29 +298,156 @@ model Task {
   priority TaskPriority @default(MEDIUM)
   deadline DateTime
   status TaskStatus @default(TODO)
-  report String @default("")
-  submittedAt DateTime?
+  submissionTimestamp DateTime?
   lateFlag Boolean?
-  attachmentFileId String? @unique @db.Uuid
-  attachment StoredFile? @relation(fields: [attachmentFileId], references: [id], onDelete: Restrict)
-  review KpiReview?
   version Int @default(1)
+  attachments TaskAttachment[]
+  reviews KpiReview[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([assigneeId, status])
   @@index([status, deadline])
 }
+model TaskAttachment {
+  id String @id @default(uuid()) @db.Uuid
+  taskId String @db.Uuid
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  storedFileId String @unique @db.Uuid
+  storedFile StoredFile @relation(fields: [storedFileId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@index([taskId, createdAt])
+}
 model KpiReview {
   id String @id @default(uuid()) @db.Uuid
-  taskId String @unique @db.Uuid
-  task Task @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  taskId String @db.Uuid
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   reviewerId String @db.Uuid
   reviewer User @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
   factualEvidence String
-  evaluation String
-  recommendation String @db.VarChar(200)
-  decision KpiDecision
+  evaluation String @default("")
+  recommendation String @default("") @db.VarChar(200)
+  decision KpiDecision @default(PENDING)
   createdAt DateTime @default(now())
+  @@index([taskId, createdAt])
+}
+model SupportCase {
+  id String @id @default(uuid()) @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  category String @db.VarChar(80)
+  description String
+  assignedStaffId String? @db.Uuid
+  assignedStaff User? @relation("SupportAssignee", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  status SupportStatus @default(OPEN)
+  resolution String @default("")
+  closedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, createdAt])
+  @@index([clientId, status])
+}
+model JobOpening {
+  id String @id @default(uuid()) @db.Uuid
+  title String @db.VarChar(160)
+  description String @default("")
+  location String @default("") @db.VarChar(120)
+  employmentType String @default("") @db.VarChar(60)
+  isOpen Boolean @default(true)
+  version Int @default(1)
+  applicants Applicant[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([isOpen, createdAt])
+}
+model Applicant {
+  id String @id @default(uuid()) @db.Uuid
+  jobId String @db.Uuid
+  job JobOpening @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  fullName String @db.VarChar(200)
+  email String @db.VarChar(254)
+  phone String @default("") @db.VarChar(40)
+  message String @default("")
+  status ApplicantStatus @default(RECEIVED)
+  reviewerNotes String @default("")
+  reviewerId String? @db.Uuid
+  reviewer User? @relation("ApplicantReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  version Int @default(1)
+  attachments ApplicantAttachment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, createdAt])
+  @@index([jobId, createdAt])
+}
+model ApplicantAttachment {
+  id String @id @default(uuid()) @db.Uuid
+  applicantId String @db.Uuid
+  applicant Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  storedFileId String @unique @db.Uuid
+  storedFile StoredFile @relation(fields: [storedFileId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@index([applicantId, createdAt])
+}
+model Agent {
+  id String @id @default(uuid()) @db.Uuid
+  fullName String @db.VarChar(200)
+  agentCode String @unique @db.VarChar(60)
+  phone String @default("") @db.VarChar(40)
+  active Boolean @default(true)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([fullName])
+}
+model NotificationTemplate {
+  id String @id @default(uuid()) @db.Uuid
+  key String @unique @db.VarChar(80)
+  title String @db.VarChar(160)
+  body String
+  emailEnabled Boolean @default(true)
+  active Boolean @default(true)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  recipientId String @db.Uuid
+  recipient User @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  eventKey String @db.VarChar(80)
+  title String @db.VarChar(160)
+  body String
+  link String? @db.VarChar(300)
+  dedupeKey String @unique @db.VarChar(180)
+  readAt DateTime?
+  deliveries NotificationDelivery[]
+  createdAt DateTime @default(now())
+  @@index([recipientId, readAt, createdAt])
+}
+model NotificationDelivery {
+  id String @id @default(uuid()) @db.Uuid
+  notificationId String @db.Uuid
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  status DeliveryStatus @default(PENDING)
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  sentAt DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([notificationId])
+  @@index([status, nextAttemptAt])
+}
+model ReportSnapshot {
+  id String @id @default(uuid()) @db.Uuid
+  kind String @db.VarChar(30)
+  periodStart DateTime @db.Date
+  periodEnd DateTime @db.Date
+  payload Json
+  createdById String @db.Uuid
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@index([kind, periodStart, periodEnd])
   @@index([createdAt])
 }
 model AuditEntry {
