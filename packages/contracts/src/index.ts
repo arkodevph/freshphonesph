@@ -38,25 +38,38 @@ export const permissions = [
   'PAYMENT_READ',
   'PAYMENT_RECORD',
   'PAYMENT_VERIFY',
-  'SUPPORT_MANAGE',
   'REPORT_VIEW',
+  'DOCUMENT_READ',
+  'DOCUMENT_UPLOAD',
+  'DOCUMENT_REVIEW',
+  'REQUIREMENT_MANAGE',
+  'TASK_READ',
   'TASK_ASSIGN',
+  'TASK_SUBMIT',
   'KPI_REVIEW',
+  'SUPPORT_READ',
+  'SUPPORT_CREATE',
+  'SUPPORT_MANAGE',
+  'RECRUITMENT_MANAGE',
+  'AGENT_MANAGE',
+  'NOTIFICATION_READ',
+  'NOTIFICATION_MANAGE',
 ] as const;
 export type Permission = (typeof permissions)[number];
 const records: Permission[] = ['BATCH_READ', 'BATCH_MANAGE', 'CLIENT_READ', 'CLIENT_MANAGE'];
+const ownWork: Permission[] = ['TASK_READ', 'TASK_SUBMIT', 'NOTIFICATION_READ'];
 export const rolePermissions: Record<Role, readonly Permission[]> = {
   OWNER: permissions,
-  COO: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'TASK_ASSIGN'],
-  GENERAL_MANAGER: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'TASK_ASSIGN'],
-  RECORDS: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW'],
-  FINANCE_OFFICER: ['BATCH_READ', 'CLIENT_READ', 'PAYMENT_READ', 'PAYMENT_RECORD', 'PAYMENT_VERIFY', 'REPORT_VIEW'],
-  HR_PAYROLL: ['REPORT_VIEW', 'TASK_ASSIGN', 'KPI_REVIEW'],
-  ANALYTICS: ['REPORT_VIEW'],
-  CS_HEAD: ['REPORT_VIEW', 'SUPPORT_MANAGE'],
-  CS_TEAM: ['SUPPORT_MANAGE'],
-  CORE_HANDLER: [],
-  CUSTOMER: ['PAYMENT_READ'],
+  COO: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'DOCUMENT_READ', 'DOCUMENT_REVIEW', 'REQUIREMENT_MANAGE', 'TASK_READ', 'TASK_ASSIGN', 'TASK_SUBMIT', 'SUPPORT_READ', 'SUPPORT_CREATE', 'SUPPORT_MANAGE', 'RECRUITMENT_MANAGE', 'AGENT_MANAGE', 'NOTIFICATION_READ', 'NOTIFICATION_MANAGE'],
+  GENERAL_MANAGER: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'DOCUMENT_READ', 'TASK_READ', 'TASK_ASSIGN', 'TASK_SUBMIT', 'NOTIFICATION_READ'],
+  RECORDS: [...records, 'PAYMENT_READ', 'PAYMENT_RECORD', 'REPORT_VIEW', 'DOCUMENT_READ', 'DOCUMENT_UPLOAD', 'DOCUMENT_REVIEW', 'REQUIREMENT_MANAGE', 'AGENT_MANAGE', ...ownWork],
+  FINANCE_OFFICER: ['BATCH_READ', 'CLIENT_READ', 'PAYMENT_READ', 'PAYMENT_RECORD', 'PAYMENT_VERIFY', 'REPORT_VIEW', ...ownWork],
+  HR_PAYROLL: ['REPORT_VIEW', 'TASK_READ', 'TASK_ASSIGN', 'TASK_SUBMIT', 'KPI_REVIEW', 'RECRUITMENT_MANAGE', 'NOTIFICATION_READ'],
+  ANALYTICS: ['REPORT_VIEW', ...ownWork],
+  CS_HEAD: ['REPORT_VIEW', 'SUPPORT_READ', 'SUPPORT_CREATE', 'SUPPORT_MANAGE', ...ownWork],
+  CS_TEAM: ['SUPPORT_READ', 'SUPPORT_CREATE', 'SUPPORT_MANAGE', ...ownWork],
+  CORE_HANDLER: ownWork,
+  CUSTOMER: ['PAYMENT_READ', 'DOCUMENT_READ', 'DOCUMENT_UPLOAD', 'SUPPORT_READ', 'SUPPORT_CREATE', 'NOTIFICATION_READ'],
 };
 export const passwordSchema = z.string().min(12, 'Use at least 12 characters.').max(128);
 export const loginSchema = z
@@ -161,7 +174,6 @@ export const listQuerySchema = z.object({
   status: z.string().max(30).optional(),
   batchId: z.string().uuid().optional(),
 });
-export const clientListQuerySchema = listQuerySchema.extend({ id: z.string().uuid().optional() });
 export const accountListQuerySchema = z.object({
   q: z.string().max(100).default(''),
   page: z.coerce.number().int().min(1).max(100000).default(1),
@@ -181,9 +193,6 @@ export const paymentSchema = z.object({
   paymentDate: z.string().date(),
   method: z.string().trim().min(2).max(40),
   referenceNumber: z.string().trim().max(120).nullable().optional(),
-  receiptTime: z.string().trim().regex(/^(?:(?:[1-9]|1[0-2]):[0-5]\d\s+[AP]M|(?:[01]?\d|2[0-3]):[0-5]\d)$/i).nullable().optional(),
-  receiptName: z.string().trim().max(120).nullable().optional(),
-  receiptPhone: z.string().trim().max(40).nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
 }).strict();
 export const paymentDecisionSchema = z.object({
@@ -196,18 +205,12 @@ export const paymentCorrectionSchema = z.object({
   version: z.number().int().positive(),
 }).strict();
 export const paymentListQuerySchema = listQuerySchema.extend({
-  id: z.string().uuid().optional(),
   clientId: z.string().uuid().optional(),
   dateFrom: z.string().date().optional(),
   dateTo: z.string().date().optional(),
 }).refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
 });
-export const paymentDuplicateQuerySchema = z.object({
-  method: z.string().trim().min(2).max(40),
-  referenceNumber: z.string().trim().min(1).max(120),
-  excludeId: z.string().uuid().optional(),
-}).strict();
 export const reportQuerySchema = z.object({
   q: z.string().max(100).optional(),
   dateFrom: z.string().date().optional(),
@@ -216,6 +219,130 @@ export const reportQuerySchema = z.object({
   status: paymentStatusSchema.optional(),
 }).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
+});
+export const reportExportQuerySchema = z.object({
+  kind: z.enum(['payments', 'tasks', 'support']),
+  format: z.enum(['csv', 'xlsx']),
+  q: z.string().max(100).optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+  batchId: z.string().uuid().optional(),
+  status: paymentStatusSchema.optional(),
+}).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
+  path: ['dateTo'], message: 'End date must be on or after the start date.',
+});
+export const requirementStatuses = ['MISSING', 'SUBMITTED', 'APPROVED', 'NEEDS_CLARIFICATION'] as const;
+export const requirementTypeSchema = z.object({
+  code: z.string().trim().min(2).max(40).regex(/^[A-Za-z0-9_-]+$/).transform((value) => value.toUpperCase()),
+  label: z.string().trim().min(2).max(120),
+  description: z.string().trim().max(500).default(''),
+  allowedMimeTypes: z.array(z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])).min(1).max(4),
+  maxBytes: z.number().int().min(1024).max(10 * 1024 * 1024),
+  customerCanUpload: z.boolean(),
+  active: z.boolean(),
+}).strict();
+export const requirementTypeUpdateSchema = z.object({
+  version: z.number().int().positive(),
+  record: requirementTypeSchema,
+}).strict();
+export const requirementReviewSchema = z.object({
+  status: z.enum(['APPROVED', 'NEEDS_CLARIFICATION']),
+  customerNote: z.string().trim().min(2).max(1000),
+  internalNote: z.string().trim().max(1000).default(''),
+  version: z.number().int().positive(),
+}).strict();
+export const taskPriorities = ['LOW', 'MEDIUM', 'HIGH'] as const;
+export const taskStatuses = ['TODO', 'IN_PROGRESS', 'SUBMITTED', 'DONE'] as const;
+export const taskSchema = z.object({
+  title: z.string().trim().min(2).max(200),
+  instructions: z.string().trim().max(4000).default(''),
+  assigneeId: z.string().uuid(),
+  priority: z.enum(taskPriorities).default('MEDIUM'),
+  deadline: z.string().datetime({ offset: true }),
+}).strict();
+export const taskProgressSchema = z.object({
+  status: z.enum(['TODO', 'IN_PROGRESS']),
+  version: z.number().int().positive(),
+}).strict();
+export const taskSubmissionSchema = z.object({ version: z.number().int().positive() }).strict();
+export const kpiDecisions = ['PENDING', 'NOTED', 'ACTION_RECOMMENDED'] as const;
+export const kpiReviewSchema = z.object({
+  taskId: z.string().uuid(),
+  evaluation: z.string().trim().max(4000).default(''),
+  recommendation: z.string().trim().max(200).default(''),
+  decision: z.enum(kpiDecisions).default('NOTED'),
+}).strict();
+export const supportStatuses = ['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CLIENT', 'RESOLVED', 'CLOSED'] as const;
+export const supportCreateSchema = z.object({
+  category: z.string().trim().min(2).max(80),
+  description: z.string().trim().min(5).max(4000),
+  clientId: z.string().uuid().optional(),
+}).strict();
+export const supportUpdateSchema = z.object({
+  status: z.enum(supportStatuses).optional(),
+  assignedStaffId: z.string().uuid().nullable().optional(),
+  resolution: z.string().trim().max(4000).optional(),
+  version: z.number().int().positive(),
+}).strict().refine((value) => value.status !== undefined || value.assignedStaffId !== undefined || value.resolution !== undefined, {
+  message: 'Choose a support case detail to update.',
+});
+export const jobOpeningSchema = z.object({
+  title: z.string().trim().min(2).max(160),
+  description: z.string().trim().max(4000).default(''),
+  location: z.string().trim().max(120).default(''),
+  employmentType: z.string().trim().max(60).default(''),
+  isOpen: z.boolean().default(true),
+}).strict();
+export const jobOpeningUpdateSchema = z.object({
+  version: z.number().int().positive(),
+  record: jobOpeningSchema,
+}).strict();
+export const applicantStatuses = ['RECEIVED', 'REVIEWING', 'SHORTLISTED', 'REJECTED', 'HIRED'] as const;
+export const applicantSchema = z.object({
+  jobId: z.string().uuid(),
+  fullName: z.string().trim().min(2).max(200),
+  email: z.string().email().transform((value) => value.toLowerCase()),
+  phone: z.string().trim().max(40).default(''),
+  message: z.string().trim().max(4000).default(''),
+}).strict();
+export const applicantUpdateSchema = z.object({
+  status: z.enum(applicantStatuses).optional(),
+  reviewerNotes: z.string().trim().max(4000).optional(),
+  version: z.number().int().positive(),
+}).strict().refine((value) => value.status !== undefined || value.reviewerNotes !== undefined, {
+  message: 'Choose an applicant detail to update.',
+});
+export const agentSchema = z.object({
+  fullName: z.string().trim().min(2).max(200),
+  agentCode: z.string().trim().min(2).max(60),
+  phone: z.string().trim().max(40).default(''),
+  active: z.boolean().default(true),
+}).strict();
+export const agentUpdateSchema = z.object({
+  version: z.number().int().positive(),
+  record: agentSchema,
+}).strict();
+export const notificationTemplateSchema = z.object({
+  key: z.string().trim().min(2).max(80).regex(/^[a-z0-9._-]+$/),
+  title: z.string().trim().min(2).max(160),
+  body: z.string().trim().min(2).max(4000),
+  emailEnabled: z.boolean(),
+  active: z.boolean(),
+}).strict();
+export const notificationTemplateUpdateSchema = z.object({
+  version: z.number().int().positive(),
+  record: notificationTemplateSchema,
+}).strict();
+export const notificationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  unreadOnly: z.enum(['true', 'false']).optional().transform((value) => value === 'true'),
+}).strict();
+export const reportSnapshotSchema = z.object({
+  kind: z.enum(['PAYMENTS', 'TASKS', 'SUPPORT']),
+  periodStart: z.string().date(),
+  periodEnd: z.string().date(),
+}).strict().refine((value) => value.periodEnd >= value.periodStart, {
+  path: ['periodEnd'], message: 'End date must be on or after the start date.',
 });
 export type BatchInput = z.infer<typeof batchSchema>;
 export type ClientInput = z.infer<typeof clientSchema>;
@@ -253,22 +380,17 @@ export interface ScheduleItem {
   sequenceNo: number;
   dueDate: string;
   expectedAmount: string;
-  paidApplied?: string;
-  status?: 'PAID' | 'PARTIAL' | 'OVERDUE' | 'UPCOMING';
 }
 export interface ClientSchedule {
   clientId: string;
   totalDue: string;
   items: ScheduleItem[];
 }
-export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'receiptTime' | 'receiptName' | 'receiptPhone' | 'notes'> {
+export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'notes'> {
   id: string;
   batchId: string;
   scheduleItemId: string | null;
   referenceNumber: string | null;
-  receiptTime: string | null;
-  receiptName: string | null;
-  receiptPhone: string | null;
   notes: string | null;
   verificationNotes: string | null;
   status: PaymentStatus;
@@ -296,21 +418,8 @@ export interface ReceiptScan {
   amount: string | null;
   referenceNumber: string | null;
   paymentDate: string | null;
-  receiptTime: string | null;
-  receiptName: string | null;
-  receiptPhone: string | null;
   confidence: number;
   warnings: string[];
-}
-export interface PaymentDuplicateMatch {
-  id: string;
-  clientId: string;
-  clientName: string;
-  amount: string;
-  paymentDate: string;
-  method: string;
-  referenceNumber: string;
-  status: PaymentStatus;
 }
 export interface Account {
   id: string;

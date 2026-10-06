@@ -7,6 +7,7 @@ const nav = [
   { href: "#plans", label: "Plans" },
   { href: "#reviews", label: "Reviews" },
   { href: "#faq", label: "FAQ" },
+  { href: "#careers", label: "Careers" },
 ];
 
 const socials = [

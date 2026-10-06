@@ -19,16 +19,16 @@ import { ReceiptService } from './finance/receipt.service';
 import { PrivateStorageService } from './storage/private-storage.service';
 import { ReportsController } from './reports/reports.controller';
 import { ReportsService } from './reports/reports.service';
-import { PortalController } from './portal/portal.controller';
-import { SupportService } from './portal/support.service';
-import { NotificationsService } from './portal/notifications.service';
-import { EmailDeliveryService } from './portal/email-delivery.service';
-import { NotificationSettingsService } from './portal/notification-settings.service';
-import { DocumentsService } from './portal/documents.service';
-import { CustomerWorkController } from './portal/customer-work.controller';
-import { CustomerWorkService } from './portal/customer-work.service';
-import { TasksController } from './tasks/tasks.controller';
-import { TasksService } from './tasks/tasks.service';
+import { DocumentsController } from './documents/documents.controller';
+import { DocumentsService } from './documents/documents.service';
+import { NotificationsController } from './notifications/notifications.controller';
+import { NotificationsService } from './notifications/notifications.service';
+import { WorkController } from './work/work.controller';
+import { WorkService } from './work/work.service';
+import { SupportController } from './support/support.controller';
+import { SupportService } from './support/support.service';
+import { RecruitmentController } from './recruitment/recruitment.controller';
+import { RecruitmentService } from './recruitment/recruitment.service';
 
 @Controller('health')
 class HealthController {
@@ -49,7 +49,11 @@ export async function createApp(config: Config = readConfig()) {
   const app = await NestFactory.create(
     {
       module: AppModule,
-      controllers: [HealthController, AuthController, RecordsController, FinanceController, ReportsController, RealtimeController, PortalController, CustomerWorkController, TasksController],
+      controllers: [
+        HealthController, AuthController, RecordsController, FinanceController, ReportsController,
+        DocumentsController, NotificationsController, WorkController, SupportController,
+        RecruitmentController, RealtimeController,
+      ],
       providers: [
         { provide: CONFIG, useValue: config },
         Database,
@@ -58,14 +62,12 @@ export async function createApp(config: Config = readConfig()) {
         FinanceService,
         ReceiptService,
         PrivateStorageService,
-        ReportsService,
-        SupportService,
         NotificationsService,
-        NotificationSettingsService,
-        EmailDeliveryService,
         DocumentsService,
-        CustomerWorkService,
-        TasksService,
+        WorkService,
+        SupportService,
+        RecruitmentService,
+        ReportsService,
         { provide: APP_GUARD, useClass: AccessGuard },
       ],
     },

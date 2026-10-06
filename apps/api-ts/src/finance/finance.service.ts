@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import type {
   PaymentInput,
-  PaymentDuplicateMatch,
   PaymentStatus,
   Permission,
   User,
@@ -17,7 +16,7 @@ import { allowed } from '../auth/access';
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { PrivateStorageService, type PrivateUpload } from '../storage/private-storage.service';
-import { notifyCustomer } from '../portal/notifications.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const pageSize = 20;
 const paymentInclude = {
@@ -29,7 +28,6 @@ const paymentInclude = {
 type Query = {
   page: number;
   q: string;
-  id?: string;
   status?: string;
   batchId?: string;
   clientId?: string;
@@ -46,6 +44,7 @@ export class FinanceService {
   constructor(
     @Inject(Database) private readonly db: Database,
     @Inject(PrivateStorageService) private readonly storage: PrivateStorageService,
+    @Inject(NotificationsService) private readonly notifications: NotificationsService,
   ) {}
 
   private async write<T>(
@@ -100,23 +99,6 @@ export class FinanceService {
     }));
   }
 
-  async duplicateMatches(user: User, method: string, referenceNumber: string, excludeId?: string): Promise<PaymentDuplicateMatch[]> {
-    if (!allowed(user, 'PAYMENT_RECORD')) throw new ForbiddenException('You cannot record payments.');
-    const normalized = referenceNumber.replace(/[^a-z0-9]/gi, '').toUpperCase();
-    if (!normalized) return [];
-    return this.db.$queryRaw<PaymentDuplicateMatch[]>`
-      SELECT p.id, p."clientId", c.name AS "clientName", p.amount::text AS amount,
-        p."paymentDate"::text AS "paymentDate", p.method, p."referenceNumber", p.status
-      FROM "Payment" p
-      JOIN "Client" c ON c.id = p."clientId"
-      WHERE lower(p.method) = lower(${method})
-        AND upper(regexp_replace(p."referenceNumber", '[^[:alnum:]]', '', 'g')) = ${normalized}
-        ${excludeId ? Prisma.sql`AND p.id <> ${excludeId}::uuid` : Prisma.empty}
-      ORDER BY p."createdAt" DESC
-      LIMIT 10
-    `;
-  }
-
   private async view(tx: Prisma.TransactionClient | Database, payment: PaymentRow) {
     return {
       ...payment,
@@ -136,23 +118,9 @@ export class FinanceService {
     return {};
   }
 
-  async customerPending(user: User) {
-    if (user.role !== 'CUSTOMER' || !user.clientId)
-      throw new ForbiddenException('A linked customer account is required.');
-    const rows = await this.db.payment.findMany({
-      where: { clientId: user.clientId, status: 'PENDING' },
-      select: { id: true, amount: true, paymentDate: true, method: true, referenceNumber: true, createdAt: true },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 50,
-    });
-    return rows.map((row) => ({ id: row.id, amount: row.amount.toFixed(2),
-      payment_date: row.paymentDate.toISOString(), method: row.method,
-      reference_no: row.referenceNumber, recorded_at: row.createdAt.toISOString() }));
-  }
-
   async payments(user: User, query: Query) {
     const where: Prisma.PaymentWhereInput = {
       ...this.scope(user),
-      ...(query.id ? { id: query.id } : {}),
       OR: query.q ? [
         { referenceNumber: { contains: query.q, mode: 'insensitive' } },
         { client: { name: { contains: query.q, mode: 'insensitive' } } },
@@ -213,15 +181,18 @@ export class FinanceService {
           paymentDate: new Date(input.paymentDate),
           method: input.method,
           referenceNumber: input.referenceNumber || null,
-          receiptTime: input.receiptTime || null,
-          receiptName: input.receiptName || null,
-          receiptPhone: input.receiptPhone || null,
           notes: input.notes || null,
           recordedById: user.id,
         },
         include: paymentInclude,
       });
       await this.record(tx, user.id, payment.id, 'payment.recorded', null, payment);
+      await this.notifications.enqueueRoles(tx, ['OWNER', 'FINANCE_OFFICER'], {
+        eventKey: 'payment.submitted',
+        dedupeKey: `payment:${payment.id}:submitted`,
+        variables: { client: payment.client.name, amount: payment.amount.toFixed(2) },
+        link: '/system/payments',
+      });
       return this.view(tx, payment);
     });
   }
@@ -247,9 +218,6 @@ export class FinanceService {
           paymentDate: new Date(input.paymentDate),
           method: input.method,
           referenceNumber: input.referenceNumber || null,
-          receiptTime: input.receiptTime || null,
-          receiptName: input.receiptName || null,
-          receiptPhone: input.receiptPhone || null,
           notes: input.notes || null,
           status: 'PENDING',
           verificationNotes: null,
@@ -291,8 +259,15 @@ export class FinanceService {
         throw new ConflictException('This payment was already reviewed. Refresh the queue.');
       const after = await tx.payment.findUniqueOrThrow({ where: { id }, include: paymentInclude });
       await this.record(tx, user.id, id, `payment.${decision.toLowerCase()}`, before, after);
-      if (decision === 'VERIFIED')
-        await notifyCustomer(tx, after.clientId, 'payment', 'Payment verified', 'Finance verified a payment. Your balance and payment history have been updated.', `/portal/financial-document?payment=${after.id}`);
+      const customer = await tx.user.findUnique({ where: { clientId: after.clientId }, select: { id: true } });
+      if (customer) await this.notifications.enqueue(tx, {
+        recipientId: customer.id,
+        eventKey: decision === 'VERIFIED' ? 'payment.verified'
+          : decision === 'REJECTED' ? 'payment.rejected' : 'payment.needs_clarification',
+        dedupeKey: `payment:${id}:decision:${after.version}`,
+        variables: { amount: after.amount.toFixed(2) },
+        link: '/portal',
+      });
       return this.view(tx, after);
     });
   }

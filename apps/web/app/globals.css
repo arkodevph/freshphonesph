@@ -605,6 +605,16 @@ html.portal-theme-iris-transition::view-transition-old(root) { z-index: 1; }
 .system-notification-empty svg { width: 19px; height: 19px; }
 .system-notification-empty strong { margin-top: 12px; font-size: 13px; }
 .system-notification-empty p { margin-top: 3px; color: #858790; font-size: 11px; }
+.system-notification-button > span { position: absolute; top: -4px; right: -4px; display: grid; min-width: 17px; height: 17px; place-items: center; border: 2px solid var(--system-surface); border-radius: 999px; background: #e94362; padding: 0 3px; color: #fff; font-size: 8px; font-weight: 800; }
+.system-popover-heading button { border: 0; background: transparent; color: var(--system-accent); cursor: pointer; font-size: 10px; font-weight: 700; }
+.system-notification-list { max-height: 360px; overflow-y: auto; }
+.system-notification-list > button { display: grid; width: 100%; grid-template-columns: 8px minmax(0,1fr); gap: 9px; border: 0; border-bottom: 1px solid #ececf0; background: transparent; padding: 13px 16px; color: inherit; cursor: pointer; text-align: left; }
+.system-notification-list > button:hover { background: var(--system-accent-soft); }
+.system-notification-list > button > span { width: 6px; height: 6px; margin-top: 5px; border-radius: 999px; background: transparent; }
+.system-notification-list > button.is-unread > span { background: var(--system-accent); }
+.system-notification-list strong { display: block; font-size: 11px; }
+.system-notification-list p { margin-top: 3px; color: var(--system-muted); font-size: 10px; line-height: 1.4; }
+.system-notification-list time { display: block; margin-top: 5px; color: var(--system-muted); font-size: 9px; }
 .system-profile-popover { width: 270px; padding: 10px; }
 .system-profile-summary { display: flex; align-items: center; gap: 10px; padding: 6px; }
 .system-profile-summary div { min-width: 0; display: grid; }
@@ -1241,6 +1251,7 @@ html[data-system-theme="dark"] .system-search-results a:focus-visible { backgrou
 html[data-system-theme="dark"] .system-popover-heading,
 html[data-system-theme="dark"] .system-profile-role { border-color: var(--system-border); }
 html[data-system-theme="dark"] .system-notification-empty > span { background: var(--system-accent-soft); }
+html[data-system-theme="dark"] .system-notification-list > button { border-color: var(--system-border); }
 html[data-system-theme="dark"] .system-profile-popover > button:hover,
 html[data-system-theme="dark"] .system-profile-popover > button:focus-visible { background: #382328; }
 html[data-system-theme="dark"] .system-status-list li { border-color: var(--system-border); }
