@@ -9,9 +9,10 @@ import {
   type CanActivate,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { rolePermissions, type Permission, type User } from '@freshphones/contracts';
+import { effectivePermissions, type Permission, type User } from '@freshphones/contracts';
 import type { Request } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService, safeUser } from './auth.service';
+import type { Database } from '../database';
 
 export interface AuthRequest extends Request {
   user: User;
@@ -19,13 +20,19 @@ export interface AuthRequest extends Request {
   accessToken: string;
 }
 export const Public = () => SetMetadata('public', true);
-export const Requires = (permission: Permission) => SetMetadata('permission', permission);
+export const Requires = (...permissions: Permission[]) => SetMetadata('permission', permissions);
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext) =>
     context.switchToHttp().getRequest<AuthRequest>().user,
 );
-export function allowed(user: Pick<User, 'role'>, permission: Permission) {
-  return rolePermissions[user.role].includes(permission);
+export function allowed(user: Pick<User, 'role' | 'hrConfidentialAccess'>, permission: Permission) {
+  return effectivePermissions(user).includes(permission);
+}
+export async function requireCurrentUser(db: Database, user: User, ...permissions: Permission[]) {
+  const current = await db.user.findUnique({ where: { id: user.id } });
+  if (!current?.active || !permissions.every((permission) => allowed(current, permission)))
+    throw new ForbiddenException('Your access has changed.');
+  return safeUser(current);
 }
 
 @Injectable()
@@ -47,11 +54,11 @@ export class AccessGuard implements CanActivate {
     request.user = session.user;
     request.sessionId = session.sessionId;
     request.accessToken = token;
-    const permission = this.reflector.getAllAndOverride<Permission>('permission', [
+    const permissions = this.reflector.getAllAndOverride<Permission[]>('permission', [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (permission && !allowed(session.user, permission))
+    if (permissions && !permissions.every((permission) => allowed(session.user, permission)))
       throw new ForbiddenException('Your role does not have access to this action.');
     return true;
   }

@@ -1,0 +1,23 @@
+.dialog { width: min(94vw, 620px); max-height: 90dvh; margin: auto; padding: 0; border: 1px solid var(--system-border, #cbd5e1); border-radius: 22px; color: var(--system-text, #172554); background: var(--system-surface, #f8fafc); box-shadow: 0 20px 80px #0006; }
+.dialog::backdrop { background: #0f172aaa; }
+.dialog header, .dialog footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px; }
+.dialog header h2 { font-size: 20px; font-weight: 700; }
+.dialog header p { font-size: 13px; color: var(--system-muted, #475569); }
+.dialog button { padding: 9px 14px; border-radius: 12px; font-weight: 700; background: var(--system-bg, #e2e8f0); }
+.dialog button:disabled { opacity: .55; cursor: default; }
+.dialog footer button[type=submit] { background: var(--system-accent, #4338ca); color: white; }
+.body { padding: 0 20px; display: grid; gap: 14px; font-size: 14px; }
+.body dl { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.body dt { color: var(--system-muted, #475569); font-size: 12px; }
+.body dd { font-weight: 700; overflow-wrap: anywhere; }
+.body label { display: grid; gap: 6px; font-weight: 600; }
+.body input:not([type=checkbox]), .body textarea { width: 100%; padding: 10px; border: 1px solid var(--system-border, #94a3b8); background: var(--system-bg, white); border-radius: 10px; color: var(--system-text, #172554); }
+.body p { line-height: 1.5; }
+.body .confirm { display: flex; align-items: flex-start; gap: 10px; }
+.confirm input { margin-top: 4px; accent-color: #4338ca; }
+.preview { background: var(--system-accent-soft, #eef2ff); padding: 12px; border-radius: 10px; font-weight: 700; }
+.error { padding: 12px; border: 1px solid #fb7185; border-radius: 10px; background: #fff1f2; color: #9f1239; }
+.history { overflow-wrap: anywhere; }
+.history ol { display: grid; gap: 12px; list-style: none; padding: 0; margin-top: 12px; }
+.history li { padding: 12px; border: 1px solid #94a3b866; border-radius: 12px; }
+.history li p { margin-top: 6px; white-space: pre-wrap; }

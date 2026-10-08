@@ -35,6 +35,8 @@ export class RealtimeController {
     }
     if (event.entity === 'finance-alert-read') return user.id === event.recordId && allowed(user, 'PAYMENT_VERIFY');
     if (event.entity === 'record-access') return user.id === event.recordId;
+    if (event.entity === 'applicant') return allowed(user, 'RECRUITMENT_MANAGE') && allowed(user, 'HR_CONFIDENTIAL');
+    if (event.entity === 'job_opening') return allowed(user, 'RECRUITMENT_MANAGE');
     if (event.entity === 'agent') return allowed(user, 'BATCH_READ') && user.role !== 'CORE_HANDLER';
     if (event.entity === 'account')
       return user.id === event.recordId || allowed(user, 'ACCOUNT_MANAGE');

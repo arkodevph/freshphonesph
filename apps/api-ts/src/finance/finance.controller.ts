@@ -3,6 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import {
   paymentCorrectionSchema,
+  paymentAdjustmentSchema,
   paymentDecisionSchema,
   paymentDuplicateQuerySchema,
   paymentListQuerySchema,
@@ -97,6 +98,14 @@ export class FinanceController {
     @Body(new Validate(paymentDecisionSchema)) body: z.infer<typeof paymentDecisionSchema>,
   ) {
     return this.finance.decide(user, id, body.decision, body.notes, body.version);
+  }
+
+  @Post('payments/:id/adjustments') @HttpCode(200) @Requires('PAYMENT_VERIFY') adjust(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new Validate(paymentAdjustmentSchema)) body: z.infer<typeof paymentAdjustmentSchema>,
+  ) {
+    return this.finance.adjust(user, id, body);
   }
 
   @Get('clients/:id/balance') @Requires('PAYMENT_READ') balance(

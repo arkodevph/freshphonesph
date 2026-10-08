@@ -29,6 +29,8 @@ import {
 } from "@/lib/api";
 import { can, useMe } from "@/lib/useMe";
 import styles from "./recruitment.module.css";
+import { TYPESCRIPT_API } from "@/lib/backend";
+import RecruitmentWorkspace from "./RecruitmentWorkspace";
 
 const APPLICANT_STATUSES = [
   ["received", "Received"],
@@ -42,6 +44,16 @@ type Feedback = { kind: "error" | "success"; message: string } | null;
 
 export default function RecruitmentPage() {
   const me = useMe();
+  if (!me) return <p role="status">Loading recruitment access…</p>;
+  if (TYPESCRIPT_API) {
+    const canRecruit = can(me, "RECRUITMENT_MANAGE"); const canAgents = can(me, "AGENT_MANAGE");
+    const canReadApplicants = canRecruit && can(me, "HR_CONFIDENTIAL");
+    return <RecruitmentWorkspace key={`${me.id}:${canRecruit}:${canAgents}:${canReadApplicants}`} canRecruit={canRecruit} canAgents={canAgents} canReadApplicants={canReadApplicants} />;
+  }
+  return <LegacyRecruitmentPage me={me} />;
+}
+
+function LegacyRecruitmentPage({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
   const canRecruit = can(me, "RECRUITMENT_MANAGE");
   const canAgents = can(me, "AGENT_MANAGE");
   const [jobs, setJobs] = useState<JobOpening[]>([]);

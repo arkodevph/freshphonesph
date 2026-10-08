@@ -12,8 +12,8 @@
     "storage:migrate": "tsx scripts/migrate-private-files.ts",
     "launch:check": "tsx scripts/customer-launch-check.ts",
     "staff-email:check": "tsx scripts/staff-email-launch-check.ts",
-    "test": "tsx --test test/unit.test.ts test/records-history.test.ts test/staff-email-launch.test.ts",
-    "test:integration": "tsx --test --test-concurrency=1 test/integration.test.ts"
+    "test": "tsx --test test/unit.test.ts test/records-history.test.ts test/staff-email-launch.test.ts test/ledger.test.ts test/recruitment-query.test.ts test/confidential-hr.test.ts",
+    "test:integration": "tsx --test --test-concurrency=1 test/integration.test.ts test/reports.integration.test.ts test/reconciliation.integration.test.ts test/payment-adjustments.integration.test.ts test/recruitment-directory.integration.test.ts test/confidential-hr.integration.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",

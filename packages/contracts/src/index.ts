@@ -43,6 +43,7 @@ export const permissions = [
   'REPORT_VIEW',
   'TASK_ASSIGN',
   'KPI_REVIEW',
+  'HR_CONFIDENTIAL',
   'DOCUMENT_READ',
   'DOCUMENT_UPLOAD',
   'DOCUMENT_REVIEW',
@@ -71,6 +72,16 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
   CORE_HANDLER: ['BATCH_READ', 'CLIENT_READ', ...ownWork],
   CUSTOMER: ['PAYMENT_READ', 'DOCUMENT_READ', 'DOCUMENT_UPLOAD', 'SUPPORT_READ', 'SUPPORT_CREATE', 'NOTIFICATION_READ'],
 };
+export const confidentialHrRoles = ['COO', 'HR_PAYROLL'] as const;
+export const eligibleForConfidentialHr = (role: Role) =>
+  confidentialHrRoles.some((eligible) => eligible === role);
+export function effectivePermissions(user: { role: Role; hrConfidentialAccess?: boolean }): Permission[] {
+  if (user.role === 'OWNER') return [...rolePermissions.OWNER];
+  const result: Permission[] = rolePermissions[user.role].filter((permission) => permission !== 'KPI_REVIEW');
+  if (eligibleForConfidentialHr(user.role) && user.hrConfidentialAccess === true)
+    result.push('HR_CONFIDENTIAL', 'KPI_REVIEW');
+  return result;
+}
 export const passwordSchema = z.string().min(12, 'Use at least 12 characters.').max(128);
 export const loginSchema = z
   .object({
@@ -105,11 +116,19 @@ export const accountUpdateSchema = z
   .object({
     active: z.boolean().optional(),
     role: roleSchema.optional(),
+    hrConfidentialAccess: z.boolean().optional(),
+    hrAccessReason: z.string().trim().min(3).max(1000).optional(),
     version: z.number().int().positive(),
   })
   .strict()
-  .refine((value) => value.active !== undefined || value.role !== undefined, {
+  .refine((value) => value.active !== undefined || value.role !== undefined || value.hrConfidentialAccess !== undefined, {
     message: 'Choose an account detail to update.',
+  })
+  .superRefine((value, ctx) => {
+    if (value.hrConfidentialAccess !== undefined && !value.hrAccessReason)
+      ctx.addIssue({ code: 'custom', path: ['hrAccessReason'], message: 'Give a reason for the confidential HR access decision.' });
+    if (value.hrAccessReason !== undefined && value.hrConfidentialAccess === undefined)
+      ctx.addIssue({ code: 'custom', path: ['hrConfidentialAccess'], message: 'Choose the confidential HR access decision.' });
   });
 export const batchStatuses = ['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED'] as const;
 export const cadenceSchema = z.enum(['WEEKLY', 'SEMIMONTHLY', 'MONTHLY']);
@@ -247,6 +266,18 @@ export const paymentCorrectionSchema = z.object({
   record: paymentSchema,
   version: z.number().int().positive(),
 }).strict();
+export const paymentAdjustmentSchema = z.object({
+  correctedAmount: z.string().regex(/^(0|[1-9]\d{0,9})(\.\d{1,2})?$/, 'Use a non-negative amount with at most two decimal places.'),
+  reason: z.string().trim().min(10).max(1000),
+  expectedRevision: z.number().int().min(0).max(2147483646),
+  paymentVersion: z.number().int().positive(),
+  requestId: z.string().uuid(),
+}).strict();
+export type PaymentAdjustmentInput = z.infer<typeof paymentAdjustmentSchema>;
+export interface PaymentAdjustment {
+  id: string; sequence: number; amount: string; beforeAmount: string; afterAmount: string; createdAt: string;
+  reason?: string; actor?: { id: string; name: string };
+}
 export const paymentListQuerySchema = listQuerySchema.extend({
   id: z.string().uuid().optional(),
   clientId: z.string().uuid().optional(),
@@ -269,6 +300,99 @@ export const reportQuerySchema = z.object({
 }).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
 });
+export const operationsReportQuerySchema = z.object({
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+}).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
+  path: ['dateTo'], message: 'End date must be on or after the start date.',
+});
+export const collectionReportQuerySchema = z.object({
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+  batchId: z.string().uuid().optional(),
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+}).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
+  path: ['dateTo'], message: 'End date must be on or after the start date.',
+});
+export const reconciliationReportQuerySchema = collectionReportQuerySchema;
+export const reconciliationFlags = ['DUPLICATE_REFERENCE', 'SCHEDULE_CLIENT_MISMATCH', 'BATCH_MEMBERSHIP_MISMATCH',
+  'VERIFIED_WITHOUT_SCHEDULE', 'UNMATCHED_VERIFICATION_AUDIT', 'UNMATCHED_ADJUSTMENT_AUDIT'] as const;
+export type ReconciliationFlag = typeof reconciliationFlags[number];
+export interface ReconciliationMetrics {
+  payments: number; verifiedPayments: number; pendingPayments: number; clarificationPayments: number; rejectedPayments: number;
+  auditedVerifiedPayments: number; unmatchedVerifiedPayments: number; paymentsWithFlags: number;
+  duplicateReferencePayments: number; scheduleMismatchPayments: number; batchMismatchPayments: number; verifiedWithoutSchedulePayments: number;
+  recordedAmount: string; verifiedAmount: string; pendingAmount: string; clarificationAmount: string; rejectedAmount: string;
+  auditedVerifiedAmount: string; unmatchedVerifiedAmount: string;
+  originalVerifiedAmount?: string; adjustmentAmount?: string; adjustments?: number;
+  adjustmentAuditGapPayments?: number; adjustmentAuditGapAmount?: string;
+}
+export interface ReconciliationGroup extends ReconciliationMetrics { batchId: string; batchCode: string; method: string }
+export interface ReconciliationReport extends Page<ReconciliationGroup> { totals: ReconciliationMetrics }
+export interface ReconciliationSnapshot {
+  totals: ReconciliationMetrics; groups: ReconciliationGroup[];
+  basis: 'current_payment_state'; paymentGrouping: 'recorded_payment_batch'; externalStatementMatched: false;
+  filters: { batchId?: string; batchCode?: string };
+}
+export interface ReconciliationException {
+  id: string; batchCode: string; currentBatchCode: string; paymentDate: string; method: string;
+  amount: string; status: PaymentStatus; flags: ReconciliationFlag[];
+}
+export interface CollectionMetrics {
+  clients: number;
+  scheduledClients: number;
+  clientsWithoutSchedule: number;
+  agreedAmount: string;
+  verifiedAmount: string;
+  pendingAmount: string;
+  remainingBalance: string;
+  overpaidAmount: string;
+  collectedInPeriod: string;
+  verifiedPaymentsInPeriod: number;
+  pendingInPeriod: string;
+  pendingPaymentsInPeriod: number;
+  adjustmentAmount?: string;
+  adjustmentsInPeriod?: string;
+}
+export interface CollectionBatchRow extends CollectionMetrics { id: string; code: string; status: string }
+export interface CollectionReport extends Page<CollectionBatchRow> { totals: CollectionMetrics }
+export interface CollectionSnapshot {
+  totals: CollectionMetrics;
+  batches: CollectionBatchRow[];
+  balanceBasis: 'current';
+  paymentGrouping: 'current_client_batch';
+  filters: { batchId?: string; batchCode?: string };
+}
+export const reportBatchQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+}).strict();
+export interface ReportBatchOption { id: string; code: string }
+export interface PaymentReport {
+  total: number;
+  verifiedPayments: number;
+  verifiedAmount: string;
+  pendingVerification: number;
+  pendingAmount: string;
+  needsClarification: number;
+  rejectedPayments: number;
+  originalVerifiedAmount?: string;
+  adjustmentAmount?: string;
+}
+export interface TaskReport {
+  total: number;
+  byStatus: Record<string, number>;
+  submitted: number;
+  late: number;
+  reviewed: number;
+  disclaimer: string;
+}
+export interface SupportReport {
+  total: number;
+  open: number;
+  closed: number;
+  categories: { category: string; total: number; closed: number; averageTurnaroundHours: number | null }[];
+}
 export type BatchInput = z.infer<typeof batchSchema>;
 export type ClientInput = z.infer<typeof clientSchema>;
 export type AccountInput = z.infer<typeof accountSchema>;
@@ -280,6 +404,7 @@ export interface User {
   role: Role;
   permissions: Permission[];
   clientId: string | null;
+  hrConfidentialAccess?: boolean;
 }
 export interface Batch extends Omit<BatchInput, 'contractPrice' | 'installmentCount' | 'cadence'> {
   handlerId?: string | null;
@@ -339,6 +464,10 @@ export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenc
   createdAt: string;
   updatedAt: string;
   verifiedAt: string | null;
+  effectiveAmount?: string;
+  adjustmentAmount?: string;
+  adjustmentRevision?: number;
+  adjustments?: PaymentAdjustment[];
 }
 export interface ClientBalance {
   clientId: string;
@@ -376,8 +505,16 @@ export interface Account {
   email: string;
   role: Role;
   active: boolean;
+  hrConfidentialAccess: boolean;
   clientId: string | null;
   version: number;
+  createdAt: string;
+}
+export interface HrAccessDecision {
+  id: string;
+  granted: boolean;
+  reason: string;
+  actorName: string;
   createdAt: string;
 }
 export interface Audit {
@@ -513,7 +650,7 @@ export interface ChangeEvent {
 }
 
 export const reportExportQuerySchema = z.object({
-  kind: z.enum(['payments', 'tasks', 'support']),
+  kind: z.enum(['payments', 'tasks', 'support', 'collections', 'reconciliation']),
   format: z.enum(['csv', 'xlsx']),
   q: z.string().max(100).optional(),
   dateFrom: z.string().date().optional(),
@@ -522,6 +659,8 @@ export const reportExportQuerySchema = z.object({
   status: paymentStatusSchema.optional(),
 }).strict().refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
+}).refine((value) => value.kind === 'payments' || (value.q === undefined && !value.status && (['collections', 'reconciliation'].includes(value.kind) || !value.batchId)), {
+  message: 'Batch filters apply to payment, collection and reconciliation reports; search and status apply only to payments.',
 });
 export const requirementTypeSchema = z.object({
   code: z.string().trim().min(2).max(40).regex(/^[A-Za-z0-9_-]+$/).transform((value) => value.toUpperCase()),
@@ -589,6 +728,13 @@ export const jobOpeningUpdateSchema = z.object({
   record: jobOpeningSchema,
 }).strict();
 export const applicantStatuses = ['RECEIVED', 'REVIEWING', 'SHORTLISTED', 'REJECTED', 'HIRED'] as const;
+const recruitmentPageFields = {
+  q: z.string().trim().max(100).default(''),
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+};
+export const jobOpeningListQuerySchema = z.object({ ...recruitmentPageFields, status: z.enum(['OPEN', 'CLOSED']).optional() }).strict();
+export const applicantListQuerySchema = z.object({ ...recruitmentPageFields, status: z.enum(applicantStatuses).optional(), jobId: z.string().uuid().optional() }).strict();
+export interface RecruitmentSummary { jobs: number; openJobs: number; applicants: number; awaitingReview: number }
 export const applicantSchema = z.object({
   jobId: z.string().uuid(),
   fullName: z.string().trim().min(2).max(200),
@@ -629,9 +775,31 @@ export const notificationQuerySchema = z.object({
   unreadOnly: z.enum(['true', 'false']).optional().transform((value) => value === 'true'),
 }).strict();
 export const reportSnapshotSchema = z.object({
-  kind: z.enum(['PAYMENTS', 'TASKS', 'SUPPORT']),
+  kind: z.enum(['PAYMENTS', 'TASKS', 'SUPPORT', 'COLLECTIONS', 'RECONCILIATION']),
   periodStart: z.string().date(),
   periodEnd: z.string().date(),
+  batchId: z.string().uuid().optional(),
+  status: paymentStatusSchema.optional(),
 }).strict().refine((value) => value.periodEnd >= value.periodStart, {
   path: ['periodEnd'], message: 'End date must be on or after the start date.',
+}).refine((value) => value.kind === 'PAYMENTS' || (!value.status && (['COLLECTIONS', 'RECONCILIATION'].includes(value.kind) || !value.batchId)), {
+  message: 'Batch filters apply to payment, collection and reconciliation reports; status applies only to payments.',
 });
+export type ReportSnapshotInput = z.infer<typeof reportSnapshotSchema>;
+export type ReportKind = 'payments' | 'tasks' | 'support' | 'collections' | 'reconciliation';
+export type ReportPaymentFilters = { batchId?: string; batchCode?: string; status?: PaymentStatus };
+type ReportSnapshotBase = {
+  id: string; periodStart: string; periodEnd: string; createdAt: string;
+  createdBy: { id: string; name: string };
+};
+export type ReportSnapshot = ReportSnapshotBase & (
+  | { kind: 'PAYMENTS'; payload: PaymentReport & { filters?: ReportPaymentFilters } }
+  | { kind: 'TASKS'; payload: TaskReport }
+  | { kind: 'SUPPORT'; payload: SupportReport }
+  | { kind: 'COLLECTIONS'; payload: CollectionSnapshot }
+  | { kind: 'RECONCILIATION'; payload: ReconciliationSnapshot }
+);
+export const reportHistoryQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  kind: z.enum(['PAYMENTS', 'TASKS', 'SUPPORT', 'COLLECTIONS', 'RECONCILIATION']).optional(),
+}).strict();

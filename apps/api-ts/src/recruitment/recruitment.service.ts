@@ -1,6 +1,8 @@
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import type { Permission, User } from '@freshphones/contracts';
-import { allowed } from '../auth/access';
+import type { Permission, User, applicantListQuerySchema, jobOpeningListQuerySchema } from '@freshphones/contracts';
+import type { z } from 'zod';
+import * as queries from './queries';
+import { allowed, requireCurrentUser } from '../auth/access';
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { PrivateStorageService, type PrivateUpload } from '../storage/private-storage.service';
@@ -15,11 +17,12 @@ export class RecruitmentService {
     @Inject(PrivateStorageService) private readonly storage: PrivateStorageService,
   ) {}
 
-  private async write<T>(user: User, permission: Permission, run: (tx: Prisma.TransactionClient) => Promise<T>) {
+  private async write<T>(user: User, permission: Permission, run: (tx: Prisma.TransactionClient) => Promise<T>, confidential = false) {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
       const current = await tx.user.findUnique({ where: { id: user.id } });
-      if (!current?.active || !allowed(current, permission)) throw new ForbiddenException('Your access has changed.');
+      if (!current?.active || !allowed(current, permission) || (confidential && !allowed(current, 'HR_CONFIDENTIAL')))
+        throw new ForbiddenException('Your access has changed.');
       return run(tx);
     });
   }
@@ -74,13 +77,13 @@ export class RecruitmentService {
     }
   }
 
-  async jobs(page = 1) {
-    const [items, total] = await this.db.$transaction([
-      this.db.jobOpening.findMany({ include: { _count: { select: { applicants: true } } }, orderBy: { createdAt: 'desc' }, skip: (page - 1) * 20, take: 20 }),
-      this.db.jobOpening.count(),
-    ]);
-    return { items, total, page, pageSize: 20 };
+  jobs(query: z.infer<typeof jobOpeningListQuerySchema>) { return queries.jobs(this.db, query); }
+  job(id: string) { return queries.job(this.db, id); }
+  async applicant(user: User, id: string) {
+    await requireCurrentUser(this.db, user, 'RECRUITMENT_MANAGE', 'HR_CONFIDENTIAL');
+    return queries.applicant(this.db, id);
   }
+  summary() { return queries.summary(this.db); }
 
   async createJob(user: User, input: {
     title: string; description: string; location: string; employmentType: string; isOpen: boolean;
@@ -113,30 +116,9 @@ export class RecruitmentService {
     });
   }
 
-  async applicants(query: { page: number; q: string; status?: string }) {
-    if (query.status && !['RECEIVED', 'REVIEWING', 'SHORTLISTED', 'REJECTED', 'HIRED'].includes(query.status))
-      throw new ConflictException('Invalid applicant status.');
-    const where: Prisma.ApplicantWhereInput = {
-      ...(query.status ? { status: query.status as Prisma.EnumApplicantStatusFilter['equals'] } : {}),
-      ...(query.q ? { OR: [
-        { fullName: { contains: query.q, mode: 'insensitive' } },
-        { email: { contains: query.q, mode: 'insensitive' } },
-        { job: { title: { contains: query.q, mode: 'insensitive' } } },
-      ] } : {}),
-    };
-    const [items, total] = await this.db.$transaction([
-      this.db.applicant.findMany({
-        where,
-        include: {
-          job: { select: { id: true, title: true } },
-          reviewer: { select: { id: true, name: true } },
-          attachments: { include: { storedFile: { select: { id: true, originalName: true, mimeType: true, size: true } } } },
-        },
-        orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * 20, take: 20,
-      }),
-      this.db.applicant.count({ where }),
-    ]);
-    return { items, total, page: query.page, pageSize: 20 };
+  async applicants(user: User, query: z.infer<typeof applicantListQuerySchema>) {
+    await requireCurrentUser(this.db, user, 'RECRUITMENT_MANAGE', 'HR_CONFIDENTIAL');
+    return queries.applicants(this.db, query);
   }
 
   async updateApplicant(user: User, id: string, input: {
@@ -159,11 +141,12 @@ export class RecruitmentService {
         before: json(before), after: json(after),
       } });
       await tx.changeEvent.create({ data: { entity: 'applicant', recordId: id } });
-      return after;
-    });
+      return queries.applicant(tx, id);
+    }, true);
   }
 
-  async applicantAttachment(id: string) {
+  async applicantAttachment(user: User, id: string) {
+    await requireCurrentUser(this.db, user, 'RECRUITMENT_MANAGE', 'HR_CONFIDENTIAL');
     const attachment = await this.db.applicantAttachment.findUnique({ where: { id }, include: { storedFile: true } });
     if (!attachment) throw new NotFoundException('Applicant attachment not found.');
     return {

@@ -39,6 +39,7 @@ import { useMe, can } from "@/lib/useMe";
 import { TYPESCRIPT_API } from "@/lib/backend";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { PaymentResultDetails } from "@/components/PaymentResultDetails";
+import PaymentAdjustmentDialog, { AdjustmentHistory } from "./PaymentAdjustmentDialog";
 
 const FILTERS: { label: string; value: string }[] = [
   { label: "All", value: "" },
@@ -130,6 +131,7 @@ export default function PaymentsPage() {
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSaving, setReviewSaving] = useState(false);
   const [detailsPayment, setDetailsPayment] = useState<Payment | null>(null);
+  const [adjustmentPayment, setAdjustmentPayment] = useState<Payment | null>(null);
   const [receiptType, setReceiptType] = useState<ReceiptType>("gcash");
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
@@ -185,6 +187,7 @@ export default function PaymentsPage() {
   }, [load]);
 
   useLiveRecords(() => { void load(); }, canRead);
+  useEffect(() => { if (!canVerify) setAdjustmentPayment(null); }, [canVerify]);
 
   const openLocation = useCallback((payment: string | null, status: string) => {
     setFocusedPayment(payment);
@@ -495,6 +498,9 @@ export default function PaymentsPage() {
     <>
       {TYPESCRIPT_API && <Suspense fallback={null}><PaymentLocationSync onLocation={openLocation} /></Suspense>}
       {TYPESCRIPT_API && <Suspense fallback={null}><PaymentResultDetails enabled={canRead && canRecord} /></Suspense>}
+      {TYPESCRIPT_API && canVerify && adjustmentPayment && <PaymentAdjustmentDialog key={String(adjustmentPayment.id)} payment={adjustmentPayment}
+        onClose={() => setAdjustmentPayment(null)} onRefresh={() => { setAdjustmentPayment(null); void load(); }}
+        onSuccess={(updated) => { setAdjustmentPayment(null); setDetailsPayment(null); setBalance(null); setPayments((rows) => rows.map((row) => row.id === updated.id ? updated : row)); flash("Finance adjustment saved. The original payment is preserved."); void load(); }} />}
       <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
         <span className="grid h-10 w-10 place-items-center rounded-2xl chrome">
           <Receipt weight="fill" className="h-5 w-5 text-blue" />
@@ -912,7 +918,7 @@ export default function PaymentsPage() {
               <h3>Transaction</h3>
               <dl className="payment-details-grid">
                 <div><dt>Status</dt><dd><span className={`payment-details-status ${STATUS_STYLES[detailsPayment.status]}`}>{detailsPayment.status.replaceAll("_", " ")}</span></dd></div>
-                <div><dt>Amount</dt><dd>₱{detailsPayment.amount}</dd></div>
+                <div><dt>{detailsPayment.status === "verified" ? "Current credit" : "Amount"}</dt><dd>₱{detailsPayment.amount}</dd></div>
                 <div><dt>Client</dt><dd>{detailsPayment.client_name ?? String(detailsPayment.client)}</dd></div>
                 <div><dt>Batch</dt><dd>{detailsPayment.batch_code ?? String(detailsPayment.batch)}</dd></div>
                 <div><dt>Payment date</dt><dd>{detailsPayment.payment_date}</dd></div>
@@ -921,6 +927,7 @@ export default function PaymentsPage() {
                 <div><dt>Payment ID</dt><dd>{detailsPayment.id}</dd></div>
               </dl>
             </section>
+            <AdjustmentHistory payment={detailsPayment} />
             <section aria-label="Finance review">
               <h3>Finance review</h3>
               <dl className="payment-details-grid">
@@ -1012,7 +1019,7 @@ export default function PaymentsPage() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1.5">
+          {(!TYPESCRIPT_API || can(me, "REPORT_VIEW")) && <div className="flex items-center gap-1.5">
             <button
               onClick={() =>
                 downloadPaymentsExport(paymentExportFilters, "csv").catch(
@@ -1023,7 +1030,7 @@ export default function PaymentsPage() {
             >
               <DownloadSimple weight="bold" className="h-4 w-4" /> CSV
             </button>
-            {!TYPESCRIPT_API && <button
+            <button
               onClick={() =>
                 downloadPaymentsExport(paymentExportFilters, "xlsx").catch(
                   (e) => setError(e instanceof Error ? e.message : "Export failed."),
@@ -1032,12 +1039,12 @@ export default function PaymentsPage() {
               className="inline-flex items-center gap-1.5 rounded-full bg-white/60 px-3.5 py-1.5 text-sm font-700 text-blue-ink hover:bg-white"
             >
               <DownloadSimple weight="bold" className="h-4 w-4" /> Excel
-            </button>}
-          </div>
+            </button>
+          </div>}
         </div>
         <p className="mb-3 text-xs text-ink-soft">
           {loading ? "Loading matching payments…" : `${paymentCount} matching payment${paymentCount === 1 ? "" : "s"}.`}
-          {TYPESCRIPT_API && " CSV export uses the same search, status, and date filters and omits client identity and payment references."}
+          {TYPESCRIPT_API && " CSV and XLSX exports use the same search, status, and date filters and omit client identity and payment references."}
         </p>
 
         <div className="overflow-x-auto">
@@ -1046,7 +1053,7 @@ export default function PaymentsPage() {
               <tr className="border-b border-white/60">
                 <th className="px-2 py-2">#</th>
                 <th className="px-2 py-2">Client</th>
-                <th className="px-2 py-2">Amount</th>
+                <th className="px-2 py-2">Credit / claim</th>
                 <th className="px-2 py-2">Method</th>
                 <th className="px-2 py-2">Ref</th>
                 <th className="px-2 py-2">Date</th>
@@ -1072,7 +1079,7 @@ export default function PaymentsPage() {
                   <tr key={p.id} className="border-b border-white/40">
                     <td className="px-2 py-2.5 font-600 text-blue-ink">{String(p.id).slice(0, 8)}</td>
                     <td className="px-2 py-2.5">{p.client_name ?? p.client}</td>
-                    <td className="px-2 py-2.5 font-700 text-blue-ink">₱{p.amount}</td>
+                    <td className="px-2 py-2.5 font-700 text-blue-ink">₱{p.amount}{Boolean(p.adjustments?.length) && <small className="block text-xs font-500">Adjusted · original ₱{p.original_amount}</small>}</td>
                     <td className="px-2 py-2.5 capitalize">{p.method}</td>
                     <td className="px-2 py-2.5 text-ink-soft">
                       {p.reference_no || "—"}
@@ -1099,6 +1106,8 @@ export default function PaymentsPage() {
                           className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white">
                           <Eye weight="bold" className="h-3.5 w-3.5" /> View details
                         </button>
+                        {TYPESCRIPT_API && canVerify && p.status === "verified" && <button type="button" onClick={() => setAdjustmentPayment(p)}
+                          className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700">Adjust credit</button>}
                         {p.proof_file && (
                           <button type="button"
                             onClick={() => viewProof(p.id)}

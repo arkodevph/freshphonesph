@@ -196,6 +196,7 @@ before(async () => {
         email,
         passwordHash,
         role,
+        hrConfidentialAccess: role === 'HR_PAYROLL',
         ...(role === 'CUSTOMER' ? { clientId: firstClient } : {}),
       },
     });
@@ -1583,7 +1584,7 @@ test('live events disclose only current assignments and invalidate the previous 
 async function alertAccount(key: string, role: Role = 'FINANCE_OFFICER') {
   const linkedClient = role === 'CUSTOMER' ? await db.client.create({ data: { name: 'Alert matrix customer', email: '', phone: '', batchId } }) : null;
   const user = await db.user.create({ data: { name: `Alert reviewer ${key}`, email: `${suffix}-alert-${key.toLowerCase()}@example.test`,
-    role, passwordHash: await hashPassword(password), clientId: linkedClient?.id ?? null } });
+    role, hrConfidentialAccess: role === 'HR_PAYROLL', passwordHash: await hashPassword(password), clientId: linkedClient?.id ?? null } });
   const session = new Session();
   assert.equal((await session.request('/auth/login', post({ email: user.email, password }))).status, 200);
   return { user, session };
@@ -3253,7 +3254,8 @@ test('merged operations endpoints retain the existing permission grants and enfo
     for (const [path, permission] of [['/recruitment/jobs', 'RECRUITMENT_MANAGE'], ['/recruitment/applicants', 'RECRUITMENT_MANAGE'],
       ['/requirement-types', 'DOCUMENT_READ'], ['/notifications', 'NOTIFICATION_READ'], ['/work/tasks', 'TASK_READ'],
       ['/reports/tasks', 'REPORT_VIEW'], ['/reports/support', 'REPORT_VIEW']] as const)
-      assert.equal((await session.request(path)).status, rolePermissions[role].includes(permission) ? 200 : 403, `${role} ${path}`);
+      assert.equal((await session.request(path)).status,
+        rolePermissions[role].includes(permission) && (path !== '/recruitment/applicants' || role === 'OWNER' || role === 'HR_PAYROLL') ? 200 : 403, `${role} ${path}`);
   }
   for (const path of ['/recruitment/jobs', '/requirement-types', '/notifications', '/work/tasks', '/reports/tasks'])
     assert.equal((await new Session().request(path)).status, 401, path);

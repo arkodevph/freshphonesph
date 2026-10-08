@@ -36,7 +36,7 @@ const NAV = [
   { icon: Users, label: "Clients", href: "/system/clients", perms: ["CLIENT_MANAGE", "CLIENT_READ"] },
   { icon: ShieldCheck, label: "Agents", href: TYPESCRIPT_API ? "/system/agents" : null, perms: ["AGENT_MANAGE"] },
   { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
-  { icon: ChartBar, label: "Reports", href: null, perms: [] },
+  { icon: ChartBar, label: "Reports", href: TYPESCRIPT_API ? "/system/reports" : null, perms: ["REPORT_VIEW"] },
   { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
   { icon: TrayArrowDown, label: "Customer work", href: "/system/customer-work", perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"] },
   { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "AGENT_MANAGE"] },

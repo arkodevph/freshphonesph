@@ -720,7 +720,7 @@ export default function PortalDashboard({ section }: { section: PortalSection })
               <><ul className={styles.paymentsList}>{payments.map((payment) => (
                 <li key={payment.id} className={styles.paymentRow}>
                   <span className={styles.paymentCheck}><CheckCircle weight="fill" aria-hidden="true" /></span>
-                  <div className={styles.paymentPrimary}><strong>{formatMoney(payment.amount)}</strong><span>{formatDate(payment.payment_date)} · {payment.method}</span></div>
+                  <div className={styles.paymentPrimary}><strong>{formatMoney(payment.amount)}</strong><span>{formatDate(payment.payment_date)} · {payment.method}</span>{Boolean(payment.adjustments?.length) && <span>Adjusted credit · original {formatMoney(payment.original_amount)}</span>}</div>
                   <div className={styles.paymentReference}><span>Reference number</span><strong>{payment.reference_no || "Not provided"}</strong></div>
                   {TYPESCRIPT_API && <Link href={`/portal/financial-document?payment=${payment.id}`} className={`${styles.documentLink} ${styles.paymentDocumentLink}`}>Payment confirmation <ArrowRight weight="bold" aria-hidden="true" /></Link>}
                 </li>

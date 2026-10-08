@@ -1,6 +1,6 @@
 import type { Client, ClientBalance, Payment } from "@freshphones/contracts";
 
-type Statement = { title: string; notice: string; generatedAt: string; balance: ClientBalance; verifiedPayments: Pick<Payment, "id" | "amount" | "paymentDate" | "method" | "referenceNumber">[] };
+type Statement = { title: string; notice: string; generatedAt: string; balance: ClientBalance; verifiedPayments: Pick<Payment, "id" | "amount" | "effectiveAmount" | "adjustments" | "paymentDate" | "method" | "referenceNumber">[] };
 type Confirmation = { title: string; notice: string; generatedAt: string; payment: Payment };
 const money = (value: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(value));
 const date = (value: string) => new Date(value).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
@@ -68,13 +68,21 @@ export async function downloadAccountPdf(client: Client, record: Statement | Con
     line("Verified payments", 13, true, purple);
     if (!record.verifiedPayments.length) line("No verified payments yet.");
     for (const payment of record.verifiedPayments)
-      line(`${date(payment.paymentDate)}  |  ${money(payment.amount)}  |  ${payment.method}  |  Ref: ${payment.referenceNumber || "—"}`, 9);
+      line(`${date(payment.paymentDate)}  |  Credit: ${money(payment.effectiveAmount ?? payment.amount)}  |  Original: ${money(payment.amount)}  |  ${payment.method}  |  Ref: ${payment.referenceNumber || "—"}`, 9);
   } else {
     line("Verified payment", 13, true, purple);
-    line(`Amount: ${money(record.payment.amount)}`, 11, true);
+    line(`Original verified amount: ${money(record.payment.amount)}`, 11, true);
+    line(`Current credit: ${money(record.payment.effectiveAmount ?? record.payment.amount)}`, 11, true);
     line(`Payment date: ${date(record.payment.paymentDate)}`);
     line(`Method: ${record.payment.method}`);
     line(`Reference: ${record.payment.referenceNumber || "—"}`);
+  }
+  for (const payment of "payment" in record ? [record.payment] : record.verifiedPayments) {
+    if (!payment.adjustments?.length) continue;
+    y -= 10;
+    line(`Adjustment history: ${date(payment.paymentDate)}`, 12, true, purple);
+    for (const entry of payment.adjustments)
+      line(`Adjustment ${entry.sequence}: ${money(entry.amount)} | ${money(entry.beforeAmount)} → ${money(entry.afterAmount)} | ${new Date(entry.createdAt).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}`, 9);
   }
   y -= 18;
   line(record.notice, 10, true, purple);

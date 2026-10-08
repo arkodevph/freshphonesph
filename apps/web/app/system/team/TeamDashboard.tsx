@@ -32,6 +32,8 @@ import {
 import { can, useMe } from "@/lib/useMe";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { ApiError } from "@/lib/ts-api";
+import { TYPESCRIPT_API } from "@/lib/backend";
+import HrAccessHistory from "./HrAccessHistory";
 
 const PAGE_SIZE = 20;
 const EMPTY_FORM = { email: "", full_name: "", role: "records_monitoring", password: "" };
@@ -69,7 +71,8 @@ const formatDate = (value: string) => {
 
 type Toast = { tone: "success" | "error"; title: string; message: string };
 type CreateField = keyof typeof EMPTY_FORM;
-type AccessDraft = { role: string; active: boolean; version?: number };
+type AccessDraft = { role: string; active: boolean; version?: number;
+  hrConfidentialAccess: boolean; hrAccessReason: string; hrDecision: boolean };
 
 export default function TeamDashboard() {
   const me = useMe();
@@ -110,6 +113,10 @@ export default function TeamDashboard() {
   const accessDraft = managed ? drafts[String(managed.id)] : null;
   const managedRole = accessDraft?.role ?? managed?.role ?? "";
   const managedActive = accessDraft?.active ?? (managed?.status === "active");
+  const hrEligible = ["hr_payroll", "coo"].includes(managedRole);
+  const managedHrAccess = hrEligible && managedActive && (accessDraft?.hrConfidentialAccess ?? managed?.hr_confidential_access ?? false);
+  const explicitHrDecision = Boolean(accessDraft?.hrDecision && hrEligible && managedActive &&
+    (managedHrAccess !== Boolean(managed?.hr_confidential_access) || managedRole !== managed?.role));
   const staleDraft = Boolean(accessDraft && accessDraft.version !== managed?.version);
 
   const showToast = useCallback((next: Toast) => {
@@ -315,9 +322,16 @@ export default function TeamDashboard() {
   }
   function editAccess(patch: Partial<AccessDraft>) {
     if (!managed) return;
-    setDrafts((current) => ({ ...current, [String(managed.id)]: {
-      ...(current[String(managed.id)] ?? { role: managed.role, active: managed.status === "active", version: managed.version }), ...patch,
-    } }));
+    setDrafts((current) => {
+      const previous = current[String(managed.id)] ?? { role: managed.role, active: managed.status === "active", version: managed.version,
+        hrConfidentialAccess: managed.hr_confidential_access ?? false, hrAccessReason: "", hrDecision: false };
+      const next = { ...previous, ...patch };
+      if ((patch.role !== undefined && patch.role !== previous.role) || (patch.active !== undefined && patch.active !== previous.active)) {
+        next.hrConfidentialAccess = next.role === managed.role && next.active ? managed.hr_confidential_access ?? false : false;
+        next.hrDecision = false; next.hrAccessReason = "";
+      }
+      return { ...current, [String(managed.id)]: next };
+    });
   }
   function discardAccess(id: string) {
     setDrafts((current) => { const next = { ...current }; delete next[id]; return next; });
@@ -329,7 +343,7 @@ export default function TeamDashboard() {
     const nextStatus = managedActive ? "active" : "inactive";
     const roleChanged = managedRole !== managed.role;
     const statusChanged = nextStatus !== managed.status;
-    if (!roleChanged && !statusChanged) {
+    if (!roleChanged && !statusChanged && !explicitHrDecision) {
       closeManage();
       return;
     }
@@ -340,6 +354,7 @@ export default function TeamDashboard() {
       await updateEmployee(account.id, {
         ...(roleChanged ? { role: managedRole } : {}),
         ...(statusChanged ? { status: nextStatus } : {}),
+        ...(explicitHrDecision ? { hr_confidential_access: managedHrAccess, hr_access_reason: accessDraft?.hrAccessReason } : {}),
         version: accessDraft?.version ?? account.version,
       });
       if (privateVersion !== privateVersionRef.current) return;
@@ -556,13 +571,34 @@ export default function TeamDashboard() {
                 <i aria-hidden="true" />
               </label>
               {String(managed.id) === String(me?.id) && <p className="team-self-note">For safety, you cannot change your own role or deactivate your own account here.</p>}
+              {TYPESCRIPT_API && <>
+                <label className={`team-access-switch${!managedHrAccess && managedRole !== "owner" ? " is-paused" : ""}`}>
+                  <span><strong>Confidential HR access</strong><small>{managedRole === "owner" ? "Owner access is automatic."
+                    : !hrEligible ? "Only HR / Payroll and COO can receive an Owner grant."
+                    : !managedActive ? "Activate sign-in before granting confidential access."
+                    : "Allow private KPI evaluations and applicant records, notes and attachments."}</small></span>
+                  <input type="checkbox" checked={managedRole === "owner" || managedHrAccess}
+                    onChange={(event) => editAccess({ hrConfidentialAccess: event.target.checked, hrDecision: true })}
+                    disabled={managing || saving || !hrEligible || !managedActive} />
+                  <i aria-hidden="true" />
+                </label>
+                {explicitHrDecision && <Field label="Reason for HR access decision" inputId="managed-hr-reason">
+                  <textarea id="managed-hr-reason" required minLength={3} maxLength={1000} rows={3}
+                    value={accessDraft?.hrAccessReason ?? ""} onChange={(event) => editAccess({ hrAccessReason: event.target.value })}
+                    disabled={managing || saving} />
+                  <small>The decision, reason, Owner and date are recorded. The person must sign in again.</small>
+                </Field>}
+                {managed.hr_confidential_access && !managedHrAccess && !explicitHrDecision &&
+                  <p className="team-self-note">Saving this role or sign-in change will revoke the existing HR grant. A new grant requires an Owner decision.</p>}
+                <HrAccessHistory key={`${managed.id}:${managed.version}`} accountId={managed.id} />
+              </>}
               {detailLoading && <p role="status">Refreshing current account settings…</p>}
               {staleDraft && <p className="team-self-note" role="alert">This account changed. Your draft is retained; discard it and review current access before saving.</p>}
               {accessDraft && <button type="button" className="team-secondary-button" disabled={managing || saving} onClick={() => discardAccess(String(managed.id))}>Discard access draft</button>}
             </div>
             <div className="team-dialog-actions">
               <button type="button" className="team-secondary-button" disabled={managing || saving} onClick={closeManage}>Cancel</button>
-              <button type="submit" className="team-primary-button" disabled={managing || saving || staleDraft || detailLoading}>{managing ? "Saving changes…" : "Save changes"}</button>
+              <button type="submit" className="team-primary-button" disabled={managing || saving || staleDraft || detailLoading || (explicitHrDecision && (accessDraft?.hrAccessReason.trim().length ?? 0) < 3)}>{managing ? "Saving changes…" : "Save changes"}</button>
             </div>
           </form>
         )}

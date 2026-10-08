@@ -927,7 +927,8 @@ html[data-system-theme="dark"] .finance-review-error { background: #3e242a; colo
 .team-search-field input,
 .team-filter-field select,
 .team-form-field input,
-.team-form-field select {
+.team-form-field select,
+.team-form-field textarea {
   width: 100%;
   min-height: 44px;
   border: 1px solid var(--system-border);
@@ -946,14 +947,17 @@ html[data-system-theme="dark"] .finance-review-error { background: #3e242a; colo
 .team-filter-field select,
 .team-form-field select,
 .team-form-field input { padding: 0 12px; }
+.team-form-field textarea { padding: 12px; resize: vertical; }
 .team-search-field input:hover,
 .team-filter-field select:hover,
 .team-form-field input:hover,
-.team-form-field select:hover { border-color: color-mix(in srgb, var(--system-accent) 35%, var(--system-border)); }
+.team-form-field select:hover,
+.team-form-field textarea:hover { border-color: color-mix(in srgb, var(--system-accent) 35%, var(--system-border)); }
 .team-search-field input:focus,
 .team-filter-field select:focus,
 .team-form-field input:focus,
-.team-form-field select:focus { border-color: var(--system-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--system-accent) 14%, transparent); }
+.team-form-field select:focus,
+.team-form-field textarea:focus { border-color: var(--system-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--system-accent) 14%, transparent); }
 .team-form-field input[aria-invalid="true"] { border-color: #ce4255; box-shadow: 0 0 0 3px rgba(206,66,85,.1); }
 .team-clear-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; background: transparent; color: var(--system-muted); }
 .team-clear-button:hover { background: var(--system-accent-soft); color: var(--system-accent); }

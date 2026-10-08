@@ -62,7 +62,7 @@ export class WorkController {
     response.send(file.data);
   }
 
-  @Get('kpi/queue') @Requires('KPI_REVIEW') queue() { return this.work.kpiQueue(); }
+  @Get('kpi/queue') @Requires('KPI_REVIEW') queue(@CurrentUser() user: User) { return this.work.kpiQueue(user); }
 
   @Post('kpi/reviews') @Requires('KPI_REVIEW') review(
     @CurrentUser() user: User,

@@ -68,6 +68,12 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [34-records-client-filters.md](34-records-client-filters.md) | Combined model/status/date/assignment filters, accurate paging, exact client links, safe drafts and UAT | §3, §6 |
 | [35-upstream-merge.md](35-upstream-merge.md) | Operations/recruitment/landing import, local-work preservation, migration reconciliation and verification | §4, §6, §9, §11 |
 | [36-scope-handoff.md](36-scope-handoff.md) | Completed local work, remaining implementation/client dependencies, coworker handoff and validation commands | §1–§21 |
+| [37-reports-page.md](37-reports-page.md) | Staff Reports page, filters, CSV/XLSX, saved periods, permissions and verification | §9 |
+| [38-batch-collection-reports.md](38-batch-collection-reports.md) | Batch client/agreement/balance totals, period collections, full-scope exports/saves and remaining reconciliation scope | §7, §9 |
+| [39-reconciliation-reports.md](39-reconciliation-reports.md) | Internal claim/verification-audit comparison, review flags, authorized payment exceptions, exports/history and remaining external matching scope | §7, §9 |
+| [40-payment-adjustments.md](40-payment-adjustments.md) | Finance-only append-only amount corrections/reversals, consistent balances/documents/reports, concurrency, audit evidence and handoff | §7, §9 |
+| [41-recruitment-directory.md](41-recruitment-directory.md) | Full job/applicant search and paging, unfiltered counts, retained review drafts, explicit stale-review resolution and private access checks | §11, §16 |
+| [42-confidential-hr-access.md](42-confidential-hr-access.md) | Owner-approved HR/COO grants, private KPI/applicant access, decision history, revocation and UAT | §3, §8, §11, §16 |
 
 ## Legend (from the scope)
 

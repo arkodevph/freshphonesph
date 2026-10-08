@@ -197,6 +197,11 @@ authorized fields; notification retries do not duplicate records.
 
 ### Gate 6 - Add the assistive AI layer last
 
+**Deferred — API funding unavailable (2026-10-08 user decision).** Skip this gate
+for current delivery and continue with the remaining non-AI work. Resume only when
+paid AI API funding is available and the user requests it; retain the requirements
+below for that future work.
+
 AI work starts only after role permissions and core records are stable.
 
 Allowed behavior:

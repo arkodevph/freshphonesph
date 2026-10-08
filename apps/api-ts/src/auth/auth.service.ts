@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, HttpException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { rolePermissions, type User } from '@freshphones/contracts';
+import { effectivePermissions, type User } from '@freshphones/contracts';
 import { Database } from '../database';
 import { CONFIG, type Config } from '../config';
 import { hashPassword, newToken, tokenHash, verifyPassword } from './password';
@@ -17,13 +17,15 @@ export const safeUser = (u: {
   email: string;
   role: User['role'];
   clientId: string | null;
+  hrConfidentialAccess?: boolean;
 }): User => ({
   id: u.id,
   name: u.name,
   email: u.email,
   role: u.role,
   clientId: u.clientId,
-  permissions: [...rolePermissions[u.role]],
+  hrConfidentialAccess: u.hrConfidentialAccess === true,
+  permissions: effectivePermissions(u),
 });
 @Injectable()
 export class AuthService {

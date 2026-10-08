@@ -1,6 +1,7 @@
 import type { Agent, AgentInput, AssignmentOptions, BatchAssignmentInput, Batch as TsBatch, BatchInput, Client as TsClient, ClientInput, ClientBalance, ClientSchedule, FinanceAlertPage, Page, Payment as TsPayment, PaymentDuplicateMatch, PaymentResultDetail, ReceiptScan, ReceiptType, RecordHistoryEntry, Role, StaffAlert, StaffAlertPage, StaffAlertReadInput, StaffAlertScope, User } from "@freshphones/contracts";
 import { API_URL, TYPESCRIPT_API } from "./backend";
 import type { StaffEmailDelivery, StaffEmailKind, StaffEmailSettings, StaffEmailStatus, StaffEmailTemplate } from "@freshphones/contracts";
+import type { ReconciliationReport, ReconciliationException, CollectionReport, PaymentReport, ReportBatchOption, ReportKind, ReportSnapshot, ReportSnapshotInput, SupportReport, TaskReport } from "@freshphones/contracts";
 import { ApiError, tsDownload, tsRequest, tsUpload, toBatch, toClient, toMe, toPage, toSchedule } from "./ts-api";
 export { API_URL } from "./backend";
 export type RecordId = string | number;
@@ -104,6 +105,9 @@ export type Payment = {
   updated_at?: string | null;
   verified_at?: string | null;
   version?: number;
+  original_amount?: string;
+  adjustment_revision?: number;
+  adjustments?: import("@freshphones/contracts").PaymentAdjustment[];
   duplicate_reference?: boolean;
 };
 
@@ -126,7 +130,8 @@ export type Balance = {
 
 const toPayment = (payment: TsPayment): Payment => ({
   id: payment.id, client: payment.clientId, client_name: payment.client.name,
-  batch: payment.batchId, amount: payment.amount, payment_date: payment.paymentDate,
+  batch: payment.batchId, amount: payment.effectiveAmount ?? payment.amount, original_amount: payment.amount,
+  adjustment_revision: payment.adjustmentRevision ?? 0, adjustments: payment.adjustments ?? [], payment_date: payment.paymentDate,
   method: payment.method, reference_no: payment.referenceNumber ?? "",
   receipt_time: payment.receiptTime, receipt_name: payment.receiptName,
   receipt_phone: payment.receiptPhone,
@@ -140,6 +145,11 @@ const toPayment = (payment: TsPayment): Payment => ({
   updated_at: payment.updatedAt, verified_at: payment.verifiedAt,
   version: payment.version, duplicate_reference: payment.duplicateReference,
 });
+
+export function adjustPayment(id: RecordId, input: import("@freshphones/contracts").PaymentAdjustmentInput) {
+  if (!TYPESCRIPT_API) throw new Error("Payment adjustments require the TypeScript API.");
+  return tsRequest<TsPayment>(`/payments/${id}/adjustments`, { method: "POST", body: JSON.stringify(input) }).then(toPayment);
+}
 
 export function listPayments(params: Record<string, string> = {}) {
   const qs = new URLSearchParams(params).toString();
@@ -926,10 +936,16 @@ export function verifyAgent(q: string) {
 }
 
 // internal (RECRUITMENT_MANAGE / AGENT_MANAGE)
-export function listJobs() {
-  if (TYPESCRIPT_API) return tsRequest<Page<TsJob>>("/recruitment/jobs").then((page) => toPage(page, toJob));
-  return apiFetch("/api/recruitment/jobs/") as Promise<Paginated<JobOpening>>;
+export function listJobs(params: Record<string, string> = {}) {
+  const normalized = new URLSearchParams(params);
+  if (normalized.get("status")) normalized.set("status", normalized.get("status")!.toUpperCase());
+  const query = normalized.size ? `?${normalized}` : "";
+  if (TYPESCRIPT_API) return tsRequest<Page<TsJob>>(`/recruitment/jobs${query}`).then((page) => toPage(page, toJob));
+  return apiFetch(`/api/recruitment/jobs/${query}`) as Promise<Paginated<JobOpening>>;
 }
+export const getRecruitmentSummary = () => tsRequest<import("@freshphones/contracts").RecruitmentSummary>("/recruitment/summary");
+export const getApplicant = (id: RecordId) => tsRequest<TsApplicant>(`/recruitment/applicants/${id}`).then(toApplicant);
+export const getJob = (id: RecordId) => tsRequest<TsJob>(`/recruitment/jobs/${id}`).then(toJob);
 export function createJob(body: Partial<JobOpening> & { title: string }) {
   if (TYPESCRIPT_API) return tsRequest<TsJob>("/recruitment/jobs", { method: "POST", body: JSON.stringify({
     title: body.title, description: body.description ?? "", location: body.location ?? "",
@@ -993,6 +1009,7 @@ export type Employee = {
   created_at: string;
   version?: number;
   client_id?: string | null;
+  hr_confidential_access?: boolean;
 };
 
 type TsAccount = {
@@ -1001,6 +1018,7 @@ type TsAccount = {
   name: string;
   role: Role;
   active: boolean;
+  hrConfidentialAccess: boolean;
   version: number;
   clientId: string | null;
   createdAt: string;
@@ -1030,6 +1048,7 @@ const toEmployee = (account: TsAccount): Employee => ({
   created_at: account.createdAt,
   version: account.version,
   client_id: account.clientId,
+  hr_confidential_access: account.hrConfidentialAccess,
 });
 
 export const ROLES: [string, string][] = [
@@ -1083,7 +1102,8 @@ export function createEmployee(body: {
   }) as Promise<Employee>;
 }
 
-export function updateEmployee(id: RecordId, body: { role?: string; status?: string; version?: number }) {
+export function updateEmployee(id: RecordId, body: { role?: string; status?: string; version?: number;
+  hr_confidential_access?: boolean; hr_access_reason?: string }) {
   if (TYPESCRIPT_API) {
     if (!body.version) return Promise.reject(new Error("Refresh this account before updating it."));
     return tsRequest<TsAccount>(`/accounts/${id}`, {
@@ -1091,6 +1111,9 @@ export function updateEmployee(id: RecordId, body: { role?: string; status?: str
       body: JSON.stringify({
         ...(body.role ? { role: legacyToTsRole[body.role] } : {}),
         ...(body.status ? { active: body.status === "active" } : {}),
+        ...(body.hr_confidential_access !== undefined ? {
+          hrConfidentialAccess: body.hr_confidential_access, hrAccessReason: body.hr_access_reason,
+        } : {}),
         version: body.version,
       }),
     }).then(toEmployee);
@@ -1100,6 +1123,10 @@ export function updateEmployee(id: RecordId, body: { role?: string; status?: str
     body: JSON.stringify({ role: body.role, status: body.status }),
   }) as Promise<Employee>;
 }
+export function getEmployeeHrAccessHistory(id: RecordId, page = 1) {
+  if (!TYPESCRIPT_API) return Promise.reject(new Error("Confidential HR access management requires the TypeScript API."));
+  return tsRequest<Page<import('@freshphones/contracts').HrAccessDecision>>(`/accounts/${id}/hr-access-history?page=${page}`);
+}
 
 /** Download the payments report as a file (CSV or XLSX). */
 export async function downloadPaymentsExport(
@@ -1107,17 +1134,9 @@ export async function downloadPaymentsExport(
   fmt: "csv" | "xlsx" = "csv",
 ) {
   if (TYPESCRIPT_API) {
-    if (fmt !== "csv") throw new Error("The TypeScript report currently supports CSV export.");
     const normalized = new URLSearchParams(params);
     if (normalized.get("status")) normalized.set("status", normalized.get("status")!.toUpperCase());
-    const response = await fetch(`${API_URL}/api/reports/payments/export?${normalized}`, {
-      credentials: "include",
-    });
-    if (!response.ok) throw new Error(`Export failed (${response.status}).`);
-    const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement("a");
-    link.href = url; link.download = "payments.csv"; link.click(); URL.revokeObjectURL(url);
-    return;
+    return downloadReportExport("payments", fmt, Object.fromEntries(normalized));
   }
   const token = getTokens()?.access;
   const qs = new URLSearchParams({ ...params, fmt }).toString();
@@ -1135,16 +1154,38 @@ export async function downloadPaymentsExport(
 }
 
 export function getTaskReport(params: Record<string, string> = {}) {
-  return tsRequest<{ total: number; byStatus: Record<string, number>; submitted: number; late: number; reviewed: number; disclaimer: string }>(`/reports/tasks?${new URLSearchParams(params)}`);
+  return tsRequest<TaskReport>(`/reports/tasks?${new URLSearchParams(params)}`);
 }
 export function getSupportReport(params: Record<string, string> = {}) {
-  return tsRequest<{ total: number; open: number; closed: number; categories: { category: string; total: number; closed: number; averageTurnaroundHours: number | null }[] }>(`/reports/support?${new URLSearchParams(params)}`);
+  return tsRequest<SupportReport>(`/reports/support?${new URLSearchParams(params)}`);
 }
-export async function downloadOperationsExport(kind: "tasks" | "support", format: "csv" | "xlsx", params: Record<string, string> = {}) {
+export const getPaymentReport = (params: Record<string, string> = {}) =>
+  tsRequest<PaymentReport>(`/reports/payments?${new URLSearchParams(params)}`);
+export const getCollectionReport = (params: Record<string, string> = {}) =>
+  tsRequest<CollectionReport>(`/reports/collections?${new URLSearchParams(params)}`);
+export const getReconciliationReport = (params: Record<string, string> = {}) =>
+  tsRequest<ReconciliationReport>(`/reports/reconciliation?${new URLSearchParams(params)}`);
+export const getReconciliationExceptions = (params: Record<string, string> = {}) =>
+  tsRequest<Page<ReconciliationException>>(`/reports/reconciliation/exceptions?${new URLSearchParams(params)}`);
+export const getReportBatches = (params: Record<string, string> = {}) =>
+  tsRequest<Page<ReportBatchOption>>(`/reports/batches?${new URLSearchParams(params)}`);
+export const getReportSnapshots = (kind: ReportSnapshot["kind"], page = 1) =>
+  tsRequest<Page<ReportSnapshot>>(`/reports/snapshots?${new URLSearchParams({ kind, page: String(page) })}`);
+export const createReportSnapshot = (input: ReportSnapshotInput) =>
+  tsRequest<ReportSnapshot>("/reports/snapshots", { method: "POST", body: JSON.stringify(input) });
+
+export async function downloadReportExport(kind: ReportKind, format: "csv" | "xlsx", params: Record<string, string> = {}) {
   const query = new URLSearchParams({ ...params, kind, format });
-  const response = await fetch(`${API_URL}/api/reports/export?${query}`, { credentials: "include" });
-  if (!response.ok) throw new Error(`Export failed (${response.status}).`);
-  const url = URL.createObjectURL(await response.blob());
-  const link = document.createElement("a"); link.href = url; link.download = `${kind}.${format}`; link.click();
-  URL.revokeObjectURL(url);
+  const blob = await tsDownload(`/reports/export?${query}`);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = `${kind}.${format}`;
+  document.body.appendChild(link);
+  try { link.click(); } finally {
+    link.remove();
+    // Keep the object URL alive until the browser has started the download.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }
+export const downloadOperationsExport = (kind: "tasks" | "support", format: "csv" | "xlsx", params: Record<string, string> = {}) =>
+  downloadReportExport(kind, format, params);

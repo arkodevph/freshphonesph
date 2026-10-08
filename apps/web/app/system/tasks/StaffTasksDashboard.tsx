@@ -40,6 +40,12 @@ function TaskLocationSync({ onTask }: { onTask: (id: string | null) => void }) {
 
 export default function StaffTasksDashboard() {
   const me = useMe();
+  if (!me) return <p role="status">Loading task access…</p>;
+  if (me.account_type !== "employee") return <section><h1>No access</h1><p>Staff access is required for tasks.</p></section>;
+  return <TaskWorkspace key={`${me.id}:${can(me, "TASK_ASSIGN")}:${can(me, "KPI_REVIEW")}`} me={me} />;
+}
+
+function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
   const canAssign = can(me, "TASK_ASSIGN");
   const canReview = can(me, "KPI_REVIEW");
   const [tasks, setTasks] = useState<Page<Task> | null>(null);

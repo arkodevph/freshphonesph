@@ -192,22 +192,106 @@ Verification passes 47 API unit, 75 PostgreSQL integration and 19 web tests (141
 workspace typechecks, production builds and synthetic browser checks. A fresh
 install and an existing-data upgrade have no Prisma drift; the backed-up local
 preview upgrade preserves every row and field in all 29 existing application
-tables. Reporting APIs are available, but the incoming commit supplies no Reports
-page. Business policies, named UAT, production email and handover remain open.
+tables. The incoming commit supplies reporting APIs; the subsequent Reports
+follow-up adds the dedicated page described below. Business policies, named UAT,
+production email and handover remain open.
+
+The `feature/reports-page` follow-up adds `/system/reports` with permission-gated
+navigation, inclusive date/batch/status filtering, payment summaries, Tasks/KPI
+and Support aggregates, CSV/XLSX and captured period history. Analytics uses a
+report-only batch picker without gaining Records access. Saved payment periods
+retain filters and captured batch codes; later record changes leave their figures
+intact. Every report endpoint enforces the existing report grants and omits private
+fields. Both export formats are also available on Payments. See
+[37-reports-page.md](37-reports-page.md). Verification passes 152 shared tests
+(46 API unit, 80 PostgreSQL integration and 26 web), typechecks, a clean production
+build and synthetic browser checks. Additional report families, business field
+approval and named UAT remain open.
+
+The subsequent Batch & Collections increment adds per-batch clients, issued
+agreements, verified/pending totals, per-client-derived outstanding balances and
+overpaid/unapplied figures. Date filters apply only to period collections and
+pending payments; overall totals use current records and client membership.
+Batch paging retains full-scope totals, CSV/XLSX and immutable audited snapshots.
+Missing schedules are flagged for Records review. Verification passes **157 shared
+tests** (46 API unit, 83 PostgreSQL integration and 28 web), workspace typechecks,
+production builds and 11 browser check groups. See
+[38-batch-collection-reports.md](38-batch-collection-reports.md). Reconciliation
+reports, final field/format approval and named UAT remain open. This increment is
+packaged on `feature/reports-page` for review; deployment remains a release task.
+
+Internal reconciliation is now delivered with recorded claim/status/method totals,
+matching verification-audit amounts, evidence gaps and duplicate/schedule/batch
+review flags. Aggregates require `REPORT_VIEW`; individual exception rows and
+exact Finance links also require `PAYMENT_READ`. CSV/XLSX and saved history retain
+every scoped aggregate group. Reports do not change payments or match external
+bank statements. The new audit lookup index brings the preview and fresh test
+databases to **22 active migrations**, with no local Prisma drift. Verification
+passes **164 shared tests** (46 API unit, 88 PostgreSQL integration and 30 web),
+workspace typechecks, a clean production build and 16 browser check groups. See
+[39-reconciliation-reports.md](39-reconciliation-reports.md). The adjustment increment
+below completes local amount correction implementation. Field/format approval,
+external statement matching and named UAT remain open. This follow-up is packaged
+on `feature/reports-page` for review.
+
+Finance can now explicitly correct verified credit, reverse it to zero and restore it
+through immutable signed `PaymentAdjustment` entries. Original payment amounts,
+verification and versions stay unchanged. Current Finance grants, captured revisions,
+unique retry IDs, the cross-instance transaction lock and database credit-chain constraints
+guard writes. Reasons, audit evidence, live events and customer notices commit together.
+Derived balances, installment allocation, reminders, summaries, portal history, statements,
+confirmations, PDFs and reports consistently use adjusted credit. Report periods use the
+original payment date; saved snapshots remain immutable. Reconciliation separately flags
+missing/malformed adjustment audit evidence. Staff reasons/actors are omitted from new
+customer adjustment history. The forward migration brings the local preview and fresh test
+databases to **23 migrations**, with no local schema drift. See
+[40-payment-adjustments.md](40-payment-adjustments.md). Verification passes **178 shared
+tests** (48 API unit, 97 PostgreSQL integration and 33 web), workspace typechecks, a clean
+production build and 25 browser check groups, including downloaded customer PDFs.
+Named Finance/Owner UAT and the
+remaining reporting/service acceptance work are still open; the changes are packaged
+on `feature/reports-page` for review.
+
+The 2026-10-07 recruitment increment replaces first-page filtering in the TypeScript
+workspace with complete job/applicant search, status/role facets, 20-row paging and
+unfiltered backlog counts. Applicant-specific drafts retain their captured versions
+across selection, paging, filtering and refresh; competing reviews require explicit
+comparison and a human choice before saving. Private attachments and existing agent
+management retain their grants. The role/anonymous matrix, tied-timestamp paging,
+concurrent reviews, audited writes and revoked actors pass PostgreSQL checks.
+Verification passes **194 shared tests** (50 API unit, 104 PostgreSQL integration and
+40 web), workspace typechecks, a clean production build and six production-browser
+check groups covering drafts/conflicts, retries, mobile/keyboard and revocation. There is no new schema
+migration. Named recruitment UAT, privacy/retention and import remain open; the
+confidential grants are addressed below. See [41-recruitment-directory.md](41-recruitment-directory.md).
+Changes are packaged on `feature/reports-page` for review.
+
+The 2026-10-08 confidential HR increment implements the user-confirmed policy: Owner
+access is automatic, while HR/Payroll and COO need a per-person Owner grant. `/system/team`
+provides a reasoned grant/revoke decision and private paged history. Changes reject stale
+versions, revoke sessions, and clear grants on role changes or deactivation. The default-off
+additive migration and database eligibility constraint prevent inherited access. Both task
+API families redact private KPI reviews; applicant directories, exact details, notes/files
+and applicant live events require the grant. Ordinary tasks, job publication, aggregate
+reports, Finance and handler isolation retain their existing permissions. Verification
+passes 210 shared tests (53 API unit, 115 PostgreSQL integration and 42 web), clean-workspace
+typechecks, the production workspace build and seven browser groups. All 24 migrations
+apply with no local schema drift. Consequential HR approvals and named UAT remain
+separate; see [42-confidential-hr-access.md](42-confidential-hr-access.md).
 
 | Module | Status | Key endpoints | UI |
 |---|---|---|---|
 | **M2 Auth / Users & Roles** | ✅ Built | Django `/api/employees/`; NestJS `/api/auth/*`, `/api/accounts` (list/create/detail/update, ACCOUNT_MANAGE) | `/login`, Owner-only `/system/team` |
 | **M3 Paluwagan Records & Clients** | ✅ Built | `/api/batches/`, `/api/clients/` (+ auto-schedule), `/api/clients/{id}/schedule` | `/system/records`, `/system/clients` |
-| **M4 Payments & Finance** | ✅ Built | `/api/payments/` (record/list/verify), `/api/clients/{id}/balance|statement`, `/api/payments/{id}/proof|confirmation` | `/system/payments` |
+| **M4 Payments & Finance** | ✅ Built | `/api/payments/` (record/list/verify), `/api/payments/{id}/adjustments`, `/api/clients/{id}/balance|statement`, `/api/payments/{id}/proof|confirmation` | `/system/payments` with audited credit corrections |
 | **M5 Customer Portal** | ✅ Built | `/api/portal/summary|schedule|payments|support`, `/api/clients/{id}/portal-account` | `/portal` |
 | **M6 Employee Tasks & KPI** | ✅ Built | `/api/tasks/` (+ submit → late flag), `/api/kpi/queue`, `/api/kpi/reviews` | `/system/tasks` |
-| **M7 Reporting & Analytics** | ✅ Built | `/api/reports/dashboard|collections`, `/api/reports/payments/export` (CSV/XLSX) | dashboard cards |
+| **M7 Reporting & Analytics** | 🟡 Partial | `/api/reports/` dashboard, payments, collections, reconciliation, authorized reconciliation exceptions, tasks, support, export, snapshots and batches; business field/format acceptance and external matching open | dashboard cards and `/system/reports` |
 | **M8 Customer Service** | ✅ Built | `/api/support/cases/`, `/api/portal/support/` | `/system/support`, portal |
-| **M9 Recruitment & Agents** | ✅ Built | public `/api/careers|careers/apply`, `/api/agents/verify`; internal `/api/recruitment/*`, `/api/agents/` | `/careers`, `/verify`, `/system/recruitment` |
+| **M9 Recruitment & Agents** | 🟡 Partial — implemented, acceptance open | public `/api/careers`, `/api/careers/apply`, `/api/agents/verify`; guarded recruitment search/paging/summary/detail/review and `/api/agents/` | `/careers`, `/verify`, `/system/recruitment` with retained review drafts; privacy/retention/import and named UAT open |
 | **M10 Notifications** | 🟡 Partial | Customer delivery/read/templates; staff alert and task/Finance/Support/account email queues/settings | Portal notifications; shared Tasks/Finance/Results/Support/Accounts bell; fourteen Owner staff templates, timing and delivery controls |
 | **M1 Public Website** | 🟡 Partial | landing page + Careers + Verify pages | `/`, `/careers`, `/verify` |
-| **M11 AI Assistant** | ⬜ Not started | — | — |
+| **M11 AI Assistant** | Deferred — paid AI API funding unavailable (user request, 2026-10-08) | — | — |
 
 ## What's real vs. contract-skeleton
 Every module has **working, tested code**. A few models started as minimal **contract skeletons**
@@ -225,7 +309,9 @@ Every module has **working, tested code**. A few models started as minimal **con
 - **Email:** MailHog locally, Resend/SMTP in prod.
 
 ## Known follow-ups
-- M11 AI assistant (assistive-only, guardrailed — see docs/05 M11).
+- M11 AI assistant is deferred from current implementation priorities until paid AI
+  API funding is available and the user requests resumption (2026-10-08 decision;
+  see docs/05 M11).
 - M1 public catalog / how-it-works / FAQ content beyond the current landing sections.
 - M10 approved wording/timing, production sender provisioning, inbox smoke tests and named UAT.
   TypeScript task reminders, Finance pending/results, staff email templates/timing/history/retries

@@ -216,6 +216,10 @@ Support operations. **Messenger API integration is NOT required for V1** (out of
 
 ## M11 — AI Assistant & Automation (§13) **[Staff]**
 
+**Deferred — API funding unavailable (2026-10-08 user decision).** Exclude M11 from
+current implementation priorities. Resume only when paid AI API funding is available
+and the user requests it. The requirements below remain for future implementation.
+
 A workflow-aware assistant layered on the stable core. **Assistive only** — it summarizes,
 reminds, suggests; it never acts on its own or replaces a human verification/decision.
 Implemented **only after** core workflows and permissions are stable.

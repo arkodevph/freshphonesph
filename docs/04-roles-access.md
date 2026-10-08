@@ -42,7 +42,24 @@ only by hiding UI (§16).
 - **Confidential HR/payroll** is gated behind explicit approval even for COO (§3).
 - **Sensitive actions are audited** (role changes, payment verification, record edits) (§16).
 
-## Example permission matrix (illustrative — finalize in Discovery)
+## Current TypeScript confidential HR policy
+
+Confirmed by the user on **2026-10-08**:
+
+| Role | Confidential HR access |
+|---|---|
+| Owner | Automatic access; approves and revokes other eligible accounts |
+| HR / Payroll or COO | Explicit Owner grant for that person, with a recorded reason |
+| Every other role | Denied, regardless of a stored or client-supplied grant |
+
+New and existing non-Owner accounts default to no grant. Private KPI evaluations,
+review queues and applicant records/notes/files require the grant; ordinary task work,
+job publication and aggregate reports retain their existing permissions. A role change
+or deactivation clears the grant; reactivation does not restore it. Grant changes revoke
+existing sessions and are audited with the Owner, reason and date. Owner management is
+available in `/system/team`. See [42-confidential-hr-access.md](42-confidential-hr-access.md).
+
+## Example permission matrix (illustrative — finalize general roles in Discovery)
 
 | Permission | Owner | COO | GM | HR | Finance | Records | Analytics | CS | Handler |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
@@ -52,8 +69,8 @@ only by hiding UI (§16).
 | `payment:verify` | ✔ | – | – | – | ✔ | – | – | – | – |
 | `document:review` | ✔ | ✔ | – | – | – | ✔ | – | – | – |
 | `task:assign` | ✔ | ✔ | ✔ | ✔ | – | – | – | ✔ | – |
-| `kpi:review` | ✔ | approved | – | ✔ | – | – | – | – | – |
-| `hr:confidential` | ✔ | approved | – | ✔ | – | – | – | – | – |
+| `kpi:review` | ✔ | approved | – | approved | – | – | – | – | – |
+| `hr:confidential` | ✔ | approved | – | approved | – | – | – | – | – |
 | `report:view` | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | – |
 | `role:assign` | ✔ | – | – | – | – | – | – | – | – |
 | `support:manage` | ✔ | ✔ | – | – | – | – | – | ✔ | – |

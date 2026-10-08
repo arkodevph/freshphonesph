@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { User } from '@freshphones/contracts';
-import { allowed } from '../auth/access';
+import { allowed, requireCurrentUser } from '../auth/access';
 import { Database } from '../database';
 import { Prisma, type KpiDecision, type TaskPriority } from '../generated/prisma/client';
 import { PrivateStorageService, type PrivateUpload } from '../storage/private-storage.service';
@@ -49,10 +49,10 @@ export class TasksService {
     if (allowed(user, 'TASK_ASSIGN') || task.assigneeId === user.id) return;
     throw new NotFoundException('Task not found.');
   }
-  private async write<T>(user: User, run: (tx: Prisma.TransactionClient, current: { id: string; role: User['role']; active: boolean }) => Promise<T>) {
+  private async write<T>(user: User, run: (tx: Prisma.TransactionClient, current: { id: string; role: User['role']; active: boolean; hrConfidentialAccess: boolean }) => Promise<T>) {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
-      const current = await tx.user.findUnique({ where: { id: user.id }, select: { id: true, role: true, active: true } });
+      const current = await tx.user.findUnique({ where: { id: user.id }, select: { id: true, role: true, active: true, hrConfidentialAccess: true } });
       if (!current?.active || current.role === 'CUSTOMER') throw new ForbiddenException('Staff access required.');
       return run(tx, current);
     });
@@ -69,6 +69,7 @@ export class TasksService {
       select: { id: true, name: true, role: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
   }
   async list(user: User, query: { page: number; status?: 'TODO' | 'IN_PROGRESS' | 'SUBMITTED' | 'DONE' }) {
+    user = await requireCurrentUser(this.db, user, 'TASK_READ');
     this.staff(user);
     const where: Prisma.TaskWhereInput = {
       ...(allowed(user, 'TASK_ASSIGN') ? {} : { assigneeId: user.id }),
@@ -83,6 +84,7 @@ export class TasksService {
       page: query.page, pageSize };
   }
   async detail(user: User, id: string) {
+    user = await requireCurrentUser(this.db, user, 'TASK_READ');
     const row = await this.db.task.findUnique({ where: { id }, include: taskInclude });
     if (!row) throw new NotFoundException('Task not found.');
     this.visible(user, row);
@@ -166,6 +168,7 @@ export class TasksService {
       originalName: row.attachment.originalName };
   }
   async kpiQueue(user: User, page: number) {
+    user = await requireCurrentUser(this.db, user, 'KPI_REVIEW');
     if (!allowed(user, 'KPI_REVIEW')) throw new ForbiddenException('KPI review access required.');
     const where: Prisma.TaskWhereInput = { status: 'SUBMITTED', lateFlag: true, review: { is: null } };
     const [rows, count] = await this.db.$transaction([
@@ -176,6 +179,7 @@ export class TasksService {
     return { results: rows.map((row) => view(row, true)), count, page, pageSize };
   }
   async kpiReviews(user: User, page: number) {
+    user = await requireCurrentUser(this.db, user, 'KPI_REVIEW');
     if (!allowed(user, 'KPI_REVIEW')) throw new ForbiddenException('KPI review access required.');
     const [rows, count] = await this.db.$transaction([
       this.db.kpiReview.findMany({ include: { task: { select: { title: true, assignee: { select: { name: true } } } },

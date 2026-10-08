@@ -8,6 +8,7 @@ import { Database } from '../database';
 import { allocateVerifiedPayments } from '../records/allocation';
 import { NotificationSettingsService, renderCustomerEmail } from './notification-settings.service';
 import { StaffEmailService } from '../staff/staff-email.service';
+import { verifiedTotals } from '../finance/ledger';
 
 const philippineDate = () => new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const address = (kind: string) => ({ payment: '/portal/payments', release: '/portal/release',
@@ -58,9 +59,9 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
       for (const item of due) {
         if (!item.client.account?.active) continue;
         const all = await this.db.scheduleItem.findMany({ where: { clientId: item.clientId }, orderBy: { sequenceNo: 'asc' } });
-        const verified = await this.db.payment.aggregate({ where: { clientId: item.clientId, status: 'VERIFIED' }, _sum: { amount: true } });
+        const verified = await this.db.$transaction((tx) => verifiedTotals(tx, { clientId: item.clientId }), { isolationLevel: 'RepeatableRead' });
         const pendingCount = await this.db.payment.count({ where: { clientId: item.clientId, status: 'PENDING' } });
-        const allocation = allocateVerifiedPayments(all.map((row) => ({ sequenceNo: row.sequenceNo, dueDate: row.dueDate.toISOString().slice(0, 10), expectedAmount: row.expectedAmount.toFixed(2) })), (verified._sum.amount ?? 0).toString(), today);
+        const allocation = allocateVerifiedPayments(all.map((row) => ({ sequenceNo: row.sequenceNo, dueDate: row.dueDate.toISOString().slice(0, 10), expectedAmount: row.expectedAmount.toFixed(2) })), verified.effective.toFixed(2), today);
         const current = allocation.find((row) => row.sequenceNo === item.sequenceNo);
         if (!current || current.status === 'PAID') continue;
         const outstanding = (Number(current.expectedAmount) - Number(current.paidApplied)).toFixed(2);

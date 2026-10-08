@@ -1,22 +1,33 @@
 # Fresh Phones PH — Completed scope and coworker handoff
 
-Prepared **2026-10-06**. This is a summary of work completed or integrated locally,
+Updated **2026-10-08**. This is a summary of work completed or integrated locally,
 plus the remaining implementation and launch tasks. Local verification does not
 mean business UAT or production acceptance is complete.
 
 ## Current handoff state
 
-- Repository: `freshphonesph`; branch: `feature/records-client-filters`.
+- Repository: `freshphonesph`; review branch: `feature/reports-page`.
+- This feature handoff builds on the previously published `4ae1337` handoff and
+  packages the Reports follow-up, including Batch & Collections; see
+  [37-reports-page.md](37-reports-page.md) and
+  [38-batch-collection-reports.md](38-batch-collection-reports.md). Internal
+  reconciliation and audited amount adjustments are also delivered; see
+  [39-reconciliation-reports.md](39-reconciliation-reports.md) and
+  [40-payment-adjustments.md](40-payment-adjustments.md). Recruitment backlog
+  search/paging, complete counts and retained review drafts are included;
+  see [41-recruitment-directory.md](41-recruitment-directory.md). Owner-approved
+  confidential HR access, decision history and cross-instance revocation are also
+  included; see [42-confidential-hr-access.md](42-confidential-hr-access.md).
 - Upstream merge base: `05e2615`, including `fd3ff14` operations/recruitment/landing work.
 - The handoff commit packages the feature work, merge adjustments, new source files,
-  migrations and this documentation together on `feature/records-client-filters`.
+  migrations and this documentation together on `feature/reports-page`.
   Continue from that branch rather than `main` or `staging`, which do not yet include
   the handoff changes. Share credentials separately through the team's private process.
 - A coworker can fetch and check out the shared branch:
 
   ```bash
   git fetch origin
-  git switch --track origin/feature/records-client-filters
+  git switch --track origin/feature/reports-page
   ```
 
   If the branch already exists locally, switch to it and pull with `--ff-only`.
@@ -26,7 +37,7 @@ mean business UAT or production acceptance is complete.
   The shared application uses normal sign-in with privately provisioned accounts.
 - All 97 pre-merge local files were preserved. The recovery stash and private
   database/file backups remain available locally; they are not project source.
-- The local preview database has all **21 active migrations**, with existing data
+- The local preview database has all **24 active migrations**, with existing data
   preserved and no Prisma schema drift.
 - Local web: `http://localhost:3000`; API: `http://localhost:4101`;
   API/database health: `GET /api/health`.
@@ -40,8 +51,10 @@ mean business UAT or production acceptance is complete.
 | Staff alerts | Shared notification bell for task assignment/deadlines, Finance pending/results, Support triage/assignment/customer replies and Owner account changes. Recipient-specific reads, private events and exact record links are retained. | [Finance pending](27-finance-pending-alerts.md), [tasks](28-staff-task-alerts.md), [results](29-finance-result-alerts.md), [Support](31-support-staff-alerts.md), [accounts](32-account-access-alerts.md) |
 | Staff email preparation | Fourteen configurable templates, reminder timing, delivery history, bounded retries, recipient/access checks and a launch-check CLI. Local previews and mocked-provider checks pass. | [Email delivery](30-staff-email-delivery.md), [launch preparation](33-staff-email-launch.md) |
 | Document requirements | Configurable approved document types, private uploads, revision history, approval and clarification notes. The existing customer Documents checklist remains intact alongside the imported configured requirements. | [Merge details](35-upstream-merge.md) |
-| Recruitment | Public careers and application forms, private applicant attachments, job publication/closing and versioned internal applicant status/notes. Existing agent management remains available. | [Merge details](35-upstream-merge.md) |
-| Reporting APIs | Verified/pending dashboard cards, payment exports, task/KPI and Support category/turnaround aggregates, CSV/XLSX operations exports and saved period snapshots. Task/Support exports contain aggregates. | [Merge details](35-upstream-merge.md) |
+| Recruitment | Public careers/application forms, private attachments, job publication/closing, full-backlog job/applicant search and pagination, global counts, retained review drafts and explicit stale-review resolution. Existing agent management remains available. | [Recruitment directory](41-recruitment-directory.md), [merge details](35-upstream-merge.md) |
+| Confidential HR access | Owner automatic access; explicit reasoned per-person grants for HR / Payroll or COO, private KPI/applicant gates, decision history, stale-save rejection, role/deactivation resets and session revocation. | [Confidential HR access](42-confidential-hr-access.md) |
+| Reporting | Permission-gated Reports page, payment and collection totals, internal verification-audit reconciliation, review flags with separately authorized payment exceptions, task/KPI and Support aggregates, CSV/XLSX and captured history. Paging preserves full-scope totals, exports and saves. | [Reports page](37-reports-page.md), [Batch & Collections](38-batch-collection-reports.md), [Reconciliation](39-reconciliation-reports.md), [merge details](35-upstream-merge.md) |
+| Finance adjustments | Finance-only amount corrections, full reversal/restoration, append-only reasons/actors/history, guarded retries and stale writes, consistent adjusted balances/schedules/customer documents/reports, and adjustment audit-gap evidence. Original verified records and saved snapshots remain unchanged. | [Payment adjustments](40-payment-adjustments.md) |
 | Public site & integration | Imported landing/careers experience, mobile horizontal-overflow fix, reconciled API/contracts and migration history, and a working local web/API setup. | [Merge details](35-upstream-merge.md) |
 
 Existing payment verification, derived balances, customer portal, task/KPI,
@@ -54,37 +67,49 @@ These are open workstreams, not estimates or a claim that every module is missin
 Use the [scope matrix](18-scope-traceability-matrix.md) for the section-by-section
 acceptance record.
 
-### 1. Reporting and Finance completion — next available implementation task
+### 1. Reporting and Finance acceptance
 
-- [ ] Build `/system/reports`, with role-aware navigation, date/batch filters,
-  loading/error states, export controls and saved-period history. The Reports
-  sidebar item is currently disabled because no Reports page exists.
-- [ ] Complete the remaining batch/collection/reconciliation report families and
-  any additional formats required by the approved scope.
-- [ ] Connect the payment XLSX UI to the imported export API. The older
-  `downloadPaymentsExport` helper still rejects XLSX in TypeScript mode, although
-  the newer `/api/reports/export` supports it.
-- [ ] Confirm permitted fields for every reporting role and test both authorized
-  exports and prohibited private details.
-- [ ] Finish the approved audited post-verification adjustment/correction workflow
-  and reconciliation evidence. Keep verified-payment changes explicit and audited.
+- [x] Build `/system/reports`, with role-aware navigation, date/batch filters,
+  loading/error states, export controls and saved-period history.
+- [x] Complete batch/collection reporting with issued agreements, client counts,
+  verified-only balances, separate period collections/pending figures, full-scope
+  exports and immutable audited history.
+- [x] Complete internal reconciliation reports: status/method totals, verification
+  audit gaps, duplicate/schedule/batch review flags, authorized exception links,
+  aggregate exports and saved history.
+- [ ] Approve any additional required formats. External bank-statement matching
+  needs approved source data and rules; it is not part of the internal comparison.
+- [x] Connect the payment XLSX UI to the export API on Reports and Payments.
+- [x] Test the existing report permission matrix and authorized exports with
+  private identity, proof, notes, task evidence and Support concerns excluded.
+- [ ] Obtain final business approval for permitted fields per reporting role and
+  extend report coverage against that approved matrix.
+- [x] Implement audited post-verification amount corrections/reversals and
+  reconciliation evidence. Original verified rows remain immutable; see
+  [40-payment-adjustments.md](40-payment-adjustments.md).
+- [ ] Complete named Finance/Owner UAT and approve the adjustment procedure.
+  Metadata/client reassignment and external statement matching need separate approved rules.
 
 ### 2. Confidential HR access and consequential approvals
 
-- [ ] Obtain the Owner-approved confidential-HR access matrix and implement the
-  separate grants and negative permission tests.
+- [x] Implement the user-confirmed policy: Owner access is automatic; HR / Payroll
+  and COO require an explicit per-person Owner grant. Grant decisions are reasoned,
+  audited and versioned, with negative role/private-file tests and session revocation.
+  See [42-confidential-hr-access.md](42-confidential-hr-access.md).
+- [ ] Complete named Owner/HR/COO UAT for grant, revoke, role change and reactivation.
 - [ ] Complete the human approval/audit trail for consequential HR actions covered
   by the scope. Existing task timing and KPI notes are not that approval workflow.
-- [ ] Preserve current role grants and handler isolation. Do not introduce payroll
-  automation or automatic salary deductions.
+- [x] Preserve ordinary role grants and handler isolation while separately gating
+  private KPI reviews and applicant data. No payroll automation or automatic deductions.
 
 ### 3. Public site, documents and recruitment finishing work
 
 - [ ] Connect the public catalog and payment breakdown to approved, maintained
   product/availability data; validate the complete support/contact entry points.
 - [ ] Have the business approve process, document requirements, FAQ and public copy.
-- [ ] Complete recruitment paging/search across full applicant/job backlogs; the
-  current internal page loads a first page and filters its loaded applicants.
+- [x] Complete recruitment paging/search across full applicant/job backlogs, with
+  complete counts, retained drafts, explicit conflict resolution and private access
+  tests; see [41-recruitment-directory.md](41-recruitment-directory.md).
 - [ ] Finalize the approved customer/staff document journey across the existing
   checklist and imported configurable requirements; avoid adding a third system.
 - [ ] Reconcile the approved Appendix A field checklist with models/validation,
@@ -126,7 +151,12 @@ local email tools are ready, but real delivery is not accepted.
 Architecture requirements and decisions: [20-v6-architecture-decision.md](20-v6-architecture-decision.md).
 Client policy dependencies: [22-customer-portal-policy.md](22-customer-portal-policy.md).
 
-### 6. Assistive AI — implement after core permissions and records are stable
+### 6. Assistive AI — deferred until API funding is available
+
+Deferred at the user's request on **2026-10-08** because there is no budget for
+paid AI API usage. Exclude this workstream from current implementation priorities.
+Resume only when funding is available and the user requests it; retain the following
+requirements for future implementation after core permissions and records are stable.
 
 - [ ] Implement approved-source, permission-aware summaries and task assistance.
 - [ ] Test role/customer isolation, prompt injection, private-data handling and
@@ -158,6 +188,36 @@ The shared snapshot excludes one local demo configuration test and passes
 **46 API unit + 75 real PostgreSQL integration + 19 web = 140 tests**.
 Workspace typechecks and a production build in a clean workspace also pass.
 All 21 active migrations apply successfully to a fresh PostgreSQL test database.
+The Reports follow-up passes **152 shared tests** (46 API unit, 80 PostgreSQL
+integration and 26 web tests), typechecks and a clean production build; see
+[37-reports-page.md](37-reports-page.md).
+The Batch & Collections increment passes **157 shared tests** (46 API unit,
+83 PostgreSQL integration and 28 web), workspace typechecks, production builds
+and 11 browser check groups; see
+[38-batch-collection-reports.md](38-batch-collection-reports.md). Its date filters
+apply to period collections/pending payments; overall balances use current issued
+schedules and verified records.
+The internal reconciliation increment passes **164 shared tests** (46 API unit,
+88 PostgreSQL integration and 30 web), typechecks, a clean production build and
+16 browser check groups. The preview and fresh test databases have all 22
+migrations, with no local schema drift. See
+[39-reconciliation-reports.md](39-reconciliation-reports.md). External bank
+statements are not matched by this internal report.
+The Finance adjustment increment passes **178 shared tests** (48 API unit,
+97 PostgreSQL integration and 33 web), typechecks, a clean production build and
+25 browser groups; see [40-payment-adjustments.md](40-payment-adjustments.md).
+Recruitment search/paging passes **194 shared tests** (50 API unit, 104 PostgreSQL
+integration and 40 web), typechecks, a clean production build and six recruitment
+browser check groups; see
+[41-recruitment-directory.md](41-recruitment-directory.md). It adds no migration.
+The confidential HR increment passes **210 shared tests** (53 API unit, 115 PostgreSQL
+integration and 42 web), workspace typechecks, a production workspace build and
+seven browser check groups. The shared suites, typechecks and production build
+also pass in a clean workspace with the local demo overlays excluded. Both local preview
+and fresh test databases have all 24 migrations and no Prisma schema drift. See
+[42-confidential-hr-access.md](42-confidential-hr-access.md) for access and UAT details.
+All follow-ups are packaged together on `feature/reports-page` for review.
+
 Production-build browser checks used synthetic API responses for careers,
 recruitment, requirements, Records/Clients filters, drafts/links, explicit writes,
 revoked access and mobile layouts. Real staging UAT remains separate.
@@ -206,7 +266,9 @@ pnpm test:api-ts:integration
 
 **Migration handoff:** the two overlapping incoming September SQL scripts are
 preserved under `apps/api-ts/prisma/migration-sources/operations-completion/`.
-The active forward migration is `20261007010000_operations_reconcile`. Check an
+The latest forward migration is `20261008010000_confidential_hr_access`; the
+earlier reconciliation/operations migrations remain unchanged. Recruitment search
+and paging add no migration. Check an
 environment's applied migration names before deploying this branch; details are
 in [35-upstream-merge.md](35-upstream-merge.md).
 

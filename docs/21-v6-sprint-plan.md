@@ -175,7 +175,7 @@ Follow-on work is ordered by dependencies, not promised as one sprint per row:
 | Finance completion and notifications | §§7, 12 | Remaining adjustment/report/document gaps; authorized post-commit notifications with idempotent retries and approved templates |
 | Tasks/KPI, support and recruitment | §§8, 10–11 | Port complete role-scoped lifecycles and private attachments; human-only KPI decisions; public agent data minimization |
 | Public website and reporting | §§4, 9 | Approved catalog/content, role-scoped reporting families, periods and required exports |
-| Assistive AI | §13, stricter project safeguards | Stable core, approved knowledge, role-aware retrieval and guardrail evidence; no wage decisions |
+| Assistive AI — deferred | §13, stricter project safeguards | Deferred at the user's request on 2026-10-08 because paid AI API funding is unavailable; resume only with funding and a user request, then verify stable core, approved knowledge, role-aware retrieval and guardrails; no wage decisions |
 | Release and handover | §§16–17, 20–21 | Capacity/concurrency, two-instance behavior, outages, backup restore, rollback, security checks, client UAT and handover |
 
 Reconcile the full traceability matrix at each sprint review. This plan closes a bounded portion of v6; it does not replace the full scope or silently mark earlier gates complete.

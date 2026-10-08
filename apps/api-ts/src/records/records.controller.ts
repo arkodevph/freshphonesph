@@ -133,6 +133,10 @@ export class RecordsController {
   @Get('accounts/:id') @Requires('ACCOUNT_MANAGE') account(@Param('id', ParseUUIDPipe) id: string) {
     return this.records.account(id);
   }
+  @Get('accounts/:id/hr-access-history') @Requires('ACCOUNT_MANAGE') hrAccessHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query(new Validate(historyQuerySchema)) query: z.infer<typeof historyQuerySchema>,
+  ) { return this.records.hrAccessHistory(id, query.page); }
   @Patch('accounts/:id') @Requires('ACCOUNT_MANAGE') updateAccount(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,

@@ -18,6 +18,7 @@ import type {
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { allowed } from '../auth/access';
+import { eligibleForConfidentialHr } from '@freshphones/contracts';
 import { hashPassword } from '../auth/password';
 import { generateSchedule } from './schedule';
 import { allocateVerifiedPayments } from './allocation';
@@ -26,6 +27,7 @@ import { notifyCustomer } from '../portal/notifications.service';
 import { historyChanges } from './history';
 import { batchScope, clientScope } from './scope';
 import { notifyAccount } from '../staff/account-alerts';
+import { verifiedTotals } from '../finance/ledger';
 
 const batchInclude = { _count: { select: { clients: true } },
   handler: { select: { id: true, name: true, active: true, role: true } },
@@ -42,6 +44,7 @@ const accountSelect = {
   email: true,
   role: true,
   active: true,
+  hrConfidentialAccess: true,
   clientId: true,
   version: true,
   createdAt: true,
@@ -415,19 +418,19 @@ export class RecordsService {
   }
   async schedule(user: User, id: string) {
     await this.client(user, id);
-    return this.readSchedule(this.db, id);
+    return this.db.$transaction((tx) => this.readSchedule(tx, id), { isolationLevel: 'RepeatableRead' });
   }
   private async readSchedule(tx: Prisma.TransactionClient, id: string) {
     const items = await tx.scheduleItem.findMany({ where: { clientId: id }, orderBy: { sequenceNo: 'asc' } });
     if (!items.length) throw new ConflictException('This client does not have an issued schedule yet. Ask Records to review the batch terms.');
     const totalDue = items.reduce((sum, item) => sum.add(item.expectedAmount), new Prisma.Decimal(0)).toFixed(2);
-    const verified = await tx.payment.aggregate({ where: { clientId: id, status: 'VERIFIED' }, _sum: { amount: true } });
+    const verified = await verifiedTotals(tx, { clientId: id });
     const schedule = items.map((item) => ({
       id: item.id, sequenceNo: item.sequenceNo, dueDate: item.dueDate.toISOString().slice(0, 10),
       expectedAmount: item.expectedAmount.toFixed(2),
     }));
     return { clientId: id, totalDue, items: allocateVerifiedPayments(
-      schedule, (verified._sum.amount ?? new Prisma.Decimal(0)).toFixed(2), new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      schedule, verified.effective.toFixed(2), new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10),
     ) };
   }
   async issueSchedule(user: User, id: string) {
@@ -468,6 +471,22 @@ export class RecordsService {
     ]);
     return { items, total, page: query.page, pageSize };
   }
+  async hrAccessHistory(id: string, page: number) {
+    if (!await this.db.user.findUnique({ where: { id }, select: { id: true } }))
+      throw new NotFoundException('Account not found.');
+    const where = { entity: 'account', recordId: id,
+      action: { in: ['account.hr_access_granted', 'account.hr_access_revoked'] } };
+    const [items, total] = await this.db.$transaction([
+      this.db.auditEntry.findMany({ where, include: { actor: { select: { name: true } } },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * pageSize, take: pageSize }),
+      this.db.auditEntry.count({ where }),
+    ]);
+    return { items: items.map((item) => {
+      const after = item.after as { reason?: string } | null;
+      return { id: item.id, granted: item.action === 'account.hr_access_granted',
+        reason: after?.reason ?? '', actorName: item.actor.name, createdAt: item.createdAt.toISOString() };
+    }), total, page, pageSize };
+  }
   async createAccount(user: User, input: AccountInput) {
     const passwordHash = await hashPassword(input.password);
     return this.write(user, 'ACCOUNT_MANAGE', async (tx) => {
@@ -491,12 +510,14 @@ export class RecordsService {
   async updateAccount(
     user: User,
     id: string,
-    input: { active?: boolean; role?: User['role'] },
+    input: { active?: boolean; role?: User['role']; hrConfidentialAccess?: boolean; hrAccessReason?: string },
     version: number,
   ) {
     return this.write(user, 'ACCOUNT_MANAGE', async (tx) => {
       const before = await tx.user.findUnique({ where: { id }, select: accountSelect });
       if (!before) throw new NotFoundException('Account not found.');
+      if (before.version !== version)
+        throw new ConflictException('This account has changed. Refresh and try again.');
       if (id === user.id && input.active === false)
         throw new BadRequestException('You cannot deactivate your own account.');
       if (id === user.id && input.role && input.role !== before.role)
@@ -507,29 +528,45 @@ export class RecordsService {
         throw new BadRequestException('Customer access remains linked to its client record.');
       const roleChanged = Boolean(input.role && input.role !== before.role);
       const activeChanged = input.active !== undefined && input.active !== before.active;
-      if (!roleChanged && !activeChanged) return before;
+      const nextRole = input.role ?? before.role;
+      const nextActive = input.active ?? before.active;
+      if (input.hrConfidentialAccess !== undefined) {
+        if (nextRole === 'OWNER') throw new BadRequestException('Owner confidential HR access is automatic.');
+        if (!input.hrAccessReason || input.hrAccessReason.trim().length < 3 || input.hrAccessReason.trim().length > 1000)
+          throw new BadRequestException('Give a reason for the confidential HR access decision.');
+        if (input.hrConfidentialAccess && (!eligibleForConfidentialHr(nextRole) || !nextActive))
+          throw new BadRequestException('Only active HR / Payroll or COO accounts can receive confidential HR access.');
+      }
+      const hrConfidentialAccess = nextActive && eligibleForConfidentialHr(nextRole)
+        ? input.hrConfidentialAccess ?? (roleChanged ? false : before.hrConfidentialAccess) : false;
+      const hrChanged = hrConfidentialAccess !== before.hrConfidentialAccess;
+      if (!roleChanged && !activeChanged && !hrChanged) return before;
       const updated = await tx.user.updateMany({
         where: { id, version },
         data: {
           ...(input.active !== undefined ? { active: input.active } : {}),
           ...(input.role ? { role: input.role } : {}),
+          hrConfidentialAccess,
           version: { increment: 1 },
         },
       });
       if (!updated.count)
         throw new ConflictException('This account has changed. Refresh and try again.');
-      if (input.active === false || roleChanged)
+      if (input.active === false || roleChanged || hrChanged)
         await tx.session.updateMany({
           where: { userId: id, revokedAt: null },
           data: { revokedAt: new Date() },
         });
       const after = await tx.user.findUniqueOrThrow({ where: { id }, select: accountSelect });
-      const action = roleChanged
-        ? 'account.role_changed'
-        : input.active
-          ? 'account.activated'
-          : 'account.deactivated';
-      await this.record(tx, user.id, 'account', id, action, before, after);
+      if (roleChanged || activeChanged) {
+        const action = roleChanged ? 'account.role_changed' : input.active ? 'account.activated' : 'account.deactivated';
+        await this.record(tx, user.id, 'account', id, action, before, after);
+      }
+      if (hrChanged || (roleChanged && input.hrConfidentialAccess === true)) await this.record(tx, user.id, 'account', id,
+        hrConfidentialAccess ? 'account.hr_access_granted' : 'account.hr_access_revoked',
+        { granted: before.hrConfidentialAccess, role: before.role },
+        { granted: hrConfidentialAccess, role: after.role,
+          reason: input.hrAccessReason?.trim() ?? (roleChanged ? 'Access cleared after the account role changed.' : 'Access cleared after sign-in was deactivated.') });
       await notifyAccount(tx, user, before, after);
       return after;
     });
