@@ -1,0 +1,48 @@
+.frame :global(.landing-hero-media) {
+  top: 0;
+  left: 28%;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 22%);
+  mask-image: linear-gradient(to right, transparent, #000 22%);
+}
+
+.copy {
+  position: absolute;
+  z-index: 4;
+  top: 43%;
+  left: clamp(2rem, 7vw, 8rem);
+  width: min(40rem, 42vw);
+  transform: translateY(-50%);
+  text-align: left;
+}
+
+.copy :global(.landing-hero-intro h1 span) {
+  white-space: nowrap;
+}
+
+.cta {
+  position: absolute;
+  z-index: 4;
+  bottom: 8%;
+  left: 50%;
+  margin-top: 0;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.cta:hover { transform: translateX(-50%) translateY(-3px); }
+
+@media (max-width: 960px) {
+  .copy { top: 42%; left: 2rem; width: min(35rem, 52vw); }
+  .frame :global(.landing-hero-media) { top: 0; left: 24%; -webkit-mask-image: linear-gradient(to right, transparent, #000 20%); mask-image: linear-gradient(to right, transparent, #000 20%); }
+}
+
+@media (max-width: 640px) {
+  .copy { top: 6rem; left: 1.25rem; width: calc(100% - 2.5rem); transform: none; }
+  .copy :global(.landing-hero-intro h1 span) { white-space: normal; }
+  .frame :global(.landing-hero-media) { top: 15rem; left: 0; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 4rem); mask-image: linear-gradient(to bottom, transparent, #000 4rem); }
+  .frame :global(.landing-hero-video) { object-position: 47% center; }
+  .cta { bottom: 6.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta:hover { transform: translateX(-50%); }
+}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ArrowUpRight,
+  Briefcase,
   CheckCircle,
   Headset,
   ListChecks,
@@ -103,6 +104,13 @@ export default function DashboardPage() {
             <span className="system-panel-note">Core modules</span>
           </div>
           <div className="system-shortcuts">
+            {can(me, "RECRUITMENT_MANAGE") && availableRoute("/system/recruitment") && (
+              <Link href="/system/recruitment" className="system-shortcut">
+                <span className="system-shortcut-icon"><Briefcase weight="fill" /></span>
+                <span className="min-w-0 flex-1"><strong>Manage job board</strong><small>Openings and applications</small></span>
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            )}
             {SHORTCUTS.filter(({ href, perms }) => availableRoute(href) && can(me, ...perms)).map(({ icon: Icon, label, detail, href }) => (
               <Link key={href} href={href} className="system-shortcut">
                 <span className="system-shortcut-icon"><Icon weight="fill" /></span>

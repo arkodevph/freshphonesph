@@ -936,8 +936,8 @@ export function verifyAgent(q: string) {
 }
 
 // internal (RECRUITMENT_MANAGE / AGENT_MANAGE)
-export function listJobs(params: Record<string, string> = {}) {
-  const normalized = new URLSearchParams(params);
+export function listJobs(params: Record<string, string> | number = {}) {
+  const normalized = new URLSearchParams(typeof params === "number" ? { page: String(params) } : params);
   if (normalized.get("status")) normalized.set("status", normalized.get("status")!.toUpperCase());
   const query = normalized.size ? `?${normalized}` : "";
   if (TYPESCRIPT_API) return tsRequest<Page<TsJob>>(`/recruitment/jobs${query}`).then((page) => toPage(page, toJob));

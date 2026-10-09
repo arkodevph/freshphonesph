@@ -6,6 +6,13 @@
 .publicLink { display: inline-flex; min-height: 42px; flex: 0 0 auto; align-items: center; gap: 7px; border: 1px solid var(--system-border); border-radius: 10px; padding: 0 13px; color: var(--system-text); font-size: 12px; font-weight: 800; text-decoration: none; }
 .publicLink:hover { border-color: var(--system-accent); color: var(--system-accent); }
 .publicLink svg { width: 16px; height: 16px; }
+.headerActions, .formActions, .rowActions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.formActions { grid-column: 1 / -1; }
+.rowActions { justify-content: flex-end; flex-wrap: nowrap; }
+.rowActions button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.rowActions svg { width: 14px; height: 14px; }
+.pagination, .pagination > div { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.pagination { margin-top: 16px; color: var(--system-muted); font-size: 12px; }
 .error, .success { display: flex; min-height: 44px; align-items: center; gap: 8px; border-radius: 12px; padding: 10px 14px; font-size: 12px; font-weight: 700; line-height: 1.5; }
 .error { border: 1px solid #efc4cb; background: #fff4f5; color: #a52e42; }
 .success { border: 1px solid #b8dfc7; background: #f1fbf4; color: #216143; }
@@ -34,7 +41,7 @@
 .secondaryButton:hover:not(:disabled) { border-color: var(--system-accent); color: var(--system-accent); }
 .primaryButton:disabled, .secondaryButton:disabled { cursor: wait; opacity: .65; }
 .primaryButton svg, .secondaryButton svg { width: 15px; height: 15px; }
-.tableWrap { overflow-x: auto; }
+.tableWrap { position: relative; overflow-x: auto; }
 .tableWrap table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 12px; }
 .tableWrap th { border-bottom: 1px solid var(--system-border); padding: 9px 10px; color: var(--system-muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-align: left; text-transform: uppercase; }
 .tableWrap td { border-bottom: 1px solid var(--system-border); padding: 12px 10px; vertical-align: middle; }

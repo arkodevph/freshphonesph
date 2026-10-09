@@ -11,6 +11,7 @@ import {
   createKpiReview,
   type Task,
   type StaffMember,
+  type RecordId,
 } from "@/lib/api";
 import { useMe, can } from "@/lib/useMe";
 import { TYPESCRIPT_API } from "@/lib/backend";
@@ -90,7 +91,7 @@ function LegacyTasksPage() {
     }
   }
 
-  async function onSubmitTask(id: Task["id"]) {
+  async function onSubmitTask(id: RecordId) {
     setError(null);
     try {
       await submitTask(id);

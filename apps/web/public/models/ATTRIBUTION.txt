@@ -1,0 +1,6 @@
+Static iPhone mockup: rendered from IPhone 17 - Free Model by SetixOwyy.
+Source: https://sketchfab.com/3d-models/iphone-17-free-model-bad34ad8718b49e8894ac82cafef33c4
+Author: https://sketchfab.com/SetixOwyy
+License: Creative Commons Attribution 4.0, https://creativecommons.org/licenses/by/4.0/
+Changes: home screen texture added; rendered to a transparent PNG and WebP for the hero.
+The website displays the static WebP with CSS hover movement; it does not load a GLB viewer.

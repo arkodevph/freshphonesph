@@ -257,6 +257,107 @@ test('role matrix is enforced for every foundation collection', async () => {
     await session.request('/auth/logout', post({}));
   }
 });
+test('recruitment role matrix protects listings, applicant details and writes', async () => {
+  const jobId = randomUUID();
+  for (const role of roles) {
+    const session = await new Session().login(role);
+    const permitted = rolePermissions[role].includes('RECRUITMENT_MANAGE');
+    for (const route of ['/recruitment/jobs', '/recruitment/applicants']) {
+      assert.equal((await session.request(route)).status, permitted ? 200 : 403, `${role} ${route}`);
+    }
+    if (!permitted) {
+      assert.equal((await session.request('/recruitment/jobs', post({ title: 'Unauthorized opening' }))).status, 403);
+      assert.equal((await session.request(`/recruitment/jobs/${jobId}`, patch({ version: 1, record: { title: 'Unauthorized edit' } }))).status, 403);
+      assert.equal((await session.request(`/recruitment/applicants/${jobId}`, patch({ version: 1, status: 'HIRED' }))).status, 403);
+      assert.equal((await session.request(`/applicant-attachments/${jobId}/content`)).status, 403);
+    }
+    await session.request('/auth/logout', post({}));
+  }
+});
+test('owner and recruitment staff share the public job board and applicant review queue', async () => {
+  const anonymous = new Session();
+  assert.equal((await anonymous.request('/recruitment/jobs')).status, 401);
+  assert.equal((await anonymous.request('/recruitment/applicants')).status, 401);
+  const customer = await new Session().login('CUSTOMER');
+
+  for (const role of ['OWNER', 'COO', 'HR_PAYROLL'] as const) {
+    const staff = await new Session().login(role);
+    const record = {
+      title: `Recruitment ${role} ${suffix}`, description: 'Help Fresh Phones customers.',
+      employmentType: 'Full-time', location: 'Capas, Tarlac', isOpen: true,
+    };
+    const created = await staff.request('/recruitment/jobs', post(record));
+    assert.equal(created.status, 201);
+    const job = await created.json();
+    const careers = async () => (await anonymous.request('/careers')).json() as Promise<{ id: string; title: string }[]>;
+    assert.ok((await careers()).some((item) => item.id === job.id));
+    assert.equal((await customer.request('/recruitment/jobs', post(record))).status, 403);
+    assert.equal((await customer.request(`/recruitment/jobs/${job.id}`, patch({ version: job.version, record }))).status, 403);
+
+    const editedRecord = { ...record, title: `${record.title} updated` };
+    const edited = await staff.request(`/recruitment/jobs/${job.id}`, patch({ version: job.version, record: editedRecord }));
+    assert.equal(edited.status, 200);
+    const current = await edited.json();
+    assert.equal((await careers()).find((item) => item.id === job.id)?.title, editedRecord.title);
+    assert.equal((await staff.request(`/recruitment/jobs/${job.id}`, patch({ version: job.version, record }))).status, 409);
+
+    const applied = await anonymous.upload('/careers/apply', (() => {
+      const form = new FormData();
+      form.set('jobId', job.id);
+      form.set('fullName', `Applicant ${role}`);
+      form.set('email', `${suffix}-${role.toLowerCase()}-applicant@example.test`);
+      form.set('message', 'I would like to join the team.');
+      return form;
+    })());
+    assert.equal(applied.status, 201);
+    const application = await applied.json();
+    const owner = role === 'OWNER' ? staff : await new Session().login('OWNER');
+    const queue = await (await owner.request(`/recruitment/applicants?q=${suffix}-${role.toLowerCase()}-applicant`)).json();
+    const applicant = queue.items.find((item: { id: string }) => item.id === application.id);
+    assert.ok(applicant);
+    assert.equal(applicant.job.title, editedRecord.title);
+    assert.equal(applicant.status, 'RECEIVED');
+    const openings = await (await owner.request('/recruitment/jobs')).json();
+    assert.equal(openings.items.find((item: { id: string }) => item.id === job.id)?._count.applicants, 1);
+    const reviewed = await staff.request(`/recruitment/applicants/${applicant.id}`, patch({
+      version: applicant.version, status: 'REVIEWING', reviewerNotes: 'Arrange a human-led interview.',
+    }));
+    assert.equal(reviewed.status, 200);
+    const review = await reviewed.json();
+    assert.equal(review.reviewerId, accounts.get(role));
+    assert.equal(review.status, 'REVIEWING');
+    const ownerQueue = await (await owner.request(`/recruitment/applicants?q=${suffix}-${role.toLowerCase()}-applicant`)).json();
+    assert.equal(ownerQueue.items[0].reviewerNotes, 'Arrange a human-led interview.');
+    assert.equal((await customer.request(`/recruitment/applicants/${applicant.id}`, patch({
+      version: review.version, status: 'HIRED',
+    }))).status, 403);
+
+    const closed = await staff.request(`/recruitment/jobs/${job.id}`, patch({
+      version: current.version, record: { ...editedRecord, isOpen: false },
+    }));
+    assert.equal(closed.status, 200);
+    const closedJob = await closed.json();
+    assert.ok(!(await careers()).some((item) => item.id === job.id));
+    const lateApplication = await anonymous.request('/careers/apply', post({
+      jobId: job.id, fullName: 'Late Applicant', email: 'late@example.test',
+    }));
+    assert.equal(lateApplication.status, 404);
+    assert.ok(await db.applicant.findUnique({ where: { id: applicant.id } }));
+    const reopened = await owner.request(`/recruitment/jobs/${job.id}`, patch({
+      version: closedJob.version, record: editedRecord,
+    }));
+    assert.equal(reopened.status, 200);
+    assert.ok((await careers()).some((item) => item.id === job.id));
+    const audit = await db.auditEntry.findMany({ where: { recordId: { in: [job.id, applicant.id] } } });
+    assert.ok(audit.some((entry) => entry.action === 'job.created' && entry.actorId === accounts.get(role)));
+    assert.ok(audit.some((entry) => entry.action === 'job.updated'));
+    assert.ok(audit.some((entry) => entry.action === 'applicant.reviewed'));
+    assert.ok((await careers()).every((item) => !('reviewerNotes' in item) && !('applicants' in item)));
+    await staff.request('/auth/logout', post({}));
+    if (owner !== staff) await owner.request('/auth/logout', post({}));
+  }
+  await customer.request('/auth/logout', post({}));
+});
 test('wrong credentials, origin forgery, cookie flags and refresh replay protection', async () => {
   const session = new Session();
   assert.equal(
