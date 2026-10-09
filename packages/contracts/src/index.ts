@@ -193,6 +193,9 @@ export const paymentSchema = z.object({
   paymentDate: z.string().date(),
   method: z.string().trim().min(2).max(40),
   referenceNumber: z.string().trim().max(120).nullable().optional(),
+  receiptTime: z.string().trim().regex(/^(?:(?:[1-9]|1[0-2]):[0-5]\d\s+[AP]M|(?:[01]?\d|2[0-3]):[0-5]\d)$/i).nullable().optional(),
+  receiptName: z.string().trim().max(120).nullable().optional(),
+  receiptPhone: z.string().trim().max(40).nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
 }).strict();
 export const paymentDecisionSchema = z.object({
@@ -205,12 +208,18 @@ export const paymentCorrectionSchema = z.object({
   version: z.number().int().positive(),
 }).strict();
 export const paymentListQuerySchema = listQuerySchema.extend({
+  id: z.string().uuid().optional(),
   clientId: z.string().uuid().optional(),
   dateFrom: z.string().date().optional(),
   dateTo: z.string().date().optional(),
 }).refine((value) => !value.dateFrom || !value.dateTo || value.dateTo >= value.dateFrom, {
   path: ['dateTo'], message: 'End date must be on or after the start date.',
 });
+export const paymentDuplicateQuerySchema = z.object({
+  method: z.string().trim().min(2).max(40),
+  referenceNumber: z.string().trim().min(1).max(120),
+  excludeId: z.string().uuid().optional(),
+}).strict();
 export const reportQuerySchema = z.object({
   q: z.string().max(100).optional(),
   dateFrom: z.string().date().optional(),
@@ -380,17 +389,22 @@ export interface ScheduleItem {
   sequenceNo: number;
   dueDate: string;
   expectedAmount: string;
+  paidApplied?: string;
+  status?: 'PAID' | 'PARTIAL' | 'OVERDUE' | 'UPCOMING';
 }
 export interface ClientSchedule {
   clientId: string;
   totalDue: string;
   items: ScheduleItem[];
 }
-export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'notes'> {
+export interface Payment extends Omit<PaymentInput, 'scheduleItemId' | 'referenceNumber' | 'receiptTime' | 'receiptName' | 'receiptPhone' | 'notes'> {
   id: string;
   batchId: string;
   scheduleItemId: string | null;
   referenceNumber: string | null;
+  receiptTime: string | null;
+  receiptName: string | null;
+  receiptPhone: string | null;
   notes: string | null;
   verificationNotes: string | null;
   status: PaymentStatus;
@@ -418,8 +432,21 @@ export interface ReceiptScan {
   amount: string | null;
   referenceNumber: string | null;
   paymentDate: string | null;
+  receiptTime: string | null;
+  receiptName: string | null;
+  receiptPhone: string | null;
   confidence: number;
   warnings: string[];
+}
+export interface PaymentDuplicateMatch {
+  id: string;
+  clientId: string;
+  clientName: string;
+  amount: string;
+  paymentDate: string;
+  method: string;
+  referenceNumber: string;
+  status: PaymentStatus;
 }
 export interface Account {
   id: string;

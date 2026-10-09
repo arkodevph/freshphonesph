@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowSquareOut,
+  ArrowsClockwise,
   Briefcase,
   CheckCircle,
   FileText,
@@ -11,6 +12,7 @@ import {
   IdentificationCard,
   MagnifyingGlass,
   MapPin,
+  PencilSimple,
   Plus,
   UsersThree,
 } from "@phosphor-icons/react";
@@ -39,6 +41,7 @@ const APPLICANT_STATUSES = [
 ] as const;
 
 type Feedback = { kind: "error" | "success"; message: string } | null;
+const EMPTY_JOB = { title: "", employment_type: "", location: "", description: "" };
 
 export default function RecruitmentPage() {
   const me = useMe();
@@ -53,22 +56,39 @@ export default function RecruitmentPage() {
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [jobForm, setJobForm] = useState({ title: "", employment_type: "", location: "", description: "" });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [jobsPage, setJobsPage] = useState(1);
+  const [applicantsPage, setApplicantsPage] = useState(1);
+  const [jobCount, setJobCount] = useState(0);
+  const [applicantCount, setApplicantCount] = useState(0);
+  const [hasMoreJobs, setHasMoreJobs] = useState(false);
+  const [hasMoreApplicants, setHasMoreApplicants] = useState(false);
+  const [jobForm, setJobForm] = useState(EMPTY_JOB);
+  const [editingJob, setEditingJob] = useState<JobOpening | null>(null);
   const [reviewForm, setReviewForm] = useState({ status: "received", reviewer_notes: "" });
   const [agentForm, setAgentForm] = useState({ full_name: "", agent_code: "" });
+  const loadSequence = useRef(0);
 
   const load = useCallback(async () => {
     if (!me) return;
+    const sequence = ++loadSequence.current;
     setLoading(true);
     try {
       const [jobPage, applicantPage, agentPage] = await Promise.all([
-        canRecruit ? listJobs() : Promise.resolve(null),
-        canRecruit ? listApplicants() : Promise.resolve(null),
+        canRecruit ? listJobs(jobsPage) : Promise.resolve(null),
+        canRecruit ? listApplicants({ page: String(applicantsPage), q: searchQuery, ...(statusFilter === "all" ? {} : { status: statusFilter }) }) : Promise.resolve(null),
         canAgents ? listAgents() : Promise.resolve(null),
       ]);
-      if (jobPage) setJobs(jobPage.results);
+      if (sequence !== loadSequence.current) return;
+      if (jobPage) {
+        setJobs(jobPage.results);
+        setJobCount(jobPage.count);
+        setHasMoreJobs(Boolean(jobPage.next));
+      }
       if (applicantPage) {
         setApplicants(applicantPage.results);
+        setApplicantCount(applicantPage.count);
+        setHasMoreApplicants(Boolean(applicantPage.next));
         setSelectedApplicantId((current) => {
           if (current && applicantPage.results.some((item) => String(item.id) === current)) return current;
           return applicantPage.results[0] ? String(applicantPage.results[0].id) : null;
@@ -76,11 +96,20 @@ export default function RecruitmentPage() {
       }
       if (agentPage) setAgents(agentPage.results);
     } catch (caught) {
+      if (sequence !== loadSequence.current) return;
       setFeedback({ kind: "error", message: caught instanceof Error ? caught.message : "Recruitment data could not be loaded." });
     } finally {
-      setLoading(false);
+      if (sequence === loadSequence.current) setLoading(false);
     }
-  }, [canAgents, canRecruit, me]);
+  }, [applicantsPage, canAgents, canRecruit, jobsPage, me, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setApplicantsPage(1);
+      setSearchQuery(search.trim());
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     void load();
@@ -96,29 +125,36 @@ export default function RecruitmentPage() {
     setReviewForm({ status: selectedApplicant.status, reviewer_notes: selectedApplicant.reviewer_notes });
   }, [selectedApplicant]);
 
-  const filteredApplicants = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return applicants.filter((applicant) => {
-      if (statusFilter !== "all" && applicant.status !== statusFilter) return false;
-      if (!query) return true;
-      return [applicant.full_name, applicant.email, applicant.job_title]
-        .some((value) => value.toLowerCase().includes(query));
-    });
-  }, [applicants, search, statusFilter]);
-
   function showSuccess(message: string) {
     setFeedback({ kind: "success", message });
   }
 
-  async function addJob(event: React.FormEvent<HTMLFormElement>) {
+  function resetJobForm() {
+    setEditingJob(null);
+    setJobForm(EMPTY_JOB);
+  }
+
+  function editJob(job: JobOpening) {
+    setEditingJob(job);
+    setJobForm({ title: job.title, employment_type: job.employment_type, location: job.location, description: job.description });
+    document.getElementById("publish-job-heading")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById("job-title")?.focus({ preventScroll: true });
+  }
+
+  async function saveJob(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy("create-job");
     setFeedback(null);
     try {
-      await createJob(jobForm);
-      setJobForm({ title: "", employment_type: "", location: "", description: "" });
-      showSuccess("The opening is live on the public job board.");
-      await load();
+      if (editingJob) {
+        await updateJob(editingJob.id, { ...jobForm, is_open: editingJob.is_open, version: editingJob.version });
+      } else {
+        await createJob(jobForm);
+      }
+      showSuccess(editingJob ? "The opening was updated. Public listings use these details." : "The opening is live on the public job board.");
+      resetJobForm();
+      if (!editingJob && jobsPage !== 1) setJobsPage(1);
+      else await load();
     } catch (caught) {
       setFeedback({ kind: "error", message: caught instanceof Error ? caught.message : "The opening could not be posted." });
     } finally {
@@ -197,9 +233,12 @@ export default function RecruitmentPage() {
           <h1>Recruitment</h1>
           <p>Publish roles, review every application, and keep the public job board current.</p>
         </div>
-        <Link href="/#careers" target="_blank" className={styles.publicLink}>
-          View public job board <ArrowSquareOut aria-hidden="true" />
-        </Link>
+        <div className={styles.headerActions}>
+          <button type="button" className={styles.secondaryButton} onClick={() => { setFeedback(null); void load(); }} disabled={loading || busy !== null}><ArrowsClockwise aria-hidden="true" />{loading ? "Refreshing…" : "Refresh"}</button>
+          <Link href="/careers" target="_blank" rel="noopener noreferrer" className={styles.publicLink}>
+            View public job board <ArrowSquareOut aria-hidden="true" />
+          </Link>
+        </div>
       </header>
 
       {feedback && (
@@ -212,22 +251,25 @@ export default function RecruitmentPage() {
       {canRecruit && (
         <>
           <section className={styles.metrics} aria-label="Recruitment summary">
-            <article><Briefcase weight="duotone" aria-hidden="true" /><div><span>Open roles</span><strong>{openJobs}</strong></div></article>
-            <article><UsersThree weight="duotone" aria-hidden="true" /><div><span>Applicants</span><strong>{applicants.length}</strong></div></article>
-            <article><MagnifyingGlass weight="duotone" aria-hidden="true" /><div><span>Awaiting review</span><strong>{awaitingReview}</strong></div></article>
+            <article><Briefcase weight="duotone" aria-hidden="true" /><div><span>Open roles on this page</span><strong>{openJobs}</strong></div></article>
+            <article><UsersThree weight="duotone" aria-hidden="true" /><div><span>{searchQuery || statusFilter !== "all" ? "Matching applicants" : "Applicants"}</span><strong>{applicantCount}</strong></div></article>
+            <article><MagnifyingGlass weight="duotone" aria-hidden="true" /><div><span>Awaiting review on this page</span><strong>{awaitingReview}</strong></div></article>
           </section>
 
           <section className={styles.panel} aria-labelledby="publish-job-heading">
             <div className={styles.panelHeading}>
-              <div><span>Public board</span><h2 id="publish-job-heading">Post a job opening</h2></div>
-              <p>New openings appear on the landing page immediately.</p>
+              <div><span>Public board</span><h2 id="publish-job-heading">{editingJob ? "Edit job opening" : "Post a job opening"}</h2></div>
+              <p>{editingJob ? "Save changes to update the careers page. Closed roles stay hidden." : "Published openings appear on the careers page. Applications arrive in the review queue below."}</p>
             </div>
-            <form onSubmit={addJob} className={styles.jobForm}>
-              <label><span>Job title</span><input required minLength={2} maxLength={160} value={jobForm.title} onChange={(event) => setJobForm({ ...jobForm, title: event.target.value })} placeholder="Customer support specialist" /></label>
+            <form onSubmit={saveJob} className={styles.jobForm}>
+              <label><span>Job title</span><input id="job-title" required minLength={2} maxLength={160} value={jobForm.title} onChange={(event) => setJobForm({ ...jobForm, title: event.target.value })} placeholder="Customer support specialist" /></label>
               <label><span>Employment type</span><input maxLength={60} value={jobForm.employment_type} onChange={(event) => setJobForm({ ...jobForm, employment_type: event.target.value })} placeholder="Full-time" /></label>
               <label><span>Location</span><input maxLength={120} value={jobForm.location} onChange={(event) => setJobForm({ ...jobForm, location: event.target.value })} placeholder="Capas, Tarlac" /></label>
               <label className={styles.wideField}><span>Role description</span><textarea rows={5} maxLength={4000} value={jobForm.description} onChange={(event) => setJobForm({ ...jobForm, description: event.target.value })} placeholder="Describe the work, who will thrive in it, and the next step." /></label>
-              <button type="submit" className={styles.primaryButton} disabled={busy === "create-job"}><Plus weight="bold" aria-hidden="true" />{busy === "create-job" ? "Publishing…" : "Publish opening"}</button>
+              <div className={styles.formActions}>
+                <button type="submit" className={styles.primaryButton} disabled={busy !== null || loading}>{editingJob ? <FloppyDisk weight="bold" aria-hidden="true" /> : <Plus weight="bold" aria-hidden="true" />}{busy === "create-job" ? "Saving…" : editingJob ? "Save changes" : "Publish opening"}</button>
+                {editingJob && <button type="button" className={styles.secondaryButton} disabled={busy !== null} onClick={resetJobForm}>Cancel edit</button>}
+              </div>
             </form>
           </section>
 
@@ -246,13 +288,20 @@ export default function RecruitmentPage() {
                       <td>{job.location ? <span className={styles.location}><MapPin weight="fill" aria-hidden="true" />{job.location}</span> : "—"}<small>{job.employment_type || "Type not set"}</small></td>
                       <td className={styles.numberCell}>{job.applicant_count ?? 0}</td>
                       <td><span className={job.is_open ? styles.openStatus : styles.closedStatus}>{job.is_open ? "Open" : "Closed"}</span></td>
-                      <td className={styles.actionCell}><button type="button" onClick={() => toggleJob(job)} disabled={busy === `job-${job.id}`}>{busy === `job-${job.id}` ? "Saving…" : job.is_open ? "Close role" : "Reopen"}</button></td>
+                      <td className={styles.actionCell}><div className={styles.rowActions}>
+                        <button type="button" onClick={() => editJob(job)} disabled={busy !== null || loading || editingJob !== null} aria-label={`Edit ${job.title}`}><PencilSimple aria-hidden="true" />Edit</button>
+                        <button type="button" onClick={() => toggleJob(job)} disabled={busy !== null || loading || editingJob !== null}>{busy === `job-${job.id}` ? "Saving…" : job.is_open ? "Close role" : "Reopen"}</button>
+                      </div></td>
                     </tr>
                   ))}
                   {!loading && jobs.length === 0 && <tr><td colSpan={5} className={styles.emptyCell}>No openings yet. Publish the first role above.</td></tr>}
                 </tbody>
               </table>
             </div>
+            <nav className={styles.pagination} aria-label="Job openings pages">
+              <span>{jobCount} openings · Page {jobsPage}</span>
+              <div><button type="button" className={styles.secondaryButton} disabled={loading || busy !== null || jobsPage === 1} onClick={() => setJobsPage(jobsPage - 1)}>Previous</button><button type="button" className={styles.secondaryButton} disabled={loading || busy !== null || !hasMoreJobs} onClick={() => setJobsPage(jobsPage + 1)}>Next</button></div>
+            </nav>
           </section>
 
           <section className={styles.panel} aria-labelledby="applicants-heading">
@@ -262,18 +311,18 @@ export default function RecruitmentPage() {
             </div>
             <div className={styles.filters}>
               <label><span className={styles.srOnly}>Search applicants</span><MagnifyingGlass aria-hidden="true" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, email, or role" /></label>
-              <label><span className={styles.srOnly}>Filter by status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All statuses</option>{APPLICANT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              <label><span className={styles.srOnly}>Filter by status</span><select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setApplicantsPage(1); }}><option value="all">All statuses</option>{APPLICANT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             </div>
             <div className={styles.reviewWorkspace}>
               <div className={styles.applicantList} aria-label="Applicants">
-                {filteredApplicants.map((applicant) => (
+                {applicants.map((applicant) => (
                   <button key={applicant.id} type="button" className={String(applicant.id) === selectedApplicantId ? styles.selectedApplicant : ""} onClick={() => setSelectedApplicantId(String(applicant.id))}>
                     <span className={styles.avatar} aria-hidden="true">{initials(applicant.full_name)}</span>
                     <span><strong>{applicant.full_name}</strong><small>{applicant.job_title || "Role unavailable"} · {formatDate(applicant.created_at)}</small></span>
                     <span className={styles.compactStatus}>{statusLabel(applicant.status)}</span>
                   </button>
                 ))}
-                {!loading && filteredApplicants.length === 0 && <div className={styles.emptyList}><UsersThree weight="duotone" aria-hidden="true" /><strong>No matching applicants</strong><p>Try clearing the search or status filter.</p></div>}
+                {!loading && applicants.length === 0 && <div className={styles.emptyList}><UsersThree weight="duotone" aria-hidden="true" /><strong>No matching applicants</strong><p>Try clearing the search or status filter.</p></div>}
               </div>
 
               <div className={styles.reviewDetail}>
@@ -298,7 +347,7 @@ export default function RecruitmentPage() {
                     <form onSubmit={saveReview} className={styles.reviewForm}>
                       <label><span>Hiring status</span><select value={reviewForm.status} onChange={(event) => setReviewForm({ ...reviewForm, status: event.target.value })}>{APPLICANT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
                       <label><span>Internal review notes</span><textarea rows={5} maxLength={4000} value={reviewForm.reviewer_notes} onChange={(event) => setReviewForm({ ...reviewForm, reviewer_notes: event.target.value })} placeholder="Add interview notes or the next action. These notes are never shown publicly." /></label>
-                      <button type="submit" className={styles.primaryButton} disabled={busy === `applicant-${selectedApplicant.id}`}><FloppyDisk weight="bold" aria-hidden="true" />{busy === `applicant-${selectedApplicant.id}` ? "Saving…" : "Save review"}</button>
+                      <button type="submit" className={styles.primaryButton} disabled={busy !== null || loading}><FloppyDisk weight="bold" aria-hidden="true" />{busy === `applicant-${selectedApplicant.id}` ? "Saving…" : "Save review"}</button>
                     </form>
                   </>
                 ) : (
@@ -306,6 +355,10 @@ export default function RecruitmentPage() {
                 )}
               </div>
             </div>
+            <nav className={styles.pagination} aria-label="Applicant pages">
+              <span>{applicantCount} applicants · Page {applicantsPage}</span>
+              <div><button type="button" className={styles.secondaryButton} disabled={loading || busy !== null || applicantsPage === 1} onClick={() => setApplicantsPage(applicantsPage - 1)}>Previous</button><button type="button" className={styles.secondaryButton} disabled={loading || busy !== null || !hasMoreApplicants} onClick={() => setApplicantsPage(applicantsPage + 1)}>Next</button></div>
+            </nav>
           </section>
         </>
       )}

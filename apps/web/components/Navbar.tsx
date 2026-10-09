@@ -9,7 +9,7 @@ const links = [
   { href: "/about", label: "About" },
   { href: "/#units", label: "Units" },
   { href: "/#how", label: "How it Works" },
-  { href: "/#careers", label: "Careers" },
+  { href: "/careers", label: "Careers" },
   { href: "/#contact", label: "Contact" },
 ];
 
@@ -54,7 +54,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
                 className="h-9 w-9 scale-150 object-cover"
               />
             </span>
-            <span className="font-display text-lg font-700 leading-none tracking-tight text-blue-ink">
+            <span className="font-body text-base font-800 leading-none tracking-tight text-blue-ink sm:text-lg">
               Fresh Phones <span className="holo-text">PH</span>
             </span>
           </a>

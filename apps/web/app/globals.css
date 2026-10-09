@@ -25,8 +25,9 @@
   --color-paper: #ffffff;
 
   /* Type */
-  --font-display: var(--font-fredoka);
+  --font-display: var(--font-nunito);
   --font-body: var(--font-nunito);
+  --font-sans: var(--font-nunito);
 
   /* Radius */
   --radius-blob: 2.5rem;
@@ -79,6 +80,7 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
   color: var(--color-ink);
   background:
     radial-gradient(1200px 700px at 12% -8%, #ffe7f4 0%, transparent 55%),

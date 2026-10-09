@@ -6,23 +6,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  CheckCircle,
+  ArrowRight,
   Eye,
   EyeSlash,
-  LockKey,
-  SignIn,
+  ShieldCheck,
+  Sparkle,
   SpinnerGap,
   WarningCircle,
 } from "@phosphor-icons/react";
 import { login, fetchMe } from "@/lib/api";
 import { saveTokens, saveMe } from "@/lib/auth";
 import { TYPESCRIPT_API } from "@/lib/backend";
+import LoginCharacters, { type CharacterMood } from "./LoginCharacters";
+import styles from "./login.module.css";
 
-const accessPrinciples = [
-  "Role-based access for staff and customers",
-  "Only Finance-verified payments affect balances",
-  "Sensitive account changes are recorded",
-];
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -30,6 +27,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<"username" | "password" | null>(null);
+  const mood: CharacterMood = showPassword
+    ? "private"
+    : error
+      ? "error"
+      : loading
+        ? "loading"
+        : focusedField ? "typing" : "idle";
+
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -54,49 +60,37 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-shell">
-      <section className="login-story" aria-label="Fresh Phones PH operations workspace">
-        <div className="login-story-grid" aria-hidden="true" />
-        <Link href="/" className="login-brand" aria-label="Fresh Phones PH home">
-          <span className="login-brand-mark">
+    <main className={styles.page}>
+      <div className={styles.card}>
+      <section className={styles.story} aria-label="Fresh Phones PH">
+        <Link href="/" className={styles.brand} aria-label="Fresh Phones PH home">
+          <span className={styles.brandMark}>
             <Image src="/brand/fresh-phones-logo.png" alt="" width={48} height={48} priority />
           </span>
-          <span><strong>Fresh Phones PH</strong><small>Operations workspace</small></span>
+          <strong>Fresh Phones <span>PH</span></strong>
         </Link>
-
-        <div className="login-story-copy">
-          <p className="login-story-kicker"><span aria-hidden="true" /> Private workspace</p>
-          <p className="login-story-title">Clear records.<br /><span>Confident decisions.</span></p>
-          <p className="login-story-description">
-            A focused workspace for paluwagan records, customer updates, and payment verification.
-          </p>
-          <ul className="login-principles">
-            {accessPrinciples.map((principle) => (
-              <li key={principle}><CheckCircle weight="fill" aria-hidden="true" /><span>{principle}</span></li>
-            ))}
-          </ul>
-        </div>
-
-        <p className="login-story-footer">FP Gadget Center <span aria-hidden="true">•</span> Internal access</p>
+        <LoginCharacters mood={mood} />
       </section>
 
-      <section className="login-panel">
-        <Link href="/" className="login-back-link"><ArrowLeft aria-hidden="true" /> Back to website</Link>
+      <section className={styles.panel} aria-labelledby="login-title">
+        <Link href="/" className={styles.backLink} aria-label="Back to website"><ArrowLeft aria-hidden="true" /> Back</Link>
+        <Sparkle weight="fill" className={styles.symbol} aria-hidden="true" />
+        <div className={styles.formWrap}>
+          <h1 id="login-title">Welcome back!</h1>
+          <p className={styles.intro}>Your Fresh Phones workspace is waiting.</p>
 
-        <div className="login-form-wrap">
-          <p className="login-eyebrow">Account access</p>
-          <h1>Welcome back</h1>
-          <p className="login-intro">Sign in with the account provided by Fresh Phones PH.</p>
-
-          <form onSubmit={onSubmit} className="login-form">
-            <div className="login-field">
+          <form onSubmit={onSubmit} className={styles.form} aria-busy={loading}>
+            <div className={styles.field}>
               <label htmlFor="login-username">Email or username</label>
               <input
                 id="login-username"
                 type="text"
                 required
                 value={username}
-                onChange={(event) => setUsername(event.target.value)}
+                onChange={(event) => { setUsername(event.target.value); setError(null); }}
+                onFocus={() => setFocusedField("username")}
+                onBlur={() => setFocusedField(null)}
+                disabled={loading}
                 autoComplete="username"
                 autoCapitalize="none"
                 spellCheck={false}
@@ -106,15 +100,18 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="login-field">
+            <div className={styles.field}>
               <label htmlFor="login-password">Password</label>
-              <span className="login-password-field">
+              <span className={styles.passwordField}>
                 <input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => { setPassword(event.target.value); setError(null); }}
+                  onFocus={() => setFocusedField("password")}
+                  onBlur={() => setFocusedField(null)}
+                  disabled={loading}
                   autoComplete="current-password"
                   aria-invalid={Boolean(error)}
                   aria-describedby={error ? "login-error" : undefined}
@@ -125,36 +122,36 @@ export default function LoginPage() {
                   onClick={() => setShowPassword((visible) => !visible)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
+                  aria-controls="login-password"
+                  disabled={loading}
                 >
                   {showPassword ? <EyeSlash aria-hidden="true" /> : <Eye aria-hidden="true" />}
                 </button>
               </span>
             </div>
 
-            {TYPESCRIPT_API && <Link href="/forgot-password" className="login-recovery-link">Forgot password?</Link>}
-            {TYPESCRIPT_API && <Link href="/account-access" className="login-recovery-link">Haven’t received your account details?</Link>}
+            <div className={styles.formOptions}>
+              <span className={styles.secureNote}><ShieldCheck aria-hidden="true" /> Secure sign-in</span>
+              {TYPESCRIPT_API && <Link href="/forgot-password" className={styles.recovery}>Forgot password?</Link>}
+            </div>
 
             {error && (
-              <div id="login-error" className="login-error" role="alert">
+              <div id="login-error" className={styles.error} role="alert">
                 <WarningCircle weight="fill" aria-hidden="true" />
-                <div><strong>Couldn’t sign you in</strong><p>{error}</p></div>
+                <p>{error}</p>
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="login-submit">
-              {loading ? <SpinnerGap className="login-spinner" aria-hidden="true" /> : <SignIn weight="bold" aria-hidden="true" />}
-              {loading ? "Signing in…" : "Sign in"}
+            <button type="submit" disabled={loading} className={styles.submit}>
+              {loading && <SpinnerGap className={styles.spinner} aria-hidden="true" />}
+              {loading ? "Signing in…" : "Log in"}
             </button>
+            {TYPESCRIPT_API && <Link href="/account-access" className={styles.accessLink}>Need your account details? <ArrowRight aria-hidden="true" /></Link>}
           </form>
-
-          <div className="login-safety-note">
-            <LockKey weight="fill" aria-hidden="true" />
-            <p><strong>Private and role-protected</strong><span>Never share your password or one-time access details.</span></p>
-          </div>
         </div>
-
-        <p className="login-panel-footer">Payments happen externally. This workspace records and verifies them.</p>
+        <p className={styles.footer}><strong>One login. Your own workspace.</strong>Secure access for customers and the Fresh Phones team.</p>
       </section>
+      </div>
     </main>
   );
 }

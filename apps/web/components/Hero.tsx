@@ -1,11 +1,12 @@
 import { ArrowRight, CalendarCheck, ChatCircleDots, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import HeroLoop from "./HeroLoop";
+import styles from "./Hero.module.css";
 
 export default function Hero() {
   return (
-    <section id="top" className="landing-hero">
-      <div className="landing-hero-frame">
+    <section id="top" className="landing-hero" aria-labelledby="hero-title">
+      <div className={`landing-hero-frame ${styles.frame}`}>
         <HeroLoop />
         <div className="landing-hero-shade" aria-hidden="true" />
         <div className="landing-hero-doodles" aria-hidden="true">
@@ -18,12 +19,12 @@ export default function Hero() {
           <Image className="landing-hero-doodle bubble-one" src="/brand/doodles/bubble.png" alt="" width={1024} height={1024} sizes="76px" />
         </div>
 
-        <div className="landing-hero-intro">
+        <div className={`${styles.copy} landing-hero-intro`}>
           <span className="landing-hero-eyebrow">
             <ShieldCheck weight="fill" aria-hidden="true" />
             DTI registered iPhone &amp; iPad paluwagan
           </span>
-          <h1>
+          <h1 id="hero-title">
             <span>Your next phone</span>
             <span>made manageable</span>
           </h1>
@@ -45,7 +46,7 @@ export default function Hero() {
           <p>Approved batches with a clear payment schedule.</p>
         </article>
 
-        <a href="#units" className="landing-hero-cta">
+        <a href="#units" className={`landing-hero-cta ${styles.cta}`}>
           View available units
           <span><ArrowRight weight="bold" aria-hidden="true" /></span>
         </a>

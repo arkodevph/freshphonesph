@@ -2,12 +2,12 @@ import Image from "next/image";
 import { FacebookLogo, MessengerLogo } from "@phosphor-icons/react/dist/ssr";
 
 const nav = [
-  { href: "#how", label: "How it Works" },
-  { href: "#iphones", label: "iPhones" },
-  { href: "#plans", label: "Plans" },
-  { href: "#reviews", label: "Reviews" },
-  { href: "#faq", label: "FAQ" },
-  { href: "#careers", label: "Careers" },
+  { href: "/#how", label: "How it Works" },
+  { href: "/#iphones", label: "iPhones" },
+  { href: "/#plans", label: "Plans" },
+  { href: "/#reviews", label: "Reviews" },
+  { href: "/#faq", label: "FAQ" },
+  { href: "/careers", label: "Careers" },
 ];
 
 const socials = [
@@ -94,7 +94,7 @@ export default function Footer() {
                 <li>GCash, Maya, or bank transfer</li>
               </ul>
               <a
-                href="#join"
+                href="/#join"
                 className="btn-candy mt-5 inline-flex rounded-full px-5 py-2.5 text-sm font-700"
               >
                 Reserve a Slot
@@ -111,6 +111,9 @@ export default function Footer() {
               Not affiliated with Apple Inc. iPhone is a trademark of Apple Inc.
             </p>
           </div>
+          <p className="mt-3 text-center text-xs text-ink-soft/80">
+            iPhone mockup adapted from <a className="underline" href="https://sketchfab.com/3d-models/iphone-17-free-model-bad34ad8718b49e8894ac82cafef33c4">SetixOwyy’s model</a>, <a className="underline" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+          </p>
         </div>
       </div>
     </footer>
