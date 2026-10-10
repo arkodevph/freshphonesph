@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { after, before, test } from 'node:test';
+import { after, before, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
@@ -18,6 +18,7 @@ const sessions = new Map<Role, { id: string; cookie: string }>();
 let app: INestApplication; let db: Database; let base: string; let batchId: string; let otherBatchId: string; let clientId: string;
 let auditedId: string; let staleId: string;
 const period = 'dateFrom=2048-02-01&dateTo=2048-02-29';
+beforeEach(async () => { await db.abuseBucket.deleteMany(); });
 const request = (role: Role | null, path: string, body?: unknown) => fetch(`${base}/api${path}`, { method: body ? 'POST' : 'GET',
   headers: { Origin: origin, Cookie: role ? sessions.get(role)!.cookie : '', ...(body ? { 'Content-Type': 'application/json' } : {}) },
   ...(body ? { body: JSON.stringify(body) } : {}) });
@@ -173,8 +174,13 @@ test('strict reconciliation facets and revoked payment/report access are enforce
     assert.equal((await request('OWNER', '/reports/snapshots', { kind: 'RECONCILIATION', periodStart: '2048-02-01', periodEnd: '2048-02-29', ...facet })).status, 400);
   assert.equal((await request('OWNER', '/reports/snapshots', { kind: 'RECONCILIATION', periodStart: '2048-02-01', periodEnd: '2048-02-29', batchId: randomUUID() })).status, 404);
   await db.user.update({ where: { id: sessions.get('RECORDS')!.id }, data: { role: 'ANALYTICS', version: { increment: 1 } } });
+  assert.equal((await request('RECORDS', '/reports/reconciliation')).status, 401);
+  const account = await db.user.findUniqueOrThrow({ where: { id: sessions.get('RECORDS')!.id } });
+  const signedIn = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: account.email, password: 'Reconciliation-test-password-123!' }) });
+  assert.equal(signedIn.status, 200); sessions.get('RECORDS')!.cookie = signedIn.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
   assert.equal((await request('RECORDS', '/reports/reconciliation')).status, 200); assert.equal((await request('RECORDS', '/reports/reconciliation/exceptions')).status, 403);
   await db.user.update({ where: { id: sessions.get('RECORDS')!.id }, data: { role: 'CORE_HANDLER', version: { increment: 1 } } });
   for (const path of ['/reports/reconciliation', '/reports/reconciliation/exceptions', '/reports/export?kind=reconciliation&format=xlsx'])
-    assert.equal((await request('RECORDS', path)).status, 403);
+    assert.equal((await request('RECORDS', path)).status, 401);
 });

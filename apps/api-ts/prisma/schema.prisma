@@ -54,6 +54,15 @@ enum SupportStatus {
   RESOLVED
   CLOSED
 }
+enum SupportSource {
+  UNRECORDED
+  CUSTOMER_PORTAL
+  MESSENGER
+  FACEBOOK
+  PHONE
+  WALK_IN
+  OTHER
+}
 enum DocumentStatus {
   SUBMITTED
   APPROVED
@@ -79,6 +88,11 @@ enum KpiDecision {
   PENDING
   NOTED
   ACTION_RECOMMENDED
+}
+enum HrActionStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 enum StaffEmailKind {
   TASK_ASSIGNED
@@ -115,10 +129,12 @@ enum StaffEmailStatus {
   SKIPPED
 }
 model User {
+  legalAcknowledgements LegalAcknowledgement[]
   requirementReviews RequirementReview[] @relation("RequirementReviewer")
   staffNotifications StaffNotification[] @relation("NotificationRecipient")
   reviewedApplicants Applicant[] @relation("ApplicantReviewer")
   reportSnapshots ReportSnapshot[]
+  reportAnalyses ReportAnalysis[]
   id String @id @default(uuid()) @db.Uuid
   name String @db.VarChar(100)
   email String @unique @db.VarChar(254)
@@ -128,6 +144,14 @@ model User {
   version Int @default(1)
   clientId String? @unique @db.Uuid
   hrConfidentialAccess Boolean @default(false)
+  retentionErasedAt DateTime?
+  emailVerified Boolean @default(false)
+  image String?
+  twoFactorEnabled Boolean @default(false)
+  authAccounts AuthAccount[]
+  authSessions AuthSession[]
+  authVerifications AuthVerification[]
+  twoFactor AuthTwoFactor?
   client Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
   sessions Session[]
   resets PasswordReset[]
@@ -152,6 +176,8 @@ model User {
   handledBatches Batch[] @relation("BatchHandler")
   createdTasks Task[] @relation("TaskCreator")
   kpiReviews KpiReview[]
+  proposedHrActions HrActionRequest[] @relation("HrActionProposer")
+  decidedHrActions HrActionRequest[] @relation("HrActionDecider")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -164,6 +190,60 @@ model Session {
   revokedAt DateTime?
   createdAt DateTime @default(now())
   @@index([userId])
+}
+// Better Auth owns authentication; legacy Session/PasswordReset rows are invalidated at cutover.
+model AuthAccount {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId String
+  providerId String
+  password String?
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+model AuthSession {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token String @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  mfaVerified Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+model AuthVerification {
+  id String @id @default(uuid()) @db.Uuid
+  identifier String @unique
+  value String
+  userId String? @db.Uuid
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@index([expiresAt])
+}
+model AuthTwoFactor {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret String
+  backupCodes String
+  verified Boolean @default(false)
+  failedVerificationCount Int @default(0)
+  lockedUntil DateTime?
 }
 model PasswordReset {
   id String @id @default(uuid()) @db.Uuid
@@ -221,6 +301,7 @@ model Client {
   status ClientStatus @default(ACTIVE)
   releaseStatus ReleaseStatus @default(NOT_READY)
   version Int @default(1)
+  retentionErasedAt DateTime?
   account User?
   schedule ScheduleItem[]
   payments Payment[]
@@ -255,6 +336,7 @@ model SupportCase {
   client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
   category String @db.VarChar(80)
   description String
+  source SupportSource @default(UNRECORDED)
   status SupportStatus @default(OPEN)
   resolution String @default("")
   assignedStaffId String? @db.Uuid
@@ -268,6 +350,7 @@ model SupportCase {
   @@index([clientId, createdAt])
   @@index([status, createdAt])
   @@index([status, updatedAt, id])
+  @@index([source, updatedAt, id])
 }
 model AccountAlert {
   id String @id @default(uuid()) @db.Uuid
@@ -339,6 +422,11 @@ model Notification {
   readAt DateTime?
   emailStatus String @default("PENDING") @db.VarChar(20)
   emailAttempts Int @default(0)
+  emailAttemptId String? @db.Uuid
+  emailSubject String?
+  emailBody String?
+  emailSender String?
+  emailRecipient String?
   emailNextAt DateTime @default(now())
   emailSentAt DateTime?
   emailError String? @db.VarChar(250)
@@ -456,6 +544,7 @@ model PaymentResultAlert {
   @@index([paymentId])
 }
 model StoredFile {
+  catalogItem CatalogItem?
   requirementDocument RequirementDocument?
   workAttachment TaskAttachment?
   applicantAttachment ApplicantAttachment?
@@ -464,6 +553,7 @@ model StoredFile {
   originalName String @db.VarChar(255)
   mimeType String @db.VarChar(80)
   size Int
+  purgePending Boolean @default(false)
   uploadedById String? @db.Uuid
   uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
   payment Payment?
@@ -579,8 +669,28 @@ model KpiReview {
   evaluation String
   recommendation String @db.VarChar(200)
   decision KpiDecision
+  hrActionRequests HrActionRequest[]
   createdAt DateTime @default(now())
   @@index([createdAt])
+}
+model HrActionRequest {
+  id String @id @default(uuid()) @db.Uuid
+  reviewId String @db.Uuid
+  review KpiReview @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+  proposedById String @db.Uuid
+  proposedBy User @relation("HrActionProposer", fields: [proposedById], references: [id], onDelete: Restrict)
+  proposedAction String @db.VarChar(500)
+  rationale String
+  status HrActionStatus @default(PENDING)
+  decidedById String? @db.Uuid
+  decidedBy User? @relation("HrActionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  decisionReason String?
+  decidedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  @@index([reviewId, createdAt])
+  @@index([status, createdAt])
+  @@index([proposedById, createdAt])
 }
 model AuditEntry {
   id String @id @default(uuid()) @db.Uuid
@@ -600,11 +710,31 @@ model ChangeEvent {
   entity String
   recordId String @db.Uuid
   createdAt DateTime @default(now())
+  publishedAt DateTime?
+  @@index([publishedAt, id])
 }
 model LoginAttempt {
   key String @id
   count Int @default(1)
   resetsAt DateTime
+}
+
+// Short-lived HMAC digests only. No IP addresses, cookies, email or request bodies.
+model AbuseBucket {
+  key String @id
+  count Int
+  resetsAt DateTime
+  @@index([resetsAt])
+}
+
+model AbuseStreamLease {
+  id String @id @db.Uuid
+  accountKey String
+  addressKey String
+  expiresAt DateTime
+  @@index([accountKey, expiresAt])
+  @@index([addressKey, expiresAt])
+  @@index([expiresAt])
 }
 
 enum RequirementStatus {
@@ -707,6 +837,7 @@ model JobOpening {
   @@index([isOpen, createdAt])
 }
 model Applicant {
+  legalAcknowledgements LegalAcknowledgement[]
   id String @id @default(uuid()) @db.Uuid
   jobId String @db.Uuid
   job JobOpening @relation(fields: [jobId], references: [id], onDelete: Restrict)
@@ -719,6 +850,7 @@ model Applicant {
   reviewerId String? @db.Uuid
   reviewer User? @relation("ApplicantReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
   version Int @default(1)
+  retentionErasedAt DateTime?
   attachments ApplicantAttachment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -779,9 +911,179 @@ model ReportSnapshot {
   periodStart DateTime @db.Date
   periodEnd DateTime @db.Date
   payload Json
+  analysis ReportAnalysis?
   createdById String @db.Uuid
   createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now())
   @@index([kind, periodStart, periodEnd])
   @@index([createdAt])
+}
+model ReportAnalysis {
+  id String @id @default(uuid()) @db.Uuid
+  snapshotId String @unique @db.Uuid
+  snapshot ReportSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
+  body String
+  submittedById String @db.Uuid
+  submittedBy User @relation(fields: [submittedById], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@index([submittedById, createdAt])
+}
+
+model LegalDocumentVersion {
+  id String @id @default(uuid()) @db.Uuid
+  key String @db.VarChar(40)
+  version String @db.VarChar(60)
+  title String @db.VarChar(160)
+  content Json
+  contentHash String @db.Char(64)
+  publishedAt DateTime
+  acknowledgements LegalAcknowledgement[]
+  @@unique([key, version])
+}
+
+model LegalAcknowledgement {
+  id String @id @default(uuid()) @db.Uuid
+  documentId String @db.Uuid
+  document LegalDocumentVersion @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  userId String? @db.Uuid
+  user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
+  applicantId String? @db.Uuid
+  applicant Applicant? @relation(fields: [applicantId], references: [id], onDelete: Restrict)
+  action String @db.VarChar(20)
+  acknowledgedAt DateTime @default(now())
+  @@unique([documentId, userId])
+  @@unique([documentId, applicantId])
+  @@index([userId, acknowledgedAt])
+  @@index([applicantId, acknowledgedAt])
+}
+
+enum CatalogAvailability {
+  CONTACT_US
+  AVAILABLE
+  LIMITED
+  SOLD_OUT
+  COMING_SOON
+}
+enum CatalogCondition {
+  PRE_OWNED
+  BRAND_NEW
+}
+model CatalogItem {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(40)
+  name String @db.VarChar(100)
+  condition CatalogCondition
+  dailyAmount Decimal? @db.Decimal(12, 2)
+  planTotalAmount Decimal? @db.Decimal(12, 2)
+  planInstallmentCount Int?
+  planCadence Cadence?
+  availability CatalogAvailability @default(CONTACT_US)
+  description String @default("") @db.VarChar(240)
+  published Boolean @default(false)
+  sortOrder Int @default(0)
+  imageAsset String? @db.VarChar(40)
+  imageFileId String? @unique @db.Uuid
+  imageFile StoredFile? @relation(fields: [imageFileId], references: [id], onDelete: Restrict)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([published, sortOrder, id])
+}
+
+enum RetentionScope {
+  APPLICANT
+  CUSTOMER
+  EMPLOYEE
+  PRIVATE_FILE
+}
+enum RetentionPolicyStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+enum RetentionRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FILES_PENDING
+  COMPLETED
+}
+enum RetentionFileStatus {
+  PENDING
+  RUNNING
+  FAILED
+  DELETED
+}
+model RetentionPolicy {
+  id String @id @default(uuid()) @db.Uuid
+  scope RetentionScope
+  version Int
+  days Int
+  status RetentionPolicyStatus @default(DRAFT)
+  basis String
+  backupInstructions String
+  externalCopyInstructions String
+  approvalReference String?
+  approvedById String? @db.Uuid
+  approvedAt DateTime?
+  createdById String @db.Uuid
+  createdAt DateTime @default(now())
+  requests RetentionRequest[]
+  @@unique([scope, version])
+  @@index([scope, status])
+}
+model RetentionHold {
+  id String @id @default(uuid()) @db.Uuid
+  scope RetentionScope
+  subjectId String @db.Uuid
+  reason String
+  createdById String @db.Uuid
+  createdAt DateTime @default(now())
+  releasedById String? @db.Uuid
+  releasedAt DateTime?
+  releaseReason String?
+  @@index([scope, subjectId, releasedAt])
+}
+model RetentionRequest {
+  id String @id @default(uuid()) @db.Uuid
+  scope RetentionScope
+  subjectId String @db.Uuid
+  policyId String @db.Uuid
+  policy RetentionPolicy @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  previewHash String @db.VarChar(64)
+  manifest Json
+  reason String
+  status RetentionRequestStatus @default(PENDING)
+  version Int @default(1)
+  requestedById String @db.Uuid
+  createdAt DateTime @default(now())
+  decidedById String? @db.Uuid
+  decidedAt DateTime?
+  decisionReason String?
+  completedAt DateTime?
+  followupById String? @db.Uuid
+  followupAt DateTime?
+  followupReference String?
+  files RetentionFileJob[]
+  @@index([status, createdAt])
+  @@index([scope, subjectId])
+}
+model RetentionFileJob {
+  id String @id @default(uuid()) @db.Uuid
+  requestId String @db.Uuid
+  request RetentionRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  fileId String @db.Uuid
+  kind String @default("PRIVATE_FILE") @db.VarChar(20)
+  storageKey String? @db.VarChar(120)
+  status RetentionFileStatus @default(PENDING)
+  attempts Int @default(0)
+  leaseId String? @db.Uuid
+  leaseUntil DateTime?
+  nextAt DateTime @default(now())
+  error String? @db.VarChar(250)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([fileId])
+  @@index([requestId, status])
+  @@index([status, nextAt])
 }

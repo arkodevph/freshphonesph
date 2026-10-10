@@ -6,6 +6,7 @@ import { allowed, requireCurrentUser } from '../auth/access';
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { PrivateStorageService, type PrivateUpload } from '../storage/private-storage.service';
+import { LegalService } from '../legal/legal.service';
 
 const json = (value: unknown): Prisma.InputJsonValue =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -15,6 +16,7 @@ export class RecruitmentService {
   constructor(
     @Inject(Database) private readonly db: Database,
     @Inject(PrivateStorageService) private readonly storage: PrivateStorageService,
+    @Inject(LegalService) private readonly legal: LegalService,
   ) {}
 
   private async write<T>(user: User, permission: Permission, run: (tx: Prisma.TransactionClient) => Promise<T>, confidential = false) {
@@ -37,7 +39,9 @@ export class RecruitmentService {
 
   async apply(input: {
     jobId: string; fullName: string; email: string; phone: string; message: string;
+    privacyNoticeVersion?: string; privacyNoticeAcknowledged?: boolean;
   }, upload?: PrivateUpload) {
+    const { privacyNoticeVersion, privacyNoticeAcknowledged, ...applicantFields } = input;
     const file = upload ? this.storage.validateDocument(upload, {
       allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
       maxBytes: 5 * 1024 * 1024,
@@ -50,7 +54,7 @@ export class RecruitmentService {
     }) : undefined;
     try {
       const applicant = await this.db.$transaction(async (tx) => {
-        if (!await tx.jobOpening.findFirst({ where: { id: input.jobId, isOpen: true }, select: { id: true } }))
+        if (!await tx.jobOpening.findFirst({ where: { id: applicantFields.jobId, isOpen: true }, select: { id: true } }))
           throw new NotFoundException('Open job not found.');
         let storedFileId: string | undefined;
         if (file && storageKey) {
@@ -62,11 +66,13 @@ export class RecruitmentService {
         }
         const result = await tx.applicant.create({
           data: {
-            ...input,
+            ...applicantFields,
             ...(storedFileId ? { attachments: { create: { storedFileId } } } : {}),
           },
           select: { id: true },
         });
+        await this.legal.recordApplicantAcknowledgement(tx, result.id,
+          { privacyNoticeVersion, privacyNoticeAcknowledged });
         await tx.changeEvent.create({ data: { entity: 'applicant', recordId: result.id } });
         return result;
       });
@@ -127,7 +133,7 @@ export class RecruitmentService {
   }) {
     return this.write(user, 'RECRUITMENT_MANAGE', async (tx) => {
       const before = await tx.applicant.findUnique({ where: { id } });
-      if (!before) throw new NotFoundException('Applicant not found.');
+      if (!before || before.retentionErasedAt) throw new NotFoundException('Applicant not found.');
       const changed = await tx.applicant.updateMany({ where: { id, version: input.version }, data: {
         ...(input.status ? { status: input.status } : {}),
         ...(input.reviewerNotes !== undefined ? { reviewerNotes: input.reviewerNotes } : {}),

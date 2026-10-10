@@ -1,3 +1,4 @@
+import { AbusePolicy } from '../abuse/policies';
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -44,6 +45,7 @@ export class DocumentsController {
   }
 
   @Post('clients/:clientId/requirements/:typeId/upload') @Requires('DOCUMENT_UPLOAD')
+  @AbusePolicy('upload')
   @UseInterceptors(FileInterceptor('document', { limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   upload(
     @CurrentUser() user: User,
@@ -62,6 +64,7 @@ export class DocumentsController {
     return this.documents.review(user, id, body);
   }
 
+  @AbusePolicy('download')
   @Get('documents/:id/content') @Requires('DOCUMENT_READ') async content(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,

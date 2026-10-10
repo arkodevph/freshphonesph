@@ -1,0 +1,12 @@
+.page { min-height: 100vh; background: linear-gradient(145deg, #f7f7ff, #eaf7ff 55%, #fdf8ff); padding: clamp(1.25rem, 4vw, 3.5rem); color: #18233d; }
+.shell { max-width: 62rem; margin: 0 auto; }
+.back { color: #3156bd; font-size: .9rem; font-weight: 800; }
+.page h1 { margin: 2rem 0 .5rem; color: #192b64; font-family: var(--font-fredoka), sans-serif; font-size: clamp(2rem, 5vw, 3.3rem); }
+.intro, .help { max-width: 48rem; color: #4d5e7e; line-height: 1.7; }
+.grid { display: grid; gap: 1rem; margin: 2rem 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
+.card { display: grid; gap: .55rem; min-height: 10rem; border: 1px solid #e3e9f8; border-radius: 1.25rem; background: #fff; padding: 1.4rem; text-decoration: none; box-shadow: 0 12px 30px rgba(27, 50, 97, .04); }
+.card:hover, .card:focus-visible { border-color: #5380db; box-shadow: 0 12px 35px rgba(47, 107, 255, .12); }
+.card span { color: #657292; font-size: .78rem; font-weight: 800; }
+.card strong { color: #244589; font-size: 1.18rem; }
+.card small { color: #885e0f; font-size: .75rem; }
+.help a { color: #3156bd; font-weight: 800; text-decoration: underline; }

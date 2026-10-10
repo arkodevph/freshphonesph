@@ -13,11 +13,13 @@ Use `/home/jaycee/Projects/freshphonesph` for local work. It points to this chec
 
 The target stack uses TypeScript for both deployables:
 
-- Next.js 16 and React 19 web app on Vercel
+- Next.js 16 and React 19 web app on a client-owned VPS
 - NestJS REST API on Railway
-- Prisma migrations with Supabase PostgreSQL
-- private Supabase Storage through signed S3-compatible URLs
+- Prisma migrations with Neon PostgreSQL; local PostgreSQL for development
+- Better Auth sessions and MFA
+- private S3-compatible storage; production provider selection pending
 - Resend transactional email
+- Redis Streams, BullMQ workers and shared abuse limits with PostgreSQL fallback
 
 The repository currently includes a working Django API baseline. It remains migration evidence
 until each NestJS vertical slice reaches behavioral parity and passes its cutover gate.
@@ -46,5 +48,9 @@ until each NestJS vertical slice reaches behavioral parity and passes its cutove
 ./freshphones.sh
 ```
 
-This starts the local infrastructure, TypeScript API at `http://localhost:4101`, and web app at
-`http://localhost:3000` together. See [AGENTS.md](AGENTS.md) for setup details and local accounts.
+This starts the local infrastructure (including Redis), TypeScript API at
+`http://localhost:4101`, separate background workers, and web app at
+`http://localhost:3000`. See [AGENTS.md](AGENTS.md) for setup details and local accounts,
+and [the Redis runbook](docs/53-redis-events-workers.md) for configuration and recovery.
+Abuse quotas, live connection caps and trusted proxy setup are documented in
+[the rate limiting runbook](docs/54-abuse-rate-limits.md).

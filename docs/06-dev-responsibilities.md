@@ -13,8 +13,8 @@ client's legal/privacy officer (§14).
 **Technical implementation of the agreed scope:**
 - Public website + customer/employee portal frontend (client-owned VPS).
 - NestJS TypeScript backend/API and server-side business logic (Railway).
-- Database (Supabase PostgreSQL, schema via **Prisma migrations**), Supabase Auth JWT validation,
-  and private file storage (Supabase Storage).
+- Database (Neon PostgreSQL, schema via **Prisma migrations**), Better Auth integration,
+  and private S3-compatible file storage (production provider pending).
 - Transactional email wiring (Resend).
 - All modules M1–M11 per [05-modules.md](05-modules.md) to their acceptance criteria.
 

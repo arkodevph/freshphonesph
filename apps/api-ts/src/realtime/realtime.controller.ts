@@ -1,3 +1,4 @@
+import { AbusePolicy } from '../abuse/policies';
 import { Controller, Get, Inject, Req, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import type { User } from '@freshphones/contracts';
@@ -7,14 +8,26 @@ import { Database } from '../database';
 import { batchScope, clientScope } from '../records/scope';
 import { supportAlertIsVisible } from '../staff/support-alerts';
 import { accountAlertIsVisible } from '../staff/account-alerts';
+import { RedisEventsService, type LiveHint } from '../redis/redis-events.service';
 
+@AbusePolicy('stream')
 @Controller('events')
 export class RealtimeController {
   constructor(
     @Inject(Database) private readonly db: Database,
     @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(RedisEventsService) private readonly live: RedisEventsService,
   ) {}
   private async visible(user: User, event: { entity: string; recordId: string }) {
+    if (event.entity === 'retention') return allowed(user, 'RETENTION_MANAGE');
+    if (event.entity === 'catalog') return allowed(user, 'CATALOG_MANAGE');
+    if (event.entity === 'hr_action_request') {
+      if (!allowed(user, 'HR_CONFIDENTIAL')) return false;
+      if (user.role === 'OWNER') return true;
+      return Boolean(await this.db.hrActionRequest.findFirst({ where: {
+        id: event.recordId, proposedById: user.id,
+      }, select: { id: true } }));
+    }
     if (event.entity === 'account-alert') {
       if (!allowed(user, 'ACCOUNT_MANAGE')) return false;
       return accountAlertIsVisible(this.db, user.id, event.recordId);
@@ -73,7 +86,8 @@ export class RealtimeController {
         return Boolean(await this.db.supportCase.findFirst({ where: { id: event.recordId, clientId: user.clientId }, select: { id: true } }));
     }
     if (event.entity === 'notification')
-      return Boolean(await this.db.notification.findFirst({ where: { id: event.recordId, userId: user.id }, select: { id: true } }));
+      return Boolean(await this.db.notification.findFirst({ where: { id: event.recordId, userId: user.id }, select: { id: true } }) ||
+        await this.db.staffNotification.findFirst({ where: { id: event.recordId, recipientId: user.id }, select: { id: true } }));
     if (event.entity === 'document') {
       if (user.role === 'OWNER' || user.role === 'RECORDS') return true;
       if (user.role === 'CUSTOMER' && user.clientId)
@@ -83,6 +97,7 @@ export class RealtimeController {
   }
   @Get()
   async stream(@Req() request: AuthRequest, @Res() response: Response) {
+    if (this.live.enabled) return this.redisStream(request, response);
     // A fresh snapshot on ready/reconnect closes the gap before this cursor.
     let cursor = (await this.db.changeEvent.findFirst({ orderBy: { id: 'desc' } }))?.id ?? 0n;
     response.setHeader('Content-Type', 'text/event-stream');
@@ -103,7 +118,8 @@ export class RealtimeController {
     const tick = async () => {
       if (closed) return;
       try {
-        const { user } = await this.auth.authenticate(request.accessToken);
+        const { user, mfaRequired } = await this.auth.authenticate(request.accessToken);
+        if (mfaRequired) { stop(); return; }
         const events = await this.db.changeEvent.findMany({
           where: { id: { gt: cursor } },
           orderBy: { id: 'asc' },
@@ -139,5 +155,57 @@ export class RealtimeController {
     timer = setTimeout(() => {
       void tick();
     }, 1000);
+  }
+  private redisStream(request: AuthRequest, response: Response) {
+    response.setHeader('Content-Type', 'text/event-stream');
+    response.setHeader('Cache-Control', 'no-cache, no-transform');
+    response.setHeader('X-Accel-Buffering', 'no');
+    response.flushHeaders();
+    let closed = false, draining = false, checking = false, heartbeat = 0;
+    const pending: LiveHint[] = [];
+    const stop = () => {
+      if (closed) return;
+      closed = true;
+      unsubscribe();
+      clearInterval(timer);
+      pending.length = 0;
+      if (!response.writableEnded) response.end();
+    };
+    const write = (frame: string) => { if (!closed && !response.write(frame)) stop(); };
+    const drain = async () => {
+      if (closed || draining) return;
+      draining = true;
+      try {
+        while (!closed && pending.length) {
+          const hint = pending.shift()!;
+          const { user, mfaRequired } = await this.auth.authenticate(request.accessToken);
+          if (mfaRequired) { stop(); break; }
+          if (hint === null) write('event: ready\ndata: {}\n\n');
+          else if (await this.visible(user, hint)) write(`event: change\ndata: ${JSON.stringify(hint)}\n\n`);
+        }
+      } catch { stop(); }
+      finally { draining = false; }
+    };
+    const unsubscribe = this.live.subscribe(hint => {
+      if (closed) return;
+      if (hint === null) pending.length = 0;
+      // Bound slow browsers; a reconnect fetches the current authorized snapshot.
+      if (pending.length >= 100) { stop(); return; }
+      pending.push(hint);
+      void drain();
+    });
+    const timer = setInterval(() => {
+      if (closed || checking) return;
+      checking = true;
+      void this.auth.authenticate(request.accessToken).then(({ mfaRequired }) => {
+        if (mfaRequired) stop();
+        else if (++heartbeat % 15 === 0) write(': keepalive\n\n');
+      }).catch(stop).finally(() => { checking = false; });
+    }, 1000);
+    timer.unref();
+    response.on('close', stop);
+    response.on('error', stop);
+    request.on('aborted', stop);
+    write('retry: 2000\nevent: ready\ndata: {}\n\n');
   }
 }

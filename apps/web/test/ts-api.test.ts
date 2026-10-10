@@ -1,6 +1,6 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { tsRequest, ApiError, toBatch, toPage } from "../lib/ts-api";
+import { tsRequest, tsUpload, tsDownload, ApiError, toBatch, toPage } from "../lib/ts-api";
 
 const originalFetch = globalThis.fetch;
 after(() => { globalThis.fetch = originalFetch; });
@@ -63,4 +63,28 @@ test("the existing UI contract preserves UUIDs, missing plan terms and next-page
   assert.equal(batch.contract_price, null);
   assert.equal(batch.status, "forming");
   assert.equal(toPage({ items: [batch], total: 21, page: 1, pageSize: 20 }, (item) => item).next, "2");
+});
+
+test("rate limits reach reads, uploads and downloads with wait time and never retry a submission or expire the session", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++; return Response.json({ message: 'Too many requests. Please try again in 60 seconds.' }, { status: 429, headers: { 'Retry-After': '60' } });
+  };
+  for (const operation of [() => tsRequest('/agents/verify?q=SYNTHETIC'), () => tsUpload('/careers/apply', new FormData()),
+    () => tsDownload('/reports/export')]) {
+    const before = calls;
+    await assert.rejects(operation(), error => error instanceof ApiError && error.status === 429 && error.retryAfterSeconds === 60 && /60 seconds/.test(error.message));
+    assert.equal(calls, before + 1);
+  }
+});
+
+test("rate limiting during session recovery keeps the actual wait message and stops the original write", async () => {
+  const paths: string[] = [];
+  globalThis.fetch = async input => {
+    const path = new URL(String(input)).pathname; paths.push(path);
+    return path.endsWith('/auth/me') ? Response.json({ message: 'Please wait 5 seconds.' }, { status: 429, headers: { 'Retry-After': '5' } }) : json({}, 401);
+  };
+  await assert.rejects(tsRequest('/tasks', { method: 'POST', body: '{}' }), error =>
+    error instanceof ApiError && error.status === 429 && error.retryAfterSeconds === 5 && error.message === 'Please wait 5 seconds.');
+  assert.deepEqual(paths, ['/api/tasks', '/api/auth/me']);
 });

@@ -1,12 +1,14 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { BadRequestException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, GetBucketVersioningCommand, ListObjectVersionsCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { CONFIG, type Config } from '../config';
+import { Database } from '../database';
 
 export type UploadPolicy = { allowedMimeTypes: string[]; maxBytes: number; label: string };
 export type PrivateUpload = { buffer: Buffer; mimetype: string; size: number; originalname: string };
+export type LocalMailCopy = { id: string; hash: string; recipient: string };
 
 const signatures: Record<string, (data: Buffer) => boolean> = {
   'image/png': (data) => data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
@@ -23,7 +25,7 @@ export class PrivateStorageService {
   private readonly directory: string;
   private readonly s3: S3Client | null;
 
-  constructor(@Inject(CONFIG) private readonly config: Config) {
+  constructor(@Inject(CONFIG) private readonly config: Config, @Inject(Database) private readonly db: Database) {
     this.directory = resolve(config.PRIVATE_STORAGE_DIR ?? resolve(__dirname, '../../.local/private'));
     this.s3 = config.PRIVATE_STORAGE_PROVIDER === 's3' ? new S3Client({
       region: config.PRIVATE_STORAGE_S3_REGION,
@@ -88,6 +90,8 @@ export class PrivateStorageService {
 
   async read(storageKey: string) {
     if (!/^[0-9a-f-]{36}$/i.test(storageKey)) throw new NotFoundException('Private file is unavailable.');
+    const file = await this.db.storedFile.findUnique({ where: { storageKey }, select: { purgePending: true } });
+    if (!file || file.purgePending) throw new NotFoundException('Private file is unavailable.');
     try {
       if (this.s3) {
         const result = await this.s3.send(new GetObjectCommand({ Bucket: this.config.PRIVATE_STORAGE_S3_BUCKET!, Key: storageKey }));
@@ -107,5 +111,68 @@ export class PrivateStorageService {
       return;
     }
     await unlink(resolve(this.directory, storageKey)).catch(() => undefined);
+  }
+
+  private async eraseLocal(path: string) {
+    await unlink(path).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'ENOENT') throw error; });
+    try { await readFile(path); } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+      throw error;
+    }
+    throw new Error('Storage removal was not confirmed.');
+  }
+  async eraseLocalMail(id: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error('Invalid mail key.');
+    await this.eraseLocal(resolve(process.cwd(), '.local/mail', `${id}.txt`));
+  }
+  async localMailIndex(): Promise<LocalMailCopy[]> {
+    const directory = resolve(process.cwd(), '.local/mail');
+    try {
+      const files = (await readdir(directory).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; })).filter(file => /^[0-9a-f-]{36}\.txt$/i.test(file));
+      const copies: LocalMailCopy[] = [];
+      for (let offset = 0; offset < files.length; offset += 32) {
+        await Promise.all(files.slice(offset, offset + 32).map(async file => {
+          const bytes = await readFile(resolve(directory, file)).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
+          if (!bytes) return;
+          const recipient = /^To:\s*([^\r\n]+)$/im.exec(bytes.toString())?.[1].trim().toLowerCase();
+          if (recipient) copies.push({ id: file.slice(0, -4), hash: createHash('sha256').update(bytes).digest('hex'), recipient });
+        }));
+      }
+      return copies;
+    } catch { throw new ServiceUnavailableException('Local email copies could not be inspected. Check storage before erasure.'); }
+  }
+  async localMailCopies(recipients: string[], index?: LocalMailCopy[]) {
+    const addresses = new Set(recipients.map(email => email.trim().toLowerCase()).filter(Boolean));
+    if (!addresses.size) return [];
+    return (index ?? await this.localMailIndex()).filter(copy => addresses.has(copy.recipient)).map(({ id, hash }) => ({ id, hash }));
+  }
+  async erase(storageKey: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(storageKey)) throw new Error('Invalid storage key.');
+    if (!this.s3) return this.eraseLocal(resolve(this.directory, storageKey));
+    const Bucket = this.config.PRIVATE_STORAGE_S3_BUCKET!;
+    const versioning = await this.s3.send(new GetBucketVersioningCommand({ Bucket }));
+    if (versioning.Status === 'Enabled' || versioning.Status === 'Suspended') {
+      // Delete all historical versions and delete markers. A simple DeleteObject only hides a versioned object.
+      let KeyMarker: string | undefined, VersionIdMarker: string | undefined;
+      do {
+        const page = await this.s3.send(new ListObjectVersionsCommand({ Bucket, Prefix: storageKey, KeyMarker, VersionIdMarker }));
+        for (const version of [...page.Versions ?? [], ...page.DeleteMarkers ?? []]) {
+          if (version.Key === storageKey && version.VersionId) await this.s3.send(new DeleteObjectCommand({ Bucket, Key: storageKey, VersionId: version.VersionId }));
+        }
+        KeyMarker = page.IsTruncated ? page.NextKeyMarker : undefined;
+        VersionIdMarker = page.IsTruncated ? page.NextVersionIdMarker : undefined;
+      } while (KeyMarker);
+      const remaining = await this.s3.send(new ListObjectVersionsCommand({ Bucket, Prefix: storageKey }));
+      if ([...remaining.Versions ?? [], ...remaining.DeleteMarkers ?? []].some(version => version.Key === storageKey)) throw new Error('Object versions remain.');
+    } else await this.s3.send(new DeleteObjectCommand({ Bucket, Key: storageKey }));
+    try { await this.s3.send(new HeadObjectCommand({ Bucket, Key: storageKey })); } catch (error) {
+      if ((error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404) {
+        // storage:migrate intentionally retains local originals. Purge that copy as well.
+        await this.eraseLocal(resolve(this.directory, storageKey));
+        return;
+      }
+      throw error;
+    }
+    throw new Error('Object removal was not confirmed.');
   }
 }

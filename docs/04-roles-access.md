@@ -59,6 +59,11 @@ or deactivation clears the grant; reactivation does not restore it. Grant change
 existing sessions and are audited with the Owner, reason and date. Owner management is
 available in `/system/team`. See [42-confidential-hr-access.md](42-confidential-hr-access.md).
 
+Consequential HR action requests require this individual grant for HR / Payroll
+or COO. The Owner alone records approve/reject decisions. The action page and API
+are confidential; a decision does not perform a payroll or employment change. See
+[47-consequential-hr-action-approvals.md](47-consequential-hr-action-approvals.md).
+
 ## Example permission matrix (illustrative — finalize general roles in Discovery)
 
 | Permission | Owner | COO | GM | HR | Finance | Records | Analytics | CS | Handler |

@@ -330,10 +330,27 @@ test('production startup rejects missing email and insecure origins', () => {
     process.env = previous;
   }
 });
+test('Redis config rejects other protocols and requires production credentials, namespaces and remote TLS', () => {
+  const previous = { ...process.env };
+  try {
+    Object.assign(process.env, { NODE_ENV: 'development',
+      DATABASE_URL: 'postgresql://fresh:fresh@localhost:5435/synthetic_test', WEB_ORIGIN: 'http://localhost:3000',
+      BETTER_AUTH_SECRET: 'synthetic-config-secret-at-least-32-characters', REDIS_URL: 'https://redis.example.test' });
+    assert.throws(() => readConfig(), /REDIS_URL must use/);
+    Object.assign(process.env, { NODE_ENV: 'production', BETTER_AUTH_URL: 'https://freshphones.example.test/api/auth',
+      WEB_ORIGIN: 'https://freshphones.example.test', AUTH_REQUIRE_STAFF_MFA: 'true', REDIS_URL: 'redis://redis.example.test' });
+    delete process.env.REDIS_NAMESPACE;
+    assert.throws(() => readConfig(), /authenticated Redis/);
+    process.env.REDIS_URL = 'redis://:synthetic@redis.example.test'; process.env.REDIS_NAMESPACE = 'synthetic-production';
+    assert.throws(() => readConfig(), /requires TLS/);
+  } finally { process.env = previous; }
+});
 test('production startup requires private S3 storage configuration', () => {
   const previous = { ...process.env };
   try {
     Object.assign(process.env, { NODE_ENV: 'production',
+      REDIS_URL: 'rediss://:synthetic-test@redis.example.test:6379', REDIS_NAMESPACE: 'synthetic-production',
+      BETTER_AUTH_SECRET: 'generated-better-auth-test-secret-at-least-32-characters', BETTER_AUTH_URL: 'https://freshphones.example.test/api/auth', AUTH_REQUIRE_STAFF_MFA: 'true',
       WEB_ORIGIN: 'https://freshphones.example.test', JWT_SECRET: 'generated-unit-test-secret-at-least-32-characters',
       RESEND_API_KEY: 'unit-test-key', EMAIL_FROM: 'Fresh Phones PH <updates@freshphones.ph>', PRIVATE_STORAGE_PROVIDER: 'local' });
     assert.throws(() => readConfig(), /private S3 storage/);
@@ -342,10 +359,12 @@ test('production startup requires private S3 storage configuration', () => {
     assert.throws(() => readConfig(), /Private S3 storage requires/);
   } finally { process.env = previous; }
 });
-test('production startup rejects the example email sender', () => {
+test('production startup rejects the example sender and unapproved privacy documents', () => {
   const previous = { ...process.env };
   try {
     Object.assign(process.env, { NODE_ENV: 'production',
+      REDIS_URL: 'rediss://:synthetic-test@redis.example.test:6379', REDIS_NAMESPACE: 'synthetic-production',
+      BETTER_AUTH_SECRET: 'generated-better-auth-test-secret-at-least-32-characters', BETTER_AUTH_URL: 'https://freshphones.example.test/api/auth', AUTH_REQUIRE_STAFF_MFA: 'true',
       WEB_ORIGIN: 'https://freshphones.example.test', JWT_SECRET: 'generated-unit-test-secret-at-least-32-characters',
       RESEND_API_KEY: 'unit-test-key', PRIVATE_STORAGE_PROVIDER: 's3',
       PRIVATE_STORAGE_S3_ENDPOINT: 'https://storage.example.test/storage/v1/s3',
@@ -358,7 +377,23 @@ test('production startup rejects the example email sender', () => {
     process.env.EMAIL_FROM = 'Fresh Phones Test <onboarding@resend.dev>';
     assert.throws(() => readConfig(), /explicit EMAIL_FROM/);
     process.env.EMAIL_FROM = 'Fresh Phones PH <updates@freshphones.ph>';
-    assert.equal(readConfig().EMAIL_FROM, process.env.EMAIL_FROM);
+    assert.throws(() => readConfig(), /approved customer, employee and applicant privacy notices/);
+  } finally { process.env = previous; }
+});
+test('production identity rejects legacy-only secrets, disabled staff MFA and cross-origin cookie deployment', () => {
+  const previous = { ...process.env };
+  try {
+    Object.assign(process.env, { NODE_ENV: 'production',
+      REDIS_URL: 'rediss://:synthetic-test@redis.example.test:6379', REDIS_NAMESPACE: 'synthetic-production', WEB_ORIGIN: 'https://freshphones.example.test',
+      JWT_SECRET: 'legacy-unit-test-secret-at-least-32-characters', BETTER_AUTH_URL: 'https://freshphones.example.test/api/auth' });
+    delete process.env.BETTER_AUTH_SECRET; delete process.env.AUTH_REQUIRE_STAFF_MFA;
+    assert.throws(() => readConfig(), /generated Better Auth secret/);
+    process.env.BETTER_AUTH_SECRET = 'generated-better-auth-test-secret-at-least-32-characters';
+    process.env.AUTH_REQUIRE_STAFF_MFA = 'false'; assert.throws(() => readConfig(), /staff MFA/);
+    process.env.AUTH_REQUIRE_STAFF_MFA = 'true'; process.env.BETTER_AUTH_URL = 'https://backend.example.test/api/auth';
+    assert.throws(() => readConfig(), /web origin/);
+    process.env.BETTER_AUTH_URL = 'https://freshphones.example.test/unexpected';
+    assert.throws(() => readConfig(), /BETTER_AUTH_URL/);
   } finally { process.env = previous; }
 });
 test('record list contracts accept inclusive date bounds, one-sided dates and every correct status', () => {

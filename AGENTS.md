@@ -34,13 +34,15 @@ apps/api/    Django 5 baseline (temporary migration source; no new feature work 
 apps/api-ts/ NestJS + Prisma + TypeScript (Railway target) — one module per business domain
 packages/    (reserved for shared UI/config)
 docs/        planning (00–16) + BUILD_STATUS + PULL_REQUEST
-docker-compose.yml   local infra: Postgres:5435 + MinIO + MailHog
+docker-compose.yml   local infra: Postgres:5435 + Redis:6380 + MinIO + MailHog
 ```
 
 ## Stack (decided — see docs/09-tech-stack.md)
-- **Backend target:** NestJS · TypeScript · Prisma · Supabase Auth JWT validation · PostgreSQL
-  (Supabase in prod) · private Supabase Storage/MinIO via S3 signed URLs · Redis for events,
-  queues and rate limits · Resend email. The v6 decisions and pending deployment choices are in
+- **Backend target:** NestJS · TypeScript · Prisma · Neon PostgreSQL · Better Auth ·
+  private S3-compatible object storage (production provider pending; MinIO locally) · Resend ·
+  Redis Streams and BullMQ background workers (reaffirmed by the user on 2026-10-09).
+  Broader Redis abuse limits with PostgreSQL fallback are implemented locally (scope #13).
+  Production provisioning, proxy setup and quota/load acceptance remain open. The v6 decisions and pending deployment choices are in
   [`docs/20-v6-architecture-decision.md`](docs/20-v6-architecture-decision.md).
 - **Backend baseline:** Django 5 + DRF remains under `apps/api/` only as parity/migration
   evidence until each TypeScript vertical slice passes its cutover gate.
@@ -50,7 +52,7 @@ docker-compose.yml   local infra: Postgres:5435 + MinIO + MailHog
 ## Run it locally
 ```bash
 # 1) infra
-docker compose up -d                      # Postgres:5435, MinIO:9000/9001, MailHog:1025/8025
+docker compose up -d                      # Postgres:5435, Redis:6380, MinIO:9000/9001, MailHog:1025/8025
 
 # 2) current baseline backend (apps/api; temporary during TypeScript migration)
 cd apps/api
@@ -66,6 +68,10 @@ pnpm --filter @fresh/web dev              # http://localhost:3000  (API at :8000
 Create local test accounts with a private seed script or through the application; keep
 account details outside Git. Customer portal accounts can be provisioned through
 `POST /api/clients/{id}/portal-account/`. Emails land in MailHog (http://localhost:8025).
+
+For the active TypeScript preview, run `pnpm --filter @fresh/api-ts dev` and
+`pnpm --filter @fresh/api-ts worker:dev` in separate terminals with the same database,
+Redis namespace and private storage configuration. See [docs/53-redis-events-workers.md](docs/53-redis-events-workers.md).
 
 ## Target backend conventions (NestJS + TypeScript)
 - Build new backend behavior in `apps/api-ts/`; do not extend Django by default.

@@ -1,3 +1,4 @@
+import { AbusePolicy } from '../abuse/policies';
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
@@ -28,12 +29,14 @@ export class FinanceController {
   ) {}
 
   @Post('payments/receipt-scan') @HttpCode(200) @Requires('PAYMENT_RECORD')
+  @AbusePolicy('upload')
   @UseInterceptors(FileInterceptor('receipt', { limits: { fileSize: 5 * 1024 * 1024, files: 1 } }))
   scanReceipt(@Body('template') template: string, @UploadedFile() file?: ReceiptUpload) {
     return this.receipts.scan(template, file);
   }
 
   @Post('payments/:id/proof') @Requires('PAYMENT_RECORD')
+  @AbusePolicy('upload')
   @UseInterceptors(FileInterceptor('proof', { limits: { fileSize: 5 * 1024 * 1024, files: 1 } }))
   attachProof(
     @CurrentUser() user: User,
@@ -43,6 +46,7 @@ export class FinanceController {
     return this.finance.attachProof(user, id, file);
   }
 
+  @AbusePolicy('download')
   @Get('payments/:id/proof') @Requires('PAYMENT_READ') async proof(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
@@ -115,6 +119,7 @@ export class FinanceController {
     return this.finance.balance(user, id);
   }
 
+  @AbusePolicy('expensive')
   @Get('clients/:id/statement') @Requires('PAYMENT_READ') statement(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
@@ -122,6 +127,7 @@ export class FinanceController {
     return this.finance.statement(user, id);
   }
 
+  @AbusePolicy('expensive')
   @Get('payments/:id/confirmation') @Requires('PAYMENT_READ') confirmation(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,

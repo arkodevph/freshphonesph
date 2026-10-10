@@ -47,10 +47,10 @@ Each step has a verification check (per CLAUDE.md goal-driven execution).
 
 1. **Workspace init** → verify: `web` (Next.js) builds and the landing page still renders at
    `/`; `api-ts` health check boots under NestJS.
-2. **NestJS + Prisma + Supabase PostgreSQL** → verify: Prisma migrations apply to a clean
+2. **NestJS + Prisma + Neon PostgreSQL** → verify: Prisma migrations apply to a clean
    PostgreSQL database and the API health check reads it.
-3. **JWT authentication** → verify: token obtain/refresh and password reset work; a protected
-   endpoint accepts a valid token; email reaches MailHog locally.
+3. **Better Auth integration (planned)** → verify: sessions, recovery, revocation and MFA
+   preserve account/role behavior. Current cookie auth remains until parity passes.
 4. **Role model + NestJS permission guards** (see [04-roles-access.md](04-roles-access.md)) → verify:
    the API rejects an under-privileged role on a protected endpoint (not just hidden in UI).
 5. **Optional database policies on sensitive tables** → verify: policy blocks unauthorized
@@ -72,8 +72,8 @@ Server-only (never shipped to the browser):
 
 ```
 # NestJS API (Railway)
-DATABASE_URL=                 # Supabase Postgres connection string
-JWT_SECRET=                   # at least 32 random characters
+DATABASE_URL=                 # Current PostgreSQL connection; Neon planned for production
+JWT_SECRET=                   # current cookie/JWT implementation; retain until auth cutover
 WEB_ORIGIN=                   # exact VPS-hosted web origin
 RESEND_API_KEY=
 EMAIL_FROM=
@@ -94,6 +94,7 @@ maintain. Provisioning these under client ownership is a Month-1 prerequisite.
 
 ## What is intentionally deferred
 
-- Redis (add only if justified — §18.6).
+- Production events/workers/rate limits: decision pending; Redis no longer mandatory.
+- Better Auth/Neon cutover is planned, not implemented by the documentation update.
 - Payment gateway / checkout (out of scope — §19).
 - Native mobile apps (V1 is a mobile-**responsive** web system — §19).

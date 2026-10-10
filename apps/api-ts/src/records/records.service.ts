@@ -277,6 +277,7 @@ export class RecordsService {
   }
   async clients(user: User, query: Query) {
     const where: Prisma.ClientWhereInput = {
+      retentionErasedAt: null,
       AND: [clientScope(user), ...(query.handlerId ? [{ batch: { handlerId: query.handlerId } }] : []),
         ...(query.agentId ? [{ batch: { agentId: query.agentId } }] : []),
         ...(query.model ? [{ OR: [
@@ -316,7 +317,7 @@ export class RecordsService {
   async client(user: User, id: string) {
     if (!allowed(user, 'CLIENT_READ') && !(user.role === 'CUSTOMER' && user.clientId === id))
       throw new NotFoundException('Client not found.');
-    const client = await this.db.client.findFirst({ where: { id, ...clientScope(user) }, include: clientInclude });
+    const client = await this.db.client.findFirst({ where: { id, retentionErasedAt: null, ...clientScope(user) }, include: clientInclude });
     if (!client) throw new NotFoundException('Client not found.');
     return clientJson(client);
   }
@@ -356,7 +357,7 @@ export class RecordsService {
   async updateClient(user: User, id: string, input: ClientInput, version: number) {
     return this.write(user, 'CLIENT_MANAGE', async (tx) => {
       const before = await tx.client.findUnique({ where: { id }, include: clientInclude });
-      if (!before) throw new NotFoundException('Client not found.');
+      if (!before || before.retentionErasedAt) throw new NotFoundException('Client not found.');
       if (before.version !== version) throw new ConflictException('This client changed while you were editing. Refresh and review the latest record.');
       if (before.batchId !== input.batchId) {
         if (await tx.scheduleItem.count({ where: { clientId: id } }))
@@ -400,7 +401,7 @@ export class RecordsService {
     }
     return this.write(user, 'CLIENT_MANAGE', async (tx) => {
       const before = await tx.client.findUnique({ where: { id } });
-      if (!before) throw new NotFoundException('Client not found.');
+      if (!before || before.retentionErasedAt) throw new NotFoundException('Client not found.');
       if (before.releaseStatus === input.status && !input.note && !input.collectionDate)
         throw new BadRequestException('Add a note, a collection date, or a new status.');
       const changed = await tx.client.updateMany({ where: { id, version: input.version },
@@ -452,6 +453,7 @@ export class RecordsService {
   }
   async accounts(query: AccountQuery) {
     const where: Prisma.UserWhereInput = {
+      retentionErasedAt: null,
       ...(query.status ? { active: query.status === 'ACTIVE' } : {}),
       ...(query.role ? { role: query.role } : {}),
       OR: [

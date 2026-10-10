@@ -7,7 +7,10 @@ import {
 import type { User } from '@freshphones/contracts';
 import { CONFIG, type Config } from '../config';
 import { Database } from '../database';
-import { Prisma } from '../generated/prisma/client';
+import { Prisma, type StaffNotification, type User as StoredUser } from '../generated/prisma/client';
+import { allowed } from '../auth/access';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 type Transaction = Prisma.TransactionClient;
 type EventInput = {
@@ -207,7 +210,11 @@ export class NotificationsService {
       take: 500,
     });
     await this.db.$transaction(async (tx) => {
-      for (const task of tasks) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+      for (const candidate of tasks) {
+        const task = await tx.task.findFirst({ where: { id: candidate.id, status: { in: ['TODO', 'IN_PROGRESS'] },
+          deadline: { lte: soon }, assignee: { active: true, retentionErasedAt: null } } });
+        if (!task) continue;
         const overdue = task.deadline < now;
         await this.enqueue(tx, {
           recipientId: task.assigneeId,
@@ -221,42 +228,83 @@ export class NotificationsService {
     return { considered: tasks.length };
   }
 
-  async deliverPending() {
+  async deliverPending(onlyId?: string) {
     const queued = await this.db.notificationDelivery.count({
       where: { status: { in: ['PENDING', 'FAILED'] }, attempts: { lt: 5 }, nextAttemptAt: { lte: new Date() } },
     });
-    if (!this.config.RESEND_API_KEY) return { processed: 0, queued, providerConfigured: false };
+    if (this.config.NODE_ENV === 'production' && !this.config.RESEND_API_KEY) return { processed: 0, queued, providerConfigured: false };
     const deliveries = await this.db.notificationDelivery.findMany({
-      where: { status: { in: ['PENDING', 'FAILED'] }, attempts: { lt: 5 }, nextAttemptAt: { lte: new Date() } },
+      where: { ...(onlyId ? { id: onlyId } : {}), status: { in: ['PENDING', 'FAILED'] }, attempts: { lt: 5 }, nextAttemptAt: { lte: new Date() } },
       include: { notification: { include: { recipient: { select: { email: true } } } } },
       orderBy: { createdAt: 'asc' },
       take: 50,
     });
-    for (const delivery of deliveries) {
+    for (const candidate of deliveries) await this.db.$transaction(async tx => {
+      // Serialize the small legacy delivery path with erasure and recheck the live row before sending.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+      const delivery = await tx.notificationDelivery.findUnique({ where: { id: candidate.id },
+        include: { notification: { include: { recipient: true } } } });
+      if (!delivery || !['PENDING', 'FAILED'].includes(delivery.status) || delivery.attempts >= 5 || delivery.nextAttemptAt > new Date()) return;
+      if (!await this.deliveryEligible(tx, delivery.notification, delivery.notification.recipient)) {
+        await tx.notificationDelivery.update({ where: { id: delivery.id }, data: { status: 'FAILED', attempts: 5,
+          lastError: 'Recipient or record no longer permits this delivery.' } });
+        return;
+      }
       try {
-        const response = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${this.config.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: this.config.EMAIL_FROM,
-            to: [delivery.notification.recipient.email],
-            subject: `${delivery.notification.title} — Fresh Phones PH`,
-            text: delivery.notification.body,
-          }),
-        });
-        if (!response.ok) throw new Error(`Email provider returned ${response.status}.`);
-        await this.db.notificationDelivery.update({ where: { id: delivery.id }, data: {
+        if (this.config.NODE_ENV !== 'production') {
+          const directory = join(process.cwd(), '.local/mail');
+          await mkdir(directory, { recursive: true, mode: 0o700 });
+          await writeFile(join(directory, `${delivery.notificationId}.txt`),
+            `To: ${delivery.notification.recipient.email}\nSubject: ${delivery.notification.title} — Fresh Phones PH\n\n${delivery.notification.body}`, { mode: 0o600 });
+        } else {
+          const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            signal: AbortSignal.timeout(10_000),
+            headers: { Authorization: `Bearer ${this.config.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': `operations-notification/${delivery.id}` },
+            body: JSON.stringify({
+              from: this.config.EMAIL_FROM,
+              to: [delivery.notification.recipient.email],
+              subject: `${delivery.notification.title} — Fresh Phones PH`,
+              text: delivery.notification.body,
+            }),
+          });
+          if (!response.ok) throw new Error(`Email provider returned ${response.status}.`);
+        }
+        await tx.notificationDelivery.update({ where: { id: delivery.id }, data: {
           status: 'SENT', attempts: { increment: 1 }, sentAt: new Date(), lastError: null,
         } });
-      } catch (error) {
+      } catch {
         const attempts = delivery.attempts + 1;
-        await this.db.notificationDelivery.update({ where: { id: delivery.id }, data: {
+        await tx.notificationDelivery.update({ where: { id: delivery.id }, data: {
           status: 'FAILED', attempts,
           nextAttemptAt: new Date(Date.now() + Math.min(60, 2 ** attempts) * 60 * 1000),
-          lastError: error instanceof Error ? error.message.slice(0, 500) : 'Email delivery failed.',
+          lastError: 'Email delivery failed. Check the provider and retry.',
         } });
       }
-    }
+    }, { timeout: 20_000 });
     return { processed: deliveries.length, queued, providerConfigured: true };
+  }
+  private async deliveryEligible(tx: Transaction, notice: StaffNotification, user: StoredUser) {
+    if (!user.active || user.retentionErasedAt) return false;
+    const id = notice.dedupeKey.match(/^[a-z_]+:([a-f0-9-]{36}):/i)?.[1];
+    if (!id) return false;
+    if (notice.eventKey.startsWith('task.')) {
+      if (user.role === 'CUSTOMER' || !allowed(user, 'TASK_READ')) return false;
+      const task = await tx.task.findFirst({ where: { id, assigneeId: user.id, status: { in: ['TODO', 'IN_PROGRESS'] } } });
+      return Boolean(task && (notice.eventKey === 'task.assigned' || notice.dedupeKey.endsWith(task.deadline.toISOString())));
+    }
+    if (notice.eventKey === 'document.submitted')
+      return allowed(user, 'DOCUMENT_REVIEW') && Boolean(await tx.requirementDocument.findUnique({ where: { id }, select: { id: true } }));
+    if (notice.eventKey === 'payment.submitted')
+      return allowed(user, 'PAYMENT_VERIFY') && Boolean(await tx.payment.findFirst({ where: { id, status: 'PENDING' }, select: { id: true } }));
+    if (user.role !== 'CUSTOMER' || !user.clientId) return false;
+    if (notice.eventKey.startsWith('document.'))
+      return Boolean(await tx.clientRequirement.findFirst({ where: { id, clientId: user.clientId }, select: { id: true } }));
+    if (notice.eventKey.startsWith('support.'))
+      return Boolean(await tx.supportCase.findFirst({ where: { id, clientId: user.clientId }, select: { id: true } }));
+    if (notice.eventKey.startsWith('payment.'))
+      return Boolean(await tx.payment.findFirst({ where: { id, clientId: user.clientId }, select: { id: true } }));
+    if (notice.eventKey === 'client.release') return user.clientId === id;
+    return false;
   }
 }

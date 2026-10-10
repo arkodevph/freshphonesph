@@ -1,6 +1,6 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createReportSnapshot, downloadOperationsExport, downloadPaymentsExport, downloadReportExport, getCollectionReport, getReconciliationReport, getReconciliationExceptions, getReportBatches, getReportSnapshots } from '../lib/api';
+import { createReportSnapshot, downloadOperationsExport, downloadPaymentsExport, downloadReportExport, getCollectionReport, getReconciliationReport, getReconciliationExceptions, getReportBatches, getReportSnapshots, submitReportAnalysis } from '../lib/api';
 import { ApiError } from '../lib/ts-api';
 const originalFetch = globalThis.fetch;
 const originalDocument = globalThis.document;
@@ -56,6 +56,17 @@ test('report batch choices and history are scoped and saving sends only the expl
   assert.equal(requests[0].url.pathname, '/api/reports/batches'); assert.equal(requests[0].url.searchParams.get('page'), '2');
   assert.equal(requests[1].url.searchParams.get('kind'), 'SUPPORT'); assert.equal(requests[1].url.searchParams.get('page'), '3');
   assert.equal(requests[2].options?.method, 'POST'); assert.deepEqual(JSON.parse(String(requests[2].options?.body)), input);
+});
+
+test('human analysis submits to one saved report with the original text and authenticated session', async () => {
+  const requests: { url: URL; options?: RequestInit }[] = [];
+  globalThis.fetch = async (input, options) => { requests.push({ url: new URL(String(input)), options }); return Response.json({}); };
+  await createReportSnapshot({ kind: 'SUPPORT', periodStart: '2045-01-01', periodEnd: '2045-01-31', analysis: 'A human interpretation of the selected support period.' });
+  await submitReportAnalysis('7e091b36-b584-4b09-a8ca-f2a8eb30cb9a', 'A later human interpretation for an older saved period.');
+  assert.deepEqual(requests.map((item) => item.url.pathname), ['/api/reports/snapshots', '/api/reports/snapshots/7e091b36-b584-4b09-a8ca-f2a8eb30cb9a/analysis']);
+  assert.equal(JSON.parse(String(requests[0].options?.body)).analysis, 'A human interpretation of the selected support period.');
+  assert.deepEqual(JSON.parse(String(requests[1].options?.body)), { body: 'A later human interpretation for an older saved period.' });
+  assert.ok(requests.every((item) => item.options?.credentials === 'include' && item.options.cache === 'no-store'));
 });
 
 test('collection page reads paginate while downloads and saves capture the whole applied scope', async () => {

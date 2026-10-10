@@ -626,6 +626,8 @@ html.portal-theme-iris-transition::view-transition-old(root) { z-index: 1; }
 .system-profile-role { display: flex; justify-content: space-between; margin: 8px 0; border-block: 1px solid #ececf0; padding: 10px 6px; font-size: 10px; }
 .system-profile-role span { color: #858790; }
 .system-profile-role strong { color: #4d42df; text-transform: uppercase; letter-spacing: .06em; }
+.system-profile-legal-link { display: block; border-radius: 8px; padding: 9px 7px; color: #4d42df; font-size: 11px; font-weight: 700; }
+.system-profile-legal-link:hover, .system-profile-legal-link:focus-visible { background: #f0f0ff; }
 .system-profile-popover > button { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; border-radius: 8px; background: transparent; padding: 9px 7px; color: #c63c50; cursor: pointer; font-size: 11px; font-weight: 700; }
 .system-profile-popover > button:hover, .system-profile-popover > button:focus-visible { background: #fff0f2; outline: 0; }
 .system-profile-popover > button svg { width: 16px; height: 16px; }

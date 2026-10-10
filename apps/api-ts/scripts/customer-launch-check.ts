@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { hasProductionSender, readConfig } from '../src/config';
 import { PrivateStorageService } from '../src/storage/private-storage.service';
+import { Database } from '../src/database';
 
 const samplePng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aV4cAAAAASUVORK5CYII=', 'base64');
 const staging = process.argv.includes('--staging');
@@ -42,11 +43,18 @@ async function main() {
     const body = await response.json() as { status?: string; database?: string };
     if (body.status !== 'ok' || body.database !== 'connected') throw new Error('Unexpected health response.');
   });
+  if (config.REDIS_URL) await check('Redis and background worker health', async () => {
+    const response = await reachable(`${apiOrigin}/api/health/redis`);
+    const body = await response.json() as { redis?: string; worker?: string };
+    if (body.redis !== 'connected' || body.worker !== 'running') throw new Error('Redis or workers unavailable.');
+  });
   await check('Private storage upload, read, and cleanup with a synthetic image', async () => {
-    const storage = new PrivateStorageService(config);
+    const db = new Database(config);
+    const storage = new PrivateStorageService(config, db);
     let key: string | undefined;
     try {
       key = await storage.saveDocument({ buffer: samplePng, mimetype: 'image/png', size: samplePng.length, originalname: 'customer-launch-check.png' });
+      await db.storedFile.create({ data: { storageKey: key, originalName: 'customer-launch-check.png', mimeType: 'image/png', size: samplePng.length } });
       const downloaded = await storage.read(key);
       if (!downloaded.equals(samplePng)) throw new Error('Downloaded bytes did not match the upload.');
       if (staging) {
@@ -55,7 +63,10 @@ async function main() {
         const anonymous = await fetch(publicUrl, { signal: AbortSignal.timeout(8_000) });
         if (anonymous.ok) throw new Error('Synthetic private file is anonymously accessible.');
       }
-    } finally { if (key) await storage.remove(key); }
+    } finally {
+      try { if (key) { await storage.remove(key); await db.storedFile.deleteMany({ where: { storageKey: key } }); } }
+      finally { await db.$disconnect(); }
+    }
   });
 
   if (!staging) {

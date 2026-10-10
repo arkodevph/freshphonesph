@@ -1,6 +1,4 @@
-// Client-side token storage for the foundation slice.
-// NOTE: localStorage is fine for this early phase; M2 (auth) will move to
-// httpOnly cookies + refresh handling per docs/13-auth-roles-schema-design.md.
+// The TypeScript API uses Better Auth HTTP-only cookies. The Django parity backend retains its legacy token adapter.
 import type { Tokens, Me } from "./api";
 import { TYPESCRIPT_API } from "./backend";
 import { tsRequest } from "./ts-api";

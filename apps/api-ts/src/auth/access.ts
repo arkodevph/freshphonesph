@@ -2,6 +2,7 @@ import {
   createParamDecorator,
   ExecutionContext,
   ForbiddenException,
+  HttpException,
   Inject,
   Injectable,
   SetMetadata,
@@ -13,6 +14,7 @@ import { effectivePermissions, type Permission, type User } from '@freshphones/c
 import type { Request } from 'express';
 import { AuthService, safeUser } from './auth.service';
 import type { Database } from '../database';
+import { LegalService } from '../legal/legal.service';
 
 export interface AuthRequest extends Request {
   user: User;
@@ -20,6 +22,8 @@ export interface AuthRequest extends Request {
   accessToken: string;
 }
 export const Public = () => SetMetadata('public', true);
+export const LegalExempt = () => SetMetadata('legalExempt', true);
+export const MfaExempt = () => SetMetadata('mfaExempt', true);
 export const Requires = (...permissions: Permission[]) => SetMetadata('permission', permissions);
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext) =>
@@ -40,6 +44,7 @@ export class AccessGuard implements CanActivate {
   constructor(
     @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(LegalService) private readonly legal: LegalService,
   ) {}
   async canActivate(context: ExecutionContext) {
     const publicRoute = this.reflector.getAllAndOverride<boolean>('public', [
@@ -48,18 +53,26 @@ export class AccessGuard implements CanActivate {
     ]);
     if (publicRoute) return true;
     const request = context.switchToHttp().getRequest<AuthRequest>();
-    const token: unknown = request.cookies?.fp_access;
-    if (typeof token !== 'string') throw new UnauthorizedException('Sign in to continue.');
+    const token = request.headers.cookie;
+    if (!token) throw new UnauthorizedException('Sign in to continue.');
     const session = await this.auth.authenticate(token);
     request.user = session.user;
     request.sessionId = session.sessionId;
     request.accessToken = token;
+    const mfaExempt = this.reflector.getAllAndOverride<boolean>('mfaExempt', [context.getHandler(), context.getClass()]);
+    if (!mfaExempt && session.mfaRequired)
+      throw new HttpException('Set up two-factor authentication before continuing.', 412);
     const permissions = this.reflector.getAllAndOverride<Permission[]>('permission', [
       context.getHandler(),
       context.getClass(),
     ]);
     if (permissions && !permissions.every((permission) => allowed(session.user, permission)))
       throw new ForbiddenException('Your role does not have access to this action.');
+    const legalExempt = this.reflector.getAllAndOverride<boolean>('legalExempt', [
+      context.getHandler(), context.getClass(),
+    ]);
+    if (!legalExempt && await this.legal.hasPending(session.user))
+      throw new HttpException('Review the current privacy notice and terms before continuing.', 428);
     return true;
   }
 }

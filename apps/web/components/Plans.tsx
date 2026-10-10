@@ -13,22 +13,21 @@ type Plan = {
 const plans: Plan[] = [
   {
     name: "Weekly",
-    cadence: "Pay every week",
-    blurb: "Smallest amounts, spread across the most paydays.",
-    perks: ["Lowest per-payment", "Great for weekly earners", "Friendly reminders", "GCash, Maya, or bank"],
+    cadence: "Every 7 days",
+    blurb: "A regular weekly payment interval.",
+    perks: ["Weekly payment rhythm", "Offer-specific amounts", "Preview sample dates", "Confirm terms with our team"],
   },
   {
-    name: "15 & 30",
-    cadence: "Twice a month",
-    blurb: "Pay on the 15th and 30th, lined up with your sahod.",
-    perks: ["Matches semi-monthly pay", "Only two payments a month", "Flexible due dates", "Easy to budget"],
-    popular: true,
+    name: "Every 15 days",
+    cadence: "A fixed 15-day interval",
+    blurb: "Payments spaced fifteen days apart from your start date.",
+    perks: ["Predictable day intervals", "Offer-specific amounts", "Preview sample dates", "Confirm terms with our team"],
   },
   {
-    name: "Monthly",
-    cadence: "Once a month",
-    blurb: "One simple payment each month, set and forget.",
-    perks: ["Fewest payments", "Best for monthly earners", "Clear payment schedule", "Less to track"],
+    name: "Every 30 days",
+    cadence: "A fixed 30-day interval",
+    blurb: "Payments spaced thirty days apart from your start date.",
+    perks: ["Longer payment intervals", "Offer-specific amounts", "Preview sample dates", "Confirm terms with our team"],
   },
 ];
 
@@ -42,7 +41,7 @@ export default function Plans() {
             Pay the <span className="holo-text">way</span> that suits you
           </>
         }
-        subtitle="No interest. You only pay for the device, split into bite-sized payments on the schedule you choose."
+        subtitle="Browse a unit’s sample payment breakdown for its total, payment interval and installment amounts. Available terms depend on the offer."
       />
 
       <div className="mx-auto mt-12 grid max-w-5xl items-stretch gap-5 lg:grid-cols-3">
@@ -95,14 +94,14 @@ export default function Plans() {
               </ul>
 
               <a
-                href="#join"
+                href="#units"
                 className={`mt-7 inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-700 ${
                   p.popular
                     ? "bg-white text-blue-ink hover:bg-white/90"
                     : "btn-candy"
                 } transition-colors`}
               >
-                Choose this plan
+                Explore unit offers
               </a>
             </article>
           </Reveal>

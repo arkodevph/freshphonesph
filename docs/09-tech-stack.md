@@ -19,7 +19,7 @@ baseline usable and is explicitly approved.
 | Icons | Phosphor | Already used by the application |
 | Server state | TanStack Query | Add when API migration work needs cache and mutation handling |
 | Validation/contracts | Zod plus generated/shared API types | Client validation improves UX; the API remains authoritative |
-| Authentication UX | Supabase Auth session client | Supabase owns identity/session recovery; API validates Supabase JWTs |
+| Authentication UX | Better Auth API facade | API authenticates Better Auth sessions and enforces current business permissions; local migration implemented; production cutover pending |
 
 Before changing Next.js configuration or framework conventions, read the installed guides in
 `node_modules/next/dist/docs/`; this repository uses Next.js 16.
@@ -31,15 +31,16 @@ Before changing Next.js configuration or framework conventions, read the install
 | Runtime | Supported Node.js LTS | Pin the deployed major version in repository and Railway settings |
 | Language | TypeScript | Strict mode |
 | Framework | NestJS REST API | Module boundaries map to the business domains |
-| Database | Supabase PostgreSQL | System of record |
+| Database | Neon PostgreSQL | System of record |
 | ORM/migrations | Prisma | Decimal money types and committed migrations |
-| Authentication | Supabase Auth JWT validation | Supabase owns identity, password reset, recovery, and session lifecycle |
+| Authentication | Better Auth + Prisma integration | Account/session/recovery migration and TOTP/recovery codes implemented locally; see docs/52-authentication-mfa.md |
 | Authorization | Permission decorators and NestJS guards | Server-side enforcement on every protected route |
 | Validation | NestJS DTO validation and explicit domain checks | Reject malformed data before service writes |
 | API reference | OpenAPI through `@nestjs/swagger` | Source for typed clients and endpoint review |
-| File storage | AWS S3 client against Supabase Storage | Private buckets and short-lived signed URLs |
+| File storage | AWS S3 client against private object storage (provider pending) | Private buckets and short-lived signed URLs |
 | Email | Resend | Sent by backend services after committed events |
-| Background jobs | Redis-backed workers | Email, notifications, exports, document processing, scheduled reminders, and AI work run after the committed request |
+| Live events | Redis Streams + authenticated SSE | Committed PostgreSQL outbox, shared reader per API replica, current permission checks and reconnect snapshots |
+| Background jobs | Separate BullMQ worker process | Durable notification/reminder outboxes and already authorized private file cleanup; see docs/53-redis-events-workers.md |
 | Server | NestJS HTTP adapter on Railway | Keep business rules out of the web client |
 
 Controllers parse requests and call services. Services own writes, transactions, state
@@ -50,7 +51,7 @@ only schema and migration owner after cutover.
 
 ```text
 apps/api-ts/src/
-  auth/             # accounts, JWT, role and permission guards
+  auth/             # Better Auth sessions, MFA, role and permission guards
   batches/          # Paluwagan batches and schedules
   clients/          # client records and portal linkage
   documents/        # requirements and private document metadata
@@ -80,9 +81,10 @@ sequence or a mutable balance column.
 - Monetary values use PostgreSQL/Prisma decimal types, never JavaScript floating-point math.
 - `remaining_balance` is computed from contract total minus verified payment sum.
 - Private files use opaque object keys; the API authorizes every signed URL request.
-- Redis is launch infrastructure for cross-instance event delivery, background-work queues,
-  rate limiting, and short-lived cache data. It never stores financial truth; reconnecting
-  screens refetch authorized data if delivery is interrupted.
+- Redis was reaffirmed for live events and workers on 2026-10-09. Redis Streams and BullMQ
+  now use committed PostgreSQL events/outboxes as their recovery source. Reconnecting
+  screens refetch authorized records; financial truth stays in PostgreSQL. Distributed
+  rate limiting and production Redis provisioning remain open.
 
 ## Hosting and infrastructure
 
@@ -90,10 +92,12 @@ sequence or a mutable balance column.
 |---|---|
 | VPS | Next.js web application |
 | Railway | NestJS API |
-| Supabase | PostgreSQL and private storage |
+| Neon | PostgreSQL; plan and recovery settings pending |
+| Better Auth | Implemented in NestJS locally; production rollout pending |
+| Private object storage | S3-compatible provider to be selected |
 | Resend | Transactional email |
 | Cloudflare | Domain, DNS, and optional edge controls |
-| Redis | Cross-instance events, queues, rate limiting, and short-lived cache |
+| Redis | Streams/BullMQ implemented locally; client-owned production instance pending |
 
 Fresh Phones PH owns and pays for production accounts. Developers receive the minimum access
 needed to build and maintain the system. The VPS provider, deployment method, and production

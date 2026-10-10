@@ -1,6 +1,22 @@
 # Local development infrastructure (mirrors the ARKO setup).
-# Prod uses Supabase (Postgres + Storage) + Resend — see docs/01-architecture.md.
+# Target: Neon + Better Auth + Redis + private S3 + Resend; see docs/01-architecture.md.
+name: freshphonesph
+
 services:
+  redis:
+    image: redis:8.2-alpine
+    container_name: fresh-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory-policy", "noeviction", "--requirepass", "fresh-local-redis"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "fresh-local-redis", "--no-auth-warning", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   postgres:
     image: postgres:16-alpine
     container_name: fresh-postgres
@@ -59,5 +75,6 @@ services:
       - "8025:8025"   # web UI
 
 volumes:
+  redisdata:
   pgdata:
   miniodata:

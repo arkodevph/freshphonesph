@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { z } from 'zod';
 import { reportQuerySchema, reportSnapshotSchema, type PaymentReport, type ReportKind, type User } from '@freshphones/contracts';
 import { Database } from '../database';
@@ -16,6 +16,10 @@ const csv = (value: unknown) => {
   const safe = typeof value === 'string' && /^[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
   return `"${safe.replaceAll('"', '""')}"`;
 };
+const snapshotInclude = {
+  createdBy: { select: { id: true, name: true } },
+  analysis: { include: { submittedBy: { select: { id: true, name: true } } } },
+} as const;
 
 @Injectable()
 export class ReportsService {
@@ -140,7 +144,7 @@ export class ReportsService {
     const createdAt = this.dateRange(query);
     const cases = await db.supportCase.findMany({
       where: { ...(createdAt ? { createdAt } : {}) },
-      select: { category: true, status: true, createdAt: true, closedAt: true },
+      select: { category: true, source: true, status: true, createdAt: true, closedAt: true },
     });
     const categories = new Map<string, { category: string; total: number; closed: number; turnaround: number[] }>();
     for (const item of cases) {
@@ -162,6 +166,10 @@ export class ReportsService {
           ? Math.round((item.turnaround.reduce((sum, value) => sum + value, 0) / item.turnaround.length) * 10) / 10
           : null,
       })).sort((a, b) => b.total - a.total || a.category.localeCompare(b.category)),
+      sources: Object.entries(cases.reduce<Record<string, number>>((counts, item) => {
+        counts[item.source] = (counts[item.source] ?? 0) + 1;
+        return counts;
+      }, {})).map(([source, total]) => ({ source, total })).sort((a, b) => b.total - a.total || a.source.localeCompare(b.source)),
     };
   }
 
@@ -209,7 +217,7 @@ export class ReportsService {
       const report = await this.supportReport(query);
       rows = [['Category', 'Cases', 'Closed', 'Average turnaround hours'], ...report.categories.map(item => [
         item.category, item.total, item.closed, item.averageTurnaroundHours ?? '',
-      ])];
+      ]), [], ['Source', 'Cases'], ...report.sources.map((item) => [item.source, item.total])];
     }
     return format === 'xlsx' ? workbook(rows, kind) : rows.map((row) => row.map(csv).join(',')).join('\r\n');
   }
@@ -218,6 +226,9 @@ export class ReportsService {
     const query: ReportQuery = { dateFrom: input.periodStart, dateTo: input.periodEnd,
       ...(input.batchId ? { batchId: input.batchId } : {}), ...(input.status ? { status: input.status } : {}) };
     return this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+      const current = await tx.user.findUnique({ where: { id: user.id } });
+      if (!current?.active || !allowed(current, 'REPORT_VIEW')) throw new ForbiddenException('Your report access has changed.');
       const batch = input.batchId ? await tx.batch.findUnique({ where: { id: input.batchId }, select: { code: true } }) : null;
       if (input.batchId && !batch) throw new NotFoundException('This batch is no longer available.');
       const payload = input.kind === 'PAYMENTS' ? {
@@ -233,13 +244,19 @@ export class ReportsService {
         return { totals: report.totals, groups: report.items, basis: 'current_payment_state', paymentGrouping: 'recorded_payment_batch',
           externalStatementMatched: false, filters: input.batchId ? { batchId: input.batchId, batchCode: batch!.code } : {} };
       })() : input.kind === 'TASKS' ? await this.taskReport(query, tx) : await this.supportReport(query, tx);
-      const snapshot = await tx.reportSnapshot.create({ data: {
+      const created = await tx.reportSnapshot.create({ data: {
         kind: input.kind,
         periodStart: new Date(input.periodStart),
         periodEnd: new Date(input.periodEnd),
         payload: JSON.parse(JSON.stringify(payload)) as Prisma.InputJsonValue,
         createdById: user.id,
-      }, include: { createdBy: { select: { id: true, name: true } } } });
+      } });
+      if (input.analysis) {
+        const submission = await tx.reportAnalysis.create({ data: { snapshotId: created.id, body: input.analysis, submittedById: user.id } });
+        await tx.auditEntry.create({ data: { actorId: user.id, action: 'report_analysis.submitted', entity: 'report_analysis',
+          recordId: submission.id, after: { snapshotId: created.id, body: submission.body } } });
+      }
+      const snapshot = await tx.reportSnapshot.findUniqueOrThrow({ where: { id: created.id }, include: snapshotInclude });
       await tx.auditEntry.create({ data: {
         actorId: user.id, action: 'report_snapshot.created', entity: 'report_snapshot',
         recordId: snapshot.id, after: JSON.parse(JSON.stringify(snapshot)) as Prisma.InputJsonValue,
@@ -248,10 +265,27 @@ export class ReportsService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
+  async submitAnalysis(user: User, snapshotId: string, body: string) {
+    return this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740030)`;
+      const current = await tx.user.findUnique({ where: { id: user.id } });
+      if (!current?.active || !allowed(current, 'REPORT_VIEW')) throw new ForbiddenException('Your report access has changed.');
+      const snapshot = await tx.reportSnapshot.findUnique({ where: { id: snapshotId }, include: { analysis: { select: { id: true } } } });
+      if (!snapshot) throw new NotFoundException('Saved report not found.');
+      if (snapshot.analysis) throw new ConflictException('This saved report already has submitted analysis. It cannot be replaced.');
+      const submission = await tx.reportAnalysis.create({ data: { snapshotId, body, submittedById: user.id },
+        include: { submittedBy: { select: { id: true, name: true } } } });
+      await tx.auditEntry.create({ data: { actorId: user.id, action: 'report_analysis.submitted', entity: 'report_analysis',
+        recordId: submission.id, after: { snapshotId, body: submission.body } } });
+      return submission;
+    });
+  }
+
   async snapshots(query: { page: number; kind?: string }) {
     const where = query.kind ? { kind: query.kind } : {};
     const [items, total] = await this.db.$transaction([
-      this.db.reportSnapshot.findMany({ where, include: { createdBy: { select: { id: true, name: true } } },
+      this.db.reportSnapshot.findMany({ where, include: snapshotInclude,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (query.page - 1) * 20, take: 20 }),
       this.db.reportSnapshot.count({ where }),
     ]);

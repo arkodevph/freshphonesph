@@ -81,8 +81,10 @@ pnpm test:api-ts:integration
 
 ## Remaining reporting scope
 
-The dedicated page and the subsequent batch/collection report family are delivered;
-see [38-batch-collection-reports.md](38-batch-collection-reports.md) for current
+The dedicated page and the subsequent batch/collection report family are delivered.
+Human submitted analysis for saved periods is documented in
+[49-submitted-report-analysis.md](49-submitted-report-analysis.md); this document's
+initial test counts are historical. See [38-batch-collection-reports.md](38-batch-collection-reports.md) for current
 totals, period semantics and verification. Internal reconciliation is delivered in
 [39-reconciliation-reports.md](39-reconciliation-reports.md). Additional approved
 formats, external statement matching, the final business field-access matrix and

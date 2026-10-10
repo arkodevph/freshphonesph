@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "@phosphor-icons/react";
 import { applyToJob, getCareers, type JobOpening } from "@/lib/api";
+import { legalDocuments } from "@freshphones/contracts";
 import styles from "./careers.module.css";
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -28,6 +29,8 @@ export default function ApplyForm() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [privacyRead, setPrivacyRead] = useState(false);
+  const applicantNotice = legalDocuments.APPLICANT_PRIVACY;
 
   const selectedJob = useMemo(
     () => jobs.find((job) => String(job.id) === form.job),
@@ -86,11 +89,15 @@ export default function ApplyForm() {
         email: form.email,
         phone: form.phone,
         message: form.message,
+        ...(applicantNotice.status === "PUBLISHED" && privacyRead ? {
+          privacyNoticeVersion: applicantNotice.version, privacyNoticeAcknowledged: true,
+        } : {}),
       }, attachment);
       setNotice(`Application sent for ${selectedJob?.title ?? "the selected role"}. Our team will review it.`);
       setForm((current) => ({ ...current, full_name: "", email: "", phone: "", message: "" }));
       setAttachment(undefined);
       setFileInputKey((value) => value + 1);
+      setPrivacyRead(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "We couldn't submit your application. Please try again.");
     } finally {
@@ -135,7 +142,7 @@ export default function ApplyForm() {
 
               <div className={styles.privacyNote}>
                 <ShieldCheck weight="duotone" aria-hidden="true" />
-                <div><strong>Your details stay with recruitment.</strong><span>We use them only to review and respond to this application.</span></div>
+                <div><strong>Applicant privacy</strong><span>Read the <Link href="/privacy/applicant" target="_blank">Applicant Privacy Notice</Link> before sharing your details.</span></div>
               </div>
             </div>
           </aside>
@@ -144,6 +151,13 @@ export default function ApplyForm() {
             <div className={styles.formHeading}>
               <span>Candidate details</span>
               <p>Fields marked required must be completed.</p>
+            </div>
+
+            <div className={styles.privacyNotice}>
+              <p>Before applying, read the <Link href="/privacy/applicant" target="_blank">Applicant Privacy Notice</Link>.</p>
+              {applicantNotice.status === "DRAFT" ? <p>The notice is currently a draft awaiting business approval. This form does not record acceptance of draft wording.</p> :
+                <label><input type="checkbox" checked={privacyRead} onChange={(event) => setPrivacyRead(event.target.checked)} required />
+                  <span>I have read the Applicant Privacy Notice, version {applicantNotice.version}.</span></label>}
             </div>
 
             {loadState === "error" && (
@@ -192,7 +206,7 @@ export default function ApplyForm() {
               </div>
             )}
 
-            <button type="submit" className={styles.submit} disabled={sending || loadState !== "ready" || !form.job}>
+            <button type="submit" className={styles.submit} disabled={sending || loadState !== "ready" || !form.job || (applicantNotice.status === "PUBLISHED" && !privacyRead)}>
               <PaperPlaneTilt weight="fill" aria-hidden="true" /> {sending ? "Sending application…" : "Send application"}
             </button>
           </form>

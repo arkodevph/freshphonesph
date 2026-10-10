@@ -504,7 +504,7 @@ test('revoked recruitment access immediately blocks details, pages, counts, file
     `/recruitment/applicants/${applicantId}`,
     `/applicant-attachments/${attachmentId}/content`,
   ])
-    assert.equal((await request('HR_PAYROLL', path)).status, 403);
+    assert.equal((await request('HR_PAYROLL', path)).status, 401);
   const row = await db.applicant.findUniqueOrThrow({
     where: { id: applicantId },
   });

@@ -38,8 +38,8 @@ This is a local migration preview, not a production cutover or completion of Gat
   presented as collected.
 - The Payments screen exports a filtered CSV containing payment date, batch, status, method and
   amount. The migration export intentionally omits customer identity and payment references.
-- Login uses HTTP-only cookies. Refresh requests are shared within a tab and serialized
-  across tabs using Web Locks where supported. Logout revokes the server session.
+- Login uses Better Auth HTTP-only database-session cookies with MFA support.
+  Logout and access changes revoke server sessions. See [52-authentication-mfa.md](52-authentication-mfa.md).
 - SSE invalidates lists and open schedules without replacing form drafts. Ready/reconnect
   reloads the authoritative snapshot; only authorized record identifiers travel in events.
 
@@ -62,7 +62,7 @@ centavos than installments are rejected. Tests include maximum-size amounts and 
 ## Run locally
 
 Use a separate empty PostgreSQL database for the preview. Configure
-`apps/api-ts/.env` from its example with that database URL, a local JWT secret,
+`apps/api-ts/.env` from its example with that database URL, a generated `BETTER_AUTH_SECRET`,
 `PORT=4101`, and `WEB_ORIGIN=http://localhost:3001`. Provision local test accounts
 privately after migrating the database.
 
@@ -86,7 +86,8 @@ Open `http://localhost:3001/login` and use a privately provisioned test account.
 The backend selection is fixed at web build time. Without `NEXT_PUBLIC_API_BACKEND=typescript`,
 the web app retains its Django behavior. Changing the API URL alone is not a compatible
 cutover: the two APIs have different identifiers, auth and response contracts.
-Production cookie deployment requires HTTPS and web/API hosts under the same site.
+Production cookie deployment requires HTTPS and a same-origin `/api` reverse proxy;
+`BETTER_AUTH_URL` must use `WEB_ORIGIN`.
 
 ## Endpoints and permissions
 

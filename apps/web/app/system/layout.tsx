@@ -28,14 +28,17 @@ import { listNotifications, readAllNotifications, readNotification, type Notific
 import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
 import { can, useMe } from "@/lib/useMe";
 import { StaffAlerts } from "@/components/StaffAlerts";
+import { LegalGate } from "@/components/LegalGate";
 
 const NAV = [
+  { icon: Stack, label: "Public catalog", href: TYPESCRIPT_API ? "/system/catalog" : null, perms: ["CATALOG_MANAGE"] },
   { icon: SquaresFour, label: "Dashboard", href: "/system", perms: [] as string[] },
   { icon: Stack, label: "Paluwagan Records", href: "/system/records", perms: ["BATCH_MANAGE", "BATCH_READ"] },
   { icon: Receipt, label: "Payments & Finance", href: "/system/payments", perms: ["PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY"] },
   { icon: Users, label: "Clients", href: "/system/clients", perms: ["CLIENT_MANAGE", "CLIENT_READ"] },
   { icon: ShieldCheck, label: "Agents", href: TYPESCRIPT_API ? "/system/agents" : null, perms: ["AGENT_MANAGE"] },
   { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
+  { icon: ShieldCheck, label: "HR action approvals", href: TYPESCRIPT_API ? "/system/hr-actions" : null, perms: ["HR_CONFIDENTIAL"] },
   { icon: ChartBar, label: "Reports", href: TYPESCRIPT_API ? "/system/reports" : null, perms: ["REPORT_VIEW"] },
   { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
   { icon: TrayArrowDown, label: "Customer work", href: "/system/customer-work", perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"] },
@@ -43,6 +46,7 @@ const NAV = [
   { icon: Bell, label: "Notification settings", href: TYPESCRIPT_API ? "/system/notification-settings" : null, perms: ["ACCOUNT_MANAGE"] },
   { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
   { icon: ShieldCheck, label: "User Management", href: "/system/team", perms: ["ROLE_ASSIGN", "ACCOUNT_MANAGE"] },
+  { icon: ShieldCheck, label: "Retention & deletion", href: TYPESCRIPT_API ? "/system/retention" : null, perms: ["RETENTION_MANAGE"] },
 ] as const;
 
 const formatRole = (role?: string | null) =>
@@ -287,6 +291,8 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
                 <section id="profile-panel" className="system-popover system-profile-popover" aria-label="Account menu">
                   <div className="system-profile-summary"><span className="system-avatar">{initials}</span><div><strong>{me?.full_name ?? "Staff"}</strong><small>{me?.email}</small></div></div>
                   <div className="system-profile-role"><span>Access level</span><strong>{formatRole(me?.role)}</strong></div>
+                  <Link href="/privacy/employee" onClick={() => setOpenPanel(null)} className="system-profile-legal-link">Employee privacy notice</Link>
+                  {TYPESCRIPT_API && <Link href="/security" onClick={() => setOpenPanel(null)} className="system-profile-legal-link">Account security</Link>}
                   <button type="button" onClick={logout}><SignOut /> Log out</button>
                 </section>
               )}
@@ -294,7 +300,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
           </div>
         </header>
 
-        <main className="system-content">{availableRoute(pathname) ? children : (
+        <main className="system-content">{availableRoute(pathname) ? <LegalGate>{children}</LegalGate> : (
           <section className="glass rounded-3xl p-10 text-center">
             <h1 className="font-display text-xl font-700 text-blue-ink">This section is not available yet.</h1>
             <Link href="/system" className="mt-3 inline-block text-blue">Return to dashboard</Link>

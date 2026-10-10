@@ -1,0 +1,155 @@
+.workspace { --schedule-accent: #2b60ae; --schedule-soft: #eaf3fc; --schedule-button: #2f6bdf; --schedule-button-text: #fff; --schedule-teal: #267369; --schedule-teal-soft: #e8f4f1; --schedule-amber: #8c5a13; --schedule-amber-soft: #fff2d7; --schedule-overdue: #ad3d35; color: var(--portal-text); }
+:global(html[data-system-theme="dark"]) .workspace { --schedule-accent: #9fc6f5; --schedule-soft: #253442; --schedule-button: #9fc6f5; --schedule-button-text: #132742; --schedule-teal: #8cd8c9; --schedule-teal-soft: #263a37; --schedule-amber: #f2cb80; --schedule-amber-soft: #3d3426; --schedule-overdue: #f2a998; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 25vw, 340px); align-items: start; gap: 22px; }
+.main { container-type: inline-size; display: grid; min-width: 0; gap: 22px; }
+.plan, .calendar, .preview, .logs { min-width: 0; padding: 22px; border: 1px solid var(--portal-border); border-radius: 20px; background: var(--portal-surface); }
+.plan { --schedule-accent: #f5d4e5; --schedule-soft: #ffffff14; --schedule-teal: #b6ead7; --schedule-teal-soft: #385249; --schedule-amber: #ffdfa5; --schedule-amber-soft: #574a36; --schedule-overdue: #ffbaad; }
+.plan .icon { border: 1px solid #f5d4e54d; }
+.plan .count { border: 1px solid #f5d4e533; background: #f5d4e514; color: #f5d4e5; }
+.plan .heading p { font-size: 12px; }
+.plan .planFooter button { min-height: 44px; border-color: #f5d4e5; background: #f5d4e5; color: #19334e; font-size: 14px; }
+.plan .planFooter button:hover { background: #ffe8f3; }
+.plan :focus-visible { outline-color: #f5d4e5; }
+.heading { display: flex; align-items: center; gap: 12px; }
+.heading > div { flex: 1; min-width: 0; }
+.heading p, .logsHeader p, .dialogHeader p { color: var(--schedule-accent); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.heading h2, .logsHeader h2 { margin-top: 3px; font-size: 21px; font-weight: 800; line-height: 1.35; }
+.icon { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 13px; background: var(--schedule-soft); color: var(--schedule-accent); }
+.icon svg { width: 23px; height: 23px; }
+.count { padding: 6px 10px; border-radius: 999px; background: var(--schedule-soft); color: var(--schedule-accent); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.planMain { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(140px, .8fr) auto; align-items: center; gap: 24px; margin-top: 28px; }
+.planBalance { display: grid; min-width: 0; gap: 6px; }
+.planBalance p { color: var(--portal-muted); font-size: 15px; line-height: 1.5; }
+.planBalance > strong { font-size: clamp(30px, 2.8vw, 40px); font-weight: 800; line-height: 1.25; font-variant-numeric: tabular-nums; letter-spacing: -.025em; }
+.planDue { display: grid; min-width: 0; gap: 6px; }
+.planDue > span { color: var(--portal-muted); font-size: 14px; line-height: 1.5; }
+.planDue > strong { font-size: 18px; font-weight: 800; line-height: 1.4; }
+.planStatus { display: grid; justify-items: end; gap: 10px; font-size: 14px; font-weight: 700; }
+.plan .planStatus .badge { font-size: 13px; padding: 6px 10px; }
+.badge { display: inline-flex; align-items: center; min-height: 25px; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; line-height: 1.4; white-space: nowrap; }
+.unpaid { color: var(--schedule-accent); background: var(--schedule-soft); }
+.partial { color: var(--schedule-amber); background: var(--schedule-amber-soft); }
+.paid { color: var(--schedule-teal); background: var(--schedule-teal-soft); }
+.overdue { color: var(--schedule-overdue); font-weight: 700; }
+.muted { color: var(--portal-muted); }
+.planFooter { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--portal-border); }
+.planFooter dl, .agenda dl, .dialogFigures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin: 0; }
+.planFooter dt, .agenda dt, .dialogFigures dt { color: var(--portal-muted); font-size: 13px; line-height: 1.5; }
+.planFooter dd, .agenda dd, .dialogFigures dd { margin: 4px 0 0; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.5; }
+.planFooter dl { gap: 12px; }
+.planFooter dl > div { min-width: 0; padding: 12px 14px; border: 1px solid var(--portal-border); border-radius: 12px; background: #ffffff08; }
+.planFooter dd { color: #f5d4e5; font-size: 18px; overflow-wrap: anywhere; }
+.planFooter button, .monthNav button, .agendaActions button, .logsHeader button, .tableScroll button, .dialogFooter button, .empty button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 9px 12px; border: 1px solid var(--portal-border); border-radius: 10px; background: var(--schedule-soft); color: var(--schedule-accent); font-size: 13px; font-weight: 700; cursor: pointer; }
+.workspace button svg, .workspace a svg { width: 16px; height: 16px; flex: 0 0 16px; }
+.calendar { padding-bottom: 24px; }
+.monthNav { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 24px 0 18px; }
+.monthNav > div { display: flex; align-items: center; gap: 15px; }
+.monthNav > div > button { width: 38px; min-height: 38px; padding: 0; background: var(--portal-surface-alt); color: var(--portal-text); }
+.monthNav h3 { font-size: 20px; font-weight: 800; line-height: 1.35; }
+.weekdays, .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.weekdays { margin-bottom: 9px; color: var(--portal-muted); font-size: 13px; font-weight: 700; text-align: center; }
+.days > button { display: flex; min-width: 0; min-height: 91px; flex-direction: column; align-items: flex-start; gap: 5px; padding: 7px; border: 1px solid var(--portal-border); border-radius: 12px; background: var(--portal-surface-alt); color: var(--portal-text); cursor: pointer; }
+.days > button:hover { border-color: var(--schedule-accent); }
+.days .outside { background: var(--portal-surface); color: var(--portal-muted); }
+.days .selectedDay { border-color: var(--schedule-accent); background: var(--schedule-soft); }
+.dayNumber { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 8px; font-size: 15px; font-weight: 700; }
+.selectedDay .dayNumber { background: var(--schedule-button); color: var(--schedule-button-text); }
+.today .dayNumber { box-shadow: inset 0 0 0 1px var(--schedule-accent); }
+.dayEvents { display: grid; width: 100%; gap: 4px; }
+.dayEvent { display: grid; min-width: 0; gap: 3px; padding: 5px 6px; border-radius: 7px; text-align: left; font-size: 11px; line-height: 1.4; }
+.dayEvent strong { font-size: 12px; font-weight: 800; white-space: nowrap; }
+.moreEvents { color: var(--portal-muted); font-size: 11px; text-align: left; }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin-top: 17px; color: var(--portal-muted); font-size: 12px; line-height: 1.5; }
+.legend > span { display: flex; align-items: center; gap: 6px; }
+.legend i { width: 8px; height: 8px; border-radius: 50%; }
+.legend .unpaid { background: var(--schedule-accent); }
+.legend .partial { background: var(--schedule-amber); }
+.legend .paid { background: var(--schedule-teal); }
+.agenda { margin-top: 22px; padding: 17px; border: 1px solid var(--portal-border); border-radius: 14px; background: var(--portal-surface-alt); }
+.agenda h3 { font-size: 16px; font-weight: 800; line-height: 1.4; }
+.agenda > p { margin-top: 8px; color: var(--portal-muted); font-size: 14px; line-height: 1.5; }
+.agenda ul { display: grid; gap: 15px; margin: 14px 0 0; padding: 0; list-style: none; }
+.agenda li + li { padding-top: 15px; border-top: 1px solid var(--portal-border); }
+.agendaHeading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.agendaHeading > strong { font-size: 15px; }
+.agenda dl { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.agendaActions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; font-size: 13px; }
+.preview { padding: 22px 18px; }
+.previewHeader h2 { font-size: 19px; font-weight: 800; line-height: 1.4; }
+.previewHeader p { margin-top: 5px; color: var(--portal-muted); font-size: 13px; line-height: 1.5; }
+.dueNow { display: grid; justify-items: center; gap: 7px; margin: 21px 0 18px; text-align: center; }
+.dueNow > span { color: var(--portal-muted); font-size: 14px; }
+.dueNow > strong { font-size: 29px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.dueNow p { max-width: 245px; color: var(--portal-muted); font-size: 13px; line-height: 1.5; }
+.completion > span { color: var(--portal-muted); font-size: 12px; }
+.completion > div { height: 6px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: var(--schedule-soft); }
+.completion > div > span { display: block; height: 100%; border-radius: inherit; background: var(--schedule-teal); }
+.previewList { margin: 20px 0; padding: 0; list-style: none; }
+.previewList li { display: flex; align-items: flex-start; gap: 10px; padding: 16px 0; border-top: 1px solid var(--portal-border); }
+.sequence { display: grid; flex: 0 0 28px; width: 28px; height: 28px; place-items: center; border-radius: 9px; background: var(--schedule-soft); color: var(--schedule-accent); font-size: 12px; font-weight: 800; }
+.previewList li > div { display: grid; flex: 1; min-width: 0; justify-items: start; gap: 4px; }
+.previewList strong { font-size: 14px; font-weight: 800; line-height: 1.4; }
+.previewList li > div > span:not(.badge) { font-size: 12px; }
+.previewList b { margin-top: 3px; font-size: 15px; font-weight: 800; }
+.previewList small { margin-bottom: 4px; color: var(--portal-muted); font-size: 13px; line-height: 1.5; }
+.previewList button { display: grid; flex: 0 0 32px; width: 32px; height: 32px; place-items: center; border: 1px solid var(--portal-border); border-radius: 50%; color: var(--schedule-accent); cursor: pointer; }
+.expand { display: flex; width: 100%; min-height: 46px; align-items: center; justify-content: center; gap: 9px; padding: 10px; border-radius: 11px; background: var(--schedule-button); color: var(--schedule-button-text); font-size: 14px; font-weight: 800; cursor: pointer; }
+.previewNote { margin-top: 12px; color: var(--portal-muted); font-size: 13px; line-height: 1.5; text-align: center; }
+.logs { margin-top: 22px; scroll-margin-top: 22px; }
+.logsHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.tableScroll { width: 100%; min-width: 0; overflow-x: auto; margin-top: 20px; border: 1px solid var(--portal-border); border-radius: 13px; }
+.tableScroll table { width: 100%; min-width: 1020px; border-collapse: collapse; text-align: left; font-size: 14px; }
+.tableScroll caption { padding: 15px; background: var(--portal-surface-alt); color: var(--portal-muted); font-size: 13px; line-height: 1.5; text-align: left; }
+.tableScroll thead { background: var(--portal-surface-alt); }
+.tableScroll th, .tableScroll td { padding: 15px 13px; border-top: 1px solid var(--portal-border); white-space: nowrap; }
+.tableScroll thead th { color: var(--portal-muted); font-size: 12px; font-weight: 700; }
+.tableScroll tbody th { font-weight: 800; }
+.tableScroll td { font-variant-numeric: tabular-nums; }
+.tableScroll tr:target { background: var(--schedule-soft); }
+.tableNote { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 15px; color: var(--portal-muted); font-size: 13px; line-height: 1.5; }
+.tableNote a { display: inline-flex; align-items: center; gap: 5px; color: var(--schedule-accent); font-weight: 700; }
+.empty { padding: 22px 0 10px; color: var(--portal-muted); font-size: 14px; line-height: 1.6; }
+.empty button { margin-top: 13px; }
+.emptyNotice { margin-top: 18px; color: var(--portal-muted); font-size: 14px; line-height: 1.5; }
+.dialog { width: min(560px, calc(100vw - 28px)); max-height: calc(100dvh - 32px); overflow-y: auto; margin: auto; padding: 0; border: 1px solid var(--portal-border); border-radius: 20px; background: var(--portal-surface); color: var(--portal-text); box-shadow: 0 28px 90px #0007; overscroll-behavior: contain; }
+.dialog::backdrop { background: #090914b8; backdrop-filter: blur(3px); }
+.dialogHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 24px 18px; border-bottom: 1px solid var(--portal-border); }
+.dialogHeader h2 { margin-top: 5px; font-size: 22px; font-weight: 800; line-height: 1.3; }
+.dialogHeader > button { display: grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; border: 1px solid var(--portal-border); border-radius: 10px; background: var(--portal-surface-alt); color: var(--portal-text); cursor: pointer; }
+.dialogBody { padding: 20px 24px 24px; }
+.dialogDue { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.dialogDue > div { display: grid; gap: 5px; }
+.dialogDue > div > span, .dialogDue small { color: var(--portal-muted); font-size: 13px; }
+.dialogDue strong { font-size: 17px; font-weight: 800; }
+.dialogDue small.overdue { color: var(--schedule-overdue); }
+.dialogFigures { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 20px; }
+.dialogFigures > div { min-width: 0; padding: 13px; border: 1px solid var(--portal-border); border-radius: 11px; background: var(--portal-surface-alt); }
+.dialogFigures dd { overflow-wrap: anywhere; }
+.dialogBody > p { margin-top: 18px; color: var(--portal-muted); font-size: 14px; line-height: 1.5; }
+.dialogFooter { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 24px; border-top: 1px solid var(--portal-border); }
+.dialogFooter a { display: inline-flex; align-items: center; gap: 6px; color: var(--schedule-accent); font-size: 14px; font-weight: 700; text-decoration: none; }
+.workspace :focus-visible { outline: 2px solid var(--schedule-accent); outline-offset: 3px; }
+.workspace button:hover { filter: brightness(1.05); }
+.skeletonPlan { min-height: 262px; }
+.skeletonCalendar { min-height: 860px; }
+.skeletonPreview { min-height: 830px; }
+.skeleton .plan, .skeleton .calendar, .skeleton .preview { background: var(--portal-surface-alt); animation: schedulePulse 1.5s ease-in-out infinite alternate; }
+@keyframes schedulePulse { to { opacity: .45; } }
+@media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 600px) {
+  .planMain { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
+  .planStatus { grid-column: 1 / -1; display: flex; justify-content: flex-start; align-items: center; }
+  .planFooter { grid-template-columns: minmax(0, 1fr); }
+  .planFooter button { justify-self: start; }
+}
+@container (max-width: 420px) {
+  .planMain { grid-template-columns: minmax(0, 1fr); }
+  .planDue { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; }
+  .planFooter dl > div { padding: 12px 10px; }
+  .planFooter dd { font-size: 17px; }
+}
+@container (max-width: 760px) { .dayEvents { display: flex; flex-wrap: wrap; } .dayEvent { width: 7px; height: 7px; padding: 0; background: currentColor; } .dayEvent > span, .dayEvent > strong { display: none; } .days > button { min-height: 72px; } }
+@container (max-width: 600px) { .heading { flex-wrap: wrap; } .count { margin-left: 54px; } .monthNav h3 { font-size: 16px; } .monthNav > div { gap: 7px; } .weekdays, .days { gap: 3px; } .days > button { min-height: 51px; padding: 3px; border-radius: 9px; } .dayNumber { width: 26px; height: 26px; font-size: 14px; } .weekdays { font-size: 11px; } .agenda dl { gap: 7px; } .agenda dt { font-size: 12px; } .agenda dd { font-size: 14px; } .planFooter dl { gap: 16px; } }
+@container (max-width: 600px) { .heading > div { flex-basis: calc(100% - 54px); } }
+@media (max-width: 700px) { .plan, .calendar, .preview, .logs { padding: 18px 15px; border-radius: 16px; } .heading h2, .logsHeader h2 { font-size: 19px; } .planMain { gap: 10px; } .planMain > div > span { font-size: 13px; } .planStatus .badge { padding: 4px 7px; font-size: 11px; } .agenda { padding: 13px; } .agendaHeading { align-items: flex-start; } .agendaHeading .badge { font-size: 11px; } .monthNav { flex-wrap: wrap; } .monthNav > div { flex: 1; justify-content: space-between; } .monthNav > button { width: 100%; min-height: 36px; } .legend { gap: 11px; font-size: 11px; } .logsHeader { align-items: flex-start; flex-direction: column; } .logsHeader > button { width: 100%; } .dialogHeader { padding: 18px 16px; } .dialogHeader h2 { font-size: 20px; } .dialogBody { padding: 18px 16px; } .dialogFigures { grid-template-columns: minmax(0, 1fr); } .dialogFooter { padding: 14px 16px; gap: 10px; } .dialogFooter a { font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .skeleton .plan, .skeleton .calendar, .skeleton .preview { animation: none; } }

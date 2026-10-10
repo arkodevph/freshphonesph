@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start local dev: Postgres (+ MinIO/MailHog) via Docker, then the web dev server.
+# Start local infra, TypeScript API, Redis workers and web dev server.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -11,12 +11,12 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "==> Starting local infra (Postgres:5435, MinIO:9000/9001, MailHog:1025/8025)"
+echo "==> Starting local infra (Postgres:5435, Redis:6380, MinIO:9000/9001, MailHog:1025/8025)"
 docker compose up -d
 
 echo "==> Waiting for Postgres to be ready"
 for i in $(seq 1 30); do
-  if docker exec fresh-postgres pg_isready -U postgres >/dev/null 2>&1; then
+  if docker exec fresh-postgres pg_isready -U fresh >/dev/null 2>&1; then
     echo "    Postgres is ready"
     break
   fi
@@ -27,9 +27,26 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+echo "==> Waiting for Redis to be ready"
+for i in $(seq 1 30); do
+  if [ "$(docker inspect --format '{{.State.Health.Status}}' fresh-redis)" = 'healthy' ]; then
+    echo "    Redis is ready"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "ERROR: Redis did not become ready in 30s. Check: docker compose logs redis"
+    exit 1
+  fi
+  sleep 1
+done
+
 echo "==> Starting TypeScript API (http://localhost:4101)"
 pnpm --filter @fresh/api-ts dev &
 api_pid=$!
+
+echo "==> Starting Redis background workers"
+pnpm --filter @fresh/api-ts worker:dev &
+worker_pid=$!
 
 echo "==> Starting web dev server (http://localhost:3000)"
 pnpm --filter @fresh/web dev &
@@ -37,9 +54,9 @@ web_pid=$!
 
 cleanup() {
   trap - EXIT INT TERM
-  kill "$api_pid" "$web_pid" 2>/dev/null || true
-  wait "$api_pid" "$web_pid" 2>/dev/null || true
+  kill "$api_pid" "$worker_pid" "$web_pid" 2>/dev/null || true
+  wait "$api_pid" "$worker_pid" "$web_pid" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
-wait -n "$api_pid" "$web_pid"
+wait -n "$api_pid" "$worker_pid" "$web_pid"

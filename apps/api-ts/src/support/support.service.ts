@@ -3,7 +3,7 @@ import type { User } from '@freshphones/contracts';
 import { allowed } from '../auth/access';
 import { notifySupport } from '../staff/support-alerts';
 import { Database } from '../database';
-import { Prisma } from '../generated/prisma/client';
+import { Prisma, type SupportSource } from '../generated/prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const json = (value: unknown): Prisma.InputJsonValue =>
@@ -51,19 +51,18 @@ export class SupportService {
     return { items: items.map((item) => this.view(item)), total, page: query.page, pageSize: 20 };
   }
 
-  async create(user: User, input: { category: string; description: string; clientId?: string }) {
-    const clientId = user.role === 'CUSTOMER' ? user.clientId : input.clientId;
-    if (!clientId) throw new ForbiddenException('A linked customer is required.');
-    if (user.role !== 'CUSTOMER' && !allowed(user, 'SUPPORT_MANAGE'))
+  async create(user: User, input: { category: string; description: string; clientId: string; source: SupportSource }) {
+    const clientId = input.clientId;
+    if (!allowed(user, 'SUPPORT_MANAGE'))
       throw new ForbiddenException('Support management access is required.');
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
       const current = await tx.user.findUnique({ where: { id: user.id } });
-      if (!current?.active || !allowed(current, "SUPPORT_CREATE")) throw new ForbiddenException("Your access has changed.");
+      if (!current?.active || !allowed(current, 'SUPPORT_CREATE') || !allowed(current, 'SUPPORT_MANAGE')) throw new ForbiddenException('Your access has changed.');
       const client = await tx.client.findUnique({ where: { id: clientId } });
       if (!client) throw new NotFoundException('Client not found.');
       const result = await tx.supportCase.create({
-        data: { clientId, category: input.category, description: input.description },
+        data: { clientId, category: input.category, description: input.description, source: input.source },
         include,
       });
       await tx.auditEntry.create({ data: {

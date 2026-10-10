@@ -60,6 +60,7 @@ export function applicants(
   query: z.infer<typeof applicantListQuerySchema>,
 ) {
   const where: Prisma.ApplicantWhereInput = {
+    retentionErasedAt: null,
     ...(query.status ? { status: query.status } : {}),
     ...(query.jobId ? { jobId: query.jobId } : {}),
     ...(query.q
@@ -94,7 +95,7 @@ export async function applicant(db: Prisma.TransactionClient, id: string) {
     where: { id },
     include: applicantInclude,
   });
-  if (!row) throw new NotFoundException('Applicant not found.');
+  if (!row || row.retentionErasedAt) throw new NotFoundException('Applicant not found.');
   return row;
 }
 export async function job(db: Prisma.TransactionClient, id: string) {
@@ -111,7 +112,7 @@ export function summary(db: Database): Promise<RecruitmentSummary> {
       const [jobs, openJobs, applicants, awaitingReview] = await Promise.all([
         tx.jobOpening.count(),
         tx.jobOpening.count({ where: { isOpen: true } }),
-        tx.applicant.count(),
+        tx.applicant.count({ where: { retentionErasedAt: null } }),
         tx.applicant.count({
           where: { status: { in: ['RECEIVED', 'REVIEWING'] } },
         }),

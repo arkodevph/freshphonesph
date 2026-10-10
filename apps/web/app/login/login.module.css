@@ -102,6 +102,8 @@
 .error > svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 1px; }
 .footer { color: var(--login-muted); font-size: 11px; line-height: 1.6; text-align: center; }
 .footer strong { display: block; color: var(--login-ink); font-weight: 700; }
+.helpLinks, .legalLinks { margin-top: 18px; color: var(--login-muted); font-size: 12px; line-height: 1.6; text-align: center; }
+.helpLinks a, .legalLinks a { color: var(--login-blue); text-decoration: underline; text-underline-offset: 3px; }
 .spinner { animation: spin .8s linear infinite; }
 .page :is(a, button):focus-visible { outline: 2px solid var(--login-blue); outline-offset: 4px; }
 

@@ -1,7 +1,31 @@
 import type { Agent, AgentInput, AssignmentOptions, BatchAssignmentInput, Batch as TsBatch, BatchInput, Client as TsClient, ClientInput, ClientBalance, ClientSchedule, FinanceAlertPage, Page, Payment as TsPayment, PaymentDuplicateMatch, PaymentResultDetail, ReceiptScan, ReceiptType, RecordHistoryEntry, Role, StaffAlert, StaffAlertPage, StaffAlertReadInput, StaffAlertScope, User } from "@freshphones/contracts";
 import { API_URL, TYPESCRIPT_API } from "./backend";
+import type { CatalogInput, CatalogItem, CatalogQuery, PublicCatalogItem } from "@freshphones/contracts";
+export const getCatalogItems = (query: CatalogQuery) => {
+  const params = new URLSearchParams({ page: String(query.page), q: query.q });
+  if (query.visibility) params.set("visibility", query.visibility);
+  if (query.availability) params.set("availability", query.availability);
+  return tsRequest<Page<CatalogItem>>(`/catalog/items?${params}`);
+};
+export const getCatalogItem = (id: string) => tsRequest<CatalogItem>(`/catalog/items/${id}`);
+export const createCatalogItem = (record: CatalogInput) => tsRequest<CatalogItem>("/catalog/items", { method: "POST", body: JSON.stringify(record) });
+export const updateCatalogItem = (id: string, version: number, record: CatalogInput) => tsRequest<CatalogItem>(`/catalog/items/${id}`, { method: "PATCH", body: JSON.stringify({ version, record }) });
+export const uploadCatalogPhoto = (item: CatalogItem, file: File) => {
+  const body = new FormData(); body.set("version", String(item.version)); body.set("image", file);
+  return tsUpload<CatalogItem>(`/catalog/items/${item.id}/image`, body);
+};
+export const removeCatalogPhoto = (item: CatalogItem) => tsRequest<CatalogItem>(`/catalog/items/${item.id}/image/remove`, { method: "POST", body: JSON.stringify({ version: item.version }) });
+export async function getPublicCatalog(query: { page: number; q?: string; availability?: string }, signal?: AbortSignal): Promise<Page<PublicCatalogItem>> {
+  if (!TYPESCRIPT_API) throw new Error("The catalog is unavailable.");
+  const params = new URLSearchParams({ page: String(query.page) });
+  if (query.q) params.set("q", query.q);
+  if (query.availability) params.set("availability", query.availability);
+  const response = await fetch(`${API_URL}/api/catalog?${params}`, { signal, cache: "no-store", credentials: "omit" });
+  if (!response.ok) throw new Error("We couldn’t load the current catalog.");
+  return response.json();
+}
 import type { StaffEmailDelivery, StaffEmailKind, StaffEmailSettings, StaffEmailStatus, StaffEmailTemplate } from "@freshphones/contracts";
-import type { ReconciliationReport, ReconciliationException, CollectionReport, PaymentReport, ReportBatchOption, ReportKind, ReportSnapshot, ReportSnapshotInput, SupportReport, TaskReport } from "@freshphones/contracts";
+import type { ReconciliationReport, ReconciliationException, CollectionReport, PaymentReport, ReportAnalysis, ReportBatchOption, ReportKind, ReportSnapshot, ReportSnapshotInput, SupportReport, SupportSource, TaskReport } from "@freshphones/contracts";
 import { ApiError, tsDownload, tsRequest, tsUpload, toBatch, toClient, toMe, toPage, toSchedule } from "./ts-api";
 export { API_URL } from "./backend";
 export type RecordId = string | number;
@@ -24,6 +48,7 @@ export type EditableClient = TsClient;
 export type { Agent, AgentInput, AssignmentOptions, FinanceAlert, FinanceAlertPage, PaymentResultDetail, RecordHistoryEntry, StaffAlert, StaffAlertPage, StaffAlertScope } from "@freshphones/contracts";
 
 export type Tokens = { access: string; refresh: string };
+export class MfaChallenge extends Error {}
 
 /** Exchange credentials for JWT access/refresh tokens (SimpleJWT). */
 export async function login(
@@ -31,7 +56,8 @@ export async function login(
   password: string,
 ): Promise<Tokens | null> {
   if (TYPESCRIPT_API) {
-    await tsRequest<User>("/auth/login", { method: "POST", body: JSON.stringify({ email: username, password }) });
+    const result = await tsRequest<User | { twoFactorRedirect: true }>("/auth/login", { method: "POST", body: JSON.stringify({ email: username, password }) });
+    if ('twoFactorRedirect' in result) throw new MfaChallenge('Enter your verification code.');
     return null;
   }
   let res: Response;
@@ -98,6 +124,7 @@ export type Payment = {
   notes?: string | null;
   verification_notes?: string | null;
   batch_code?: string | null;
+  recorded_by?: RecordId | null;
   recorded_by_name?: string | null;
   verifier_name?: string | null;
   verified_by: RecordId | null;
@@ -139,6 +166,7 @@ const toPayment = (payment: TsPayment): Payment => ({
   status: payment.status.toLowerCase() as PaymentStatus,
   notes: payment.notes, verification_notes: payment.verificationNotes,
   batch_code: payment.client.batch.code,
+  recorded_by: payment.recordedBy.id,
   recorded_by_name: payment.recordedBy.name,
   verifier_name: payment.verifier?.name ?? null,
   verified_by: payment.verifier?.id ?? null, created_at: payment.createdAt,
@@ -473,6 +501,7 @@ export type Me = {
   id: RecordId;
   email: string;
   full_name: string;
+  image?: string | null;
   role: string | null;
   employee_id: RecordId | null;
   account_type: "employee" | "customer" | null;
@@ -615,6 +644,7 @@ export type SupportCase = {
   client: RecordId;
   client_name: string;
   category: string;
+  source: Lowercase<SupportSource>;
   description: string;
   assigned_staff: RecordId | null;
   assigned_staff_name?: string | null;
@@ -636,6 +666,16 @@ export const SUPPORT_STATUSES: [string, string][] = [
   ["resolved", "Resolved"],
   ["closed", "Closed"],
 ];
+export const SUPPORT_SOURCES: [Lowercase<SupportSource>, string][] = [
+  ["unrecorded", "Unrecorded"], ["customer_portal", "Customer portal"], ["messenger", "Messenger"],
+  ["facebook", "Facebook"], ["phone", "Phone"], ["walk_in", "Walk-in"], ["other", "Other"],
+];
+export const STAFF_SUPPORT_SOURCES = SUPPORT_SOURCES.filter(([source]) => source !== "unrecorded" && source !== "customer_portal");
+export const supportSourceLabel = (source: string) => SUPPORT_SOURCES.find(([key]) => key === source.toLowerCase())?.[1] ?? source;
+export type SupportClientOption = { id: string; name: string; batch_code: string };
+export const searchSupportClients = (query: string) => tsRequest<SupportClientOption[]>(`/support/client-options?q=${encodeURIComponent(query)}`);
+export const createStaffSupportCase = (body: { clientId: string; category: string; description: string; source: Uppercase<Lowercase<SupportSource>> }) =>
+  tsRequest<SupportCase>("/support/cases", { method: "POST", body: JSON.stringify(body) });
 
 export function listSupportCases(params: Record<string, string> = {}) {
   const qs = new URLSearchParams(params).toString();
@@ -916,12 +956,18 @@ export function applyToJob(body: {
   email: string;
   phone?: string;
   message?: string;
+  privacyNoticeVersion?: string;
+  privacyNoticeAcknowledged?: boolean;
 }, attachment?: File) {
   if (TYPESCRIPT_API) {
     const form = new FormData();
     form.append("jobId", String(body.job)); form.append("fullName", body.full_name);
     form.append("email", body.email); form.append("phone", body.phone ?? "");
     form.append("message", body.message ?? "");
+    if (body.privacyNoticeVersion && body.privacyNoticeAcknowledged) {
+      form.append("privacyNoticeVersion", body.privacyNoticeVersion);
+      form.append("privacyNoticeAcknowledged", "true");
+    }
     if (attachment) form.append("attachment", attachment);
     return tsUpload<{ detail: string }>("/careers/apply", form);
   }
@@ -1173,6 +1219,8 @@ export const getReportSnapshots = (kind: ReportSnapshot["kind"], page = 1) =>
   tsRequest<Page<ReportSnapshot>>(`/reports/snapshots?${new URLSearchParams({ kind, page: String(page) })}`);
 export const createReportSnapshot = (input: ReportSnapshotInput) =>
   tsRequest<ReportSnapshot>("/reports/snapshots", { method: "POST", body: JSON.stringify(input) });
+export const submitReportAnalysis = (snapshotId: string, body: string) =>
+  tsRequest<ReportAnalysis>(`/reports/snapshots/${snapshotId}/analysis`, { method: "POST", body: JSON.stringify({ body }) });
 
 export async function downloadReportExport(kind: ReportKind, format: "csv" | "xlsx", params: Record<string, string> = {}) {
   const query = new URLSearchParams({ ...params, kind, format });

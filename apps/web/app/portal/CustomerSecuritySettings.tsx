@@ -123,7 +123,7 @@ export function CustomerSecuritySettings({ email, onSignOut }: { email?: string;
         </form>
         <form className={`${styles.securityForm} ${styles.resetCodeForm}`} onSubmit={resetWithCode}>
           <h4>Enter your reset code</h4>
-          <label>Code from email<input type="password" autoComplete="one-time-code" autoCapitalize="off" spellCheck={false} minLength={32} maxLength={128} required value={resetCode} onChange={(event) => setResetCode(event.target.value)} /></label>
+          <label>Code from email<input type="password" autoComplete="one-time-code" autoCapitalize="off" spellCheck={false} minLength={24} maxLength={128} required value={resetCode} onChange={(event) => setResetCode(event.target.value)} /></label>
           <label>New password<input ref={resetPasswordRef} type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} /></label>
           <label>Confirm new password<input type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={resetConfirm} onChange={(event) => setResetConfirm(event.target.value)} /></label>
           {resetError && <p className={styles.resetRequestError} role="alert">{resetError}</p>}
@@ -132,6 +132,7 @@ export function CustomerSecuritySettings({ email, onSignOut }: { email?: string;
         </form>
       </div>
     </div> : <><p className={styles.settingsDescription}>Contact Customer Service if you need help with your account password.</p><Link className={styles.settingsLink} href="/portal/support">Contact support <ArrowRight weight="bold" aria-hidden="true" /></Link></>}
+    {TYPESCRIPT_API && <p><Link className={styles.settingsLink} href="/security">Manage two-factor authentication and sessions <ArrowRight aria-hidden="true" /></Link></p>}
     <div className={styles.settingsActions}><button type="button" onClick={onSignOut}><SignOut aria-hidden="true" /> Sign out</button></div>
   </section>;
 }

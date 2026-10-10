@@ -4,6 +4,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { readConfig } from '../src/config';
+import { Database } from '../src/database';
 
 async function main() {
   const config = readConfig();
@@ -14,8 +15,14 @@ async function main() {
   const s3 = new S3Client({ region: config.PRIVATE_STORAGE_S3_REGION, endpoint: config.PRIVATE_STORAGE_S3_ENDPOINT,
     forcePathStyle: true, credentials: { accessKeyId: config.PRIVATE_STORAGE_S3_ACCESS_KEY!, secretAccessKey: config.PRIVATE_STORAGE_S3_SECRET_KEY! } });
   let uploaded = 0;
+  let eligible = 0;
+  const db = new Database(config);
   try {
     for (const key of keys) {
+      // Do not resurrect erased files or copy orphan blobs from an old restore.
+      const file = await db.storedFile.findUnique({ where: { storageKey: key }, select: { purgePending: true } });
+      if (!file || file.purgePending) continue;
+      eligible++;
       const local = await readFile(resolve(directory, key));
       if (apply) {
         await s3.send(new PutObjectCommand({ Bucket: config.PRIVATE_STORAGE_S3_BUCKET!, Key: key, Body: local, ContentLength: local.length }));
@@ -25,7 +32,7 @@ async function main() {
         uploaded++;
       }
     }
-  } finally { s3.destroy(); }
-  console.log(apply ? `Verified ${uploaded}/${keys.length} private files in the bucket. Local originals retained.` : `Dry run: ${keys.length} private files would be copied and verified. Pass --apply to copy.`);
+  } finally { s3.destroy(); await db.$disconnect(); }
+  console.log(apply ? `Verified ${uploaded}/${eligible} eligible private files in the bucket. Local originals retained until approved erasure.` : `Dry run: ${eligible} eligible private files would be copied and verified. Pass --apply to copy.`);
 }
 void main().catch((error) => { console.error(error instanceof Error ? error.message : 'Migration failed.'); process.exitCode = 1; });

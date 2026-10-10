@@ -11,14 +11,19 @@ import {
   getPortalNotifications, readPortalNotification, readAllPortalNotifications, getPendingCustomerPayments, getReleaseUpdates,
   type PortalSummary, type PortalScheduleItem, type Payment, type PendingCustomerPayment, type SupportCase, type SupportCaseDetail, type PortalNotification, type DocumentRequirement, type ReleaseUpdate,
 } from "@/lib/api";
-import { manilaToday, portalAttention } from "@/lib/portal-attention";
-import { installmentState, scheduleDueNow } from "@/lib/portal-schedule";
+import { portalAttention } from "@/lib/portal-attention";
 import { isAuthed, logoutSession } from "@/lib/auth";
 import { useMe } from "@/lib/useMe";
+import { signInDestination, supportSignInHref } from "@/lib/support-entry";
 import { TYPESCRIPT_API } from "@/lib/backend";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { DocumentChecklist } from "@/components/DocumentChecklist";
 import PortalSkeleton, { PortalLoadingRows } from "./PortalSkeleton";
+import DashboardNextSteps from "./DashboardNextSteps";
+import PaymentOverview from "./PaymentOverview";
+import MembershipDatesCalendar from "./MembershipDatesCalendar";
+import PaymentScheduleWorkspace from "./PaymentScheduleWorkspace";
+import VerifiedPaymentsWorkspace from "./VerifiedPaymentsWorkspace";
 import { useCustomerPortalTour } from "./CustomerPortalTour";
 import { NotificationRecordPanel } from "./NotificationRecordPanel";
 import { CustomerSecuritySettings } from "./CustomerSecuritySettings";
@@ -26,7 +31,6 @@ import styles from "./portal.module.css";
 
 const currency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 });
 const date = new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric" });
-const SCHEDULE_PAGE_SIZE = 4;
 const SUPPORT_PAGE_SIZE = 3;
 const portalNav = [
   { id: "overview", label: "Overview", icon: House, group: "Workspace" },
@@ -85,14 +89,6 @@ function displayModelName(model: string) {
   return model.replaceAll(" · ", "\u00a0· ").replace(/(\d+) (GB|TB)\b/gi, "$1\u00a0$2");
 }
 
-function statusClass(status: string) {
-  const normalized = status.toLowerCase();
-  if (normalized === "paid" || normalized === "completed") return styles.statusPaid;
-  if (normalized === "overdue") return styles.statusOverdue;
-  if (normalized === "partial") return styles.statusPartial;
-  return styles.statusScheduled;
-}
-
 function orderDeviceImage(model: string): string | null {
   const name = model.toLowerCase().trim();
   if (/\bipad\b.*\ba16\b/.test(name)) return "/products/ipad-a16-overlap-transparent.png";
@@ -103,6 +99,14 @@ function orderDeviceImage(model: string): string | null {
   const variant = phone[2]?.replace(/\s+/g, "-") ?? "";
   if (variant && variant !== "pro" && variant !== "pro-max") return null;
   return `/products/iphone-${phone[1]}${variant ? `-${variant}` : ""}-overlap-transparent.png`;
+}
+
+function ProfileAvatar({ className, name, image }: { className: string; name: string; image?: string | null }) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  return <span className={className}>
+    {name.charAt(0) || "C"}
+    {image && image !== failedImage && <Image src={image} alt="" width={42} height={42} unoptimized className={styles.profilePhoto} onError={() => setFailedImage(image)} />}
+  </span>;
 }
 
 export default function PortalDashboard({ section }: { section: PortalSection }) {
@@ -116,10 +120,11 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   const [releaseUpdates, setReleaseUpdates] = useState<ReleaseUpdate[]>([]);
   const [releaseUpdatesStatus, setReleaseUpdatesStatus] = useState<"loading" | "ready" | "error">("loading");
   const [paymentPage, setPaymentPage] = useState(1);
-  const [schedulePage, setSchedulePage] = useState(1);
-  const [selectedInstallment, setSelectedInstallment] = useState<number | null>(null);
   const [supportPage, setSupportPage] = useState(1);
   const [morePayments, setMorePayments] = useState(false);
+  const [paymentPagination, setPaymentPagination] = useState({ count: 0, page: 1, pageSize: 20 });
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const recordsRequestRef = useRef(0);
   const [cases, setCases] = useState<SupportCase[]>([]);
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   const [caseDetail, setCaseDetail] = useState<SupportCaseDetail | null>(null);
@@ -130,7 +135,6 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   const [attentionDocuments, setAttentionDocuments] = useState<DocumentRequirement[]>([]);
   const [attentionCases, setAttentionCases] = useState<SupportCase[]>([]);
   const [attentionStatus, setAttentionStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [attentionExpanded, setAttentionExpanded] = useState(false);
   const [recordsStatus, setRecordsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [notifications, setNotifications] = useState<PortalNotification[]>([]);
   const [notificationsStatus, setNotificationsStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -164,20 +168,18 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const reportInputRef = useRef<HTMLTextAreaElement>(null);
   const reportTriggerRef = useRef<HTMLButtonElement>(null);
-  const installmentDialogRef = useRef<HTMLDialogElement>(null);
-  const installmentTriggerRef = useRef<HTMLButtonElement>(null);
   const notificationTriggerRef = useRef<HTMLButtonElement>(null);
   const scrolledHash = useRef<string | null>(null);
   const themeTransitioning = useRef(false);
   const { startTour, overlay: customerTourOverlay } = useCustomerPortalTour({
-    autoStart: recordsStatus === "ready" && me?.account_type === "customer",
+    autoStart: section !== "support" && recordsStatus === "ready" && me?.account_type === "customer",
     accountId: me?.id,
   });
 
   useEffect(() => {
-    if (!isAuthed()) router.replace("/login");
-    else if (me && me.account_type && me.account_type !== "customer") router.replace("/system");
-  }, [me, router]);
+    if (!isAuthed()) router.replace(supportSignInHref(window.location.pathname, window.location.hash));
+    else if (me && me.account_type && me.account_type !== "customer") router.replace(signInDestination(me, section === "support" ? "/portal/support" : null));
+  }, [me, router, section]);
 
   useEffect(() => {
     setTheme(document.documentElement.dataset.systemTheme === "dark" ? "dark" : "light");
@@ -301,7 +303,13 @@ export default function PortalDashboard({ section }: { section: PortalSection })
       .catch(() => setAttentionStatus("error"));
   }, [section]);
   const loadRecords = useCallback(() => {
+    const request = ++recordsRequestRef.current;
+    setPaymentsLoading(true);
     void getPortalRecords(paymentPage).then(({ client, schedule: plan, balance, payments: verifiedPayments }) => {
+      if (request !== recordsRequestRef.current) return;
+      const pageSize = verifiedPayments.page_size ?? 20;
+      const lastPage = Math.max(1, Math.ceil(verifiedPayments.count / pageSize));
+      if (paymentPage > lastPage) { setPaymentPage(lastPage); return; }
       setSummary({
         full_name: client.name, batch_number: client.batch.code,
         unit_model: client.unitModel || client.batch.model, status: client.status.toLowerCase(),
@@ -314,6 +322,7 @@ export default function PortalDashboard({ section }: { section: PortalSection })
       });
       setPayments(verifiedPayments.results);
       setMorePayments(Boolean(verifiedPayments.next));
+      setPaymentPagination({ count: verifiedPayments.count, page: verifiedPayments.page ?? paymentPage, pageSize });
       setSchedule(plan?.items.map((item) => ({
         sequence_no: item.sequenceNo, due_date: item.dueDate, expected_amount: item.expectedAmount,
         paid_applied: item.paidApplied ?? "0.00", status: item.status?.toLowerCase() ?? "upcoming",
@@ -321,8 +330,11 @@ export default function PortalDashboard({ section }: { section: PortalSection })
       setError(null);
       setRecordsStatus("ready");
     }).catch((caughtError) => {
+      if (request !== recordsRequestRef.current) return;
       setRecordsStatus("error");
       setError(caughtError instanceof Error ? caughtError.message : "Could not load membership.");
+    }).finally(() => {
+      if (request === recordsRequestRef.current) setPaymentsLoading(false);
     });
   }, [paymentPage]);
   const refresh = useCallback(() => {
@@ -334,31 +346,23 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   useLiveRecords(refresh, me?.account_type === "customer");
 
   useEffect(() => {
+    if (me?.account_type !== "customer") return;
     if (TYPESCRIPT_API) { refresh(); return; }
     Promise.all([getPortalSummary(), getPortalSchedule(), getPortalPayments()])
       .then(([nextSummary, nextSchedule, nextPayments]) => {
         setSummary(nextSummary); setSchedule(nextSchedule); setPayments(nextPayments);
+        setPaymentPagination({ count: nextPayments.length, page: 1, pageSize: Math.max(1, nextPayments.length) });
         setRecordsStatus("ready");
       })
       .catch((caughtError) => { setRecordsStatus("error"); setError(caughtError instanceof Error ? caughtError.message : "Failed to load."); });
     if (section === "support") loadSupport();
-  }, [section, refresh, loadSupport]);
+  }, [section, refresh, loadSupport, me?.id, me?.account_type]);
 
   useEffect(() => { if (reportOpen) reportInputRef.current?.focus(); }, [reportOpen]);
 
   useEffect(() => {
     const target = window.location.hash.slice(1);
     if (!target || scrolledHash.current === target) return;
-    if (section === "schedule" && target.startsWith("installment-")) {
-      const targetIndex = schedule.findIndex((item) => `installment-${item.sequence_no}` === target);
-      if (targetIndex >= 0) {
-        const targetPage = Math.floor(targetIndex / SCHEDULE_PAGE_SIZE) + 1;
-        if (targetPage !== Math.min(schedulePage, Math.max(1, Math.ceil(schedule.length / SCHEDULE_PAGE_SIZE)))) {
-          setSchedulePage(targetPage);
-          return;
-        }
-      }
-    }
     if (section === "support" && target.startsWith("case-")) {
       const targetIndex = cases.findIndex((item) => `case-${item.id}` === target);
       if (targetIndex >= 0) {
@@ -372,9 +376,10 @@ export default function PortalDashboard({ section }: { section: PortalSection })
     const element = document.getElementById(target);
     if (element) {
       element.scrollIntoView({ block: "start" }); scrolledHash.current = target;
+      if (section === "support" && ["new-request", "request-history"].includes(target)) element.focus({ preventScroll: true });
       if (section === "support" && target.startsWith("case-") && TYPESCRIPT_API) void openCase(target.slice(5));
     }
-  }, [section, schedule, schedulePage, supportPage, cases, releaseUpdates]);
+  }, [section, supportPage, cases, releaseUpdates, recordsStatus, supportStatus]);
 
   async function submitMembershipCorrection(event: React.FormEvent) {
     event.preventDefault();
@@ -492,39 +497,14 @@ export default function PortalDashboard({ section }: { section: PortalSection })
   };
 
   const featuredInstallment = schedule.find((item) => !["paid", "completed"].includes(item.status.toLowerCase()));
-  const schedulePageCount = Math.max(1, Math.ceil(schedule.length / SCHEDULE_PAGE_SIZE));
-  const currentSchedulePage = Math.min(schedulePage, schedulePageCount);
-  const visibleSchedule = schedule.slice((currentSchedulePage - 1) * SCHEDULE_PAGE_SIZE, currentSchedulePage * SCHEDULE_PAGE_SIZE);
-  const selectedScheduleItem = schedule.find((item) => item.sequence_no === selectedInstallment);
   const supportPageCount = Math.max(1, Math.ceil(cases.length / SUPPORT_PAGE_SIZE));
   const currentSupportPage = Math.min(supportPage, supportPageCount);
   const visibleCases = cases.slice((currentSupportPage - 1) * SUPPORT_PAGE_SIZE, currentSupportPage * SUPPORT_PAGE_SIZE);
-  const today = manilaToday();
-  const selectedScheduleState = selectedScheduleItem ? installmentState(selectedScheduleItem, today) : null;
-  const showInstallmentDialog = section === "schedule" && selectedScheduleItem != null;
-  useEffect(() => {
-    if (!showInstallmentDialog) return;
-    const dialog = installmentDialogRef.current;
-    if (!dialog) return;
-    dialog.showModal();
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      if (dialog.open) dialog.close();
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [showInstallmentDialog]);
-  useEffect(() => { setSelectedInstallment(null); }, [section]);
-  const dueNow = scheduleDueNow(schedule, today);
-  const totalDue = Number(summary?.total_due ?? 0);
-  const verifiedPaid = Number(summary?.verified_paid ?? 0);
-  const paidPercent = Number.isFinite(totalDue) && totalDue > 0 && Number.isFinite(verifiedPaid)
-    ? Math.max(0, Math.min(100, (verifiedPaid / totalDue) * 100)) : 0;
-  const deviceImage = section === "overview" && summary?.unit_model ? orderDeviceImage(summary.unit_model) : null;
+  const showMembershipWorkspace = section === "overview" || section === "membership";
+  const deviceImage = showMembershipWorkspace && summary?.unit_model ? orderDeviceImage(summary.unit_model) : null;
+  const profileName = summary?.full_name ?? me?.full_name ?? "Customer";
   const attentionItems = attentionStatus === "ready" && recordsStatus === "ready"
     ? portalAttention(attentionDocuments, attentionCases, schedule) : [];
-  const hiddenAttentionCount = Math.max(0, attentionItems.length - 2);
-  const visibleAttentionItems = hiddenAttentionCount > 0 && !attentionExpanded ? attentionItems.slice(0, 2) : attentionItems;
   const trackedCases = attentionCases.filter((item) => ["open", "in_progress"].includes(item.status.toLowerCase()));
   const unreadNotifications = notifications.filter((item) => !item.readAt).length;
   const selectedNotification = notifications.find((item) => item.id === selectedNotificationId);
@@ -545,17 +525,41 @@ export default function PortalDashboard({ section }: { section: PortalSection })
     <Link href="/portal/notifications" className={styles.notificationPreviewMore} onClick={() => setNotificationsOpen(false)}>View more <ArrowRight weight="bold" aria-hidden="true" /></Link>
   </section>;
 
-  if (recordsStatus === "loading") return <PortalSkeleton section={section} />;
+  if (me?.account_type !== "customer" || recordsStatus === "loading") return <PortalSkeleton section={section} />;
 
   return (
     <main className={`${styles.shell} portal-shell`}>
       {(menuOpen || moreOpen) && <button type="button" className={styles.menuBackdrop} aria-label="Close navigation" onClick={() => { setMenuOpen(false); setMoreOpen(false); }} />}
-      <aside id="customer-sidebar" className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ""}`} aria-label="Customer navigation">
-        <div className={styles.sidebarBrand}>
-          <span className={styles.sidebarBrandMark}><Image src="/brand/fresh-phones-logo.png" alt="" width={38} height={38} /></span>
+      <header className={styles.topbar}>
+        <button type="button" className={styles.menuButton} data-customer-tour-tablet="menu" aria-label="Open navigation" aria-controls="customer-sidebar" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><List weight="bold" aria-hidden="true" /></button>
+        <div className={styles.brand}>
+          <span className={styles.brandMark}><Image src="/brand/fresh-phones-logo.png" alt="" width={44} height={44} /></span>
           <span><strong>Fresh Phones</strong><small>Customer portal</small></span>
-          <button type="button" className={styles.closeMenu} aria-label="Close menu" onClick={() => setMenuOpen(false)}><X weight="bold" aria-hidden="true" /></button>
         </div>
+        <div className={styles.topbarActions} ref={topbarActionsRef}>
+          <div className={styles.searchWrap}>
+            <button type="button" className={styles.searchTrigger} data-customer-tour-tablet="search" aria-expanded={searchOpen} aria-controls="customer-page-search" onClick={() => { setSearchOpen((open) => !open); setProfileOpen(false); setNotificationsOpen(false); }}><MagnifyingGlass aria-hidden="true" /><span>Search pages</span><kbd>⌘ K</kbd></button>
+            {searchOpen && <div id="customer-page-search" className={styles.searchMenu}>
+              <label><MagnifyingGlass aria-hidden="true" /><input ref={searchInputRef} value={pageQuery} onChange={(event) => setPageQuery(event.target.value)} placeholder="Find a customer page" aria-label="Find a customer page" /></label>
+              <div>{portalNav.filter((item) => (!('typescriptOnly' in item) || TYPESCRIPT_API) && item.label.toLowerCase().includes(pageQuery.trim().toLowerCase())).map((item) => {
+                const Icon = item.icon;
+                return <Link key={item.id} href={item.id === "overview" ? "/portal" : `/portal/${item.id}`} onClick={() => setSearchOpen(false)}><Icon aria-hidden="true" />{item.label}</Link>;
+              })}</div>
+            </div>}
+          </div>
+          <button type="button" className={`${styles.topbarIcon} ${styles.themeToggle}`} onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>{theme === "dark" ? <Sun key="sun" aria-hidden="true" /> : <Moon key="moon" aria-hidden="true" />}</button>
+          {TYPESCRIPT_API && <div className={styles.notificationWrap} ref={desktopNotificationsRef}>
+            <button ref={desktopNotificationButtonRef} type="button" className={styles.topbarIcon} data-customer-tour-tablet="notifications" aria-label="Preview notifications" aria-expanded={notificationsOpen} aria-controls="customer-notification-preview" onClick={() => { setNotificationsOpen((open) => !open); setSearchOpen(false); setProfileOpen(false); }}><Bell weight={section === "notifications" ? "fill" : "regular"} aria-hidden="true" />{unreadNotifications > 0 && <span className={styles.topbarDot} />}</button>
+            {notificationPanel("customer-notification-preview")}
+          </div>}
+          <div className={styles.profileWrap}>
+            <button type="button" className={styles.profileButton} data-customer-tour-tablet="account" aria-expanded={profileOpen} aria-controls="customer-profile-menu" onClick={() => { setProfileOpen((open) => !open); setSearchOpen(false); setNotificationsOpen(false); }}><ProfileAvatar className={styles.accountAvatar} name={profileName} image={me?.image} /><span><strong>{profileName}</strong><small>Customer</small></span><CaretDown aria-hidden="true" /></button>
+            {profileOpen && <div id="customer-profile-menu" className={styles.profileMenu}><p><strong>{summary?.full_name ?? me?.full_name ?? "Customer"}</strong><small>{me?.email}</small></p><Link href="/portal/settings" onClick={() => setProfileOpen(false)}><GearSix aria-hidden="true" /> Settings</Link><button type="button" onClick={logout}><SignOut aria-hidden="true" /> Log out</button></div>}
+          </div>
+        </div>
+      </header>
+      <aside id="customer-sidebar" className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ""}`} aria-label="Customer navigation">
+        <button type="button" className={styles.closeMenu} aria-label="Close menu" onClick={() => setMenuOpen(false)}><X weight="bold" aria-hidden="true" /></button>
         <nav className={styles.sidebarNav} aria-label="Customer sections">
           {["Workspace", "Updates", "Account"].map((group) => <div className={styles.navGroup} key={group} data-customer-tour-desktop={group === "Updates" ? "updates" : undefined}>
             <p className={styles.navLabel}>{group}</p>
@@ -567,95 +571,76 @@ export default function PortalDashboard({ section }: { section: PortalSection })
         </nav>
         <div className={styles.sidebarFooter}>
           <button type="button" data-customer-tour-replay="desktop" className={styles.tourReplay} onClick={(event) => { setMenuOpen(false); startTour(event); }}><Compass aria-hidden="true" /> Take a quick tour</button>
-          <div className={styles.sidebarAccount}><span className={styles.accountAvatar}>{summary?.full_name?.charAt(0) ?? me?.full_name?.charAt(0) ?? "C"}</span><span><strong>{summary?.full_name ?? me?.full_name ?? "Customer"}</strong><small>Customer</small></span><button type="button" onClick={logout} className={styles.sidebarLogout} aria-label="Log out" title="Log out"><SignOut weight="bold" aria-hidden="true" /></button></div>
         </div>
       </aside>
-      <div className={styles.container}>
-        <header className={styles.topbar}>
-          <button type="button" className={styles.menuButton} data-customer-tour-tablet="menu" aria-label="Open navigation" aria-controls="customer-sidebar" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><List weight="bold" aria-hidden="true" /></button>
-          <div className={styles.topbarHeading}><p>Fresh Phones PH</p><h1>{section === "overview" ? "Dashboard" : sectionCopy[section].title}</h1></div>
-          <div className={styles.brand}>
-            <span className={styles.brandMark}><Image src="/brand/fresh-phones-logo.png" alt="" width={44} height={44} /></span>
-            <span><strong>Fresh Phones</strong><small>Customer portal</small></span>
+      <div className={`${styles.container} ${section === "membership" || section === "payments" ? styles.membershipWorkspace : ""}`}>
+
+        <div className={styles.intro}>
+          <div className={styles.introCopy}>
+            {section === "overview" ? <>
+              <nav className={styles.eyebrow} aria-label="Breadcrumb"><span aria-current="page">Dashboard</span></nav>
+              <h1>Hi, {summary?.full_name?.split(" ")[0] ?? "there"} <span aria-hidden="true">✦</span></h1>
+            </> : <>
+              <p className={styles.eyebrow}>{sectionCopy[section].eyebrow}</p>
+              <h1>{sectionCopy[section].title}</h1>
+              <p>{sectionCopy[section].description}</p>
+            </>}
           </div>
-          <div className={styles.topbarActions} ref={topbarActionsRef}>
-            <div className={styles.searchWrap}>
-              <button type="button" className={styles.searchTrigger} data-customer-tour-tablet="search" aria-expanded={searchOpen} aria-controls="customer-page-search" onClick={() => { setSearchOpen((open) => !open); setProfileOpen(false); setNotificationsOpen(false); }}><MagnifyingGlass aria-hidden="true" /><span>Search pages</span><kbd>⌘ K</kbd></button>
-              {searchOpen && <div id="customer-page-search" className={styles.searchMenu}>
-                <label><MagnifyingGlass aria-hidden="true" /><input ref={searchInputRef} value={pageQuery} onChange={(event) => setPageQuery(event.target.value)} placeholder="Find a customer page" aria-label="Find a customer page" /></label>
-                <div>{portalNav.filter((item) => (!('typescriptOnly' in item) || TYPESCRIPT_API) && item.label.toLowerCase().includes(pageQuery.trim().toLowerCase())).map((item) => {
-                  const Icon = item.icon;
-                  return <Link key={item.id} href={item.id === "overview" ? "/portal" : `/portal/${item.id}`} onClick={() => setSearchOpen(false)}><Icon aria-hidden="true" />{item.label}</Link>;
-                })}</div>
-              </div>}
-            </div>
-            <button type="button" className={`${styles.topbarIcon} ${styles.themeToggle}`} onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>{theme === "dark" ? <Sun key="sun" aria-hidden="true" /> : <Moon key="moon" aria-hidden="true" />}</button>
-            {TYPESCRIPT_API && <div className={styles.notificationWrap} ref={desktopNotificationsRef}>
-              <button ref={desktopNotificationButtonRef} type="button" className={styles.topbarIcon} data-customer-tour-tablet="notifications" aria-label="Preview notifications" aria-expanded={notificationsOpen} aria-controls="customer-notification-preview" onClick={() => { setNotificationsOpen((open) => !open); setSearchOpen(false); setProfileOpen(false); }}><Bell weight={section === "notifications" ? "fill" : "regular"} aria-hidden="true" />{unreadNotifications > 0 && <span className={styles.topbarDot} />}</button>
-              {notificationPanel("customer-notification-preview")}
-            </div>}
-            <div className={styles.profileWrap}>
-              <button type="button" className={styles.profileButton} data-customer-tour-tablet="account" aria-expanded={profileOpen} aria-controls="customer-profile-menu" onClick={() => { setProfileOpen((open) => !open); setSearchOpen(false); setNotificationsOpen(false); }}><span className={styles.accountAvatar}>{summary?.full_name?.charAt(0) ?? me?.full_name?.charAt(0) ?? "C"}</span><span><strong>{summary?.full_name ?? me?.full_name ?? "Customer"}</strong><small>Customer</small></span><CaretDown aria-hidden="true" /></button>
-              {profileOpen && <div id="customer-profile-menu" className={styles.profileMenu}><p><strong>{summary?.full_name ?? me?.full_name ?? "Customer"}</strong><small>{me?.email}</small></p><Link href="/portal/settings" onClick={() => setProfileOpen(false)}><GearSix aria-hidden="true" /> Settings</Link><button type="button" onClick={logout}><SignOut aria-hidden="true" /> Log out</button></div>}
-            </div>
-          </div>
+          {section === "overview" && <span className={styles.liveLabel}><span aria-hidden="true" /> Your records</span>}
           <div className={styles.mobileTopActions}>
             <button type="button" className={`${styles.mobileTopAction} ${styles.themeToggle}`} onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>{theme === "dark" ? <Sun key="sun" aria-hidden="true" /> : <Moon key="moon" aria-hidden="true" />}</button>
             {TYPESCRIPT_API && <div className={`${styles.notificationWrap} ${styles.mobileNotificationWrap}`} ref={mobileNotificationsRef}>
               <button ref={mobileNotificationButtonRef} type="button" className={`${styles.mobileTopAction} ${section === "notifications" ? styles.mobileTopActionActive : ""}`} aria-label="Preview notifications" aria-expanded={notificationsOpen} aria-controls="customer-mobile-notification-preview" onClick={() => setNotificationsOpen((open) => !open)}><Bell weight={section === "notifications" ? "fill" : "regular"} aria-hidden="true" />{unreadNotifications > 0 && <span className={styles.mobileUnreadDot} />}</button>
               {notificationPanel("customer-mobile-notification-preview")}
             </div>}
-            <button type="button" className={styles.mobileTopAction} aria-label="Open customer menu" aria-controls="customer-sidebar" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><span className={styles.mobileAvatar}>{summary?.full_name?.charAt(0) ?? me?.full_name?.charAt(0) ?? "C"}</span></button>
+            <button type="button" className={styles.mobileTopAction} aria-label="Open customer menu" aria-controls="customer-sidebar" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><ProfileAvatar className={styles.mobileAvatar} name={profileName} image={me?.image} /></button>
           </div>
-        </header>
-
-        <div className={styles.intro}>
-          <div><p className={styles.eyebrow}>{section === "overview" ? "My account" : sectionCopy[section].eyebrow}</p><h1>{section === "overview" ? <>Hi, {summary?.full_name?.split(" ")[0] ?? "there"} <span aria-hidden="true">✦</span></> : sectionCopy[section].title}</h1><p>{section === "overview" ? "Here's your membership and payment record in one place." : sectionCopy[section].description}</p></div>
-          {section === "overview" && <span className={styles.liveLabel}><span aria-hidden="true" /> Your records</span>}
         </div>
 
         {(error || notice) && <div className={`${styles.message} ${error ? styles.messageError : styles.messageSuccess}`} role={error ? "alert" : "status"}>{error ?? notice}</div>}
 
-        {(section === "overview" || section === "membership" || section === "payments") && <section className={`${styles.overview} ${section === "payments" ? styles.overviewSingle : ""}`} aria-label="Membership overview">
-          {section !== "payments" && <div className={`${styles.membership} ${deviceImage ? styles.membershipWithArt : ""}`}>
-            <div className={styles.membershipTop}><span className={styles.heroIcon}><Package weight="duotone" aria-hidden="true" /></span><span className={styles.membershipStatus}>{summary?.status ?? "Loading"}</span></div>
+        <div className={showMembershipWorkspace ? styles.dashboardLayout : undefined}>
+          <div className={showMembershipWorkspace ? styles.dashboardMain : undefined}>
+        {showMembershipWorkspace && <section className={`${styles.overview} ${styles.overviewSingle}`} aria-label="Membership overview">
+          <div className={`${styles.membership} ${styles.membershipDashboard} ${deviceImage ? styles.membershipWithArt : ""}`}>
+            <div className={styles.membershipSky} aria-hidden="true">
+              <Image src="/brand/doodles/cloud-soft.png" alt="" width={1024} height={1024} sizes="(max-width: 700px) 120px, 220px" className={`${styles.membershipCloud} ${styles.membershipCloudOne}`} />
+              <Image src="/brand/doodles/cloud-round.png" alt="" width={1024} height={1024} sizes="(max-width: 700px) 144px, 210px" className={`${styles.membershipCloud} ${styles.membershipCloudTwo}`} />
+              <Image src="/brand/doodles/bird-flight.png" alt="" width={1024} height={1024} sizes="(max-width: 700px) 55px, 86px" className={styles.membershipBird} />
+              <Image src="/about/glossy-heart.webp" alt="" width={1248} height={1248} sizes="(max-width: 700px) 28px, 60px" className={styles.membershipHeart} />
+              <Image src="/about/glass-bubble.webp" alt="" width={1248} height={1248} sizes="(max-width: 700px) 22px, 38px" className={styles.membershipBubble} />
+            </div>
+            <div className={styles.membershipTop}>
+              <dl className={styles.membershipMobileSummary}>
+                <div><dt>Remaining balance</dt><dd>{formatMoney(summary?.remaining_balance)}</dd></div>
+                <div><dt>Membership</dt><dd className={styles.membershipMobileStatus}>{summary?.status ?? "—"}</dd></div>
+              </dl>
+              <span className={styles.heroIcon}><Package weight="duotone" aria-hidden="true" /></span><span className={styles.membershipStatus}>{summary?.status ?? "Loading"}</span>
+            </div>
             <div className={styles.membershipCopy}><p>My membership</p><h2>{summary?.unit_model ? displayModelName(summary.unit_model) : "Loading your unit…"}</h2><span className={styles.batch}>Batch {summary?.batch_number ?? "—"}</span></div>
-            {deviceImage && <Image src={deviceImage} alt="" width={1024} height={1536} sizes="(max-width: 700px) 130px, 190px" loading="eager" className={`${styles.deviceArt} ${/ipad/i.test(summary?.unit_model ?? "") ? styles.tabletArt : ""}`} />}
-          </div>}
-          <div className={`${styles.balance} ${section === "payments" ? styles.paymentsBalance : ""}`}>
-            <div className={styles.balanceHeading}><span className={styles.balanceIcon}><Wallet weight="duotone" aria-hidden="true" /></span><span>Payment overview</span></div>
-            <p className={styles.balanceLabel}>Remaining balance</p>
-            <p className={styles.balanceAmount}>{formatMoney(summary?.remaining_balance)}</p>
-            <div className={styles.progress} role="progressbar" aria-label="Verified portion of total due" aria-valuenow={Math.round(paidPercent)} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${paidPercent}%` }} /></div>
-            <div className={styles.balanceStats}><p><span>Verified paid</span><strong>{formatMoney(summary?.verified_paid)}</strong></p><p><span>Total due</span><strong>{formatMoney(summary?.total_due)}</strong></p></div>
-            {section === "overview" && <Link href="/portal/payments" className={styles.balanceCta}>View payment history <ArrowRight weight="bold" aria-hidden="true" /></Link>}
-            {TYPESCRIPT_API && section === "payments" && <Link href="/portal/financial-document" className={styles.documentLink}>Statement of account</Link>}
+            <div className={styles.membershipMobileFooter}>
+              <span className={styles.membershipMobileBatch}>Batch <strong>{summary?.batch_number ?? "—"}</strong></span>
+              {section === "overview" && <Link href="/portal/membership" className={styles.membershipDetails}>View details <ArrowRight weight="bold" aria-hidden="true" /></Link>}
+            </div>
+            {deviceImage && <Image src={deviceImage} alt="" width={1024} height={1536} sizes="(max-width: 700px) 120px, 230px" loading="eager" className={`${styles.deviceArt} ${/ipad/i.test(summary?.unit_model ?? "") ? styles.tabletArt : ""}`} />}
           </div>
         </section>}
 
-        {section === "overview" && TYPESCRIPT_API && <section className={`${styles.sectionCard} ${styles.attentionCard}`} aria-labelledby="attention-title">
-          <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.attentionIcon}`}><Bell weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Your next steps</p><h2 id="attention-title">Needs your attention</h2></div>{attentionItems.length > 0 && <span className={styles.count}>{attentionItems.length} {attentionItems.length === 1 ? "item" : "items"}</span>}</div>
-          {attentionStatus === "error" || recordsStatus === "error" ? <div className={styles.attentionState} role="alert"><p>We couldn’t check all of your records right now.</p><button type="button" onClick={refresh}>Try again</button></div>
-            : attentionStatus === "loading" ? <PortalLoadingRows rows={2} label="Checking your documents, requests, and installment plan" />
-            : attentionItems.length === 0 ? <p className={styles.attentionState} role="status">No action needed from the records available right now. Check back for updates.</p>
-            : <ul id="attention-items" className={styles.attentionList}>{visibleAttentionItems.map((item) => <li key={item.key}>
-              <div><h3>{item.title}</h3><p>{item.detail}</p></div>
-              <Link href={item.href} className={styles.attentionAction}>{item.action} <ArrowRight weight="bold" aria-hidden="true" /></Link>
-            </li>)}</ul>}
-          {hiddenAttentionCount > 0 && <button type="button" className={styles.attentionToggle} aria-controls="attention-items" aria-expanded={attentionExpanded} onClick={() => setAttentionExpanded((expanded) => !expanded)}>
-            {attentionExpanded ? "Show fewer items" : `Show ${hiddenAttentionCount} more ${hiddenAttentionCount === 1 ? "item" : "items"}`}
-            <CaretDown className={attentionExpanded ? styles.attentionToggleOpen : ""} weight="bold" aria-hidden="true" />
-          </button>}
-          {attentionStatus === "ready" && recordsStatus === "ready" && trackedCases.length > 0 && <div className={styles.attentionTracking}><div><strong>{trackedCases.length === 1 ? "1 open support request" : `${trackedCases.length} open support requests`}</strong><p>Track the status and any update from Customer Service.</p></div><Link href={`/portal/support#case-${trackedCases[0].id}`}>Track support {trackedCases.length === 1 ? "request" : "requests"} <ArrowRight weight="bold" aria-hidden="true" /></Link></div>}
-        </section>}
-
-        {section === "membership" && summary && <section className={styles.sectionCard} aria-labelledby="membership-dates-title">
+        {section === "overview" && TYPESCRIPT_API && <DashboardNextSteps
+          items={attentionItems}
+          attentionStatus={attentionStatus}
+          recordsStatus={recordsStatus}
+          support={{ count: trackedCases.length, href: trackedCases.length ? `/portal/support#case-${trackedCases[0].id}` : "/portal/support" }}
+          release={{ status: releaseStatusLabel, description: releaseStatusDescription ?? releaseDetails[releaseStatus] ?? "Your unit status will appear here when updated.", updatedAt: releaseUpdates[0] ? new Date(releaseUpdates[0].updated_at).toLocaleString("en-PH") : undefined }}
+          installment={{
+            amount: recordsStatus === "ready" && featuredInstallment ? formatMoney(Math.max(0, Number(featuredInstallment.expected_amount) - Number(featuredInstallment.paid_applied || 0))) : "—",
+            description: recordsStatus === "error" ? "Installment plan unavailable" : featuredInstallment ? `Installment ${featuredInstallment.sequence_no} · ${formatDate(featuredInstallment.due_date)}` : schedule.length ? "All installments marked paid" : "No schedule issued yet",
+          }}
+          onRetry={refresh}
+        />}
+        {section === "membership" && summary && <section className={`${styles.sectionCard} ${styles.membershipDatesCard}`} aria-labelledby="membership-dates-title">
           <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.scheduleIcon}`}><CalendarBlank weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Membership details</p><h2 id="membership-dates-title">Key dates</h2></div></div>
-          <dl className={styles.membershipDates}>
-            <div><dt>Joined</dt><dd>{summary.joined_at ? formatDate(summary.joined_at) : "Not recorded"}</dd></div>
-            <div><dt>Batch start</dt><dd>{summary.batch_start_date ? formatDate(summary.batch_start_date) : "Not recorded"}</dd></div>
-            <div><dt>Planned batch end</dt><dd>{summary.batch_end_date ? formatDate(summary.batch_end_date) : "Not recorded"}</dd></div>
-          </dl>
+          <MembershipDatesCalendar summary={summary} schedule={schedule} />
           <div className={styles.membershipGuidance}><Info weight="fill" aria-hidden="true" /><p><strong>About the planned batch end</strong> This is the batch’s planned end date. It does not set a collection date for your unit. <Link href="/portal/release">Check your release status</Link> for the latest stage; Fresh Phones PH will coordinate collection when your unit is ready.</p></div>
           <div className={styles.correctionArea}>
             <div><h3>Something incorrect?</h3><p>Tell Customer Service which membership detail needs to change. Your current unit, batch, and dates will be included.</p></div>
@@ -671,8 +656,11 @@ export default function PortalDashboard({ section }: { section: PortalSection })
           {reportCaseId && <p className={styles.correctionSuccess} role="status">Request sent to Customer Service. <Link href={`/portal/support#case-${reportCaseId}`}>View your support request</Link>.</p>}
           {cases.some((item) => item.description.startsWith("Membership details correction request")) && <div className={styles.correctionHistory}><h3>Correction requests</h3><ul>{cases.filter((item) => item.description.startsWith("Membership details correction request")).map((item) => <li key={item.id}><span>Request #{String(item.id).slice(0, 8)} · {item.status.replaceAll("_", " ")}{item.resolution ? ` · ${item.resolution}` : ""}</span><Link href={`/portal/support#case-${item.id}`}>View request</Link></li>)}</ul></div>}
         </section>}
+          </div>
+          {showMembershipWorkspace && <PaymentOverview summary={summary} schedule={schedule} payments={payments} hasMorePayments={morePayments} status={recordsStatus} onRetry={loadRecords} />}
+        </div>
 
-        {(section === "overview" || section === "release") && <section className={styles.releaseCard} aria-labelledby="release-title">
+        {((section === "overview" && !TYPESCRIPT_API) || section === "release") && <section className={styles.releaseCard} aria-labelledby="release-title">
           <span className={styles.releaseIcon}><Truck weight="duotone" aria-hidden="true" /></span>
           <div><p className={styles.eyebrow}>Unit status</p><h2 id="release-title">Release &amp; fulfillment</h2><p>{releaseStatusDescription ?? releaseDetails[releaseStatus] ?? "Your unit status will appear here when updated."}</p>{releaseUpdates[0] && <small>Last release update: {new Date(releaseUpdates[0].updated_at).toLocaleString("en-PH")}</small>}</div>
           <strong className={styles.releaseBadge}>{releaseStatusLabel}</strong>
@@ -681,58 +669,26 @@ export default function PortalDashboard({ section }: { section: PortalSection })
           {releaseUpdatesStatus === "loading" ? <PortalLoadingRows rows={3} label="Checking release updates" /> : releaseUpdatesStatus === "error" ? <div className={styles.attentionState} role="alert"><p>Could not load release updates.</p><button type="button" onClick={loadReleaseUpdates}>Try again</button></div> : releaseUpdates.length === 0 ? <p className={styles.emptyText}>No release milestones have been posted yet. The current status is shown above; Fresh Phones PH will share collection details when available.</p> : <ol className={styles.releaseTimeline}>{releaseUpdates.map((update, index) => <li id={`release-update-${update.id}`} key={update.id}><div><strong>{update.status}</strong><small>{new Date(update.updated_at).toLocaleString("en-PH")}</small></div>{update.note && <p>{update.note}</p>}{update.collection_date && <p><strong>{index === 0 ? "Collection date" : "Earlier collection date"}: {formatDate(update.collection_date)}</strong>{index === 0 ? " · Coordinate collection details with Fresh Phones PH." : " · Check the latest update for current instructions."}</p>}</li>)}</ol>}
         </section>}
 
-        {(section === "overview" || section === "schedule") && <section className={styles.nextPayment} aria-labelledby="next-payment-title">
+        {section === "schedule" && <PaymentScheduleWorkspace schedule={schedule} status={recordsStatus} onRetry={loadRecords} />}
+
+        {section === "overview" && !TYPESCRIPT_API && <section className={styles.nextPayment} aria-labelledby="next-payment-title">
           <span className={styles.nextIcon}><Clock weight="duotone" aria-hidden="true" /></span>
           <div className={styles.nextCopy}><h2 id="next-payment-title">Your installment plan</h2><p>{recordsStatus === "error" ? "Could not load your installment plan." : featuredInstallment ? `Installment ${featuredInstallment.sequence_no} · ${formatDate(featuredInstallment.due_date)}` : schedule.length ? "All installments in this schedule are marked paid." : "Installments will appear here when a schedule is available."}</p></div>
           {recordsStatus === "ready" && featuredInstallment && <strong>{formatMoney(Math.max(0, Number(featuredInstallment.expected_amount) - Number(featuredInstallment.paid_applied || 0)))}</strong>}
         </section>}
 
-        {(section === "schedule" || section === "payments") && <div className={`${styles.detailsGrid} ${section === "schedule" ? styles.scheduleGrid : styles.detailsGridSingle}`}>
-          {section === "schedule" && <section className={styles.sectionCard} aria-labelledby="schedule-title">
-            <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.scheduleIcon}`}><CalendarBlank weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Your plan</p><h2 id="schedule-title">Payment schedule</h2></div>{recordsStatus === "ready" && <span className={styles.count}>{schedule.length} installments</span>}</div>
-            {recordsStatus === "ready" && schedule.length > 0 && <div className={styles.dueSummary}><div><strong>Currently due</strong><p>Remaining on installments due by today, after Finance-verified payments.</p></div><strong>{formatMoney(dueNow)}</strong></div>}
-            {recordsStatus === "error" ? <div className={styles.attentionState} role="alert"><p>Could not load your payment schedule.</p><button type="button" onClick={loadRecords}>Try again</button></div> : schedule.length === 0 ? <p className={styles.emptyText}>Your schedule has not been issued yet. Please contact Records.</p> : (
-              <><ol className={styles.scheduleList} start={(currentSchedulePage - 1) * SCHEDULE_PAGE_SIZE + 1}>{visibleSchedule.map((item) => { const state = installmentState(item, today); return (
-                <li key={item.sequence_no} id={`installment-${item.sequence_no}`} className={styles.scheduleRow}>
-                  <span className={styles.sequence}>{item.sequence_no}</span>
-                  <div className={styles.scheduleDate}><span>Due date</span><strong>{formatDate(item.due_date)}</strong><small className={state.timing === "Overdue" ? styles.dueLate : state.timing === "Due today" ? styles.dueToday : ""}>{state.timing}</small></div>
-                  <div className={styles.scheduleAmount}><span>Installment</span><strong>{formatMoney(item.expected_amount)}</strong><small>{formatMoney(item.paid_applied)} verified · {formatMoney(state.remaining)} remaining</small></div>
-                  <span className={`${styles.status} ${statusClass(item.status)}`}>{state.payment}</span>
-                  <button type="button" className={styles.scheduleDetailsButton} aria-label={`Details for installment ${item.sequence_no}`} aria-haspopup="dialog" onClick={(event) => { installmentTriggerRef.current = event.currentTarget; setSelectedInstallment(item.sequence_no); }}>Details <ArrowRight weight="bold" aria-hidden="true" /></button>
-                </li>
-              ); })}</ol>
-              {schedulePageCount > 1 && <nav className={styles.schedulePagination} aria-label="Payment schedule pages">
-                <span>Showing {(currentSchedulePage - 1) * SCHEDULE_PAGE_SIZE + 1}–{Math.min(currentSchedulePage * SCHEDULE_PAGE_SIZE, schedule.length)} of {schedule.length} installments</span>
-                <div>
-                  <button type="button" disabled={currentSchedulePage === 1} onClick={() => { setSchedulePage(currentSchedulePage - 1); document.getElementById("schedule-title")?.scrollIntoView({ block: "start" }); }}>Previous</button>
-                  <span aria-live="polite">Page {currentSchedulePage} of {schedulePageCount}</span>
-                  <button type="button" disabled={currentSchedulePage === schedulePageCount} onClick={() => { setSchedulePage(currentSchedulePage + 1); document.getElementById("schedule-title")?.scrollIntoView({ block: "start" }); }}>Next</button>
-                </div>
-              </nav>}</>
-            )}
-          </section>}
-
-          {section === "payments" && <section className={styles.sectionCard} aria-labelledby="payments-title">
-            <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.paymentIcon}`}><CheckCircle weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Payment history</p><h2 id="payments-title">Verified payments</h2></div></div>
-            {recordsStatus === "error" ? <div className={styles.attentionState} role="alert"><p>Could not load verified payments.</p><button type="button" onClick={loadRecords}>Try again</button></div> : payments.length === 0 ? (
-              <div className={styles.paymentEmpty}><span><CheckCircle weight="duotone" aria-hidden="true" /></span><h3>No verified payments yet</h3><p>Payments will appear here once Finance verifies them.</p></div>
-            ) : (
-              <><ul className={styles.paymentsList}>{payments.map((payment) => (
-                <li key={payment.id} className={styles.paymentRow}>
-                  <span className={styles.paymentCheck}><CheckCircle weight="fill" aria-hidden="true" /></span>
-                  <div className={styles.paymentPrimary}><strong>{formatMoney(payment.amount)}</strong><span>{formatDate(payment.payment_date)} · {payment.method}</span>{Boolean(payment.adjustments?.length) && <span>Adjusted credit · original {formatMoney(payment.original_amount)}</span>}</div>
-                  <div className={styles.paymentReference}><span>Reference number</span><strong>{payment.reference_no || "Not provided"}</strong></div>
-                  {TYPESCRIPT_API && <Link href={`/portal/financial-document?payment=${payment.id}`} className={`${styles.documentLink} ${styles.paymentDocumentLink}`}>Payment confirmation <ArrowRight weight="bold" aria-hidden="true" /></Link>}
-                </li>
-              ))}</ul>{TYPESCRIPT_API && (paymentPage > 1 || morePayments) && <div className={styles.pageActions}><button type="button" disabled={paymentPage === 1} onClick={() => setPaymentPage((page) => page - 1)}>Previous</button><span>Page {paymentPage}</span><button type="button" disabled={!morePayments} onClick={() => setPaymentPage((page) => page + 1)}>Next</button></div>}</>
-            )}
-          </section>}
-        </div>}
-
-        {section === "payments" && TYPESCRIPT_API && <section className={`${styles.sectionCard} ${styles.pendingSection}`} aria-labelledby="pending-title"><div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.paymentIcon}`}><Clock weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Recorded by staff</p><h2 id="pending-title">Awaiting Finance review</h2></div></div>
-          <p className={styles.pendingNote}>These records have not changed your verified paid amount or remaining balance. If you paid but do not see a record, contact Fresh Phones PH in Messenger with your reference.</p>
-          {pendingStatus === "loading" ? <PortalLoadingRows rows={2} label="Checking recorded payments" /> : pendingStatus === "error" ? <div className={styles.attentionState} role="alert"><p>Could not check payments awaiting review.</p><button type="button" onClick={loadPending}>Try again</button></div> : pendingPayments.length === 0 ? <p className={styles.emptyText}>No staff-recorded payments are awaiting Finance review.</p> : <ul className={styles.pendingList}>{pendingPayments.map((item) => <li key={item.id}><div><strong>{formatMoney(item.amount)}</strong><span>{formatDate(item.payment_date)} · {item.method}</span>{item.reference_no && <small>Ref: {item.reference_no}</small>}</div><span>Pending review</span></li>)}</ul>}
-        </section>}
+        {section === "payments" && <VerifiedPaymentsWorkspace
+          summary={summary}
+          payments={payments}
+          pagination={paymentPagination}
+          loading={paymentsLoading}
+          status={recordsStatus}
+          pendingPayments={pendingPayments}
+          pendingStatus={pendingStatus}
+          onPageChange={(page) => { setPaymentsLoading(true); setPaymentPage(page); }}
+          onRetry={loadRecords}
+          onRetryPending={loadPending}
+        />}
 
         {section === "documents" && TYPESCRIPT_API && <section className={`${styles.sectionCard} ${styles.support}`} aria-label="Documents"><DocumentChecklist /></section>}
 
@@ -776,7 +732,7 @@ export default function PortalDashboard({ section }: { section: PortalSection })
         </div>}
 
         {section === "support" && <div className={styles.supportWorkspace}>
-          <section className={`${styles.sectionCard} ${styles.supportCompose}`} aria-labelledby="support-compose-title">
+          <section id="new-request" tabIndex={-1} className={`${styles.sectionCard} ${styles.supportCompose}`} aria-labelledby="support-compose-title">
             <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.supportIcon}`}><ChatCircleText weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Need help?</p><h2 id="support-compose-title">Send a request</h2></div></div>
             <form onSubmit={submitConcern} className={styles.supportForm}>
               <label className={styles.supportField}>Category
@@ -788,7 +744,7 @@ export default function PortalDashboard({ section }: { section: PortalSection })
               <div className={styles.supportFormActions}><button type="submit" disabled={submitting}><Plus weight="bold" aria-hidden="true" /> {submitting ? "Sending…" : "Send request"}</button></div>
             </form>
           </section>
-          <section className={`${styles.sectionCard} ${styles.supportRequests}`} aria-labelledby="support-requests-title">
+          <section id="request-history" tabIndex={-1} className={`${styles.sectionCard} ${styles.supportRequests}`} aria-labelledby="support-requests-title">
             <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Follow up</p><h2 id="support-requests-title">Your requests</h2></div>{supportStatus === "ready" && cases.length > 0 && <span className={styles.count}>{cases.length} {cases.length === 1 ? "request" : "requests"}</span>}</div>
             {supportStatus === "error" ? <div className={styles.attentionState} role="alert"><p>Couldn’t load your support requests.</p><button type="button" onClick={loadSupport}>Try again</button></div>
               : supportStatus === "loading" ? <PortalLoadingRows rows={2} label="Loading support requests" />
@@ -835,6 +791,12 @@ export default function PortalDashboard({ section }: { section: PortalSection })
             </div>
           </section>
           <CustomerSecuritySettings email={me?.email} onSignOut={logout} />
+          <section className={styles.sectionCard} aria-labelledby="settings-privacy-title">
+            <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.settingsIcon}`}><FileText weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Your information</p><h2 id="settings-privacy-title">Privacy and portal terms</h2></div></div>
+            <p className={styles.settingsDescription}>Read the customer notice and portal terms that apply to this workspace.</p>
+            <Link className={styles.settingsLink} href="/privacy/customer">Customer Privacy Notice <ArrowRight weight="bold" aria-hidden="true" /></Link>
+            <Link className={styles.settingsLink} href="/terms">Portal Terms of Use <ArrowRight weight="bold" aria-hidden="true" /></Link>
+          </section>
         </div>}
 
         {(section === "overview" || section === "schedule" || section === "payments") && <p className={styles.note}><Info weight="fill" aria-hidden="true" /> Payments are coordinated in Messenger. This portal shows Finance-verified records and your derived balance.</p>}
@@ -848,7 +810,7 @@ export default function PortalDashboard({ section }: { section: PortalSection })
       </nav>
       {moreOpen && <section ref={moreSheetRef} id="customer-more-sheet" className={styles.moreSheet} role="dialog" aria-modal="true" aria-labelledby="customer-more-title">
         <div className={styles.moreSheetHeader}><div><p>Fresh Phones PH</p><h2 id="customer-more-title">More tools</h2></div><button ref={moreCloseRef} type="button" aria-label="Close more tools" onClick={() => setMoreOpen(false)}><X weight="bold" aria-hidden="true" /></button></div>
-        <div className={styles.moreAccount}><span className={styles.moreAccountAvatar}>{summary?.full_name?.charAt(0) ?? me?.full_name?.charAt(0) ?? "C"}</span><div><strong>{summary?.full_name ?? me?.full_name ?? "Customer"}</strong><small>{me?.email ?? "Customer account"}</small></div></div>
+        <div className={styles.moreAccount}><ProfileAvatar className={styles.moreAccountAvatar} name={profileName} image={me?.image} /><div><strong>{profileName}</strong><small>{me?.email ?? "Customer account"}</small></div></div>
         <div className={styles.moreTools}>
           {portalNav.filter((item) => moreToolDetails[item.id] && (!('typescriptOnly' in item) || TYPESCRIPT_API)).map((item) => {
             const Icon = item.icon;
@@ -858,19 +820,6 @@ export default function PortalDashboard({ section }: { section: PortalSection })
         <button type="button" className={styles.moreTourReplay} onClick={(event) => { setMoreOpen(false); startTour(event); }}><Compass aria-hidden="true" /><span>Take a quick tour</span><span aria-hidden="true">→</span></button>
         <button type="button" className={styles.moreLogout} onClick={logout}><SignOut weight="regular" aria-hidden="true" /><span>Log out</span><span aria-hidden="true">→</span></button>
       </section>}
-      {showInstallmentDialog && selectedScheduleItem && selectedScheduleState && <dialog ref={installmentDialogRef} className={styles.installmentDialog} aria-modal="true" aria-labelledby="installment-dialog-title" aria-describedby="installment-dialog-note" onClose={() => { setSelectedInstallment(null); installmentTriggerRef.current?.focus(); }} onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) event.currentTarget.close(); }}>
-        <header className={styles.installmentDialogHeader}><div><p>Payment schedule</p><h2 id="installment-dialog-title">Installment {selectedScheduleItem.sequence_no} details</h2></div><button type="button" aria-label="Close installment details" onClick={() => installmentDialogRef.current?.close()}><X weight="bold" aria-hidden="true" /></button></header>
-        <div className={styles.installmentDialogBody}>
-          <div className={styles.installmentDialogDue}><div><span>Due date</span><strong>{formatDate(selectedScheduleItem.due_date)}</strong><small>{selectedScheduleState.timing}</small></div><span className={`${styles.status} ${statusClass(selectedScheduleItem.status)}`}>{selectedScheduleState.payment}</span></div>
-          <dl className={styles.installmentDialogFigures}>
-            <div><dt>Installment amount</dt><dd>{formatMoney(selectedScheduleItem.expected_amount)}</dd></div>
-            <div><dt>Finance verified</dt><dd>{formatMoney(selectedScheduleItem.paid_applied)}</dd></div>
-            <div><dt>Remaining</dt><dd>{formatMoney(selectedScheduleState.remaining)}</dd></div>
-          </dl>
-          <p id="installment-dialog-note" className={styles.installmentDialogNote}>{selectedScheduleState.payment === "Paid" ? "This installment is fully covered by Finance-verified payments." : "Staff-recorded payments do not reduce this amount until Finance verifies them."}</p>
-        </div>
-        <footer className={styles.installmentDialogFooter}><Link href="/portal/payments" onClick={() => installmentDialogRef.current?.close()}>View payment records <ArrowRight weight="bold" aria-hidden="true" /></Link><button type="button" onClick={() => installmentDialogRef.current?.close()}>Close</button></footer>
-      </dialog>}
       {customerTourOverlay}
     </main>
   );

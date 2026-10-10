@@ -28,30 +28,25 @@ cross-cutting security/privacy, built via a proper SDLC.
   separately. Milestone schedule is in [00-roadmap.md](00-roadmap.md).
 
 ### Recurring third-party subscriptions (paid by Fresh Phones PH)
-Separate from the dev fee and larger, per year, than the one-time fee. The v6 architecture
-uses a VPS frontend, Railway API/worker, Supabase, Redis, Resend, and Cloudflare. The estimates
-below use USD 1 = PHP 60 for planning only; provider prices, taxes, exchange rates, and usage vary.
+Separate from the development fee. The 2026-10-08 documentation decision changes the
+planned database/authentication stack to **Neon + Better Auth**. Earlier Supabase/Redis
+subscription estimates and totals are superseded and must not be used as a current quote.
 
-| Item | Treatment | Notes |
-|---|---|---|
-| VPS / frontend | Recurring | Plan around USD 24/mo (~PHP 1,440) for a 2 vCPU / 4 GB Next.js host; provider and region remain to be selected |
-| Railway / API and worker | Recurring | Pro from USD 20/mo (~PHP 1,200) including usage credit; two API replicas and a worker scale by actual CPU/RAM use |
-| Supabase | Recurring | Pro with Small compute about USD 30/mo (~PHP 1,800) for production DB/auth/storage/quotas |
-| Cloudflare / domain | Domain + optional paid | DNS + Email Routing can stay Free; domain renewal is separate annual cost by TLD |
-| Resend / email | Recurring if over free | Free up to 3,000 emails/mo; Pro from USD 20/mo (~PHP 1,227) for 50k |
-| Redis | Recurring | Fixed 250 MB baseline about USD 10/mo (~PHP 600) for events, queues, and rate limiting; high-availability Redis is a separate cost decision |
-| Maintenance | Separate after-launch agreement | Not part of the subscription total |
-
-**Planning reference totals:**
-| Scenario | Estimated total |
+| Item | Planning status |
 |---|---|
-| Baseline monthly | ~USD 84 / ~PHP 5,040 per month |
-| With Resend Pro and Railway usage headroom | ~USD 119 / ~PHP 7,140 per month |
-| Suggested operating allowance | ~PHP 7,000/month, excluding taxes, domain renewal, and optional AI/monitoring usage |
+| VPS / frontend | Provider, region and operating cost to be confirmed |
+| Railway / API | Two-replica target retained; usage and any worker cost to be estimated |
+| Neon / PostgreSQL | Plan, capacity, pooling and recovery window to be selected and priced |
+| Better Auth | Application integration and operation; do not assume a Supabase Auth subscription |
+| Private object storage | S3-compatible provider and usage estimate pending |
+| Event/job infrastructure | Production choice pending; no mandatory Redis subscription in the revised baseline |
+| Resend / email | Plan depends on approved notification volume |
+| Cloudflare / domain | Domain renewal and any paid services to be confirmed |
+| Maintenance | Separate after-launch agreement |
 
-*Assumptions:* one 2 vCPU / 4 GB VPS, Railway Pro with two API replicas and one worker,
-Supabase Pro with Small compute, a fixed 250 MB Redis instance, Cloudflare Free DNS/Email
-Routing, and Resend Free or Pro according to email volume.
+A new monthly/annual total remains **pending** until the unresolved services and usage are
+confirmed. No provider purchase or production cutover is authorized by this documentation update.
+See [architecture decisions](20-v6-architecture-decision.md).
 
 ### Recommended ownership (§20)
 Production domain, hosting, database, email, and other third-party accounts should be **owned

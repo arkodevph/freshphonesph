@@ -3,11 +3,13 @@ import { FacebookLogo, MessengerLogo } from "@phosphor-icons/react/dist/ssr";
 
 const nav = [
   { href: "/#how", label: "How it Works" },
-  { href: "/#iphones", label: "iPhones" },
-  { href: "/#plans", label: "Plans" },
-  { href: "/#reviews", label: "Reviews" },
+  { href: "/#units", label: "Units & payment offers" },
   { href: "/#faq", label: "FAQ" },
   { href: "/careers", label: "Careers" },
+  { href: "/verify", label: "Verify an agent" },
+  { href: "/support", label: "Support" },
+  { href: "/privacy", label: "Privacy notices" },
+  { href: "/terms", label: "Portal terms" },
 ];
 
 const socials = [

@@ -123,7 +123,8 @@ Before production acceptance, record named Owner/HR/COO UAT for:
 - Denied access for General Manager, Finance, Records, Analytics, Support,
   handlers and customers while their ordinary work remains available.
 
-Consequential HR actions still need their separately approved human workflow.
+The separate consequential HR request and Owner decision workflow is now implemented
+locally; see [47-consequential-hr-action-approvals.md](47-consequential-hr-action-approvals.md).
 This increment adds access control for existing records and does not automate
 payroll deductions or hiring decisions. AI work remains deferred until funding and
 API payment are available; see [36-scope-handoff.md](36-scope-handoff.md).

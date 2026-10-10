@@ -1,4 +1,7 @@
 import { z } from 'zod';
+export * from './catalog';
+export * from './legal';
+export * from './retention';
 
 export const roles = [
   'OWNER',
@@ -34,6 +37,8 @@ export const permissions = [
   'CLIENT_READ',
   'CLIENT_MANAGE',
   'AGENT_MANAGE',
+  'CATALOG_MANAGE',
+  'RETENTION_MANAGE',
   'ACCOUNT_MANAGE',
   'AUDIT_READ',
   'PAYMENT_READ',
@@ -57,7 +62,7 @@ export const permissions = [
   'NOTIFICATION_MANAGE',
 ] as const;
 export type Permission = (typeof permissions)[number];
-const records: Permission[] = ['BATCH_READ', 'BATCH_MANAGE', 'CLIENT_READ', 'CLIENT_MANAGE', 'AGENT_MANAGE'];
+const records: Permission[] = ['BATCH_READ', 'BATCH_MANAGE', 'CLIENT_READ', 'CLIENT_MANAGE', 'AGENT_MANAGE', 'CATALOG_MANAGE'];
 const ownWork: Permission[] = ['TASK_READ', 'TASK_SUBMIT', 'NOTIFICATION_READ'];
 export const rolePermissions: Record<Role, readonly Permission[]> = {
   OWNER: permissions,
@@ -392,6 +397,7 @@ export interface SupportReport {
   open: number;
   closed: number;
   categories: { category: string; total: number; closed: number; averageTurnaroundHours: number | null }[];
+  sources: { source: SupportSource; total: number }[];
 }
 export type BatchInput = z.infer<typeof batchSchema>;
 export type ClientInput = z.infer<typeof clientSchema>;
@@ -401,6 +407,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  image?: string | null;
   role: Role;
   permissions: Permission[];
   clientId: string | null;
@@ -703,10 +710,14 @@ export const kpiReviewSchema = z.object({
   decision: z.enum(kpiDecisions).default('NOTED'),
 }).strict();
 export const supportStatuses = ['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CLIENT', 'RESOLVED', 'CLOSED'] as const;
+export const supportSources = ['UNRECORDED', 'CUSTOMER_PORTAL', 'MESSENGER', 'FACEBOOK', 'PHONE', 'WALK_IN', 'OTHER'] as const;
+export const staffSupportSources = ['MESSENGER', 'FACEBOOK', 'PHONE', 'WALK_IN', 'OTHER'] as const;
+export type SupportSource = typeof supportSources[number];
 export const supportCreateSchema = z.object({
   category: z.string().trim().min(2).max(80),
   description: z.string().trim().min(5).max(4000),
-  clientId: z.string().uuid().optional(),
+  clientId: z.string().uuid(),
+  source: z.enum(staffSupportSources),
 }).strict();
 export const supportUpdateSchema = z.object({
   status: z.enum(supportStatuses).optional(),
@@ -741,6 +752,8 @@ export const applicantSchema = z.object({
   email: z.string().email().transform((value) => value.toLowerCase()),
   phone: z.string().trim().max(40).default(''),
   message: z.string().trim().max(4000).default(''),
+  privacyNoticeVersion: z.string().trim().min(1).max(60).optional(),
+  privacyNoticeAcknowledged: z.union([z.literal(true), z.literal('true')]).transform(() => true).optional(),
 }).strict();
 export const applicantUpdateSchema = z.object({
   status: z.enum(applicantStatuses).optional(),
@@ -780,6 +793,7 @@ export const reportSnapshotSchema = z.object({
   periodEnd: z.string().date(),
   batchId: z.string().uuid().optional(),
   status: paymentStatusSchema.optional(),
+  analysis: z.string().trim().min(20).max(4000).optional(),
 }).strict().refine((value) => value.periodEnd >= value.periodStart, {
   path: ['periodEnd'], message: 'End date must be on or after the start date.',
 }).refine((value) => value.kind === 'PAYMENTS' || (!value.status && (['COLLECTIONS', 'RECONCILIATION'].includes(value.kind) || !value.batchId)), {
@@ -788,9 +802,12 @@ export const reportSnapshotSchema = z.object({
 export type ReportSnapshotInput = z.infer<typeof reportSnapshotSchema>;
 export type ReportKind = 'payments' | 'tasks' | 'support' | 'collections' | 'reconciliation';
 export type ReportPaymentFilters = { batchId?: string; batchCode?: string; status?: PaymentStatus };
+export const reportAnalysisSchema = z.object({ body: z.string().trim().min(20).max(4000) }).strict();
+export type ReportAnalysis = { id: string; body: string; createdAt: string; submittedBy: { id: string; name: string } };
 type ReportSnapshotBase = {
   id: string; periodStart: string; periodEnd: string; createdAt: string;
   createdBy: { id: string; name: string };
+  analysis: ReportAnalysis | null;
 };
 export type ReportSnapshot = ReportSnapshotBase & (
   | { kind: 'PAYMENTS'; payload: PaymentReport & { filters?: ReportPaymentFilters } }

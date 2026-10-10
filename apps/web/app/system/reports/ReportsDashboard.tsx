@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { ChartBar, DownloadSimple, FloppyDisk } from "@phosphor-icons/react";
 import type { ReconciliationReport, ReconciliationSnapshot, CollectionReport, CollectionSnapshot, Page, PaymentReport, ReportBatchOption, ReportKind, ReportSnapshot, SupportReport, TaskReport } from "@freshphones/contracts";
-import { createReportSnapshot, downloadReportExport, getReconciliationReport, getCollectionReport, getPaymentReport, getReportBatches, getReportSnapshots, getSupportReport, getTaskReport } from "@/lib/api";
+import { createReportSnapshot, downloadReportExport, getReconciliationReport, getCollectionReport, getPaymentReport, getReportBatches, getReportSnapshots, getSupportReport, getTaskReport, submitReportAnalysis, supportSourceLabel } from "@/lib/api";
 import { defaultReportFilters, reportFilterQuery, snapshotInput, type ReportFilters } from "@/lib/report-filters";
 import styles from "./reports.module.css";
 import ReconciliationResults from "./ReconciliationResults";
@@ -28,6 +28,7 @@ export default function ReportsDashboard({ canReviewPayments = false }: { canRev
   const [validation, setValidation] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [analysisDraft, setAnalysisDraft] = useState("");
   const [busy, setBusy] = useState<"csv" | "xlsx" | "save" | null>(null);
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [reportPage, setReportPage] = useState(1);
@@ -62,7 +63,7 @@ export default function ReportsDashboard({ canReviewPayments = false }: { canRev
     const query = reportFilterQuery(kind, draft);
     if (!query.params) { setValidation(query.error); return; }
     sequence.current++;
-    setValidation(null); setNotice(null); setActionError(null);
+    setValidation(null); setNotice(null); setActionError(null); setAnalysisDraft("");
     setLoading(true); setReport(null); setReportPage(1); setAppliedBatch(batch); setApplied({ ...draft });
   }
   function selectKind(next: ReportKind) {
@@ -70,7 +71,7 @@ export default function ReportsDashboard({ canReviewPayments = false }: { canRev
     sequence.current++;
     const filters = { ...applied, batchId: "", status: "" };
     setKind(next); setReportPage(1); setApplied(filters); setDraft(filters); setBatch(null); setAppliedBatch(null);
-    setReport(null); setLoading(true); setError(null); setValidation(null); setActionError(null); setNotice(null);
+    setReport(null); setLoading(true); setError(null); setValidation(null); setActionError(null); setNotice(null); setAnalysisDraft("");
   }
   async function runAction(action: "csv" | "xlsx" | "save") {
     if (operation.current || loading || !report || dirty) return;
@@ -78,11 +79,13 @@ export default function ReportsDashboard({ canReviewPayments = false }: { canRev
     if (!query.params) { setValidation(query.error); return; }
     const saved = snapshotInput(kind, applied);
     if (action === "save" && !saved.input) { setActionError(saved.error); return; }
+    const written = analysisDraft.trim();
+    if (action === "save" && written && written.length < 20) { setActionError("Write at least 20 characters for analysis, or leave it blank and add it later."); return; }
     operation.current = true; setBusy(action); setActionError(null); setNotice(null);
     try {
       if (action === "save") {
-        await createReportSnapshot(saved.input!);
-        if (mounted.current) { setNotice("Period report saved. View its captured figures in the history below."); setHistoryRefresh((value) => value + 1); }
+        await createReportSnapshot({ ...saved.input!, ...(written ? { analysis: written } : {}) });
+        if (mounted.current) { setAnalysisDraft(""); setNotice(written ? "Period report and analysis submitted. View them in the history below." : "Period report saved. You can submit analysis from its history entry."); setHistoryRefresh((value) => value + 1); }
       } else {
         await downloadReportExport(kind, action, query.params);
         if (mounted.current) setNotice(`${action.toUpperCase()} download started for the applied filters.`);
@@ -107,7 +110,7 @@ export default function ReportsDashboard({ canReviewPayments = false }: { canRev
           <label className={styles.field}>From<input type="date" value={draft.dateFrom} max={draft.dateTo || "9999-12-31"} onChange={(event) => edit("dateFrom", event.target.value)} /></label>
           <label className={styles.field}>To<input type="date" value={draft.dateTo} min={draft.dateFrom || "0001-01-01"} max="9999-12-31" onChange={(event) => edit("dateTo", event.target.value)} /></label>
           {kind === "payments" && <label className={styles.field}>Payment status<select value={draft.status} onChange={(event) => edit("status", event.target.value)}><option value="">All statuses</option>{["VERIFIED", "PENDING", "NEEDS_CLARIFICATION", "REJECTED"].map((status) => <option key={status} value={status}>{statusNames[status]}</option>)}</select></label>}
-          <div className={styles.actions}><button type="submit" className={styles.primary}>Apply filters</button><button type="button" onClick={() => { const filters = defaultReportFilters(); setDraft(filters); setApplied(filters); setReportPage(1); setBatch(null); setAppliedBatch(null); setLoading(true); setReport(null); setValidation(null); setActionError(null); setNotice(null); sequence.current++; }}>This month</button></div>
+          <div className={styles.actions}><button type="submit" className={styles.primary}>Apply filters</button><button type="button" onClick={() => { const filters = defaultReportFilters(); setDraft(filters); setApplied(filters); setReportPage(1); setBatch(null); setAppliedBatch(null); setLoading(true); setReport(null); setValidation(null); setActionError(null); setNotice(null); setAnalysisDraft(""); sequence.current++; }}>This month</button></div>
         </fieldset>
         {(["payments", "collections", "reconciliation"].includes(kind)) && <fieldset disabled={Boolean(busy)}><BatchPicker value={batch} onChange={(item) => { setBatch(item); edit("batchId", item?.id ?? ""); }} /></fieldset>}
       </form>
@@ -127,7 +130,9 @@ export default function ReportsDashboard({ canReviewPayments = false }: { canRev
       {actionError && <p role="alert" className={styles.error}>{actionError}</p>}
       {notice && <p role="status" className={styles.notice}>{notice}</p>}
       {loading ? <p role="status" className={styles.empty}>Loading report figures…</p> : error ? <p role="alert" className={styles.error}>{error} <button type="button" onClick={() => void load()}>Retry report</button></p> : report && <ReportResults report={report} scope={reportFilterQuery(kind, applied).params ?? undefined} canReviewPayments={canReviewPayments} pageDisabled={dirty || Boolean(busy)} onPage={(page) => { sequence.current++; setReport(null); setLoading(true); setReportPage(page); }} />}
-      <p className={styles.help}>Downloads contain only report fields. Choose both dates to save a period report; saved figures stay as they were at the time of saving.</p>
+      <label className={styles.analysisEntry}>Analysis for this saved period <span className={styles.help}>Optional. Human-written; visible to all report viewers. Summarize trends and actions without customer names, contact details or private task evidence.</span><textarea value={analysisDraft} onChange={(event) => { setAnalysisDraft(event.target.value); setActionError(null); }} disabled={loading || Boolean(busy)} maxLength={4000} rows={5} placeholder="What do the figures mean for this period?" /><small>{analysisDraft.length}/4000 characters</small></label>
+      <div className={styles.actions}><button type="button" className={styles.primary} disabled={loading || !report || dirty || Boolean(busy) || !applied.dateFrom || !applied.dateTo} onClick={() => void runAction("save")}><FloppyDisk aria-hidden="true" />{busy === "save" ? "Saving…" : analysisDraft.trim() ? "Save period and analysis" : "Save period report"}</button></div>
+      <p className={styles.help}>Downloads contain only report fields. Choose both dates to save a period report; saved figures and submitted analysis stay as they were at submission. You can add analysis later to a saved report that has none.</p>
     </section>
     <ReportHistory key={`${kind}:${historyRefresh}`} kind={kind} />
   </div>;
@@ -194,7 +199,7 @@ function ReportResults({ report, onPage, pageDisabled, scope, canReviewPayments 
   }
   const data = report.data;
   return <><Metrics items={[{ label: "Cases created", value: data.total }, { label: "Open cases", value: data.open }, { label: "Resolved or closed", value: data.closed }]} />
-    {data.total === 0 ? <p className={styles.empty}>No support cases were created in this period.</p> : <div className={styles.tableWrap}><table><caption>Support categories and turnaround</caption><thead><tr><th scope="col">Category</th><th scope="col">Cases</th><th scope="col">Closed with timing</th><th scope="col">Average turnaround</th></tr></thead><tbody>{data.categories.map((item) => <tr key={item.category}><th scope="row">{item.category}</th><td>{item.total}</td><td>{item.closed}</td><td>{item.averageTurnaroundHours === null ? "No timed closures" : `${item.averageTurnaroundHours} hours`}</td></tr>)}</tbody></table></div>}
+    {data.total === 0 ? <p className={styles.empty}>No support cases were created in this period.</p> : <><div className={styles.tableWrap}><table><caption>Support categories and turnaround</caption><thead><tr><th scope="col">Category</th><th scope="col">Cases</th><th scope="col">Closed with timing</th><th scope="col">Average turnaround</th></tr></thead><tbody>{data.categories.map((item) => <tr key={item.category}><th scope="row">{item.category}</th><td>{item.total}</td><td>{item.closed}</td><td>{item.averageTurnaroundHours === null ? "No timed closures" : `${item.averageTurnaroundHours} hours`}</td></tr>)}</tbody></table></div>{data.sources && <div className={styles.tableWrap}><table><caption>Support cases by contact source</caption><thead><tr><th scope="col">Source</th><th scope="col">Cases</th></tr></thead><tbody>{data.sources.map((item) => <tr key={item.source}><th scope="row">{supportSourceLabel(item.source)}</th><td>{item.total}</td></tr>)}</tbody></table></div>}</>}
     <p className={styles.help}>Turnaround uses cases with a recorded closure time. Individual concerns, replies and contact details are excluded.</p></>;
 }
 
@@ -269,19 +274,33 @@ function ReportHistory({ kind }: { kind: ReportKind }) {
   const latest = () => { if (page !== 1) { sequence.current++; setPage(1); } else void load(); };
   return <section className={styles.panel} aria-labelledby="report-history-title" aria-busy={loading}>
     <div className={styles.sectionHeading}><div><h2 id="report-history-title">Saved {names[kind].toLowerCase()} reports</h2><p className={styles.help}>Captured figures from prior periods. Changes to live records do not alter these saved reports.</p></div><button type="button" disabled={loading} onClick={latest}>Refresh history</button></div>
-    {loading ? <p role="status" className={styles.empty}>Loading saved reports…</p> : error ? <p role="alert" className={styles.error}>{error} <button type="button" onClick={() => void load()}>Retry history</button></p> : result?.items.length ? <div className={styles.history}>{result.items.map((item) => <SavedReport key={item.id} item={item} />)}</div> : <p className={styles.empty}>No saved reports yet. Choose a period and use “Save period report” to retain its figures.</p>}
+    {loading ? <p role="status" className={styles.empty}>Loading saved reports…</p> : error ? <p role="alert" className={styles.error}>{error} <button type="button" onClick={() => void load()}>Retry history</button></p> : result?.items.length ? <div className={styles.history}>{result.items.map((item) => <SavedReport key={item.id} item={item} onSubmitted={() => void load()} />)}</div> : <p className={styles.empty}>No saved reports yet. Choose a period and use “Save period report” to retain its figures.</p>}
     <nav className={styles.pagination} aria-label="Saved report pages">
       <span>{result?.total ?? "—"} saved reports</span><button type="button" disabled={loading || page === 1} onClick={() => { sequence.current++; setPage(page - 1); }}>Previous</button><span>Page {page} of {Math.max(1, Math.ceil((result?.total ?? 0) / 20))}</span><button type="button" disabled={loading || !result || page * result.pageSize >= result.total} onClick={() => { sequence.current++; setPage(page + 1); }}>Next</button>
     </nav>
   </section>;
 }
 
-function SavedReport({ item }: { item: ReportSnapshot }) {
+function SavedReport({ item, onSubmitted }: { item: ReportSnapshot; onSubmitted: () => void }) {
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (busy || draft.trim().length < 20) return;
+    setBusy(true); setError(null);
+    try { await submitReportAnalysis(item.id, draft.trim()); onSubmitted(); }
+    catch (reason) { setError(message(reason)); }
+    finally { setBusy(false); }
+  }
   const report: LoadedReport = item.kind === "PAYMENTS" ? { kind: "payments", data: item.payload } : item.kind === "RECONCILIATION" ? { kind: "reconciliation", data: item.payload } : item.kind === "COLLECTIONS" ? { kind: "collections", data: item.payload } : item.kind === "TASKS" ? { kind: "tasks", data: item.payload } : { kind: "support", data: item.payload };
   const filters = item.kind === "PAYMENTS" || item.kind === "COLLECTIONS" || item.kind === "RECONCILIATION" ? item.payload.filters : undefined;
   const status = item.kind === "PAYMENTS" ? item.payload.filters?.status : undefined;
   return <details className={styles.saved}>
-    <summary><strong>{dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}</strong><span>{item.kind === "PAYMENTS" || item.kind === "COLLECTIONS" || item.kind === "RECONCILIATION" ? (filters?.batchCode ? `Batch ${filters.batchCode}` : "All batches") : "Created in this period"}{status ? ` · ${statusNames[status]}` : ""}</span><small>Saved by {item.createdBy.name} · {new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(item.createdAt))} (Manila)</small><span className={styles.viewSaved}>View captured figures</span></summary>
-    <div className={styles.savedFigures}><ReportResults report={report} /></div>
+    <summary><strong>{dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}</strong><span>{item.kind === "PAYMENTS" || item.kind === "COLLECTIONS" || item.kind === "RECONCILIATION" ? (filters?.batchCode ? `Batch ${filters.batchCode}` : "All batches") : "Created in this period"}{status ? ` · ${statusNames[status]}` : ""}</span><small>Saved by {item.createdBy.name} · {new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(item.createdAt))} (Manila)</small><span className={styles.viewSaved}>{item.analysis ? "View figures and submitted analysis" : "View figures · Analysis pending"}</span></summary>
+    <div className={styles.savedFigures}>
+      {item.analysis ? <section className={styles.submittedAnalysis} aria-label="Submitted period analysis"><h3>Submitted analysis</h3><p>{item.analysis.body}</p><small>Submitted by {item.analysis.submittedBy.name} · {new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }).format(new Date(item.analysis.createdAt))} (Manila)</small></section> : <form onSubmit={submit} className={styles.analysisEntry}><label htmlFor={`analysis-${item.id}`}>Submit analysis for this saved period</label><p className={styles.help}>This becomes a permanent part of this report. Avoid names, contact details and private evidence.</p><textarea id={`analysis-${item.id}`} value={draft} onChange={(event) => setDraft(event.target.value)} minLength={20} maxLength={4000} rows={5} required disabled={busy} placeholder="Describe the period’s findings and follow-up." /><small>{draft.length}/4000 characters</small>{error && <p role="alert" className={styles.error}>{error}</p>}<button type="submit" className={styles.primary} disabled={busy || draft.trim().length < 20}>{busy ? "Submitting…" : "Submit analysis"}</button></form>}
+      <ReportResults report={report} />
+    </div>
   </details>;
 }

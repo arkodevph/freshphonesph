@@ -31,7 +31,7 @@ Use synthetic records and two separate customer accounts. Repeat at a narrow mob
 
 ## Production setup
 
-1. Fresh Phones PH provisions a **private** bucket in its own Supabase project and enables S3 access. Use server-only keys and the direct storage S3 endpoint. The API requires `PRIVATE_STORAGE_PROVIDER=s3`, endpoint, region, bucket, access key, secret key, and HTTPS. Keep the bucket private; the browser accesses files only through role-checked API endpoints. [Supabase S3 setup](https://supabase.com/docs/guides/storage/s3/authentication).
+1. Fresh Phones PH selects a production S3-compatible storage provider and provisions a **private** client-owned bucket. Use server-only keys and that provider’s S3 endpoint. The API requires `PRIVATE_STORAGE_PROVIDER=s3`, endpoint, region, bucket, access key, secret key, and HTTPS. Keep the bucket private; the browser accesses files only through role-checked API endpoints. Provider selection remains pending after the Neon/Better Auth documentation decision; local MinIO evidence does not constitute provider acceptance.
 2. Before switching providers, back up the database and local private files. Run `pnpm --filter @fresh/api-ts storage:migrate` to count files, then `pnpm --filter @fresh/api-ts storage:migrate --apply` to copy and SHA-256 verify them. Keep originals until the rollback window ends. Test customer and staff downloads after switching.
 3. Configure the Fresh Phones PH verified sending domain, `RESEND_API_KEY`, and an explicit `EMAIL_FROM` on that domain. Production startup rejects the example sender. Notifications are queued with the account change, delivered after commit, retried, and marked `FAILED` for manual review after repeated failures or the provider's 24-hour idempotency window. Existing notifications are not backfilled as new emails. [Resend idempotency keys](https://resend.com/docs/dashboard/emails/idempotency-keys).
 4. The Owner reviews customer email templates and reminder timing at `/system/notification-settings`. The default reminder setting is blank. `CUSTOMER_REMINDER_DAYS_BEFORE` is an optional deployment fallback if no database setting exists; for example `3,0` for three days before and due day. Confirm recipient email addresses before enabling production email. Keep reset and notification messages free of private document contents.
@@ -54,7 +54,7 @@ Record the provider test email, mobile/desktop journey results, privacy decision
 | Retention/deletion periods for IDs, agreements, proofs, old versions, email logs and backups | Privacy owner | Pending |
 | Support and incident contact, access review, export/deletion request process | Operations and privacy owner | Pending |
 | Email template wording and reminder offsets | Operations and privacy owner | Pending |
-| Client-owned Supabase bucket, domain, sender and production credentials | Client technical owner | Pending |
+| Client-owned private bucket, domain, sender and production credentials | Client technical owner | Pending |
 | Named mobile/desktop UAT pass and launch approval | Fresh Phones PH reviewer | Pending |
 
 Do not record UAT as accepted or collect real identity documents until these entries are completed.

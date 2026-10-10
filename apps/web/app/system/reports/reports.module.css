@@ -8,7 +8,7 @@
 .page button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 13px; border: 1px solid var(--system-border); border-radius: 12px; background: var(--system-surface); color: var(--system-text); font-size: 12px; font-weight: 650; cursor: pointer; }
 .page button:disabled { opacity: .45; cursor: default; }
 .page button:hover:not(:disabled) { border-color: var(--system-accent); }
-.page button:focus-visible, .page input:focus-visible, .page select:focus-visible, .page summary:focus-visible { outline: 2px solid var(--system-accent); outline-offset: 3px; }
+.page button:focus-visible, .page input:focus-visible, .page select:focus-visible, .page textarea:focus-visible, .page summary:focus-visible { outline: 2px solid var(--system-accent); outline-offset: 3px; }
 .page .primary { background: var(--system-accent); color: #fff; border-color: var(--system-accent); }
 .tabs button { padding: 10px 18px; border-radius: 14px; }
 .tabs button[aria-pressed="true"] { background: var(--system-accent-soft); color: var(--system-accent); border-color: var(--system-accent); }
@@ -18,6 +18,15 @@
 .field { display: grid; gap: 6px; min-width: 0; font-size: 12px; font-weight: 650; }
 .filters .field { flex: 1 1 170px; }
 .field input, .field select { width: 100%; min-width: 0; height: 42px; padding: 8px 11px; border: 1px solid var(--system-border); border-radius: 12px; background: var(--system-surface); color: var(--system-text); font-size: 13px; font-weight: 400; }
+.analysisEntry { display: grid; gap: 8px; margin-top: 18px; font-size: 13px; font-weight: 650; }
+.analysisEntry .help { margin: 0; font-weight: 400; }
+.analysisEntry textarea { width: 100%; min-width: 0; resize: vertical; padding: 10px 11px; border: 1px solid var(--system-border); border-radius: 12px; background: var(--system-surface); color: var(--system-text); font: inherit; font-weight: 400; line-height: 1.6; }
+.analysisEntry small { color: var(--system-muted); font-size: 11px; font-weight: 400; }
+.analysisEntry button { justify-self: start; }
+.submittedAnalysis { padding: 14px; margin-bottom: 16px; border-radius: 12px; background: var(--system-accent-soft); }
+.submittedAnalysis h3 { font-size: 13px; font-weight: 700; }
+.submittedAnalysis p { margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.6; }
+.submittedAnalysis small { display: block; margin-top: 8px; color: var(--system-muted); font-size: 11px; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .actions svg { width: 16px; height: 16px; }
 .help { color: var(--system-muted); font-size: 12px; line-height: 1.7; margin-top: 12px; }

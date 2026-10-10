@@ -1,5 +1,12 @@
 # Fresh Phones PH — Completed scope and coworker handoff
 
+> **2026-10-08 architecture update (documentation only):** Neon PostgreSQL and Better Auth
+> replace the planned Supabase database/Auth stack. On 2026-10-09 the user reaffirmed Redis
+> for live events and background workers; Redis Streams/BullMQ and Better Auth/MFA are
+> implemented locally. Production provisioning, distributed rate limiting and private
+> object storage selection remain open. See [the decision record](20-v6-architecture-decision.md)
+> and [Redis runbook](53-redis-events-workers.md).
+
 Updated **2026-10-08**. This is a summary of work completed or integrated locally,
 plus the remaining implementation and launch tasks. Local verification does not
 mean business UAT or production acceptance is complete.
@@ -37,7 +44,7 @@ mean business UAT or production acceptance is complete.
   The shared application uses normal sign-in with privately provisioned accounts.
 - All 97 pre-merge local files were preserved. The recovery stash and private
   database/file backups remain available locally; they are not project source.
-- The local preview database has all **24 active migrations**, with existing data
+- The local preview database has all **30 active migrations**, with existing data
   preserved and no Prisma schema drift.
 - Local web: `http://localhost:3000`; API: `http://localhost:4101`;
   API/database health: `GET /api/health`.
@@ -54,8 +61,14 @@ mean business UAT or production acceptance is complete.
 | Recruitment | Public careers/application forms, private attachments, job publication/closing, full-backlog job/applicant search and pagination, global counts, retained review drafts and explicit stale-review resolution. Existing agent management remains available. | [Recruitment directory](41-recruitment-directory.md), [merge details](35-upstream-merge.md) |
 | Confidential HR access | Owner automatic access; explicit reasoned per-person grants for HR / Payroll or COO, private KPI/applicant gates, decision history, stale-save rejection, role/deactivation resets and session revocation. | [Confidential HR access](42-confidential-hr-access.md) |
 | Reporting | Permission-gated Reports page, payment and collection totals, internal verification-audit reconciliation, review flags with separately authorized payment exceptions, task/KPI and Support aggregates, CSV/XLSX and captured history. Paging preserves full-scope totals, exports and saves. | [Reports page](37-reports-page.md), [Batch & Collections](38-batch-collection-reports.md), [Reconciliation](39-reconciliation-reports.md), [merge details](35-upstream-merge.md) |
+| Submitted report analysis | Existing report viewers can attach one immutable human interpretation when saving a period or later to an older snapshot. History shows it with the unchanged captured figures, author and time. | [Submitted analysis](49-submitted-report-analysis.md) |
 | Finance adjustments | Finance-only amount corrections, full reversal/restoration, append-only reasons/actors/history, guarded retries and stale writes, consistent adjusted balances/schedules/customer documents/reports, and adjustment audit-gap evidence. Original verified records and saved snapshots remain unchanged. | [Payment adjustments](40-payment-adjustments.md) |
 | Public site & integration | Imported landing/careers experience, mobile horizontal-overflow fix, reconciled API/contracts and migration history, and a working local web/API setup. | [Merge details](35-upstream-merge.md) |
+| Public catalog | Owner/COO/General Manager/Records maintain published listings, daily rates, availability and photos. Public search/paging, audited versioned saves and private-file isolation are implemented locally. | [Public catalog](43-public-catalog.md) |
+| Payment breakdown | Catalog staff enter per-offer totals, counts and intervals. Customers can preview every installment and optional sample dates, with exact totals and fixed 7/15/30-day spacing. | [Sample payments](44-catalog-installment-breakdown.md) |
+| FAQ topic search | Public question/answer/topic search, four topic filters, counts, empty/reset states and keyboard-accessible accordion. | [FAQ search](45-faq-topic-search.md) |
+| Public support entry | Help/contact page and website links; customer request/history destinations survive sign-in, with existing private cases and staff role routing. | [Support entry](46-public-support-entry.md) |
+| Support source tracking | Portal origin is server-assigned; Customer Service logs external contacts with a chosen immutable source. Staff filters and support reports count source, while historical cases retain an honest `unrecorded` label. | [Source tracking](48-support-concern-source-tracking.md) |
 
 Existing payment verification, derived balances, customer portal, task/KPI,
 Support conversations and account administration were preserved and regression
@@ -97,15 +110,24 @@ acceptance record.
   audited and versioned, with negative role/private-file tests and session revocation.
   See [42-confidential-hr-access.md](42-confidential-hr-access.md).
 - [ ] Complete named Owner/HR/COO UAT for grant, revoke, role change and reactivation.
-- [ ] Complete the human approval/audit trail for consequential HR actions covered
-  by the scope. Existing task timing and KPI notes are not that approval workflow.
+- [x] Complete the human request → Owner approve/reject audit trail for consequential
+  HR actions linked to a human KPI recommendation; see [47-consequential-hr-action-approvals.md](47-consequential-hr-action-approvals.md).
+- [ ] Approve the written HR policy and complete named Owner/HR/COO action-decision UAT.
 - [x] Preserve ordinary role grants and handler isolation while separately gating
   private KPI reviews and applicant data. No payroll automation or automatic deductions.
 
 ### 3. Public site, documents and recruitment finishing work
 
-- [ ] Connect the public catalog and payment breakdown to approved, maintained
-  product/availability data; validate the complete support/contact entry points.
+- [x] Connect public unit cards to maintained listings, daily rates, availability and photos,
+  with Owner/COO/General Manager/Records management; see [43-public-catalog.md](43-public-catalog.md).
+- [x] Complete per-offer installment breakdowns with staff-entered terms and public
+  sample schedules; see [44-catalog-installment-breakdown.md](44-catalog-installment-breakdown.md).
+- [x] Add FAQ topic filters and question/answer search with accessible result and
+  reset behavior; see [45-faq-topic-search.md](45-faq-topic-search.md).
+- [x] Complete public support/contact entry points and preserve request/history intent
+  through sign-in; see [46-public-support-entry.md](46-public-support-entry.md).
+- [ ] Obtain business approval of catalog content, availability, installment terms and
+  public support contact details.
 - [ ] Have the business approve process, document requirements, FAQ and public copy.
 - [x] Complete recruitment paging/search across full applicant/job backlogs, with
   complete counts, retained drafts, explicit conflict resolution and private access
@@ -136,17 +158,22 @@ local email tools are ready, but real delivery is not accepted.
 
 ### 5. Production architecture, security and client policies
 
-- [ ] Complete the approved Supabase Auth/session/MFA cutover. The application
-  still uses its current cookie-session implementation.
-- [ ] Implement/validate the target Redis event fan-out and background workers,
-  including replica/reconnect/outage recovery and distributed rate limits.
-- [ ] Provision client-owned VPS, Railway, Supabase database/private storage, Redis,
-  domain/HTTPS and monitoring. Confirm provider/region/operating decisions first.
+- [ ] Complete Neon and the production Better Auth/session/MFA cutover. Better Auth/MFA is implemented locally; see [52-authentication-mfa.md](52-authentication-mfa.md). The application
+  uses Better Auth database sessions locally.
+- [ ] Provision and validate production Redis Streams/BullMQ, replica/reconnect/outage
+  recovery and capacity. Local implementation is complete; see [53-redis-events-workers.md](53-redis-events-workers.md).
+  Broader distributed rate limiting remains scope #13.
+- [ ] Provision client-owned VPS, Railway, Neon, selected private S3-compatible storage,
+  domain/HTTPS, authenticated Redis, separate worker services and monitoring; Confirm provider/region/operating decisions first.
 - [ ] Test two API replicas, private storage migration/access, secrets, access
   revocation, capacity, backup restoration, rollback and operational recovery.
 - [ ] Obtain approved notices/terms, document/applicant requirements, retention and
-  deletion rules, privacy contacts, access reviews and incident procedures. Implement
-  notice/version tracking and retention/deletion against those approved decisions.
+  deletion rules, privacy contacts, access reviews and incident procedures. Draft
+  notice screens, links and versioned acknowledgement infrastructure are implemented
+  locally in [50-privacy-notices-terms.md](50-privacy-notices-terms.md); publication and
+  retention policy activation still depends on those approved decisions. Owner-managed
+  retention policies, previews, holds, deletion approvals, durable file cleanup and
+  backup/provider follow up now exist locally in [51-retention-deletion.md](51-retention-deletion.md).
 
 Architecture requirements and decisions: [20-v6-architecture-decision.md](20-v6-architecture-decision.md).
 Client policy dependencies: [22-customer-portal-policy.md](22-customer-portal-policy.md).
@@ -252,7 +279,7 @@ Validation commands:
 ```bash
 pnpm typecheck
 pnpm test:api-ts
-pnpm --filter @fresh/web test
+NEXT_PUBLIC_API_BACKEND=typescript pnpm --filter @fresh/web test
 pnpm build
 ```
 
@@ -266,7 +293,7 @@ pnpm test:api-ts:integration
 
 **Migration handoff:** the two overlapping incoming September SQL scripts are
 preserved under `apps/api-ts/prisma/migration-sources/operations-completion/`.
-The latest forward migration is `20261008010000_confidential_hr_access`; the
+The latest forward migration is `20261009030000_better_auth_mfa`; the
 earlier reconciliation/operations migrations remain unchanged. Recruitment search
 and paging add no migration. Check an
 environment's applied migration names before deploying this branch; details are

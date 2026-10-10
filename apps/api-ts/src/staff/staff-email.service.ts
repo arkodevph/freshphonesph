@@ -14,7 +14,7 @@ import { accountAlertIsVisible } from './account-alerts';
 
 const timingAuditId = '7617ca2f-0f72-40c3-b32e-28152d60e400';
 const templateAuditId = (kind: StaffEmailKind) => `7617ca2f-0f72-40c3-b32e-28152d60e${401 + staffEmailKinds.indexOf(kind)}`;
-type SendEmail = (id: string, to: string, subject: string, text: string, sender: string) => Promise<void>;
+type SendEmail = (id: string, to: string, subject: string, text: string, sender: string, attemptId?: string) => Promise<void>;
 
 @Injectable()
 export class StaffEmailService {
@@ -90,7 +90,7 @@ export class StaffEmailService {
     }
   }
 
-  private async eligibility(tx: Prisma.TransactionClient, row: StaffEmail, now: Date, allowFutureReminder = false): Promise<string | null> {
+  async eligibility(tx: Prisma.TransactionClient, row: StaffEmail, now: Date, allowFutureReminder = false): Promise<string | null> {
     const user = await tx.user.findUnique({ where: { id: row.userId } });
     if (!user?.active || user.role === 'CUSTOMER') return 'Recipient no longer has active staff access.';
     if (user.email !== row.recipientEmail) return 'Recipient email changed; review the current account.';
@@ -126,9 +126,9 @@ export class StaffEmailService {
   }
 
   /** Claim with a lease and a fencing token; retries retain the exact provider payload. */
-  async deliver(send: SendEmail) {
+  async deliver(send: SendEmail, onlyId?: string) {
     const now = new Date();
-    const due = await this.db.staffEmail.findMany({ where: { status: { in: ['PENDING', 'SENDING'] }, nextAt: { lte: now } },
+    const due = await this.db.staffEmail.findMany({ where: { ...(onlyId ? { id: onlyId } : {}), status: { in: ['PENDING', 'SENDING'] }, nextAt: { lte: now } },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 20, select: { id: true } });
     for (const candidate of due) {
       const row = await this.db.$transaction(async (tx) => {
@@ -166,7 +166,7 @@ export class StaffEmailService {
       });
       if (!row) continue;
       try {
-        await send(row.id, row.recipientEmail, row.renderedSubject!, row.renderedBody!, row.sender!);
+        await send(row.id, row.recipientEmail, row.renderedSubject!, row.renderedBody!, row.sender!, row.attemptId!);
         await this.db.staffEmail.updateMany({ where: { id: row.id, status: 'SENDING', attemptId: row.attemptId },
           data: { status: 'SENT', sentAt: new Date(), error: null, attemptId: null, version: { increment: 1 } } });
       } catch {

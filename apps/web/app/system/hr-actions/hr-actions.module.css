@@ -1,0 +1,43 @@
+.page { display: grid; gap: 20px; color: var(--system-text); }
+.header { display: flex; align-items: flex-start; gap: 15px; padding: 4px 0 8px; }
+.header > div { flex: 1; }
+.header h1 { margin: 2px 0 5px; font-size: 27px; font-weight: 800; letter-spacing: -.03em; }
+.header p:last-child,.help { max-width: 780px; color: var(--system-muted); font-size: 13px; line-height: 1.6; }
+.icon { display: grid; width: 46px; height: 46px; flex: none; place-items: center; border-radius: 13px; background: var(--system-accent-soft); color: var(--system-accent); }
+.icon svg { width: 24px; height: 24px; }
+.eyebrow { color: var(--system-accent); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.card { min-width: 0; padding: 22px; border: 1px solid var(--system-border); border-radius: 17px; background: var(--system-surface); }
+.sectionHead { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.sectionHead h2 { margin-top: 2px; font-size: 19px; font-weight: 800; }
+.count { border-radius: 20px; background: var(--system-accent-soft); padding: 5px 9px; color: var(--system-accent); font-size: 12px; }
+.filter { display: grid; gap: 5px; min-width: 130px; font-size: 12px; font-weight: 700; }
+.list { margin-top: 16px; border-top: 1px solid var(--system-border); }
+.item { display: grid; gap: 10px; padding: 19px 0; border-bottom: 1px solid var(--system-border); }
+.itemHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+.itemHead h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 15px; font-weight: 800; }
+.itemHead p { margin-top: 3px; color: var(--system-muted); font-size: 12px; }
+.itemHead a { flex: none; color: var(--system-accent); font-size: 12px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.item > p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.55; }
+.item > p strong { font-weight: 800; }
+.badge { border-radius: 20px; background: var(--system-accent-soft); padding: 4px 8px; color: var(--system-accent); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.badge[data-status="APPROVED"] { background: #dff5e9; color: #136e42; }
+.badge[data-status="REJECTED"] { background: #ffe7e7; color: #a42525; }
+.decisionRecord { border-left: 3px solid var(--system-accent); padding: 7px 11px; background: var(--system-bg); }
+.form { display: grid; gap: 12px; max-width: 700px; margin-top: 6px; padding: 16px; border-radius: 12px; background: var(--system-bg); }
+.form label { display: grid; gap: 7px; font-size: 12px; font-weight: 700; }
+.form input,.form textarea,.filter select { width: 100%; min-width: 0; border: 1px solid var(--system-border); border-radius: 10px; background: var(--system-surface); padding: 10px 12px; color: var(--system-text); font: inherit; font-size: 13px; line-height: 1.5; }
+.form textarea { resize: vertical; }
+.form input:focus,.form textarea:focus,.filter select:focus { outline: 2px solid var(--system-accent); outline-offset: 2px; }
+.actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.page button { min-height: 37px; border-radius: 9px; padding: 8px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.page button:disabled { opacity: .5; cursor: not-allowed; }
+.page button:focus-visible,.page a:focus-visible { outline: 2px solid var(--system-accent); outline-offset: 2px; }
+.primary { background: var(--system-accent); color: white; }
+.secondary { border: 1px solid var(--system-border); background: var(--system-surface); color: var(--system-accent); }
+.error,.notice { border-radius: 10px; padding: 12px 14px; font-size: 13px; font-weight: 700; }
+.error { background: #ffe7e7; color: #a42525; }.notice { background: #dff5e9; color: #136e42; }
+.empty { padding: 24px 0; color: var(--system-muted); font-size: 13px; text-align: center; }
+.pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 17px; color: var(--system-muted); font-size: 12px; }
+.pagination > div { display: flex; align-items: center; gap: 10px; }
+.pagination button { border: 1px solid var(--system-border); color: var(--system-accent); }
+@media(max-width:650px) { .card { padding: 16px; } .header { align-items: flex-start; flex-wrap: wrap; } .header > button { margin-left: 61px; } .sectionHead,.itemHead { align-items: flex-start; flex-wrap: wrap; } .filter { width: 100%; } .itemHead a { margin-top: 4px; } .form { padding: 13px; } }

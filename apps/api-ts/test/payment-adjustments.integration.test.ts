@@ -218,7 +218,7 @@ test('role revocation is rechecked within the Finance write transaction, includi
   const payment = await verified(); const actor = await db.user.findUniqueOrThrow({ where: { id: sessions.get('FINANCE_OFFICER')!.id } });
   const body = input('9.00'); assert.equal((await request('FINANCE_OFFICER', `/payments/${payment.id}/adjustments`, body)).status, 200);
   await db.user.update({ where: { id: actor.id }, data: { role: 'RECORDS', version: { increment: 1 } } });
-  assert.equal((await request('FINANCE_OFFICER', `/payments/${payment.id}/adjustments`, body)).status, 403);
+  assert.equal((await request('FINANCE_OFFICER', `/payments/${payment.id}/adjustments`, body)).status, 401);
   await assert.rejects(app.get(FinanceService).adjust(actor as unknown as User, payment.id, input('8.00', 1)), /access has changed/);
   assert.equal(await db.paymentAdjustment.count({ where: { paymentId: payment.id } }), 1);
 });

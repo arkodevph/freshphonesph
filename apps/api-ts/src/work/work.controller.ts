@@ -1,3 +1,4 @@
+import { AbusePolicy } from '../abuse/policies';
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -44,6 +45,7 @@ export class WorkController {
   ) { return this.work.submit(user, id, body.version); }
 
   @Post('tasks/:id/attachments') @Requires('TASK_SUBMIT')
+  @AbusePolicy('upload')
   @UseInterceptors(FileInterceptor('attachment', { limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
   attach(
     @CurrentUser() user: User,
@@ -51,6 +53,7 @@ export class WorkController {
     @UploadedFile() file?: PrivateUpload,
   ) { return this.work.attach(user, id, file); }
 
+  @AbusePolicy('download')
   @Get('task-attachments/:id/content') @Requires('TASK_READ') async attachment(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,

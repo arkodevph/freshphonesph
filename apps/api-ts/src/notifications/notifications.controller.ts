@@ -9,10 +9,12 @@ import type { z } from 'zod';
 import { CurrentUser, Requires } from '../auth/access';
 import { Validate } from '../http';
 import { NotificationsService } from './notifications.service';
+import { WorkQueueService } from '../jobs/work-queue.service';
 
 @Controller('notifications')
 export class NotificationsController {
-  constructor(@Inject(NotificationsService) private readonly notifications: NotificationsService) {}
+  constructor(@Inject(NotificationsService) private readonly notifications: NotificationsService,
+    @Inject(WorkQueueService) private readonly queues: WorkQueueService) {}
 
   @Get() @Requires('NOTIFICATION_READ') list(
     @CurrentUser() user: User,
@@ -52,10 +54,12 @@ export class NotificationsController {
   }
 
   @Post('run-reminders') @HttpCode(200) @Requires('NOTIFICATION_MANAGE') reminders() {
+    if (this.queues.control) return this.queues.request('operations-reminders');
     return this.notifications.runTaskReminders();
   }
 
   @Post('deliver') @HttpCode(200) @Requires('NOTIFICATION_MANAGE') deliver() {
+    if (this.queues.control) return this.queues.request('reconcile');
     return this.notifications.deliverPending();
   }
 }

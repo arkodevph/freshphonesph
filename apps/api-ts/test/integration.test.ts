@@ -1,11 +1,11 @@
 import 'reflect-metadata';
-import { after, before, test } from 'node:test';
+import { after, before, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { INestApplication } from '@nestjs/common';
-import { roles, rolePermissions, staffEmailKinds, type Role, type StaffAlert, type StaffAlertPage } from '@freshphones/contracts';
+import { effectivePermissions, roles, rolePermissions, staffEmailKinds, type Role, type StaffAlert, type StaffAlertPage } from '@freshphones/contracts';
 import { createApp } from '../src/app';
 import { Database } from '../src/database';
 import { AuthService } from '../src/auth/auth.service';
@@ -131,10 +131,13 @@ before(async () => {
     DATABASE_URL: databaseUrl,
     WEB_ORIGIN: origin,
     JWT_SECRET: 'integration-only-secret-at-least-32-characters',
+
     EMAIL_FROM: 'test@example.test',
     CUSTOMER_REMINDER_DAYS_BEFORE: '',
     PRIVATE_STORAGE_PROVIDER: 'local',
     PRIVATE_STORAGE_S3_REGION: 'ap-southeast-1',
+    // This parity scenario deliberately submits many invalid applications.
+    ABUSE_LIMITS: { application: [[50, 3600]] },
   });
   await app.listen(0, '127.0.0.1');
   base = await app.getUrl();
@@ -209,10 +212,12 @@ before(async () => {
     DATABASE_URL: databaseUrl,
     WEB_ORIGIN: origin,
     JWT_SECRET: 'integration-only-secret-at-least-32-characters',
+
     EMAIL_FROM: 'test@example.test',
     CUSTOMER_REMINDER_DAYS_BEFORE: '',
     PRIVATE_STORAGE_PROVIDER: 'local',
     PRIVATE_STORAGE_S3_REGION: 'ap-southeast-1',
+    ABUSE_LIMITS: { application: [[50, 3600]] },
   });
   await second.listen(0, '127.0.0.1');
   secondBase = await second.getUrl();
@@ -220,6 +225,13 @@ before(async () => {
 after(async () => {
   await second?.close();
   await app?.close();
+});
+beforeEach(async () => {
+  // Each scenario makes many synthetic logins. Isolate fixture counters without weakening the API limiter or its cross-instance test.
+  await db.abuseBucket.deleteMany();
+  await db.loginAttempt.deleteMany({ where: { key: { in: [
+    tokenHash('login-ip:127.0.0.1'), ...[...emails.values()].map(email => tokenHash(`login-email:${email}`)),
+  ] } } });
 });
 
 test('database health and anonymous API denial', async () => {
@@ -262,12 +274,14 @@ test('recruitment role matrix protects listings, applicant details and writes', 
   for (const role of roles) {
     const session = await new Session().login(role);
     const permitted = rolePermissions[role].includes('RECRUITMENT_MANAGE');
-    for (const route of ['/recruitment/jobs', '/recruitment/applicants']) {
-      assert.equal((await session.request(route)).status, permitted ? 200 : 403, `${role} ${route}`);
-    }
+    const canReadApplicants = permitted && effectivePermissions({ role, hrConfidentialAccess: role === 'HR_PAYROLL' }).includes('HR_CONFIDENTIAL');
+    assert.equal((await session.request('/recruitment/jobs')).status, permitted ? 200 : 403, `${role} job listings`);
+    assert.equal((await session.request('/recruitment/applicants')).status, canReadApplicants ? 200 : 403, `${role} applicant records`);
     if (!permitted) {
       assert.equal((await session.request('/recruitment/jobs', post({ title: 'Unauthorized opening' }))).status, 403);
       assert.equal((await session.request(`/recruitment/jobs/${jobId}`, patch({ version: 1, record: { title: 'Unauthorized edit' } }))).status, 403);
+    }
+    if (!canReadApplicants) {
       assert.equal((await session.request(`/recruitment/applicants/${jobId}`, patch({ version: 1, status: 'HIRED' }))).status, 403);
       assert.equal((await session.request(`/applicant-attachments/${jobId}/content`)).status, 403);
     }
@@ -319,12 +333,16 @@ test('owner and recruitment staff share the public job board and applicant revie
     assert.equal(applicant.status, 'RECEIVED');
     const openings = await (await owner.request('/recruitment/jobs')).json();
     assert.equal(openings.items.find((item: { id: string }) => item.id === job.id)?._count.applicants, 1);
-    const reviewed = await staff.request(`/recruitment/applicants/${applicant.id}`, patch({
+    const reviewInput = {
       version: applicant.version, status: 'REVIEWING', reviewerNotes: 'Arrange a human-led interview.',
-    }));
+    };
+    const canReviewApplicants = effectivePermissions({ role, hrConfidentialAccess: role === 'HR_PAYROLL' }).includes('HR_CONFIDENTIAL');
+    if (!canReviewApplicants) assert.equal((await staff.request(`/recruitment/applicants/${applicant.id}`, patch(reviewInput))).status, 403);
+    const reviewer = canReviewApplicants ? staff : owner;
+    const reviewed = await reviewer.request(`/recruitment/applicants/${applicant.id}`, patch(reviewInput));
     assert.equal(reviewed.status, 200);
     const review = await reviewed.json();
-    assert.equal(review.reviewerId, accounts.get(role));
+    assert.equal(review.reviewerId, accounts.get(canReviewApplicants ? role : 'OWNER'));
     assert.equal(review.status, 'REVIEWING');
     const ownerQueue = await (await owner.request(`/recruitment/applicants?q=${suffix}-${role.toLowerCase()}-applicant`)).json();
     assert.equal(ownerQueue.items[0].reviewerNotes, 'Arrange a human-led interview.');
@@ -358,7 +376,7 @@ test('owner and recruitment staff share the public job board and applicant revie
   }
   await customer.request('/auth/logout', post({}));
 });
-test('wrong credentials, origin forgery, cookie flags and refresh replay protection', async () => {
+test('wrong credentials, origin forgery, cookie flags and signed database-session revocation', async () => {
   const session = new Session();
   assert.equal(
     (await session.request('/auth/login', post({ email: emails.get('OWNER'), password: 'wrong' })))
@@ -384,9 +402,9 @@ test('wrong credentials, origin forgery, cookie flags and refresh replay protect
     ).status,
     403,
   );
-  const oldRefresh = session.cookies.get('fp_refresh')!;
+  const oldRefresh = session.cookies.get('fp_session')!;
   assert.equal((await session.request('/auth/refresh', post({}))).status, 200);
-  assert.notEqual(session.cookies.get('fp_refresh'), oldRefresh);
+  assert.equal(session.cookies.get('fp_session'), oldRefresh);
   assert.equal(
     (
       await session.request('/auth/refresh', {
@@ -396,10 +414,10 @@ test('wrong credentials, origin forgery, cookie flags and refresh replay protect
     ).status,
     401,
   );
-  const oldAccess = session.cookies.get('fp_access')!;
+  const oldAccess = session.cookies.get('fp_session')!;
   await session.request('/auth/logout', post({}));
   assert.equal(
-    (await session.request('/auth/me', { headers: { Cookie: `fp_access=${oldAccess}` } })).status,
+    (await session.request('/auth/me', { headers: { Cookie: `fp_session=${oldAccess}` } })).status,
     401,
   );
 });
@@ -989,10 +1007,10 @@ test('password reset is single-use and revokes existing sessions without exposin
   }
   assert.ok(token);
   assert.ok(resetMail.includes(`Reset code: ${token}`));
-  const stored = await db.passwordReset.findUniqueOrThrow({
-    where: { tokenHash: tokenHash(token) },
+  const stored = await db.authVerification.findUniqueOrThrow({
+    where: { identifier: tokenHash(`reset-password:${token}`) },
   });
-  assert.notEqual(stored.tokenHash, token);
+  assert.notEqual(stored.identifier, token);
   assert.equal(
     (
       await finance.request(
@@ -1726,7 +1744,7 @@ test('Finance alerts enforce every role, origin, strict input and current review
   assert.equal((await session.request('/staff/finance-alerts/read-all', { ...post({}), headers: { Origin: 'https://forged.example' } })).status, 403);
   const staleUser = await (await session.request('/auth/me')).json();
   await db.user.update({ where: { id: user.id }, data: { role: 'RECORDS' } });
-  assert.equal((await session.request('/staff/finance-alerts')).status, 403);
+  assert.equal((await session.request('/staff/finance-alerts')).status, 401);
   await assert.rejects(app.get(FinanceAlertsService).readAll(staleUser), /Your access has changed/);
   assert.equal(await db.financeAlertRead.count({ where: { userId: user.id } }), 0);
   await db.payment.delete({ where: { id: payment.id } });
@@ -1928,7 +1946,7 @@ test('staff alerts enforce assignee isolation for every role and deny Finance/cu
   const linked = await db.client.create({ data: { name: 'Former staff customer', email: '', phone: '', batchId } });
   await db.user.update({ where: { id: user.id }, data: { active: true, role: 'CUSTOMER', clientId: linked.id } });
   await assert.rejects(app.get(StaffAlertsService).readAll(staleUser, 'tasks'), /Staff access required/);
-  assert.equal((await session.request('/staff/alerts')).status, 403);
+  assert.equal((await session.request('/staff/alerts')).status, 401);
 });
 
 test('task alert backlog pages safely and reminder SQL matches exact time boundaries across database timezones', async () => {
@@ -1937,7 +1955,7 @@ test('task alert backlog pages safely and reminder SQL matches exact time bounda
   const now = new Date('2030-01-02T04:00:00.000Z');
   const deadlines = [-1, 0, 86_400_000, 86_400_001].map((offset) => new Date(now.getTime() + offset));
   const boundary = await Promise.all(deadlines.map((deadline, index) => alertTask(user.id, `Boundary ${index}`, deadline)));
-  const { taskAlertRows } = await import('../src/staff/alert-queries');
+  const { taskAlertRows } = await import('../src/staff/alert-queries.js');
   for (const zone of ['UTC', 'Asia/Manila', 'America/New_York']) {
     const rows = await db.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(`SET LOCAL TIME ZONE '${zone}'`);
@@ -2215,7 +2233,8 @@ test('Finance result details and reads enforce every role, recipient, current ac
   assert.equal((await new Session().request(`/staff/alerts/results/${result.id}`)).status, 401);
   const stale = await (await strict.session.request('/auth/me')).json();
   await db.user.update({ where: { id: strict.user.id }, data: { role: 'CORE_HANDLER' } });
-  assert.equal((await strict.session.request(`/staff/alerts/results/${result.id}`)).status, 403);
+  assert.equal((await strict.session.request(`/staff/alerts/results/${result.id}`)).status, 401);
+  assert.equal((await strict.session.request('/auth/login', post({ email: strict.user.email, password }))).status, 200);
   assert.equal((await staffAlertSnapshot(strict.session)).resultCount, 0);
   await assert.rejects(app.get(StaffAlertsService).read(stale, result.id, { entity: 'payment-result' }), /Payment recording and read access/);
   await assert.rejects(app.get(StaffAlertsService).readAll(stale, 'results'), /Payment recording and read access/);
@@ -2405,7 +2424,7 @@ test('staff email settings and delivery controls enforce every role, strict inpu
   const staleOwner = { id: revoked.user.id, role: 'OWNER', name: revoked.user.name, email: revoked.user.email, clientId: null, permissions: rolePermissions.OWNER } as const;
   await db.user.update({ where: { id: revoked.user.id }, data: { role: 'CORE_HANDLER' } });
   await assert.rejects(app.get(StaffEmailService).settings({ ...staleOwner, permissions: [...staleOwner.permissions] }), /Owner access/);
-  assert.equal((await revoked.session.request('/staff-notification-settings')).status, 403);
+  assert.equal((await revoked.session.request('/staff-notification-settings')).status, 401);
 });
 
 test('staff emails cover all seven kinds with correct recipients, private contents, historical results and local delivery', async () => {
@@ -2592,7 +2611,8 @@ test('staff email failures back off, preserve provider payload, stop at five att
       app.get<Config>(CONFIG).EMAIL_FROM = 'changed-sender@example.test';
     }
   }
-  for (const args of deliveries) assert.deepEqual(args, deliveries[0]);
+  for (const args of deliveries) assert.deepEqual(args.slice(0, 5), deliveries[0].slice(0, 5));
+  assert.equal(new Set(deliveries.map(args => args[5])).size, 5, 'Each delivery attempt has a fresh fencing token.');
   const failed = await db.staffEmail.findUniqueOrThrow({ where: { id: mail.id } });
   assert.equal((await owner.request(`/staff-notification-settings/deliveries/${mail.id}/retry`, post({ version: failed.version, recipientEmail: 'forged@example.test' }))).status, 400);
   assert.equal((await owner.request(`/staff-notification-settings/deliveries/${mail.id}/retry`, post({ version: failed.version - 1 }))).status, 409);
@@ -2600,7 +2620,7 @@ test('staff email failures back off, preserve provider payload, stop at five att
     owner.request(`/staff-notification-settings/deliveries/${mail.id}/retry`, post({ version: failed.version }), secondBase)]);
   assert.deepEqual(attempts.map((response) => response.status).sort(), [200, 409]);
   assert.equal(await db.auditEntry.count({ where: { recordId: mail.id, action: 'staff_email.retried' } }), 1);
-  await service.deliver(async (...args) => { assert.deepEqual(args, deliveries[0]); });
+  await service.deliver(async (...args) => { assert.deepEqual(args.slice(0, 5), deliveries[0].slice(0, 5)); });
   assert.equal((await db.staffEmail.findUniqueOrThrow({ where: { id: mail.id } })).totalAttempts, 6);
   assert.equal((await db.staffEmail.findUniqueOrThrow({ where: { id: mail.id } })).status, 'SENT');
   assert.equal((await owner.request(`/staff-notification-settings/deliveries/${mail.id}/retry`, post({ version: failed.version }))).status, 409);
@@ -2883,10 +2903,11 @@ test('Support staff emails use private previews, Owner templates, bounded retrie
   assert.equal((await customer.request(`/portal/support/${assigned.id}/replies`, post({ body: 'Private fresh reply' }))).status, 201);
   const replyEmail = await db.staffEmail.findFirstOrThrow({ where: { userId: team.user.id, kind: 'SUPPORT_CUSTOMER_REPLY' } });
   await db.user.update({ where: { id: team.user.id }, data: { role: 'RECORDS' } });
-  assert.equal((await team.session.request('/staff/alerts?scope=support')).status, 403);
+  assert.equal((await team.session.request('/staff/alerts?scope=support')).status, 401);
   await service.deliver(async () => { assert.fail('Revoked Support recipient must not receive an email'); });
   assert.equal((await db.staffEmail.findUniqueOrThrow({ where: { id: replyEmail.id } })).status, 'SKIPPED');
   await db.user.update({ where: { id: team.user.id }, data: { role: 'CS_TEAM' } });
+  assert.equal((await team.session.request('/auth/login', post({ email: team.user.email, password }))).status, 200);
   assert.equal((await customer.request(`/portal/support/${assigned.id}/replies`, post({ body: 'Reply that gets answered' }))).status, 201);
   assert.equal((await team.session.request(`/support/cases/${assigned.id}/replies`, post({ body: 'Answered promptly' }))).status, 201);
   await service.deliver(async () => { assert.fail('Already answered reply must be skipped'); });
@@ -3127,7 +3148,8 @@ test('Account email and receipt eligibility rechecks current Owner access, activ
   await db.user.update({ where: { id: recipients[0].user.id }, data: { role: 'RECORDS' } });
   await db.user.update({ where: { id: recipients[1].user.id }, data: { active: false } });
   await db.user.update({ where: { id: recipients[2].user.id }, data: { email: `${suffix}-account-new-address@example.test` } });
-  assert.equal((await recipients[0].session.request('/staff/alerts?scope=accounts')).status, 403);
+  assert.equal((await recipients[0].session.request('/staff/alerts?scope=accounts')).status, 401);
+  assert.equal((await recipients[0].session.request('/auth/login', post({ email: recipients[0].user.email, password }))).status, 200);
   assert.equal((await staffAlertSnapshot(recipients[0].session)).accountCount, 0);
   assert.equal((await recipients[1].session.request('/staff/alerts?scope=accounts')).status, 401);
   const stale = { id: recipients[0].user.id, role: 'OWNER', name: recipients[0].user.name, email: recipients[0].user.email, clientId: null, permissions: rolePermissions.OWNER } as const;
@@ -3234,8 +3256,8 @@ test('Records/Clients filters enforce the full role matrix and strict inputs at 
   assert.equal((await owner.session.request('/batches?status=ON_HOLD')).status, 400);
   assert.equal((await owner.session.request('/clients?status=CANCELLED')).status, 400);
   await db.user.update({ where: { id: owner.user.id }, data: { role: 'CS_TEAM' } });
-  assert.equal((await owner.session.request('/batches' + query)).status, 403);
-  assert.equal((await owner.session.request('/clients' + query)).status, 403);
+  assert.equal((await owner.session.request('/batches' + query)).status, 401);
+  assert.equal((await owner.session.request('/clients' + query)).status, 401);
 });
 
 test('batch model/status/start-date filters intersect assignments and include both date endpoints', async () => {

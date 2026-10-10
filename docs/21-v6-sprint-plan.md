@@ -14,7 +14,7 @@ Extend the existing Fresh Phones PH application and NestJS migration. This sprin
 - [Full Scope v6, Revision 1.5](source/Full-Scope-v6.pdf), especially §§5–7 and Appendix A: customer documents, requirements checklist, private storage, history, search and Finance verification.
 - [Delivery gates](17-full-scope-workflow.md): close the identified Gate 2 workflow gaps while protecting existing Gate 3 behavior.
 - [Traceability matrix](18-scope-traceability-matrix.md): distinguish Django baseline coverage from TypeScript delivery.
-- [Architecture decision](20-v6-architecture-decision.md): Supabase Auth/storage, Redis workers and cross-instance delivery remain the production target.
+- [Architecture decision](20-v6-architecture-decision.md): Neon/Better Auth are the revised production target. Better Auth/MFA and Redis Streams/BullMQ are implemented locally; production provisioning and private storage selection remain open.
 - [TypeScript preview](19-records-typescript-preview.md) and [build status](BUILD_STATUS.md): existing enrollment/schedules, claims/decisions, private payment proofs, OCR and reporting are starting assets, not work to recreate.
 
 The working tree already contains implementation changes. Preserve them and establish a fresh test baseline before extending behavior. Historical test counts are not new verification evidence. Custom cookie sessions, local proof storage and database-backed events do not demonstrate completion of the target production architecture.
@@ -149,7 +149,7 @@ Acceptance:
 | ID | Needed input | Decision owner | Effect if unresolved |
 | --- | --- | --- | --- |
 | D1 | Required document list, permitted formats/limits, customer visibility and replacement policy | Fresh Phones PH Records + privacy owner | S1-02/04 can use synthetic fixtures only; live document collection blocked |
-| D2 | Client-owned Supabase storage environment/access and approved privacy/retention handling | Client account/privacy owners + technical lead | Provider-backed staging acceptance blocked; no invented retention/deletion policy |
+| D2 | Client-owned private S3-compatible storage environment/access (provider pending) and approved privacy/retention handling | Client account/privacy owners + technical lead | Provider-backed staging acceptance blocked; no invented retention/deletion policy |
 | D3 | Requirement reviewer roles, review transitions, internal/customer note visibility | Fresh Phones PH operations owner | Review UI may be prototyped, but real review permissions and acceptance remain blocked |
 | D4 | Sprint capacity, named reviewers and UAT availability | Team lead + Fresh Phones PH | Dates and ownership remain proposals, not commitments |
 
@@ -170,7 +170,7 @@ Follow-on work is ordered by dependencies, not promised as one sprint per row:
 
 | Next workstream | v6 coverage | Prerequisite / exit focus |
 | --- | --- | --- |
-| Production foundation and migration | §§3, 14–17; architecture decision | Supabase Auth/session migration, private storage, Redis fan-out/workers, client-owned environments; preserve existing data and test recovery before cutover |
+| Production foundation and migration | §§3, 14–17; architecture decision | Neon/Better Auth migration, private storage and approved production event/worker design, client-owned environments; preserve existing data and test recovery before cutover |
 | Records completeness and fulfillment | §§5–6, Appendix A | Remaining handler/agent fields, full record filters, release/status history and customer visibility; approved operational policy |
 | Finance completion and notifications | §§7, 12 | Remaining adjustment/report/document gaps; authorized post-commit notifications with idempotent retries and approved templates |
 | Tasks/KPI, support and recruitment | §§8, 10–11 | Port complete role-scoped lifecycles and private attachments; human-only KPI decisions; public agent data minimization |

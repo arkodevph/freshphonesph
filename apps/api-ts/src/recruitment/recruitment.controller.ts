@@ -18,6 +18,7 @@ import { CurrentUser, Public, Requires } from '../auth/access';
 import { Validate } from '../http';
 import type { PrivateUpload } from '../storage/private-storage.service';
 import { RecruitmentService } from './recruitment.service';
+import { AbusePolicy } from '../abuse/policies';
 
 @Controller()
 export class RecruitmentController {
@@ -25,14 +26,14 @@ export class RecruitmentController {
 
   @Public() @Get('careers') careers() { return this.recruitment.careers(); }
 
-  @Public() @Post('careers/apply')
+  @Public() @Post('careers/apply') @AbusePolicy('application')
   @UseInterceptors(FileInterceptor('attachment', { limits: { fileSize: 5 * 1024 * 1024, files: 1 } }))
   apply(
     @Body(new Validate(applicantSchema)) body: z.infer<typeof applicantSchema>,
     @UploadedFile() file?: PrivateUpload,
   ) { return this.recruitment.apply(body, file); }
 
-  @Public() @Get('recruitment/agents/verify') verify(@Query('q') query = '') {
+  @Public() @Get('recruitment/agents/verify') @AbusePolicy('agentLookup') verify(@Query('q') query = '') {
     return this.recruitment.verifyAgent(query);
   }
 
@@ -68,6 +69,7 @@ export class RecruitmentController {
     @Body(new Validate(applicantUpdateSchema)) body: z.infer<typeof applicantUpdateSchema>,
   ) { return this.recruitment.updateApplicant(user, id, body); }
 
+  @AbusePolicy('download')
   @Get('applicant-attachments/:id/content') @Requires('RECRUITMENT_MANAGE', 'HR_CONFIDENTIAL') async attachment(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,

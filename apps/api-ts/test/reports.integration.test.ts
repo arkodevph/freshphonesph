@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { after, before, test } from 'node:test';
+import { after, before, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
@@ -27,10 +27,13 @@ const request = (role: Role | null, path: string, body?: unknown) => fetch(`${ba
   ...(body ? { body: JSON.stringify(body) } : {}),
 });
 const range = 'dateFrom=2045-02-28&dateTo=2045-02-28';
+beforeEach(async () => { await db.abuseBucket.deleteMany(); });
 
 before(async () => {
   // Explicit isolated test configuration never uses a provider or the preview database.
   app = await createApp({ NODE_ENV: 'test', PORT: 4100, HOST: '127.0.0.1', DATABASE_URL: databaseUrl, WEB_ORIGIN: origin,
+    // The authorization matrix exercises every report for every role in one burst.
+    ABUSE_LIMITS: { expensive: [[1000, 60]] },
     JWT_SECRET: 'reports-test-only-secret-at-least-32-characters', EMAIL_FROM: 'test@example.test', CUSTOMER_REMINDER_DAYS_BEFORE: '',
     PRIVATE_STORAGE_PROVIDER: 'local', PRIVATE_STORAGE_S3_REGION: 'ap-southeast-1' } as Config);
   await app.listen(0, '127.0.0.1'); base = await app.getUrl(); db = app.get(Database);
@@ -76,6 +79,11 @@ test('every Reports endpoint enforces REPORT_VIEW for every role and rejects ano
     assert.equal((await request(null, '/reports/snapshots', input)).status, 401);
     for (const role of roles) assert.equal((await request(role, '/reports/snapshots', input)).status, rolePermissions[role].includes('REPORT_VIEW') ? 201 : 403, role);
   }
+  const missingAnalysisPath = `/reports/snapshots/${randomUUID()}/analysis`;
+  const analysis = { body: 'A human analysis attached to a saved reporting period.' };
+  assert.equal((await request(null, missingAnalysisPath, analysis)).status, 401);
+  for (const role of roles) assert.equal((await request(role, missingAnalysisPath, analysis)).status,
+    rolePermissions[role].includes('REPORT_VIEW') ? 404 : 403, `${role} analysis submission`);
 });
 
 test('payment figures and CSV/XLSX use identical date, status and batch scopes with private fields omitted', async () => {
@@ -184,7 +192,7 @@ test('collections derive decimal balances per client, retain overall totals acro
   for (const [field, financeField] of [['agreedAmount', 'totalDue'], ['verifiedAmount', 'verifiedPaid'], ['pendingAmount', 'pendingAmount'],
     ['remainingBalance', 'remainingBalance'], ['overpaidAmount', 'overpaid']] as const) {
     const values = await Promise.all(people.map(async (person) => (await (await request('OWNER', `/clients/${person.id}/balance`)).json())[financeField]));
-    const { Prisma } = await import('../src/generated/prisma/client');
+    const { Prisma } = await import('../src/generated/prisma/client.js');
     assert.equal(values.reduce((sum, value) => sum.add(value), new Prisma.Decimal(0)).toFixed(2), report.totals[field]);
   }
   for (const dates of ['', '&dateTo=2046-01-31', '&dateFrom=2046-03-01', '&dateFrom=2047-01-01&dateTo=2047-01-01']) {
@@ -282,5 +290,5 @@ test('invalid or irrelevant filters and unsafe history pages are rejected; remov
   assert.equal(missing.status, 404);
   await db.user.update({ where: { id: sessions.get('ANALYTICS')!.id }, data: { role: 'CORE_HANDLER', version: { increment: 1 } } });
   for (const path of ['/reports/payments', '/reports/batches', '/reports/collections', '/reports/snapshots', '/reports/export?kind=payments&format=xlsx', '/reports/export?kind=collections&format=csv'])
-    assert.equal((await request('ANALYTICS', path)).status, 403, path);
+    assert.equal((await request('ANALYTICS', path)).status, 401, path);
 });

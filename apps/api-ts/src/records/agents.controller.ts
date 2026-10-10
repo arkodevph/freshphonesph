@@ -4,11 +4,12 @@ import { z } from 'zod';
 import { CurrentUser, Public, Requires } from '../auth/access';
 import { Validate } from '../http';
 import { RecordsService } from './records.service';
+import { AbusePolicy } from '../abuse/policies';
 
 @Controller('agents')
 export class AgentsController {
   constructor(@Inject(RecordsService) private readonly records: RecordsService) {}
-  @Get('verify') @Public() verify(@Query(new Validate(z.object({ q: z.string().trim().max(200).default('') }).strict())) query: { q: string }) {
+  @Get('verify') @Public() @AbusePolicy('agentLookup') verify(@Query(new Validate(z.object({ q: z.string().trim().max(200).default('') }).strict())) query: { q: string }) {
     return this.records.verifyAgent(query.q);
   }
   @Get() @Requires('AGENT_MANAGE') list(@Query(new Validate(agentListQuerySchema)) query: z.infer<typeof agentListQuerySchema>) {

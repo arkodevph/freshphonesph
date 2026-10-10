@@ -10,7 +10,7 @@ const links = [
   { href: "/#units", label: "Units" },
   { href: "/#how", label: "How it Works" },
   { href: "/careers", label: "Careers" },
-  { href: "/#contact", label: "Contact" },
+  { href: "/support", label: "Support" },
 ];
 
 export default function Navbar({ immersive = false }: { immersive?: boolean }) {

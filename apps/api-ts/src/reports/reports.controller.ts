@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Header, Inject, Post, Query, Res } from '@nestjs/common';
-import { collectionReportQuerySchema, reconciliationReportQuerySchema, operationsReportQuerySchema, reportBatchQuerySchema, reportExportQuerySchema, reportHistoryQuerySchema, reportQuerySchema, reportSnapshotSchema, type User } from '@freshphones/contracts';
+import { AbusePolicy } from '../abuse/policies';
+import { Body, Controller, Get, Header, Inject, Param, ParseUUIDPipe, Post, Query, Res } from '@nestjs/common';
+import { collectionReportQuerySchema, reconciliationReportQuerySchema, operationsReportQuerySchema, reportAnalysisSchema, reportBatchQuerySchema, reportExportQuerySchema, reportHistoryQuerySchema, reportQuerySchema, reportSnapshotSchema, type User } from '@freshphones/contracts';
 import type { Response } from 'express';
 import type { z } from 'zod';
 import { CurrentUser, Requires } from '../auth/access';
@@ -8,6 +9,7 @@ import { ReportsService } from './reports.service';
 
 type ReportQuery = z.infer<typeof reportQuerySchema>;
 
+@AbusePolicy('expensive')
 @Controller('reports')
 export class ReportsController {
   constructor(@Inject(ReportsService) private readonly reports: ReportsService) {}
@@ -69,6 +71,11 @@ export class ReportsController {
     @CurrentUser() user: User,
     @Body(new Validate(reportSnapshotSchema)) body: z.infer<typeof reportSnapshotSchema>,
   ) { return this.reports.createSnapshot(user, body); }
+
+  @Post('snapshots/:id/analysis') @Requires('REPORT_VIEW') submitAnalysis(
+    @CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string,
+    @Body(new Validate(reportAnalysisSchema)) body: z.infer<typeof reportAnalysisSchema>,
+  ) { return this.reports.submitAnalysis(user, id, body.body); }
 
   @Get('snapshots') @Requires('REPORT_VIEW') snapshots(
     @Query(new Validate(reportHistoryQuerySchema)) query: z.infer<typeof reportHistoryQuerySchema>,

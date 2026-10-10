@@ -1,6 +1,6 @@
 # 01 — Architecture
 
-Faithful to Full Scope v6 §15. The client does not need to understand the internals; each
+Based on Full Scope v6 §15 and the 2026-10-08 Neon/Better Auth documentation revision. The client does not need to understand the internals; each
 service has one clear purpose. See [20-v6-architecture-decision.md](20-v6-architecture-decision.md)
 for the approved production baseline and outstanding deployment choices.
 
@@ -11,13 +11,14 @@ for the approved production baseline and outstanding deployment choices.
 | **Cloudflare** | Domain + DNS management; optional basic security/routing | Directs the domain to the correct services |
 | **VPS** | Hosts the Next.js public website, customer portal, and staff interface | Keeps frontend deployment under Fresh Phones PH control |
 | **Railway** | Hosts the **main backend / API** and server-side business logic | Keeps sensitive operations & validation away from the browser |
-| **Supabase** | PostgreSQL database, authentication, private file storage | Stores accounts, records & documents with access controls |
+| **Neon** | PostgreSQL database | Production system of record; migration pending |
+| **Better Auth** | Application authentication framework | Local credential/session/MFA integration; NestJS owns business authorization |
+| **Private object storage** | S3-compatible provider pending | Stores private documents behind API authorization |
 | **Resend** | Transactional email delivery | Sends account/status/task/support emails |
-| **Redis** | Cross-instance change events, background-work queues, rate limiting, and short-lived cache data | Keeps live updates and retriable work independent of API instances |
+| **Redis** | Streams and BullMQ | Distributes committed refresh events to API replicas; separate workers deliver notifications and clean up authorized files |
 
-> Redis is launch infrastructure for the v6 deployment. It is not a source of truth: if it is
-> unavailable, the API and payment workflow continue, open screens refetch after reconnecting,
-> and queued work retries when Redis recovers.
+> Better Auth/MFA and Redis Streams/BullMQ are implemented locally. Neon, production Redis,
+> private storage and production deployment remain pending. See [53-redis-events-workers.md](53-redis-events-workers.md).
 
 ## System flow (§15)
 
@@ -25,9 +26,9 @@ for the approved production baseline and outstanding deployment choices.
 Customer / Employee Browser
         │
         ▼
-    VPS Next.js Web    ──►   Railway API   ──►   Supabase (DB + Auth + Private Storage)
+    VPS Next.js Web    ──►   Railway API   ──►   Neon PostgreSQL
                                │       │
-                               │       └──► Redis (events + queues)
+                               │       └──► Private object storage (provider pending)
                                └──► Resend (email)
 ```
 
@@ -37,7 +38,7 @@ Customer / Employee Browser
 Messenger / External Channel        (customer pays here — OUTSIDE the system)
         │
         ▼
-Authorized Staff enters payment  ──►  Finance verifies  ──►  Supabase stores VERIFIED record
+Authorized Staff enters payment  ──►  Finance verifies  ──►  PostgreSQL stores VERIFIED record
                                                                         │
                                                                         ▼
                                                    Customer Portal shows updated history/balance
@@ -57,7 +58,7 @@ database policies are optional defense-in-depth, not the primary gate.
 - **Frontend (VPS):** rendering, session UX, calling the API. No trusted business rules.
 - **Backend (Railway):** NestJS authorization, payment verification, balance calculation, audit
   logging, file access brokering, notifications, report generation.
-- **Supabase:** Postgres system of record + private file storage. Prisma owns the TypeScript
+- **Neon:** PostgreSQL system of record. Private object storage is a separate service. Prisma owns the TypeScript
   target schema and migrations; the browser never gets DB credentials.
 
 ## Backend framework (DECIDED - see [09-tech-stack.md](09-tech-stack.md))
@@ -76,11 +77,11 @@ the web app. The target has two TypeScript deployables: VPS web (Next.js) and Ra
 
 ## Environments
 
-| Env | Web (VPS) | API (Railway) | DB (Supabase) | Purpose |
+| Env | Web (VPS) | API (Railway) | DB | Purpose |
 |---|---|---|---|---|
-| Local | `next dev` | local api | Supabase local / dev project | development |
-| Staging / UAT | VPS deployment | Railway staging | Supabase staging project | client acceptance testing (§21) |
-| Production | VPS deployment | Railway prod | Supabase prod project | live |
+| Local | `next dev` | local api | Local Docker PostgreSQL | development |
+| Staging / UAT | VPS deployment | Railway staging | Isolated Neon staging database (planned) | client acceptance testing (§21) |
+| Production | VPS deployment | Railway prod | Neon production database (planned) | live |
 
-Secrets live only in server environment variables (VPS/Railway/Supabase), never in the repo
+Secrets live only in server environment variables (VPS/Railway/Neon/storage provider), never in the repo
 or frontend bundle (§16 secrets management).

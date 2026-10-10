@@ -1,5 +1,12 @@
 # Build Status
 
+> **2026-10-08 architecture update (documentation only):** Neon PostgreSQL and Better Auth
+> replace the planned Supabase database/Auth stack. On 2026-10-09 the user reaffirmed Redis
+> for live events and background workers; Redis Streams/BullMQ and Better Auth/MFA are
+> implemented locally, together with shared abuse rate limiting. Production provisioning, proxy/quota acceptance and private
+> object storage selection remain open. See [the decision record](20-v6-architecture-decision.md)
+> and [Redis runbook](53-redis-events-workers.md).
+
 Implementation status, including the Django baseline originally built on `foundation` and the
 TypeScript work now moving through `staging`. The planning docs (00–16) describe the
 *intended* system; this file describes what was built in the Django baseline. The suite contains
@@ -13,16 +20,66 @@ before treating that result as current.
 
 ## TypeScript foundation
 
+### Redis live events and background workers — 2026-10-09
+
+Scopes #11–12 now use Redis Streams for committed event distribution and a separate BullMQ
+worker process for notification delivery, reminders and already authorized file cleanup.
+One stream reader per API replica replaces per-browser event polling when Redis is enabled;
+current Better Auth sessions and business permissions still govern each hint. Durable database
+outboxes, bounded attempts, fenced leases, frozen email payloads, provider idempotency,
+reconciliation and reconnect snapshots protect restart/outage recovery. Local Redis has AOF
+persistence, authentication, no eviction and loopback exposure. Production provisioning,
+capacity/UAT and deployment quota acceptance remain open. See [53-redis-events-workers.md](53-redis-events-workers.md).
+
+### Broader abuse rate limiting — 2026-10-09
+
+Scope #13 now covers ingress, public forms and both agent lookup aliases, authenticated
+reads/writes, uploads/OCR, reports/exports, test email and live connections. Atomic shared
+Redis counters fall back to bounded PostgreSQL protection; no shared backend yields a
+safe 503. HMAC keys, expiration, trusted proxy allowlists, positive Retry-After responses
+and browser backoff are implemented locally. Production gateway verification and
+load/quota acceptance remain open. See [54-abuse-rate-limits.md](54-abuse-rate-limits.md).
+Local evidence: 23 focused abuse checks, 152 business regressions, 14 Redis regressions,
+63 API unit checks and 63 web checks passed. Typechecks, API build, schema drift, browser
+wait-message behavior and all four seeded demo sessions passed. Details and the final
+download annotation verification boundary are recorded in the runbook.
+
+### Authentication and MFA — 2026-10-09
+
+Scope #10 now uses the approved Better Auth/Prisma direction. Migration preserves
+account IDs, roles, client links and existing password hashes while ending legacy
+sessions/reset links. The `/security` screen, authenticator codes, recovery codes,
+required production staff enrollment, database session revocation, password recovery,
+audited writes and retention cleanup are implemented locally. Demo roles remain
+available; enabled MFA cannot be bypassed by demo sign-in. Production services,
+gateway, lost-both-factor workflow and named UAT remain open. See
+[52-authentication-mfa.md](52-authentication-mfa.md).
+
+### Retention and deletion — 2026-10-09
+
+Scope item #9 now has an Owner-only `/system/retention` workspace and guarded NestJS
+workflow: inactive versioned policy drafts/approval, paged expiry previews, legal holds,
+content-fingerprinted deletion requests, reasoned decisions, typed execution, audit/copy
+cleanup and durable private file removal with retry/lease recovery. Customer monetary
+amounts and schedules remain intact; immutable Finance/HR evidence blocks profile
+erasure where its disposition is unresolved. Backup/provider follow up confirmation
+and private deletion-ledger export accompany application erasure. No policies or
+periods are seeded and no deletion is automatically scheduled. Business approval,
+named UAT and restore/provider rehearsal remain open; see
+[51-retention-deletion.md](51-retention-deletion.md).
+
+### Foundation modules
+
 The parallel `apps/api-ts` service now provides the first migration slice:
 
 - NestJS API startup, configuration validation, PostgreSQL health check, and Prisma migrations.
-- Access and refresh sessions in secure HTTP-only cookies, password reset, replay protection,
+- Better Auth database sessions in secure HTTP-only cookies, password reset, MFA/recovery codes,
   account deactivation, and shared database-backed login throttling.
 - Server-enforced role permissions for accounts, batches, clients, and audit reads.
 - Batch and client CRUD with strict shared Zod contracts, optimistic concurrency, transactionally
   written audit entries, and customer record isolation.
-- Role-filtered server-sent events backed by a PostgreSQL event cursor, including reconnect
-  recovery and cross-instance delivery without Redis.
+- Role-filtered server-sent events distributed through Redis Streams from a committed
+  PostgreSQL outbox, with reconnect snapshots and shared readers across API replicas.
 - External payment claims, Finance-only decisions, verified-only derived balances, duplicate
   reference warnings, immutable reviewed records, operational statements/confirmations, and
   customer-isolated verified history.
@@ -279,6 +336,59 @@ typechecks, the production workspace build and seven browser groups. All 24 migr
 apply with no local schema drift. Consequential HR approvals and named UAT remain
 separate; see [42-confidential-hr-access.md](42-confidential-hr-access.md).
 
+The public catalog increment adds `/system/catalog` for Owner, COO, General Manager and
+Records to maintain listings, decimal daily rates, availability, publication and photos.
+Public cards now read published records with search and pagination; six existing offers
+are preserved with unconfirmed availability. Writes are audited and versioned, competing
+edits retain drafts, and public photos are isolated from private customer files. Local
+verification passes **220 tests** (57 API unit, 121 PostgreSQL integration and 42 web,
+including existing local demo-auth checks), workspace typechecks, production builds and
+desktop/mobile browser checks against an isolated API. All **25 migrations** apply with
+no schema drift in fresh and local preview databases. Content approval, named UAT and
+production release remain open; installment breakdowns are covered by the subsequent increment below.
+See [43-public-catalog.md](43-public-catalog.md).
+
+The subsequent public payment breakdown increment lets catalog staff enter each offer's
+total payable, installment count and fixed 7/15/30-day interval. Published offers expose
+an illustrative schedule, optional sample dates, exact regular/final amounts and complete
+paging. Draft/version/audit controls cover terms as part of the listing. Existing daily
+rates do not infer full terms; all six carried-over offers start without a sample plan.
+The additive migration brings fresh and local preview databases to **26 migrations**,
+with no Prisma schema drift. Existing customer agreements and balances stay unchanged.
+Verification passes **227 local tests** (59 API unit, 123 PostgreSQL integration and
+45 web, including existing local demo-auth checks), workspace typechecks and production builds.
+Five browser check groups pass against an isolated API, including desktop/mobile, dark
+editing, keyboard focus, date/paging behavior and clearing removed plans.
+See [44-catalog-installment-breakdown.md](44-catalog-installment-breakdown.md).
+
+The public FAQ now supports four topic filters plus combined question/answer/topic search,
+result counts, empty/reset states and a keyboard-accessible accordion. Existing public
+questions remain available, and the payment answer follows the saved per-offer terms.
+Filtering works locally in the browser without an API or migration. See
+[45-faq-topic-search.md](45-faq-topic-search.md). Business content approval remains open.
+Verification passes **48 web tests**, the Next.js production build with TypeScript checks,
+and four browser check groups covering combined filters, keyboard/reset behavior, offline
+search and desktop/390px/320px layouts. No API or database change is included.
+
+The public support increment adds `/support`, website/FAQ/footer links, existing contact
+channels and direct customer request/history entry. Signed-out visitors return to the
+selected support section after login; session expiry and exact case links retain that
+intent. Known-destination validation and role-based landing behavior prevent arbitrary
+redirects or new access grants. The existing private support workflow handles cases and
+replies. No API or migration is added. **52 web tests**, a production build and four
+PostgreSQL-backed browser groups pass, including mobile, customer/staff and private
+access flows. See [46-public-support-entry.md](46-public-support-entry.md).
+
+The consequential HR increment adds `/system/hr-actions` and a separate request and
+Owner decision record tied to a human KPI recommendation. Only individually approved
+HR/COO accounts submit; only the Owner approves or rejects. Rejected proposals can
+be revised as new requests while earlier decisions remain immutable and audited.
+No payroll amount, task fact or employee status is changed by approval. The additive
+`20261008040000_hr_action_approvals` migration brings fresh test and local preview
+databases to **27 migrations**. Local verification passes 59 API unit, 126 broad PostgreSQL
+integration and 52 web tests, the final four-case HR integration check, production
+builds and three browser groups. See [47-consequential-hr-action-approvals.md](47-consequential-hr-action-approvals.md).
+
 | Module | Status | Key endpoints | UI |
 |---|---|---|---|
 | **M2 Auth / Users & Roles** | ✅ Built | Django `/api/employees/`; NestJS `/api/auth/*`, `/api/accounts` (list/create/detail/update, ACCOUNT_MANAGE) | `/login`, Owner-only `/system/team` |
@@ -290,7 +400,7 @@ separate; see [42-confidential-hr-access.md](42-confidential-hr-access.md).
 | **M8 Customer Service** | ✅ Built | `/api/support/cases/`, `/api/portal/support/` | `/system/support`, portal |
 | **M9 Recruitment & Agents** | 🟡 Partial — implemented, acceptance open | public `/api/careers`, `/api/careers/apply`, `/api/agents/verify`; guarded recruitment search/paging/summary/detail/review and `/api/agents/` | `/careers`, `/verify`, `/system/recruitment` with retained review drafts; privacy/retention/import and named UAT open |
 | **M10 Notifications** | 🟡 Partial | Customer delivery/read/templates; staff alert and task/Finance/Support/account email queues/settings | Portal notifications; shared Tasks/Finance/Results/Support/Accounts bell; fourteen Owner staff templates, timing and delivery controls |
-| **M1 Public Website** | 🟡 Partial | landing page + Careers + Verify pages | `/`, `/careers`, `/verify` |
+| **M1 Public Website** | 🟡 Partial | maintained published catalog, photos and per-offer sample payments; guarded catalog management; Careers + Verify | `/`, `/system/catalog`, `/careers`, `/verify`; remaining public-service scope and content acceptance open |
 | **M11 AI Assistant** | Deferred — paid AI API funding unavailable (user request, 2026-10-08) | — | — |
 
 ## What's real vs. contract-skeleton
@@ -309,16 +419,38 @@ Every module has **working, tested code**. A few models started as minimal **con
 - **Email:** MailHog locally, Resend/SMTP in prod.
 
 ## Known follow-ups
+- Customer, employee and applicant privacy notices plus portal terms have linked review-draft
+  screens. Published-version acknowledgement, role gating and applicant evidence are
+  implemented and tested locally, but no text is approved or active. Exact business identity,
+  privacy contact, purposes/bases, recipients, retention and account rules are still needed;
+  see [50-privacy-notices-terms.md](50-privacy-notices-terms.md).
 - M11 AI assistant is deferred from current implementation priorities until paid AI
   API funding is available and the user requests resumption (2026-10-08 decision;
   see docs/05 M11).
-- M1 public catalog / how-it-works / FAQ content beyond the current landing sections.
+- M1 maintained catalog and per-offer installment breakdowns are implemented locally;
+  see [43-public-catalog.md](43-public-catalog.md) and [44-catalog-installment-breakdown.md](44-catalog-installment-breakdown.md).
+  FAQ topic search is implemented; see [45-faq-topic-search.md](45-faq-topic-search.md).
+  Public support entry is implemented; see [46-public-support-entry.md](46-public-support-entry.md).
+  Business approval of content, terms and contact details remains open.
+- Consequential HR request/Owner decision history is implemented locally; see
+  [47-consequential-hr-action-approvals.md](47-consequential-hr-action-approvals.md).
+  Named UAT, written policy and retention approval remain open.
+- Support concern source tracking is implemented locally: customer portal origin is assigned
+  by the server, staff log external contacts with an explicit source, historical cases are
+  `unrecorded`, and staff lists/reports can group or filter by source. See
+  [48-support-concern-source-tracking.md](48-support-concern-source-tracking.md). Channel
+  labels, named UAT and retention approval remain open.
+- Submitted report analysis is implemented locally: report viewers can include a human
+  interpretation when saving a period or add it to a numeric-only snapshot later.
+  One immutable submission per snapshot retains author and time; see
+  [49-submitted-report-analysis.md](49-submitted-report-analysis.md). Named report UAT,
+  approved role-specific fields and additional approved formats remain open.
 - M10 approved wording/timing, production sender provisioning, inbox smoke tests and named UAT.
   TypeScript task reminders, Finance pending/results, staff email templates/timing/history/retries
   plus Support/account events and customer delivery/templates/read UI exist. Setup checks and
   the named Owner walkthrough are ready in [33-staff-email-launch.md](33-staff-email-launch.md).
 - Task proof/attachments; report role-scoped field trimming; RLS hardening (optional, docs/15).
-- Production provisioning (Supabase/Railway/Redis/VPS/Cloudflare/Resend) — client-owned accounts (§20).
+- Production provisioning (Neon/Railway/VPS/Cloudflare/Resend plus selected private storage and event/job infrastructure) — client-owned accounts (§20).
 
 ## Test & run
 `cd apps/api && source .venv/bin/activate && python manage.py test` → discovers 80 tests.

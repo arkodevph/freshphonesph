@@ -1,8 +1,8 @@
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import type { User } from '@freshphones/contracts';
+import { supportSources, type User } from '@freshphones/contracts';
 import { Database } from '../database';
 import { allowed } from '../auth/access';
-import { Prisma, type SupportStatus } from '../generated/prisma/client';
+import { Prisma, type SupportSource, type SupportStatus } from '../generated/prisma/client';
 import { notifyCustomer } from './notifications.service';
 import { notifySupport } from '../staff/support-alerts';
 
@@ -14,7 +14,7 @@ const include = {
 type CaseRow = Prisma.SupportCaseGetPayload<{ include: typeof include }>;
 const json = (value: unknown): Prisma.InputJsonValue => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 const view = (row: CaseRow) => ({
-  id: row.id, client: row.clientId, client_name: row.client.name, category: row.category,
+  id: row.id, client: row.clientId, client_name: row.client.name, category: row.category, source: row.source.toLowerCase(),
   description: row.description, assigned_staff: row.assignedStaffId,
   assigned_staff_name: row.assignedStaff?.name ?? null,
   status: row.status.toLowerCase(), resolution: row.resolution,
@@ -99,7 +99,7 @@ export class SupportService {
       const current = await tx.user.findUnique({ where: { id: user.id } });
       if (!current?.active || current.role !== 'CUSTOMER' || current.clientId !== clientId)
         throw new ForbiddenException('Your access has changed.');
-      const row = await tx.supportCase.create({ data: { clientId, ...input }, include });
+      const row = await tx.supportCase.create({ data: { clientId, ...input, source: 'CUSTOMER_PORTAL' }, include });
       await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.created', entity: 'support', recordId: row.id, after: json(view(row)) } });
       await tx.changeEvent.create({ data: { entity: 'support', recordId: row.id } });
       await notifySupport(tx, row, 'SUPPORT_NEW_CASE');
@@ -107,19 +107,33 @@ export class SupportService {
     });
   }
 
-  async list(user: User, status?: string, page = 1, caseId?: string) {
+  async list(user: User, status?: string, page = 1, caseId?: string, source?: string) {
     if (!allowed(user, 'SUPPORT_MANAGE')) throw new ForbiddenException('Support access required.');
     if (status && !['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CLIENT', 'RESOLVED', 'CLOSED'].includes(status))
       throw new BadRequestException('Invalid case status.');
+    if (source && !supportSources.includes(source as SupportSource)) throw new BadRequestException('Invalid case source.');
     const where: Prisma.SupportCaseWhereInput = {
       ...(status ? { status: status as SupportStatus } : {}),
       ...(caseId ? { id: caseId } : {}),
+      ...(source ? { source: source as SupportSource } : {}),
     };
     const [rows, total] = await this.db.$transaction([
       this.db.supportCase.findMany({ where, include, orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20 }),
       this.db.supportCase.count({ where }),
     ]);
     return { count: total, next: page * 20 < total ? String(page + 1) : null, results: rows.map(view), page };
+  }
+
+  async clientOptions(user: User, query: string) {
+    if (!allowed(user, 'SUPPORT_MANAGE')) throw new ForbiddenException('Support access required.');
+    const q = query.trim();
+    if (q.length < 2 || q.length > 100) throw new BadRequestException('Search for a customer using 2–100 characters.');
+    const rows = await this.db.client.findMany({
+      where: { name: { contains: q, mode: 'insensitive' } },
+      select: { id: true, name: true, batch: { select: { code: true } } },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }], take: 20,
+    });
+    return rows.map((item) => ({ id: item.id, name: item.name, batch_code: item.batch.code }));
   }
 
   async update(user: User, id: string, input: { status?: SupportStatus; resolution?: string; assignedStaffId?: string | null; version: number }) {

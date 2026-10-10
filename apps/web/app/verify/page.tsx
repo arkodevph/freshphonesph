@@ -21,8 +21,8 @@ export default function VerifyAgentPage() {
     setSearched(true);
     try {
       setResult(await verifyAgent(q.trim()));
-    } catch {
-      setError("Could not check the agent directory. Please try again.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not check the agent directory. Please try again.");
     } finally {
       setLoading(false);
     }

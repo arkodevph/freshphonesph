@@ -6,6 +6,7 @@ import { getStoredMe, saveMe } from "./auth";
 import { TYPESCRIPT_API } from "./backend";
 import { clearTokens } from "./auth";
 import { useRouter } from "next/navigation";
+import { supportSignInHref } from "./support-entry";
 
 /** Current user's identity + permissions, from cache or a fresh fetch. */
 export function useMe() {
@@ -16,8 +17,10 @@ export function useMe() {
     if (me && !TYPESCRIPT_API) return;
     let active = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    const expire = () => { clearTokens(); setMe(null); router.replace("/login"); };
+    const expire = () => { clearTokens(); setMe(null); router.replace(supportSignInHref(window.location.pathname, window.location.hash)); };
     window.addEventListener("fp-session-expired", expire);
+    const requireMfa = () => router.replace('/security');
+    window.addEventListener('fp-mfa-required', requireMfa);
     const refresh = () => { clearTimeout(retry); void fetchMe()
       .then((m) => {
         if (!active) return;
@@ -27,7 +30,7 @@ export function useMe() {
       .catch(() => { if (active && TYPESCRIPT_API) retry = setTimeout(refresh, 5000); }); };
     refresh();
     window.addEventListener("focus", refresh);
-    return () => { active = false; clearTimeout(retry); window.removeEventListener("focus", refresh); window.removeEventListener("fp-session-expired", expire); };
+    return () => { active = false; clearTimeout(retry); window.removeEventListener("focus", refresh); window.removeEventListener("fp-session-expired", expire); window.removeEventListener('fp-mfa-required', requireMfa); };
   }, [router]);
 
   return me;

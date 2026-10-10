@@ -38,7 +38,7 @@ landing page.
 Not a numbered scope section but the prerequisite for every gated module. See
 [04-roles-access.md](04-roles-access.md).
 
-- **Features:** Supabase Auth sign-in, session recovery, and password reset; employee account creation
+- **Features:** Better Auth sign-in, session recovery, and password reset (planned cutover); employee account creation
   with role assignment; customer account linked to a client record; server-side NestJS
   permission guards; optional database-policy hardening.
 - **Acceptance:** an under-privileged role is rejected at the API (not just hidden); a customer
@@ -126,6 +126,12 @@ Automates **neutral facts** (on-time/late). Consequential HR decisions stay **hu
 | Manual evaluation | KPI/HR reviews context and records evaluation/recommendation | Keeps HR decisions with humans |
 | Approval trail | Approved HR/payroll actions record reviewer, reason, date | Accountability |
 
+The TypeScript workflow links a separately recorded request to a human KPI review
+marked **Action recommended**. An Owner-approved HR/COO account submits the
+specific proposed action and reason; the Owner alone approves or rejects with a
+reason. Decisions are retained and audited without changing payroll or carrying out
+the action. See [47-consequential-hr-action-approvals.md](47-consequential-hr-action-approvals.md).
+
 - ~~**Removed:** system calculates a suggested salary-deduction %.~~ **Revised:** system only
   flags lateness/facts; any deduction/action is entered **manually** after Fresh Phones PH
   confirms written policy and legal/labor compliance (§8, §18.3).
@@ -152,6 +158,9 @@ Summarize **authorized** operational data without exposing private info to those
 | Historical reports | Preserve prior periods & submitted analysis | Don't lose historical context |
 
 - **Roles:** Analytics (prefer **aggregated** data), Owner/COO/GM/HR/Finance per scope.
+- **Submitted analysis:** a report viewer may add one immutable, human-written analysis
+  when saving a period or later to an older numeric snapshot. History preserves its
+  author, submission time and captured figures; see [implementation](49-submitted-report-analysis.md).
 - **Acceptance:** reports respect role visibility; exports contain only authorized fields;
   historical periods retained.
 
@@ -170,6 +179,9 @@ Concerns tracked as **cases**, not lost in chat history.
 | Recurring issue report | Group categories & turnaround time | Improve operations |
 
 - **Data:** `support_case`. **Roles:** CS Head/Team; customer creates & follows own case.
+- **Source tracking:** customer portal concerns are server-labelled; staff select the original
+  channel when logging outside contacts. Existing cases are `unrecorded`. Staff can filter by
+  source and reporting groups case counts by source. See [implementation](48-support-concern-source-tracking.md).
 - **Acceptance:** case lifecycle transitions work; customer sees only own cases; turnaround
   computed.
 
