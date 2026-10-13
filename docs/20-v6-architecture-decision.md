@@ -1,47 +1,74 @@
-# 20 - Full Scope v6 Architecture Decision
+# 20 - Production Architecture Decision
 
-This record translates Full Scope v6 §§15–15.2 into the production baseline approved during
-architecture review. It is a target-state decision, not evidence that every part is implemented.
-The source scope is [Full-Scope-v6.pdf](source/Full-Scope-v6.pdf).
+Updated **2026-10-09** at the user's request: the planned database is **Neon PostgreSQL**
+and the planned authentication framework is **Better Auth**. This documentation decision
+supersedes the Supabase database/Auth choices in the earlier v6 architecture record.
+On 2026-10-09 the user explicitly reaffirmed Redis for scopes #11–12; that renewed
+direction supersedes the 2026-10-08 removal of mandatory Redis. The source [Full-Scope-v6.pdf](source/Full-Scope-v6.pdf) remains the
+historical scope artifact; its business requirements and safeguards still apply.
 
-## Settled decisions
+The 2026-10-08 decision changed documentation. On 2026-10-09, the local NestJS API
+implemented Better Auth credentials, sessions and MFA; see [the migration runbook](52-authentication-mfa.md).
+Local PostgreSQL remains the system of record. Redis Streams now distribute committed
+change events, and separate BullMQ workers process durable notification/reminder outboxes
+and already authorized file cleanup. See [53-redis-events-workers.md](53-redis-events-workers.md).
+Neon, production storage and production Redis cutovers have not been performed.
+
+## Settled direction
 
 | Concern | Decision |
 |---|---|
 | Capacity target | 1,000 registered users, 100 concurrent active sessions, and 20 requests/second |
-| Web/API boundary | The browser calls the NestJS API directly; Next.js owns rendering and UI only |
-| Web host | A Fresh Phones PH-controlled VPS hosts the Node.js Next.js application |
-| API availability | Railway runs two NestJS replicas from launch |
-| Identity | Supabase Auth owns accounts, password recovery, sessions, and MFA; NestJS validates its JWTs and enforces business permissions |
-| Database | Supabase Pro with Small compute and Supavisor pooling |
-| Data recovery | Supabase Pro daily backups plus Finance reconciliation; point-in-time recovery is not in the launch budget |
-| Live updates | Authenticated SSE from NestJS to the browser; Redis fans committed minimal refresh events to every API replica |
-| Background work | Redis-backed workers process email, notifications, exports, document processing, reminders, and AI tasks after the request commits |
-| Redis recovery | Standard Redis at launch. API/payment writes continue through a Redis outage; live screens reconnect and refetch, while workers retry queued work after recovery |
+| Web/API boundary | Browser calls the NestJS API; Next.js owns rendering and UI |
+| Web host | A Fresh Phones PH-controlled VPS hosts the Next.js application |
+| API availability | Railway target remains two NestJS replicas |
+| Database | Neon PostgreSQL; Prisma retains schema and migration ownership |
+| Identity | Better Auth is the target authentication framework; NestJS continues enforcing business permissions from current account state |
+| Email | Resend; production sender setup remains pending |
+| Files | Private S3-compatible object storage; production provider remains to be selected. Local MinIO/storage remains available |
+| Live updates | Authenticated SSE with committed, permission-scoped refresh events and reconnect/refetch behavior |
+| Events and jobs | Redis Streams + BullMQ, reaffirmed 2026-10-09 and implemented locally; committed PostgreSQL outboxes remain the recovery source |
+| Rate limits | Login/password limits remain database-backed; broader atomic Redis limits with PostgreSQL fallback and shared SSE caps are implemented locally (scope #13); production proxy/quota acceptance remains open |
+| Data recovery | Neon recovery plan, retention window and restore procedure must be selected and tested; earlier Supabase backup assumptions no longer apply |
+
+Neon provides the PostgreSQL service. Better Auth is an authentication framework with
+database-backed user/session support; its Prisma adapter supports PostgreSQL. Production
+object storage, event distribution and job processing are separate architecture decisions.
+See [Neon overview](https://neon.com/docs/introduction),
+[Better Auth introduction](https://better-auth.com/docs/introduction) and
+[Better Auth Prisma adapter](https://better-auth.com/docs/adapters/prisma).
 
 ## Required behavior
 
-- The API publishes an event only after its database transaction commits.
-- An event contains only an authorized refresh identifier, never private documents, file URLs, or unnecessary personal data.
-- SSE connections authenticate with a current Supabase session; revoked, expired, or logged-out sessions stop receiving events.
-- The subsequent API read is authorized again. Customers can receive events for only their own records.
-- Clients preserve unsaved form input, expose reconnecting/unavailable state, and refetch authoritative data after reconnecting or returning to the page.
-- Payment verification stays synchronous, atomic, audited, and idempotent. Redis events and workers never change a balance.
+- Publish minimal, authorized refresh identifiers only after a successful database commit.
+- Authenticate each API/SSE connection; stop restricted delivery on expiry, logout or revocation.
+- Authorize subsequent reads again; customers receive only their own permitted records.
+- Preserve unsaved input and refetch authoritative data after a connection gap or return to a page.
+- Keep Finance verification synchronous, atomic, audited and idempotent. Background jobs never change balances.
+- Preserve existing account/client links, role grants, confidential HR approvals, audit history and private-file isolation during any migration.
+- Validate Better Auth password recovery, session revocation, API/web cookie boundaries and the required MFA flow before cutover. Do not assume existing password hashes or sessions migrate unchanged.
 
-## Deployment decisions still required
+## Open implementation and deployment decisions
 
-The following were intentionally not assumed and must be approved before production provisioning:
+1. Neon plan, region, connection/pooling configuration, capacity and recovery settings.
+2. Better Auth is implemented locally with Prisma mapping and credential/MFA parity tests.
+   Production gateway/cutover, named UAT, lost-factor workflow and recovery rehearsal remain open.
+3. Private S3-compatible storage provider, region, access credentials and file-copy verification.
+4. Provision client-owned Redis with persistence, no eviction, credentials/private networking,
+   replica fan-out and worker deployments. Rehearse outage/data-loss recovery and capacity in
+   staging. Shared abuse controls are implemented locally; verify the deployment proxy and quotas
+   using [54-abuse-rate-limits.md](54-abuse-rate-limits.md).
+5. VPS provider/operating model, optional frontend high availability and cross-service region alignment.
+6. Error tracking, uptime monitoring, alert routing and revised recurring budget.
 
-1. VPS provider, region, and operating model (Docker/Caddy, PM2/Nginx, or static export).
-2. Whether the frontend needs a second VPS/load balancer for high availability.
-3. Region alignment for VPS, Railway, Redis, and Supabase.
-4. Error tracking, uptime monitoring, and alert-routing provider.
-5. Redis high-availability/SLA level.
+Client production services and approved privacy/retention policies are not yet available;
+prepare and verify locally until they are supplied. AI remains separately deferred for funding.
 
 ## Acceptance evidence
 
-1. Load tests demonstrate the capacity target under normal and peak workflows.
-2. A committed payment verification updates a second authorized screen within five seconds.
-3. Cross-customer, unrelated employee, unauthenticated, expired, and revoked sessions receive no restricted event or record.
-4. A Redis interruption leaves verified balances unchanged; reconnecting clients refetch current permitted data and jobs retry safely.
-5. API-replica, worker, database-pool, deployment, backup-restore, and health-check failure paths are exercised in staging.
+1. Load tests meet the capacity target and an authorized second screen refreshes within five seconds.
+2. Anonymous, unrelated, expired and revoked sessions receive no restricted events or records.
+3. Failed, repeated and concurrent payment decisions retain correct derived balances.
+4. Event/worker interruptions preserve committed records; reconnects refetch and retries avoid duplicate effects.
+5. Two-replica, database-pool, private storage, deployment rollback and backup-restore tests pass in staging.
+6. Neon/Better Auth migration has explicit parity and recovery evidence before production traffic moves.

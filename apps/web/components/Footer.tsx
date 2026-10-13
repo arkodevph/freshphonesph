@@ -2,17 +2,27 @@ import Image from "next/image";
 import { FacebookLogo, MessengerLogo } from "@phosphor-icons/react/dist/ssr";
 
 const nav = [
-  { href: "#how", label: "How it Works" },
-  { href: "#iphones", label: "iPhones" },
-  { href: "#plans", label: "Plans" },
-  { href: "#reviews", label: "Reviews" },
-  { href: "#faq", label: "FAQ" },
-  { href: "#careers", label: "Careers" },
+  { href: "/#how", label: "How it Works" },
+  { href: "/#units", label: "Units & payment offers" },
+  { href: "/#faq", label: "FAQ" },
+  { href: "/careers", label: "Careers" },
+  { href: "/verify", label: "Verify an agent" },
+  { href: "/support", label: "Support" },
+  { href: "/privacy", label: "Privacy notices" },
+  { href: "/terms", label: "Portal terms" },
 ];
 
 const socials = [
-  { icon: FacebookLogo, label: "Facebook", href: "https://web.facebook.com/FreshPhonesPh" },
-  { icon: MessengerLogo, label: "Messenger", href: "https://m.me/FreshPhonesPh" },
+  {
+    icon: FacebookLogo,
+    label: "Facebook",
+    href: "https://web.facebook.com/FreshPhonesPh",
+  },
+  {
+    icon: MessengerLogo,
+    label: "Messenger",
+    href: "https://m.me/FreshPhonesPh",
+  },
 ];
 
 export default function Footer() {
@@ -45,18 +55,20 @@ export default function Footer() {
                 paluwagan. DTI registered under FP Gadget Center.
               </p>
               <div className="mt-5 flex gap-2.5">
-                {socials.map((s) => (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={s.label}
-                    className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-blue-ink transition-colors hover:bg-blue hover:text-white"
-                  >
-                    <s.icon weight="fill" className="h-5 w-5" />
-                  </a>
-                ))}
+                {socials.map((s) => {
+                  return (
+                    <a
+                      key={s.label}
+                      href={s.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={s.label}
+                      className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-blue-ink transition-colors hover:bg-blue hover:text-white"
+                    >
+                      <s.icon weight="fill" className="h-5 w-5" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
 
@@ -66,16 +78,18 @@ export default function Footer() {
                 Explore
               </h3>
               <ul className="mt-4 space-y-2.5">
-                {nav.map((l) => (
-                  <li key={l.href}>
-                    <a
-                      href={l.href}
-                      className="text-sm font-600 text-ink-soft transition-colors hover:text-blue"
-                    >
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
+                {nav.map((l) => {
+                  return (
+                    <li key={l.href}>
+                      <a
+                        href={l.href}
+                        className="text-sm font-600 text-ink-soft transition-colors hover:text-blue"
+                      >
+                        {l.label}
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
 
@@ -86,7 +100,10 @@ export default function Footer() {
               </h3>
               <ul className="mt-4 space-y-2.5 text-sm font-600 text-ink-soft">
                 <li>
-                  <a href="tel:+639624791649" className="transition-colors hover:text-blue">
+                  <a
+                    href="tel:+639624791649"
+                    className="transition-colors hover:text-blue"
+                  >
                     0962 479 1649
                   </a>
                 </li>
@@ -94,7 +111,7 @@ export default function Footer() {
                 <li>GCash, Maya, or bank transfer</li>
               </ul>
               <a
-                href="#join"
+                href="/#join"
                 className="btn-candy mt-5 inline-flex rounded-full px-5 py-2.5 text-sm font-700"
               >
                 Reserve a Slot
@@ -111,6 +128,23 @@ export default function Footer() {
               Not affiliated with Apple Inc. iPhone is a trademark of Apple Inc.
             </p>
           </div>
+          <p className="mt-3 text-center text-xs text-ink-soft/80">
+            iPhone mockup adapted from{" "}
+            <a
+              className="underline"
+              href="https://sketchfab.com/3d-models/iphone-17-free-model-bad34ad8718b49e8894ac82cafef33c4"
+            >
+              SetixOwyy’s model
+            </a>
+            ,{" "}
+            <a
+              className="underline"
+              href="https://creativecommons.org/licenses/by/4.0/"
+            >
+              CC BY 4.0
+            </a>
+            .
+          </p>
         </div>
       </div>
     </footer>

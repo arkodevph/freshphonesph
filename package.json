@@ -6,7 +6,7 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "web": "pnpm --filter @fresh/web",
-    "api": "bash apps/api/scripts/manage.sh",
+    "api": "pnpm --filter @fresh/api-ts",
     "api:ts": "pnpm --filter @fresh/api-ts",
     "typecheck": "pnpm --filter @freshphones/contracts build && pnpm --filter @fresh/api-ts typecheck && pnpm --filter @fresh/web exec tsc --noEmit",
     "test:api-ts": "pnpm --filter @fresh/api-ts test",
@@ -14,13 +14,22 @@
     "db:generate": "pnpm --filter @fresh/api-ts db:generate",
     "db:migrate": "pnpm --filter @fresh/api-ts db:migrate",
     "infra:up": "docker compose up -d",
-    "infra:down": "docker compose down"
+    "infra:down": "docker compose down",
+    "format": "node scripts/format-code.mjs --write",
+    "format:check": "node scripts/format-code.mjs"
   },
   "devDependencies": {
-    "turbo": "^2.3.0"
+    "turbo": "^2.3.0",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3"
   },
   "packageManager": "pnpm@9.12.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "better-call>zod": "4.6.5"
+    }
   }
 }

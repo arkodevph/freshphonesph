@@ -31,8 +31,8 @@ export default function CtaJoin() {
               Ready for your new device?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg font-500 text-white/90">
-              Message our page and Mr. Dale John Tambong for more details. We&apos;ll
-              walk you through everything.
+              Message our page and Mr. Dale John Tambong for more details.
+              We&apos;ll walk you through everything.
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -55,6 +55,16 @@ export default function CtaJoin() {
             </div>
             <p className="mt-4 text-xs font-600 text-white/70">
               Official and only page of Fresh Phones PH.
+            </p>
+            <p className="mt-6 text-sm text-white">
+              Already a customer?{" "}
+              <a
+                href="/support"
+                className="font-700 underline underline-offset-4"
+              >
+                Start or follow a support request
+              </a>
+              .
             </p>
           </div>
         </div>

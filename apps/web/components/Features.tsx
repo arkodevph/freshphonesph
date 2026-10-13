@@ -83,23 +83,27 @@ export default function Features() {
           </div>
         </Reveal>
 
-        {tiles.map((t, i) => (
-          <Reveal key={t.title} delay={(i % 2) * 80} className={t.span}>
-            <div className={`flex h-full items-start gap-4 rounded-[1.75rem] p-6 ${t.surface}`}>
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl chrome text-blue-ink">
-                <t.icon weight="duotone" className="h-6 w-6" />
-              </span>
-              <div>
-                <h3 className="font-display text-lg font-700 text-blue-ink">
-                  {t.title}
-                </h3>
-                <p className="mt-1 text-sm font-500 leading-relaxed text-ink-soft">
-                  {t.body}
-                </p>
+        {tiles.map((t, i) => {
+          return (
+            <Reveal key={t.title} delay={(i % 2) * 80} className={t.span}>
+              <div
+                className={`flex h-full items-start gap-4 rounded-[1.75rem] p-6 ${t.surface}`}
+              >
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl chrome text-blue-ink">
+                  <t.icon weight="duotone" className="h-6 w-6" />
+                </span>
+                <div>
+                  <h3 className="font-display text-lg font-700 text-blue-ink">
+                    {t.title}
+                  </h3>
+                  <p className="mt-1 text-sm font-500 leading-relaxed text-ink-soft">
+                    {t.body}
+                  </p>
+                </div>
               </div>
-            </div>
-          </Reveal>
-        ))}
+            </Reveal>
+          );
+        })}
       </div>
     </section>
   );

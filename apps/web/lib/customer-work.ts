@@ -1,6 +1,7 @@
-import { tsRequest } from './ts-api';
+import { tsRequest } from "./ts-api";
 
-export type CustomerWorkKind = 'support' | 'documents' | 'payments';
+export type CustomerWorkKind = "support" | "documents" | "payments";
+
 export type CustomerWorkItem = {
   id: string;
   clientName: string;
@@ -10,6 +11,7 @@ export type CustomerWorkItem = {
   href: string;
   customerReplied?: boolean;
 };
+
 export type CustomerWorkPage = {
   kind: CustomerWorkKind;
   count: number;
@@ -19,5 +21,7 @@ export type CustomerWorkPage = {
 };
 
 export function getCustomerWork(kind: CustomerWorkKind, page = 1) {
-  return tsRequest<CustomerWorkPage>(`/operations/customer-work?kind=${kind}&page=${page}`);
+  return tsRequest<CustomerWorkPage>(
+    `/operations/customer-work?kind=${kind}&page=${page}`,
+  );
 }

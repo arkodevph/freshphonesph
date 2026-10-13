@@ -18,7 +18,8 @@ This is a local migration preview, not a production cutover or completion of Gat
 - Authorized staff can issue a schedule for a legacy client after reviewing the batch terms.
   Repeating that command, including concurrently, returns the existing schedule without
   duplicate installments, audit entries or events.
-- Staff can search and page through the existing Records/Clients tables. Batch choices load
+- Staff can combine search/model/status/date/handler/agent filters and page through the
+  Records/Clients tables with scoped totals; see [34-records-client-filters.md](34-records-client-filters.md). Batch choices load
   every page of eligible batches. Finance has read access and cannot submit record writes.
 - Customer accounts see their own membership, schedule, release status, Finance-verified
   payment history and a derived remaining balance. Support remains unavailable in this preview.
@@ -37,8 +38,8 @@ This is a local migration preview, not a production cutover or completion of Gat
   presented as collected.
 - The Payments screen exports a filtered CSV containing payment date, batch, status, method and
   amount. The migration export intentionally omits customer identity and payment references.
-- Login uses HTTP-only cookies. Refresh requests are shared within a tab and serialized
-  across tabs using Web Locks where supported. Logout revokes the server session.
+- Login uses Better Auth HTTP-only database-session cookies with MFA support.
+  Logout and access changes revoke server sessions. See [52-authentication-mfa.md](52-authentication-mfa.md).
 - SSE invalidates lists and open schedules without replacing form drafts. Ready/reconnect
   reloads the authoritative snapshot; only authorized record identifiers travel in events.
 
@@ -48,7 +49,7 @@ The migration leaves old terms and joining dates nullable. It does not invent co
 rebuild existing clients' schedules. Set all three agreed terms through a versioned batch
 update, then issue each legacy client's schedule explicitly.
 
-Cadence preserves the Django baseline: weekly = 7 days, semi-monthly = 15 days, monthly =
+Cadence preserves the agreed installment policy: weekly = 7 days, semi-monthly = 15 days, monthly =
 30 days, with the first due date one interval after batch start. These are fixed intervals,
 not calendar-month anniversaries or the 15th/last day of a month. A calendar policy change
 requires an approved policy and separate migration; the preview does not reinterpret dates.
@@ -61,7 +62,7 @@ centavos than installments are rejected. Tests include maximum-size amounts and 
 ## Run locally
 
 Use a separate empty PostgreSQL database for the preview. Configure
-`apps/api-ts/.env` from its example with that database URL, a local JWT secret,
+`apps/api-ts/.env` from its example with that database URL, a generated `BETTER_AUTH_SECRET`,
 `PORT=4101`, and `WEB_ORIGIN=http://localhost:3001`. Provision local test accounts
 privately after migrating the database.
 
@@ -76,16 +77,13 @@ pnpm --filter @fresh/api-ts dev
 Build/start the existing web app in another terminal:
 
 ```bash
-NEXT_PUBLIC_API_BACKEND=typescript NEXT_PUBLIC_API_URL=http://localhost:4101 pnpm --filter @fresh/web build
+NEXT_PUBLIC_API_URL=http://localhost:4101 pnpm --filter @fresh/web build
 pnpm --filter @fresh/web start --port 3001
 ```
 
 Open `http://localhost:3001/login` and use a privately provisioned test account.
 
-The backend selection is fixed at web build time. Without `NEXT_PUBLIC_API_BACKEND=typescript`,
-the web app retains its Django behavior. Changing the API URL alone is not a compatible
-cutover: the two APIs have different identifiers, auth and response contracts.
-Production cookie deployment requires HTTPS and web/API hosts under the same site.
+The web app always uses NestJS. Set `NEXT_PUBLIC_API_URL` for the intended API origin.
 
 ## Endpoints and permissions
 
@@ -121,7 +119,7 @@ pnpm test:api-ts:integration
 pnpm build
 ```
 
-Eleven API unit tests (including executed Django schedule fixtures), thirteen PostgreSQL
+Eleven API unit tests (including fixed-day schedule policy fixtures), thirteen PostgreSQL
 integration tests and four web API-client tests cover totals, rounding, dates, missing terms,
 rollback, concurrency, immutable schedules, role/customer isolation, report permissions,
 verified/pending report totals, privacy-trimmed export and session refresh.
@@ -132,12 +130,9 @@ Browser verification on the local preview covered staff login, batch creation, e
 schedule expansion, live updates while retaining a draft, customer membership/schedule,
 logout and a 390px viewport. The full Next.js/NestJS workspace builds successfully.
 
-## Remaining migration work
+## Remaining acceptance work
 
-Gate 2 still needs requirement checklists, private customer documents/storage authorization,
-document review, and the rest of the record-edit interface. Account administration and the
-remaining role keys also need UI parity. The local proof provider must be replaced by production
-S3-compatible private storage. Finance notifications, audited post-verification adjustments,
-XLSX/PDF exports, collections reconciliation and reporting history still need parity; tasks/KPI,
-support and other operational slices remain on Django until their own checks pass. There are
-no dual writes between these databases.
+NestJS now provides records, identity, Finance, reporting, tasks/KPI and support. The web app
+uses this API directly. Production private storage, client-owned infrastructure, approved
+policies and named business acceptance remain separate release gates. Consult
+[BUILD_STATUS.md](BUILD_STATUS.md) and [36-scope-handoff.md](36-scope-handoff.md) for current work.

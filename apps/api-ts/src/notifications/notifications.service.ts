@@ -3,13 +3,21 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import type { User } from '@freshphones/contracts';
-import { CONFIG, type Config } from '../config';
-import { Database } from '../database';
-import { Prisma } from '../generated/prisma/client';
+} from "@nestjs/common";
+import type { User } from "@freshphones/contracts";
+import { CONFIG, type Config } from "../config";
+import { Database } from "../database";
+import {
+  Prisma,
+  type StaffNotification,
+  type User as StoredUser,
+} from "../generated/prisma/client";
+import { allowed } from "../auth/access";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 type Transaction = Prisma.TransactionClient;
+
 type EventInput = {
   recipientId: string;
   eventKey: keyof typeof defaults;
@@ -19,70 +27,73 @@ type EventInput = {
 };
 
 const defaults = {
-  'payment.submitted': {
-    title: 'Payment awaiting verification',
-    body: '{{client}} submitted a payment of PHP {{amount}} for Finance review.',
+  "payment.submitted": {
+    title: "Payment awaiting verification",
+    body: "{{client}} submitted a payment of PHP {{amount}} for Finance review.",
     emailEnabled: true,
   },
-  'payment.verified': {
-    title: 'Payment verified',
-    body: 'Your payment of PHP {{amount}} was verified. Your portal balance is updated.',
+  "payment.verified": {
+    title: "Payment verified",
+    body: "Your payment of PHP {{amount}} was verified. Your portal balance is updated.",
     emailEnabled: true,
   },
-  'payment.rejected': {
-    title: 'Payment needs attention',
-    body: 'Your payment of PHP {{amount}} was rejected. Review the Finance note in your portal.',
+  "payment.rejected": {
+    title: "Payment needs attention",
+    body: "Your payment of PHP {{amount}} was rejected. Review the Finance note in your portal.",
     emailEnabled: true,
   },
-  'payment.needs_clarification': {
-    title: 'Payment clarification requested',
-    body: 'Finance needs more information about your PHP {{amount}} payment.',
+  "payment.needs_clarification": {
+    title: "Payment clarification requested",
+    body: "Finance needs more information about your PHP {{amount}} payment.",
     emailEnabled: true,
   },
-  'document.submitted': {
-    title: 'Document ready for review',
-    body: '{{client}} uploaded {{requirement}}.',
+  "document.submitted": {
+    title: "Document ready for review",
+    body: "{{client}} uploaded {{requirement}}.",
     emailEnabled: false,
   },
-  'document.approved': {
-    title: 'Document approved',
-    body: 'Your {{requirement}} was approved.',
+  "document.approved": {
+    title: "Document approved",
+    body: "Your {{requirement}} was approved.",
     emailEnabled: true,
   },
-  'document.needs_clarification': {
-    title: 'Document clarification requested',
-    body: 'Please review and resubmit your {{requirement}}. Note: {{note}}',
+  "document.needs_clarification": {
+    title: "Document clarification requested",
+    body: "Please review and resubmit your {{requirement}}. Note: {{note}}",
     emailEnabled: true,
   },
-  'client.release': {
-    title: 'Release status updated',
-    body: 'Your unit release status is now {{status}}.',
+  "client.release": {
+    title: "Release status updated",
+    body: "Your unit release status is now {{status}}.",
     emailEnabled: true,
   },
-  'task.assigned': {
-    title: 'New task assigned',
-    body: '{{title}} is due {{deadline}}.',
+  "task.assigned": {
+    title: "New task assigned",
+    body: "{{title}} is due {{deadline}}.",
     emailEnabled: true,
   },
-  'task.reminder': {
-    title: 'Task deadline approaching',
-    body: '{{title}} is due {{deadline}}.',
+  "task.reminder": {
+    title: "Task deadline approaching",
+    body: "{{title}} is due {{deadline}}.",
     emailEnabled: true,
   },
-  'task.overdue': {
-    title: 'Task is overdue',
-    body: '{{title}} passed its deadline on {{deadline}}. This is an objective timing notice only.',
+  "task.overdue": {
+    title: "Task is overdue",
+    body: "{{title}} passed its deadline on {{deadline}}. This is an objective timing notice only.",
     emailEnabled: true,
   },
-  'support.updated': {
-    title: 'Support case updated',
-    body: 'Your {{category}} concern is now {{status}}.',
+  "support.updated": {
+    title: "Support case updated",
+    body: "Your {{category}} concern is now {{status}}.",
     emailEnabled: true,
   },
 } as const;
 
-const render = (template: string, variables: Record<string, string>) =>
-  template.replace(/{{([a-zA-Z0-9_]+)}}/g, (_, key: string) => variables[key] ?? '');
+const render = (template: string, variables: Record<string, string>) => {
+  return template.replace(/{{([a-zA-Z0-9_]+)}}/g, (_, key: string) => {
+    return variables[key] ?? "";
+  });
+};
 
 @Injectable()
 export class NotificationsService {
@@ -92,9 +103,13 @@ export class NotificationsService {
   ) {}
 
   async enqueue(tx: Transaction, input: EventInput) {
-    const override = await tx.notificationTemplate.findUnique({ where: { key: input.eventKey } });
+    const override = await tx.notificationTemplate.findUnique({
+      where: { key: input.eventKey },
+    });
+
     const template = override?.active ? override : defaults[input.eventKey];
-    const notification = await tx.notification.upsert({
+
+    const notification = await tx.staffNotification.upsert({
       where: { dedupeKey: input.dedupeKey },
       update: {},
       create: {
@@ -109,154 +124,421 @@ export class NotificationsService {
           : {}),
       },
     });
-    await tx.changeEvent.create({ data: { entity: 'notification', recordId: notification.id } });
+
+    await tx.changeEvent.create({
+      data: { entity: "notification", recordId: notification.id },
+    });
+
     return notification;
   }
 
-  async enqueueRoles(tx: Transaction, roles: User['role'][], input: Omit<EventInput, 'recipientId' | 'dedupeKey'> & { dedupeKey: string }) {
+  async enqueueRoles(
+    tx: Transaction,
+    roles: User["role"][],
+    input: Omit<EventInput, "recipientId" | "dedupeKey"> & {
+      dedupeKey: string;
+    },
+  ) {
     const recipients = await tx.user.findMany({
       where: { active: true, role: { in: roles } },
       select: { id: true },
     });
-    await Promise.all(recipients.map((recipient) => this.enqueue(tx, {
-      ...input,
-      recipientId: recipient.id,
-      dedupeKey: `${input.dedupeKey}:${recipient.id}`,
-    })));
+
+    await Promise.all(
+      recipients.map((recipient) => {
+        return this.enqueue(tx, {
+          ...input,
+          recipientId: recipient.id,
+          dedupeKey: `${input.dedupeKey}:${recipient.id}`,
+        });
+      }),
+    );
   }
 
   async list(user: User, page: number, unreadOnly = false) {
-    const where: Prisma.NotificationWhereInput = {
+    const where: Prisma.StaffNotificationWhereInput = {
       recipientId: user.id,
       ...(unreadOnly ? { readAt: null } : {}),
     };
+
     const [items, total, unread] = await this.db.$transaction([
-      this.db.notification.findMany({
+      this.db.staffNotification.findMany({
         where,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         skip: (page - 1) * 20,
         take: 20,
       }),
-      this.db.notification.count({ where }),
-      this.db.notification.count({ where: { recipientId: user.id, readAt: null } }),
+      this.db.staffNotification.count({ where }),
+      this.db.staffNotification.count({
+        where: { recipientId: user.id, readAt: null },
+      }),
     ]);
+
     return { items, total, unread, page, pageSize: 20 };
   }
 
   async markRead(user: User, id: string) {
-    const changed = await this.db.notification.updateMany({
+    const changed = await this.db.staffNotification.updateMany({
       where: { id, recipientId: user.id },
       data: { readAt: new Date() },
     });
-    if (!changed.count) throw new NotFoundException('Notification not found.');
-    return this.db.notification.findUniqueOrThrow({ where: { id } });
+
+    if (!changed.count) {
+      throw new NotFoundException("Notification not found.");
+    }
+    return this.db.staffNotification.findUniqueOrThrow({ where: { id } });
   }
 
   async readAll(user: User) {
-    const result = await this.db.notification.updateMany({
+    const result = await this.db.staffNotification.updateMany({
       where: { recipientId: user.id, readAt: null },
       data: { readAt: new Date() },
     });
+
     return { updated: result.count };
   }
 
   templates() {
-    return this.db.notificationTemplate.findMany({ orderBy: { key: 'asc' } });
+    return this.db.notificationTemplate.findMany({ orderBy: { key: "asc" } });
   }
 
-  async createTemplate(user: User, input: {
-    key: string; title: string; body: string; emailEnabled: boolean; active: boolean;
-  }) {
+  async createTemplate(
+    user: User,
+    input: {
+      key: string;
+      title: string;
+      body: string;
+      emailEnabled: boolean;
+      active: boolean;
+    },
+  ) {
     return this.db.$transaction(async (tx) => {
       const template = await tx.notificationTemplate.create({ data: input });
-      await tx.auditEntry.create({ data: {
-        actorId: user.id, action: 'notification_template.created', entity: 'notification_template',
-        recordId: template.id, after: JSON.parse(JSON.stringify(template)) as Prisma.InputJsonValue,
-      } });
+
+      await tx.auditEntry.create({
+        data: {
+          actorId: user.id,
+          action: "notification_template.created",
+          entity: "notification_template",
+          recordId: template.id,
+          after: JSON.parse(JSON.stringify(template)) as Prisma.InputJsonValue,
+        },
+      });
+
       return template;
     });
   }
 
-  async updateTemplate(user: User, id: string, input: {
-    key: string; title: string; body: string; emailEnabled: boolean; active: boolean;
-  }, version: number) {
+  async updateTemplate(
+    user: User,
+    id: string,
+    input: {
+      key: string;
+      title: string;
+      body: string;
+      emailEnabled: boolean;
+      active: boolean;
+    },
+    version: number,
+  ) {
     return this.db.$transaction(async (tx) => {
-      const before = await tx.notificationTemplate.findUnique({ where: { id } });
-      if (!before) throw new NotFoundException('Notification template not found.');
-      const changed = await tx.notificationTemplate.updateMany({ where: { id, version }, data: {
-        ...input, version: { increment: 1 },
-      } });
-      if (!changed.count) throw new ConflictException('This template changed. Refresh and try again.');
-      const after = await tx.notificationTemplate.findUniqueOrThrow({ where: { id } });
-      await tx.auditEntry.create({ data: {
-        actorId: user.id, action: 'notification_template.updated', entity: 'notification_template',
-        recordId: id,
-        before: JSON.parse(JSON.stringify(before)) as Prisma.InputJsonValue,
-        after: JSON.parse(JSON.stringify(after)) as Prisma.InputJsonValue,
-      } });
+      const before = await tx.notificationTemplate.findUnique({
+        where: { id },
+      });
+
+      if (!before) {
+        throw new NotFoundException("Notification template not found.");
+      }
+      const changed = await tx.notificationTemplate.updateMany({
+        where: { id, version },
+        data: {
+          ...input,
+          version: { increment: 1 },
+        },
+      });
+
+      if (!changed.count) {
+        throw new ConflictException(
+          "This template changed. Refresh and try again.",
+        );
+      }
+      const after = await tx.notificationTemplate.findUniqueOrThrow({
+        where: { id },
+      });
+
+      await tx.auditEntry.create({
+        data: {
+          actorId: user.id,
+          action: "notification_template.updated",
+          entity: "notification_template",
+          recordId: id,
+          before: JSON.parse(JSON.stringify(before)) as Prisma.InputJsonValue,
+          after: JSON.parse(JSON.stringify(after)) as Prisma.InputJsonValue,
+        },
+      });
+
       return after;
     });
   }
 
   async runTaskReminders() {
     const now = new Date();
+
     const soon = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
     const tasks = await this.db.task.findMany({
-      where: { status: { in: ['TODO', 'IN_PROGRESS'] }, deadline: { lte: soon } },
+      where: {
+        status: { in: ["TODO", "IN_PROGRESS"] },
+        deadline: { lte: soon },
+      },
       select: { id: true, title: true, assigneeId: true, deadline: true },
       take: 500,
     });
+
     await this.db.$transaction(async (tx) => {
-      for (const task of tasks) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+
+      for (const candidate of tasks) {
+        const task = await tx.task.findFirst({
+          where: {
+            id: candidate.id,
+            status: { in: ["TODO", "IN_PROGRESS"] },
+            deadline: { lte: soon },
+            assignee: { active: true, retentionErasedAt: null },
+          },
+        });
+
+        if (!task) {
+          continue;
+        }
         const overdue = task.deadline < now;
+
         await this.enqueue(tx, {
           recipientId: task.assigneeId,
-          eventKey: overdue ? 'task.overdue' : 'task.reminder',
-          dedupeKey: `task:${task.id}:${overdue ? 'overdue' : 'reminder'}:${task.deadline.toISOString()}`,
-          variables: { title: task.title, deadline: task.deadline.toLocaleString('en-PH') },
-          link: '/system/tasks',
+          eventKey: overdue ? "task.overdue" : "task.reminder",
+          dedupeKey: `task:${task.id}:${overdue ? "overdue" : "reminder"}:${task.deadline.toISOString()}`,
+          variables: {
+            title: task.title,
+            deadline: task.deadline.toLocaleString("en-PH"),
+          },
+          link: "/system/tasks",
         });
       }
     });
+
     return { considered: tasks.length };
   }
 
-  async deliverPending() {
+  async deliverPending(onlyId?: string) {
     const queued = await this.db.notificationDelivery.count({
-      where: { status: { in: ['PENDING', 'FAILED'] }, attempts: { lt: 5 }, nextAttemptAt: { lte: new Date() } },
+      where: {
+        status: { in: ["PENDING", "FAILED"] },
+        attempts: { lt: 5 },
+        nextAttemptAt: { lte: new Date() },
+      },
     });
-    if (!this.config.RESEND_API_KEY) return { processed: 0, queued, providerConfigured: false };
+
+    if (this.config.NODE_ENV === "production" && !this.config.RESEND_API_KEY) {
+      return { processed: 0, queued, providerConfigured: false };
+    }
     const deliveries = await this.db.notificationDelivery.findMany({
-      where: { status: { in: ['PENDING', 'FAILED'] }, attempts: { lt: 5 }, nextAttemptAt: { lte: new Date() } },
-      include: { notification: { include: { recipient: { select: { email: true } } } } },
-      orderBy: { createdAt: 'asc' },
+      where: {
+        ...(onlyId ? { id: onlyId } : {}),
+        status: { in: ["PENDING", "FAILED"] },
+        attempts: { lt: 5 },
+        nextAttemptAt: { lte: new Date() },
+      },
+      include: {
+        notification: { include: { recipient: { select: { email: true } } } },
+      },
+      orderBy: { createdAt: "asc" },
       take: 50,
     });
-    for (const delivery of deliveries) {
-      try {
-        const response = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${this.config.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: this.config.EMAIL_FROM,
-            to: [delivery.notification.recipient.email],
-            subject: `${delivery.notification.title} — Fresh Phones PH`,
-            text: delivery.notification.body,
-          }),
-        });
-        if (!response.ok) throw new Error(`Email provider returned ${response.status}.`);
-        await this.db.notificationDelivery.update({ where: { id: delivery.id }, data: {
-          status: 'SENT', attempts: { increment: 1 }, sentAt: new Date(), lastError: null,
-        } });
-      } catch (error) {
-        const attempts = delivery.attempts + 1;
-        await this.db.notificationDelivery.update({ where: { id: delivery.id }, data: {
-          status: 'FAILED', attempts,
-          nextAttemptAt: new Date(Date.now() + Math.min(60, 2 ** attempts) * 60 * 1000),
-          lastError: error instanceof Error ? error.message.slice(0, 500) : 'Email delivery failed.',
-        } });
-      }
+
+    for (const candidate of deliveries) {
+      await this.db.$transaction(
+        async (tx) => {
+          // Serialize the small legacy delivery path with erasure and recheck the live row before sending.
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+
+          const delivery = await tx.notificationDelivery.findUnique({
+            where: { id: candidate.id },
+            include: { notification: { include: { recipient: true } } },
+          });
+
+          if (
+            !delivery ||
+            !["PENDING", "FAILED"].includes(delivery.status) ||
+            delivery.attempts >= 5 ||
+            delivery.nextAttemptAt > new Date()
+          ) {
+            return;
+          }
+          if (
+            !(await this.deliveryEligible(
+              tx,
+              delivery.notification,
+              delivery.notification.recipient,
+            ))
+          ) {
+            await tx.notificationDelivery.update({
+              where: { id: delivery.id },
+              data: {
+                status: "FAILED",
+                attempts: 5,
+                lastError:
+                  "Recipient or record no longer permits this delivery.",
+              },
+            });
+
+            return;
+          }
+          try {
+            if (this.config.NODE_ENV !== "production") {
+              const directory = join(process.cwd(), ".local/mail");
+
+              await mkdir(directory, { recursive: true, mode: 0o700 });
+
+              await writeFile(
+                join(directory, `${delivery.notificationId}.txt`),
+                `To: ${delivery.notification.recipient.email}\nSubject: ${delivery.notification.title} — Fresh Phones PH\n\n${delivery.notification.body}`,
+                { mode: 0o600 },
+              );
+            } else {
+              const response = await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                signal: AbortSignal.timeout(10_000),
+                headers: {
+                  Authorization: `Bearer ${this.config.RESEND_API_KEY}`,
+                  "Content-Type": "application/json",
+                  "Idempotency-Key": `operations-notification/${delivery.id}`,
+                },
+                body: JSON.stringify({
+                  from: this.config.EMAIL_FROM,
+                  to: [delivery.notification.recipient.email],
+                  subject: `${delivery.notification.title} — Fresh Phones PH`,
+                  text: delivery.notification.body,
+                }),
+              });
+
+              if (!response.ok) {
+                throw new Error(`Email provider returned ${response.status}.`);
+              }
+            }
+            await tx.notificationDelivery.update({
+              where: { id: delivery.id },
+              data: {
+                status: "SENT",
+                attempts: { increment: 1 },
+                sentAt: new Date(),
+                lastError: null,
+              },
+            });
+          } catch {
+            const attempts = delivery.attempts + 1;
+
+            await tx.notificationDelivery.update({
+              where: { id: delivery.id },
+              data: {
+                status: "FAILED",
+                attempts,
+                nextAttemptAt: new Date(
+                  Date.now() + Math.min(60, 2 ** attempts) * 60 * 1000,
+                ),
+                lastError:
+                  "Email delivery failed. Check the provider and retry.",
+              },
+            });
+          }
+        },
+        { timeout: 20_000 },
+      );
     }
     return { processed: deliveries.length, queued, providerConfigured: true };
+  }
+  private async deliveryEligible(
+    tx: Transaction,
+    notice: StaffNotification,
+    user: StoredUser,
+  ) {
+    if (!user.active || user.retentionErasedAt) {
+      return false;
+    }
+    const id = notice.dedupeKey.match(/^[a-z_]+:([a-f0-9-]{36}):/i)?.[1];
+
+    if (!id) {
+      return false;
+    }
+    if (notice.eventKey.startsWith("task.")) {
+      if (user.role === "CUSTOMER" || !allowed(user, "TASK_READ")) {
+        return false;
+      }
+      const task = await tx.task.findFirst({
+        where: {
+          id,
+          assigneeId: user.id,
+          status: { in: ["TODO", "IN_PROGRESS"] },
+        },
+      });
+
+      return Boolean(
+        task &&
+        (notice.eventKey === "task.assigned" ||
+          notice.dedupeKey.endsWith(task.deadline.toISOString())),
+      );
+    }
+    if (notice.eventKey === "document.submitted") {
+      return (
+        allowed(user, "DOCUMENT_REVIEW") &&
+        Boolean(
+          await tx.requirementDocument.findUnique({
+            where: { id },
+            select: { id: true },
+          }),
+        )
+      );
+    }
+    if (notice.eventKey === "payment.submitted") {
+      return (
+        allowed(user, "PAYMENT_VERIFY") &&
+        Boolean(
+          await tx.payment.findFirst({
+            where: { id, status: "PENDING" },
+            select: { id: true },
+          }),
+        )
+      );
+    }
+    if (user.role !== "CUSTOMER" || !user.clientId) {
+      return false;
+    }
+    if (notice.eventKey.startsWith("document.")) {
+      return Boolean(
+        await tx.clientRequirement.findFirst({
+          where: { id, clientId: user.clientId },
+          select: { id: true },
+        }),
+      );
+    }
+    if (notice.eventKey.startsWith("support.")) {
+      return Boolean(
+        await tx.supportCase.findFirst({
+          where: { id, clientId: user.clientId },
+          select: { id: true },
+        }),
+      );
+    }
+    if (notice.eventKey.startsWith("payment.")) {
+      return Boolean(
+        await tx.payment.findFirst({
+          where: { id, clientId: user.clientId },
+          select: { id: true },
+        }),
+      );
+    }
+    if (notice.eventKey === "client.release") {
+      return user.clientId === id;
+    }
+    return false;
   }
 }
