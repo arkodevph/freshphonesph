@@ -30,16 +30,14 @@ const reviews: Review[] = [
   {
     name: "John Cadion Fabillar",
     role: "Recommends on Facebook",
-    quote:
-      "High quality phones, 100% recommended!",
+    quote: "High quality phones, 100% recommended!",
     initials: "JF",
     color: "from-lilac to-periwinkle",
   },
   {
     name: "Ana Marie Dulin",
     role: "Recommends on Facebook",
-    quote:
-      "Super smooth transaction!",
+    quote: "Super smooth transaction!",
     initials: "AD",
     color: "from-cyan to-blue",
   },
@@ -58,32 +56,45 @@ export default function Testimonials() {
       />
 
       <div className="mx-auto mt-12 grid max-w-5xl gap-5 sm:grid-cols-2">
-        {reviews.map((r, i) => (
-          <Reveal key={r.name} delay={(i % 2) * 100}>
-            <figure className="glass relative h-full rounded-[1.75rem] p-6">
-              <Quotes weight="fill" className="absolute right-5 top-5 h-8 w-8 text-blue/15" />
-              <div className="mb-3 flex">
-                {[0, 1, 2, 3, 4].map((s) => (
-                  <Star key={s} weight="fill" className="h-4 w-4 text-hotpink" />
-                ))}
-              </div>
-              <blockquote className="text-[15px] font-500 leading-relaxed text-ink">
-                “{r.quote}”
-              </blockquote>
-              <figcaption className="mt-5 flex items-center gap-3">
-                <span
-                  className={`grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br ${r.color} font-display text-sm font-700 text-white shadow`}
-                >
-                  {r.initials}
-                </span>
-                <div>
-                  <p className="font-display font-700 text-blue-ink">{r.name}</p>
-                  <p className="text-xs font-600 text-ink-soft">{r.role}</p>
+        {reviews.map((r, i) => {
+          return (
+            <Reveal key={r.name} delay={(i % 2) * 100}>
+              <figure className="glass relative h-full rounded-[1.75rem] p-6">
+                <Quotes
+                  weight="fill"
+                  className="absolute right-5 top-5 h-8 w-8 text-blue/15"
+                />
+                <div className="mb-3 flex">
+                  {[0, 1, 2, 3, 4].map((s) => {
+                    return (
+                      <Star
+                        key={s}
+                        weight="fill"
+                        className="h-4 w-4 text-hotpink"
+                      />
+                    );
+                  })}
                 </div>
-              </figcaption>
-            </figure>
-          </Reveal>
-        ))}
+                <blockquote className="text-[15px] font-500 leading-relaxed text-ink">
+                  “{r.quote}”
+                </blockquote>
+                <figcaption className="mt-5 flex items-center gap-3">
+                  <span
+                    className={`grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br ${r.color} font-display text-sm font-700 text-white shadow`}
+                  >
+                    {r.initials}
+                  </span>
+                  <div>
+                    <p className="font-display font-700 text-blue-ink">
+                      {r.name}
+                    </p>
+                    <p className="text-xs font-600 text-ink-soft">{r.role}</p>
+                  </div>
+                </figcaption>
+              </figure>
+            </Reveal>
+          );
+        })}
       </div>
 
       <Reveal className="mt-8 text-center">

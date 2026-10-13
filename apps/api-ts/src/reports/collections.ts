@@ -1,28 +1,63 @@
-import type { CollectionReport } from '@freshphones/contracts';
-import { Prisma } from '../generated/prisma/client';
+import type { CollectionReport } from "@freshphones/contracts";
+import { Prisma } from "../generated/prisma/client";
 
-type Query = { dateFrom?: string; dateTo?: string; batchId?: string; page?: number };
-const counts = ['clients', 'scheduledClients', 'clientsWithoutSchedule', 'verifiedPaymentsInPeriod', 'pendingPaymentsInPeriod'];
-const money = ['agreedAmount', 'verifiedAmount', 'pendingAmount', 'remainingBalance', 'overpaidAmount', 'collectedInPeriod', 'pendingInPeriod', 'adjustmentAmount', 'adjustmentsInPeriod'];
+type Query = {
+  dateFrom?: string;
+  dateTo?: string;
+  batchId?: string;
+  page?: number;
+};
+
+const counts = [
+  "clients",
+  "scheduledClients",
+  "clientsWithoutSchedule",
+  "verifiedPaymentsInPeriod",
+  "pendingPaymentsInPeriod",
+];
+
+const money = [
+  "agreedAmount",
+  "verifiedAmount",
+  "pendingAmount",
+  "remainingBalance",
+  "overpaidAmount",
+  "collectedInPeriod",
+  "pendingInPeriod",
+  "adjustmentAmount",
+  "adjustmentsInPeriod",
+];
 
 // Identifiers come only from fixed lists. User filters remain bound parameters.
 function figures(total: boolean) {
-  return Prisma.join([...counts, ...money].map((field) => {
-    const column = Prisma.raw(`"${field}"`);
-    const value = total ? Prisma.sql`COALESCE(SUM(${column}), 0)` : column;
-    return Prisma.sql`${field}::text, ${counts.includes(field) ? Prisma.sql`${value}::int` : Prisma.sql`${value}::numeric(30,2)::text`}`;
-  }));
+  return Prisma.join(
+    [...counts, ...money].map((field) => {
+      const column = Prisma.raw(`"${field}"`);
+
+      const value = total ? Prisma.sql`COALESCE(SUM(${column}), 0)` : column;
+
+      return Prisma.sql`${field}::text, ${counts.includes(field) ? Prisma.sql`${value}::int` : Prisma.sql`${value}::numeric(30,2)::text`}`;
+    }),
+  );
 }
 
 /** A single statement keeps totals and page rows consistent without loading private client fields.
  * Current client membership groups schedules and payments, matching Finance's client balance.
  * Clamp each client's balance before summing so overpayments cannot cancel another client's debt.
  */
-export async function collections(db: Prisma.TransactionClient, query: Query, fullScope = false): Promise<CollectionReport> {
+export async function collections(
+  db: Prisma.TransactionClient,
+  query: Query,
+  fullScope = false,
+): Promise<CollectionReport> {
   const page = query.page ?? 1;
+
   const period = Prisma.sql`${query.dateFrom ? Prisma.sql`p."paymentDate" >= ${query.dateFrom}::date` : Prisma.sql`TRUE`}
     AND ${query.dateTo ? Prisma.sql`p."paymentDate" <= ${query.dateTo}::date` : Prisma.sql`TRUE`}`;
-  const [result] = await db.$queryRaw<{ report: CollectionReport }[]>(Prisma.sql`
+
+  const [result] = await db.$queryRaw<
+    { report: CollectionReport }[]
+  >(Prisma.sql`
     WITH scope AS (
       SELECT id, code, status FROM "Batch"
       WHERE ${query.batchId ? Prisma.sql`id = ${query.batchId}::uuid` : Prisma.sql`TRUE`}
@@ -83,5 +118,6 @@ export async function collections(db: Prisma.TransactionClient, query: Query, fu
       'total', (SELECT COUNT(*)::int FROM batches), 'page', ${page}::int, 'pageSize', 20
     ) AS report
   `);
+
   return result.report;
 }

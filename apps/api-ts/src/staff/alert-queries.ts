@@ -1,14 +1,23 @@
-import type { StaffAlertScope, TaskAlertKind } from '@freshphones/contracts';
-import { Prisma } from '../generated/prisma/client';
+import type { StaffAlertScope, TaskAlertKind } from "@freshphones/contracts";
+import { Prisma } from "../generated/prisma/client";
 
 export const taskReminderHours = 24;
+
 export function taskAlertKind(deadline: Date, now: Date): TaskAlertKind {
   const remaining = deadline.getTime() - now.getTime();
-  if (remaining < 0) return 'TASK_OVERDUE';
-  return remaining <= taskReminderHours * 3_600_000 ? 'TASK_DUE_SOON' : 'TASK_ASSIGNED';
+
+  if (remaining < 0) {
+    return "TASK_OVERDUE";
+  }
+  return remaining <= taskReminderHours * 3_600_000
+    ? "TASK_DUE_SOON"
+    : "TASK_ASSIGNED";
 }
 // Prisma dates use UTC timestamps. Explicit UTC text avoids session-timezone conversion in raw SQL.
-export const utcTimestamp = (date: Date) => date.toISOString().slice(0, 23).replace('T', ' ');
+export const utcTimestamp = (date: Date) => {
+  return date.toISOString().slice(0, 23).replace("T", " ");
+};
+
 export function taskStageSql(now: Date) {
   return Prisma.sql`CASE WHEN t.deadline < ${utcTimestamp(now)}::timestamp THEN 'TASK_OVERDUE'
     WHEN t.deadline <= ${utcTimestamp(now)}::timestamp + INTERVAL '24 hours' THEN 'TASK_DUE_SOON'
@@ -39,9 +48,17 @@ export function financeAlertRows(userId: string) {
   `;
 }
 export function alertScopeSql(scope: StaffAlertScope) {
-  return scope === 'tasks' ? Prisma.sql`entity = 'task'` : scope === 'finance' ? Prisma.sql`entity = 'payment'`
-    : scope === 'results' ? Prisma.sql`entity = 'payment-result'` : scope === 'support' ? Prisma.sql`entity = 'support'`
-    : scope === 'accounts' ? Prisma.sql`entity = 'account'` : Prisma.sql`TRUE`;
+  return scope === "tasks"
+    ? Prisma.sql`entity = 'task'`
+    : scope === "finance"
+      ? Prisma.sql`entity = 'payment'`
+      : scope === "results"
+        ? Prisma.sql`entity = 'payment-result'`
+        : scope === "support"
+          ? Prisma.sql`entity = 'support'`
+          : scope === "accounts"
+            ? Prisma.sql`entity = 'account'`
+            : Prisma.sql`TRUE`;
 }
 export function paymentResultRows(userId: string) {
   return Prisma.sql`
@@ -53,7 +70,10 @@ export function paymentResultRows(userId: string) {
     FROM "PaymentResultAlert" r WHERE r."userId" = ${userId}::uuid
   `;
 }
-export async function markFinanceAlertsRead(tx: Prisma.TransactionClient, userId: string) {
+export async function markFinanceAlertsRead(
+  tx: Prisma.TransactionClient,
+  userId: string,
+) {
   return tx.$executeRaw`
     INSERT INTO "FinanceAlertRead" ("userId", "paymentId", "seenVersion", "readAt")
     SELECT ${userId}::uuid, p.id, p.version, CURRENT_TIMESTAMP FROM "Payment" p WHERE p.status = 'PENDING'

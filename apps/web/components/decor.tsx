@@ -112,7 +112,10 @@ export function CloudBlob({ className, ...p }: SvgProps) {
 /* A field of softly floating decorations positioned around a section. */
 export function DecorField() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden" aria-hidden>
+    <div
+      className="pointer-events-none absolute inset-0 -z-0 overflow-hidden"
+      aria-hidden
+    >
       <GlossyStar className="absolute left-[4%] top-[14%] h-10 w-10 animate-[twinkle_2.4s_ease-in-out_infinite]" />
       <PinkStar className="absolute right-[8%] top-[10%] h-8 w-8 animate-[twinkle_3s_ease-in-out_infinite]" />
       <GlossyHeart className="absolute left-[10%] bottom-[16%] h-9 w-9 animate-[bob_4s_ease-in-out_infinite]" />

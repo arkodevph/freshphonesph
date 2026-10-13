@@ -1,26 +1,50 @@
-import type { Page, ReconciliationException, ReconciliationReport } from '@freshphones/contracts';
-import { Prisma } from '../generated/prisma/client';
+import type {
+  Page,
+  ReconciliationException,
+  ReconciliationReport,
+} from "@freshphones/contracts";
+import { Prisma } from "../generated/prisma/client";
 
-type Query = { dateFrom?: string; dateTo?: string; batchId?: string; page?: number };
+type Query = {
+  dateFrom?: string;
+  dateTo?: string;
+  batchId?: string;
+  page?: number;
+};
+
 export const reconciliationColumns = [
-  ['payments', 'Recorded payments'], ['recordedAmount', 'Recorded claims (PHP)'],
-  ['verifiedPayments', 'Verified payments'], ['verifiedAmount', 'Verified (PHP)'],
-  ['pendingPayments', 'Pending payments'], ['pendingAmount', 'Pending (PHP)'],
-  ['clarificationPayments', 'Clarification payments'], ['clarificationAmount', 'Clarification (PHP)'],
-  ['rejectedPayments', 'Rejected payments'], ['rejectedAmount', 'Rejected (PHP)'],
-  ['auditedVerifiedPayments', 'Verified with matching audit'], ['auditedVerifiedAmount', 'Verified with matching audit (PHP)'],
-  ['unmatchedVerifiedPayments', 'Verified without matching audit'], ['unmatchedVerifiedAmount', 'Audit evidence gap (PHP)'],
-  ['paymentsWithFlags', 'Payments with review flags'], ['duplicateReferencePayments', 'Possible duplicate references'],
-  ['scheduleMismatchPayments', 'Schedule belongs to another client'], ['batchMismatchPayments', 'Recorded/current batch differ'],
-  ['verifiedWithoutSchedulePayments', 'Verified without issued schedule'],
-  ['originalVerifiedAmount', 'Original verified claims (PHP)'], ['adjustmentAmount', 'Finance adjustments (PHP)'],
-  ['adjustments', 'Adjustment entries'], ['adjustmentAuditGapPayments', 'Payments with adjustment audit gaps'],
-  ['adjustmentAuditGapAmount', 'Adjustment audit gap magnitude (PHP)'],
+  ["payments", "Recorded payments"],
+  ["recordedAmount", "Recorded claims (PHP)"],
+  ["verifiedPayments", "Verified payments"],
+  ["verifiedAmount", "Verified (PHP)"],
+  ["pendingPayments", "Pending payments"],
+  ["pendingAmount", "Pending (PHP)"],
+  ["clarificationPayments", "Clarification payments"],
+  ["clarificationAmount", "Clarification (PHP)"],
+  ["rejectedPayments", "Rejected payments"],
+  ["rejectedAmount", "Rejected (PHP)"],
+  ["auditedVerifiedPayments", "Verified with matching audit"],
+  ["auditedVerifiedAmount", "Verified with matching audit (PHP)"],
+  ["unmatchedVerifiedPayments", "Verified without matching audit"],
+  ["unmatchedVerifiedAmount", "Audit evidence gap (PHP)"],
+  ["paymentsWithFlags", "Payments with review flags"],
+  ["duplicateReferencePayments", "Possible duplicate references"],
+  ["scheduleMismatchPayments", "Schedule belongs to another client"],
+  ["batchMismatchPayments", "Recorded/current batch differ"],
+  ["verifiedWithoutSchedulePayments", "Verified without issued schedule"],
+  ["originalVerifiedAmount", "Original verified claims (PHP)"],
+  ["adjustmentAmount", "Finance adjustments (PHP)"],
+  ["adjustments", "Adjustment entries"],
+  ["adjustmentAuditGapPayments", "Payments with adjustment audit gaps"],
+  ["adjustmentAuditGapAmount", "Adjustment audit gap magnitude (PHP)"],
 ] as const;
+
 const flagColumns = [
-  ['duplicateReferencePayments', 'DUPLICATE_REFERENCE'], ['scheduleMismatchPayments', 'SCHEDULE_CLIENT_MISMATCH'],
-  ['batchMismatchPayments', 'BATCH_MEMBERSHIP_MISMATCH'], ['verifiedWithoutSchedulePayments', 'VERIFIED_WITHOUT_SCHEDULE'],
-  ['adjustmentAuditGapPayments', 'UNMATCHED_ADJUSTMENT_AUDIT'],
+  ["duplicateReferencePayments", "DUPLICATE_REFERENCE"],
+  ["scheduleMismatchPayments", "SCHEDULE_CLIENT_MISMATCH"],
+  ["batchMismatchPayments", "BATCH_MEMBERSHIP_MISMATCH"],
+  ["verifiedWithoutSchedulePayments", "VERIFIED_WITHOUT_SCHEDULE"],
+  ["adjustmentAuditGapPayments", "UNMATCHED_ADJUSTMENT_AUDIT"],
 ] as const;
 
 // Both aggregate and authorized exception reads use these exact checks.
@@ -95,24 +119,45 @@ function ledger(query: Query) {
 }
 
 function figures(total: boolean) {
-  return Prisma.join(reconciliationColumns.map(([field]) => {
-    // Column names are fixed above; filter values remain bound parameters.
-    const column = Prisma.raw(`"${field}"`);
-    const value = total ? Prisma.sql`COALESCE(SUM(${column}), 0)` : column;
-    return Prisma.sql`${field}::text, ${field.endsWith('Amount') ? Prisma.sql`${value}::numeric(30,2)::text` : Prisma.sql`${value}::int`}`;
-  }));
+  return Prisma.join(
+    reconciliationColumns.map(([field]) => {
+      // Column names are fixed above; filter values remain bound parameters.
+      const column = Prisma.raw(`"${field}"`);
+
+      const value = total ? Prisma.sql`COALESCE(SUM(${column}), 0)` : column;
+
+      return Prisma.sql`${field}::text, ${field.endsWith("Amount") ? Prisma.sql`${value}::numeric(30,2)::text` : Prisma.sql`${value}::int`}`;
+    }),
+  );
 }
 
-export async function reconciliation(db: Prisma.TransactionClient, query: Query, fullScope = false): Promise<ReconciliationReport> {
+export async function reconciliation(
+  db: Prisma.TransactionClient,
+  query: Query,
+  fullScope = false,
+): Promise<ReconciliationReport> {
   const page = query.page ?? 1;
-  const statuses = [['verified', 'VERIFIED'], ['pending', 'PENDING'], ['clarification', 'NEEDS_CLARIFICATION'], ['rejected', 'REJECTED']] as const;
-  const [result] = await db.$queryRaw<{ report: ReconciliationReport }[]>(Prisma.sql`
+
+  const statuses = [
+    ["verified", "VERIFIED"],
+    ["pending", "PENDING"],
+    ["clarification", "NEEDS_CLARIFICATION"],
+    ["rejected", "REJECTED"],
+  ] as const;
+
+  const [result] = await db.$queryRaw<
+    { report: ReconciliationReport }[]
+  >(Prisma.sql`
     ${ledger(query)}, groups AS (
       SELECT "batchId", "batchCode", method, COUNT(*) AS payments, SUM(amount) AS "recordedAmount",
-        ${Prisma.join(statuses.map(([name, status]) => Prisma.sql`
+        ${Prisma.join(
+          statuses.map(([name, status]) => {
+            return Prisma.sql`
           COUNT(*) FILTER (WHERE status = ${status}::"PaymentStatus") AS ${Prisma.raw(`"${name}Payments"`)},
           COALESCE(SUM(effective_amount) FILTER (WHERE status = ${status}::"PaymentStatus"), 0) AS ${Prisma.raw(`"${name}Amount"`)}
-        `))},
+        `;
+          }),
+        )},
         COUNT(*) FILTER (WHERE audited) AS "auditedVerifiedPayments",
         COALESCE(SUM(effective_amount) FILTER (WHERE audited), 0) AS "auditedVerifiedAmount",
         COUNT(*) FILTER (WHERE status = 'VERIFIED' AND NOT audited) AS "unmatchedVerifiedPayments",
@@ -121,7 +166,11 @@ export async function reconciliation(db: Prisma.TransactionClient, query: Query,
         SUM(adjustment_amount) AS "adjustmentAmount", SUM(adjustment_count) AS adjustments,
         SUM(adjustment_gap_amount) AS "adjustmentAuditGapAmount",
         COUNT(*) FILTER (WHERE cardinality(flags) > 0) AS "paymentsWithFlags",
-        ${Prisma.join(flagColumns.map(([field, flag]) => Prisma.sql`COUNT(*) FILTER (WHERE ${flag}::text = ANY(flags)) AS ${Prisma.raw(`"${field}"`)}`))}
+        ${Prisma.join(
+          flagColumns.map(([field, flag]) => {
+            return Prisma.sql`COUNT(*) FILTER (WHERE ${flag}::text = ANY(flags)) AS ${Prisma.raw(`"${field}"`)}`;
+          }),
+        )}
       FROM ledger GROUP BY "batchId", "batchCode", method
     ), selected AS (
       SELECT * FROM groups ORDER BY "batchCode", "batchId", method
@@ -133,12 +182,19 @@ export async function reconciliation(db: Prisma.TransactionClient, query: Query,
       'total', (SELECT COUNT(*)::int FROM groups), 'page', ${page}::int, 'pageSize', 20
     ) AS report
   `);
+
   return result.report;
 }
 
-export async function reconciliationExceptions(db: Prisma.TransactionClient, query: Query): Promise<Page<ReconciliationException>> {
+export async function reconciliationExceptions(
+  db: Prisma.TransactionClient,
+  query: Query,
+): Promise<Page<ReconciliationException>> {
   const page = query.page ?? 1;
-  const [result] = await db.$queryRaw<{ report: Page<ReconciliationException> }[]>(Prisma.sql`
+
+  const [result] = await db.$queryRaw<
+    { report: Page<ReconciliationException> }[]
+  >(Prisma.sql`
     ${ledger(query)}, exceptions AS (SELECT * FROM ledger WHERE cardinality(flags) > 0), selected AS (
       SELECT * FROM exceptions ORDER BY "paymentDate", id LIMIT 20 OFFSET ${(page - 1) * 20}
     ) SELECT jsonb_build_object(
@@ -148,5 +204,6 @@ export async function reconciliationExceptions(db: Prisma.TransactionClient, que
       'total', (SELECT COUNT(*)::int FROM exceptions), 'page', ${page}::int, 'pageSize', 20
     ) AS report
   `);
+
   return result.report;
 }

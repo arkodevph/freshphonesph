@@ -21,7 +21,7 @@
 .tourBackdrop {
   position: absolute;
   inset: 0;
-  background: rgba(9, 10, 24, .72);
+  background: rgba(9, 10, 24, 0.72);
 }
 
 .tourSpotlight {
@@ -29,9 +29,15 @@
   z-index: 1;
   border: 2px solid #b692ff;
   border-radius: 13px;
-  box-shadow: 0 0 0 9999px rgba(9, 10, 24, .72), 0 0 0 5px rgba(167, 109, 255, .2);
+  box-shadow:
+    0 0 0 9999px rgba(9, 10, 24, 0.72),
+    0 0 0 5px rgba(167, 109, 255, 0.2);
   pointer-events: none;
-  transition: top .23s ease, left .23s ease, width .23s ease, height .23s ease;
+  transition:
+    top 0.23s ease,
+    left 0.23s ease,
+    width 0.23s ease,
+    height 0.23s ease;
 }
 
 .tourDialog {
@@ -45,29 +51,135 @@
   border-radius: 18px;
   background: var(--tour-surface);
   color: var(--tour-text);
-  box-shadow: 0 24px 72px rgba(0, 0, 0, .28);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.28);
 }
 
-.tourDialog:focus { outline: none; }
-.tourDialog button:focus-visible { outline: 3px solid #ad7dff; outline-offset: 3px; }
-.tourCentered { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-.tourHeader { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
-.tourProgress { flex: 1; min-width: 0; }
-.tourProgress > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: var(--tour-muted); font-size: 12px; font-weight: 800; }
-.tourProgress small { font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tourTrack { display: block; height: 5px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: var(--tour-soft); }
-.tourTrack span { display: block; height: 100%; border-radius: inherit; background: #8944e8; transition: width .23s ease; }
-.tourSkip { flex: 0 0 auto; padding: 0; border: 0; background: none; color: var(--tour-muted); font-family: inherit; font-size: 12px; font-weight: 800; line-height: 1.4; cursor: pointer; }
-.tourSkip:hover { color: #8641dd; }
-.tourLabel { display: block; margin-top: 24px; color: #9145e4; font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-.tourDialog h2 { margin: 6px 0 0; color: var(--tour-text); font-size: 22px; font-weight: 900; line-height: 1.18; letter-spacing: -.025em; }
-.tourDialog p { margin: 10px 0 0; color: var(--tour-muted); font-size: 14px; line-height: 1.55; }
-.tourActions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 24px; }
-.tourActions button { min-height: 40px; padding: 8px 13px; border: 1px solid var(--tour-border); border-radius: 10px; background: var(--tour-surface); color: var(--tour-text); font-family: inherit; font-size: 13px; font-weight: 800; line-height: 1.2; cursor: pointer; }
-.tourActions button:hover:not(:disabled) { border-color: #a875ed; }
-.tourActions button:disabled { opacity: .45; cursor: default; }
-.tourActions .tourNext { margin-left: auto; border-color: #8339de; background: #8339de; color: #fff; }
-.tourActions .tourNext:hover { border-color: #6d25c2; background: #6d25c2; }
+.tourDialog:focus {
+  outline: none;
+}
+.tourDialog button:focus-visible {
+  outline: 3px solid #ad7dff;
+  outline-offset: 3px;
+}
+.tourCentered {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.tourHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.tourProgress {
+  flex: 1;
+  min-width: 0;
+}
+.tourProgress > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--tour-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.tourProgress small {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tourTrack {
+  display: block;
+  height: 5px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--tour-soft);
+}
+.tourTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #8944e8;
+  transition: width 0.23s ease;
+}
+.tourSkip {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tour-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.tourSkip:hover {
+  color: #8641dd;
+}
+.tourLabel {
+  display: block;
+  margin-top: 24px;
+  color: #9145e4;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.tourDialog h2 {
+  margin: 6px 0 0;
+  color: var(--tour-text);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+}
+.tourDialog p {
+  margin: 10px 0 0;
+  color: var(--tour-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.tourActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 24px;
+}
+.tourActions button {
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid var(--tour-border);
+  border-radius: 10px;
+  background: var(--tour-surface);
+  color: var(--tour-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.tourActions button:hover:not(:disabled) {
+  border-color: #a875ed;
+}
+.tourActions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.tourActions .tourNext {
+  margin-left: auto;
+  border-color: #8339de;
+  background: #8339de;
+  color: #fff;
+}
+.tourActions .tourNext:hover {
+  border-color: #6d25c2;
+  background: #6d25c2;
+}
 
 @media (max-width: 700px) {
   .tourDialog {
@@ -75,14 +187,23 @@
     right: 12px !important;
     left: 12px !important;
     width: auto !important;
-    max-height: calc(100dvh - 110px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    max-height: calc(
+      100dvh - 110px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
     padding: 18px;
     transform: none;
   }
-  .tourLabel { margin-top: 18px; }
-  .tourActions { margin-top: 18px; }
+  .tourLabel {
+    margin-top: 18px;
+  }
+  .tourActions {
+    margin-top: 18px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tourSpotlight, .tourTrack span { transition: none; }
+  .tourSpotlight,
+  .tourTrack span {
+    transition: none;
+  }
 }

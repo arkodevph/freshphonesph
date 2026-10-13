@@ -5,7 +5,8 @@ import CareersBoard from "./CareersBoard";
 
 export const metadata: Metadata = {
   title: "Careers · Fresh Phones PH",
-  description: "Explore open roles at Fresh Phones PH and apply to join our growing team.",
+  description:
+    "Explore open roles at Fresh Phones PH and apply to join our growing team.",
 };
 
 export default function CareersPage() {
