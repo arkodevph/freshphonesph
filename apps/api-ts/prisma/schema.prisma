@@ -208,9 +208,12 @@ model Payment {
   version Int @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([clientId, status])
+  @@index([clientId, status, createdAt, id])
   @@index([batchId, status])
-  @@index([status, createdAt])
+  @@index([createdAt, id])
+  @@index([status, createdAt, id])
+  @@index([batchId, paymentDate, id])
+  @@index([status, paymentDate, id])
   @@index([paymentDate])
 }
 model StoredFile {
