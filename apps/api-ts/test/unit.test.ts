@@ -4,11 +4,23 @@ import {
   accountSchema,
   accountUpdateSchema,
   batchSchema,
+  batchListQuerySchema,
+  clientListQuerySchema,
   clientSchema,
   passwordSchema,
   rolePermissions,
   paymentDecisionSchema,
   paymentSchema,
+  financeAlertQuerySchema,
+  financeAlertReadSchema,
+  staffAlertQuerySchema,
+  staffAlertReadSchema,
+  staffAlertReadAllSchema,
+  staffEmailKinds,
+  staffEmailTemplateSchema,
+  staffEmailTimingSchema,
+  staffEmailQuerySchema,
+  staffEmailRetrySchema,
 } from '@freshphones/contracts';
 import { hashPassword, verifyPassword } from '../src/auth/password';
 import { readConfig } from '../src/config';
@@ -20,6 +32,110 @@ import { spawnSync } from 'node:child_process';
 import { ReceiptService } from '../src/finance/receipt.service';
 import { allocateVerifiedPayments } from '../src/records/allocation';
 import { renderCustomerEmail } from '../src/portal/notification-settings.service';
+import { taskAlertKind } from '../src/staff/alert-queries';
+import { canReadPaymentResults } from '../src/staff/payment-results';
+import { hasResultEmailAccess, taskEmailStage } from '../src/staff/email-queue';
+
+test('staff email reminder stages respect exact before/after boundaries and configured timing', () => {
+  const now = new Date('2026-10-06T00:00:00Z');
+  const deadline = (hours: number) => new Date(now.getTime() + hours * 3_600_000);
+  assert.equal(taskEmailStage(deadline(24), now, 24, 0), 'TASK_DUE_SOON');
+  assert.equal(taskEmailStage(new Date(deadline(24).getTime() + 1), now, 24, 0), null);
+  assert.equal(taskEmailStage(deadline(0), now, 24, 0), 'TASK_DUE_SOON');
+  assert.equal(taskEmailStage(new Date(now.getTime() - 1), now, 24, 0), 'TASK_OVERDUE');
+  assert.equal(taskEmailStage(deadline(-2), now, 6, 2), null);
+  assert.equal(taskEmailStage(new Date(deadline(-2).getTime() - 1), now, 6, 2), 'TASK_OVERDUE');
+  assert.equal(taskEmailStage(deadline(7), now, 6, 2), null);
+  assert.equal(taskEmailStage(deadline(6), now, 6, 2), 'TASK_DUE_SOON');
+});
+test('staff email contracts reject forged recipients, unsafe subjects, unsupported wording and invalid timing', () => {
+  const template = { version: 0, enabled: true, subject: 'Staff · {title}', body: 'Please review {message}\nOpen {url}' };
+  assert.equal(staffEmailKinds.length, 14);
+  assert.ok(staffEmailTemplateSchema.safeParse(template).success);
+  for (const changes of [{ subject: 'Hello' }, { subject: '{title}\r\nBcc: bad@example.test' }, { subject: '{title} {secret}' },
+    { body: '{message} {url} {notes}' }, { body: 'No details' }, { recipientEmail: 'bad@example.test' }, { version: -1 }])
+    assert.equal(staffEmailTemplateSchema.safeParse({ ...template, ...changes }).success, false);
+  const timing = { version: 0, dueSoonHours: 24, overdueHours: 0 };
+  assert.ok(staffEmailTimingSchema.safeParse(timing).success);
+  for (const changes of [{ dueSoonHours: 0 }, { dueSoonHours: 169 }, { overdueHours: -1 }, { overdueHours: 0.5 }, { userId: 'forged-recipient' }])
+    assert.equal(staffEmailTimingSchema.safeParse({ ...timing, ...changes }).success, false);
+  assert.equal(staffEmailQuerySchema.safeParse({ page: 0 }).success, false);
+  assert.equal(staffEmailQuerySchema.safeParse({ status: 'delivered' }).success, false);
+  assert.equal(staffEmailRetrySchema.safeParse({ version: 1, recipientEmail: 'bad@example.test' }).success, false);
+  assert.equal(staffEmailRetrySchema.safeParse({ version: 0 }).success, false);
+});
+test('staff Finance result email permissions match the private in-app result policy', () => {
+  for (const role of Object.keys(rolePermissions) as (keyof typeof rolePermissions)[])
+    assert.equal(hasResultEmailAccess({ role }), canReadPaymentResults({ role }), role);
+});
+
+test('Finance results require staff payment recording and reading access, including after a role change', () => {
+  for (const [role, permissions] of Object.entries(rolePermissions))
+    assert.equal(canReadPaymentResults({ role: role as keyof typeof rolePermissions }),
+      role !== 'CUSTOMER' && permissions.includes('PAYMENT_READ') && permissions.includes('PAYMENT_RECORD'), role);
+  assert.equal(canReadPaymentResults({ role: 'RECORDS' }), true);
+  assert.equal(canReadPaymentResults({ role: 'CUSTOMER' }), false);
+  assert.equal(canReadPaymentResults({ role: 'CORE_HANDLER' }), false);
+});
+test('immutable Finance result reads cannot forge a recipient, payment, decision or version', () => {
+  assert.deepEqual(staffAlertReadSchema.parse({ entity: 'payment-result' }), { entity: 'payment-result' });
+  assert.ok(staffAlertQuerySchema.safeParse({ scope: 'results', unreadOnly: 'true' }).success);
+  assert.ok(staffAlertReadAllSchema.safeParse({ scope: 'results' }).success);
+  for (const extra of [{ userId: 'foreign' }, { paymentId: 'foreign' }, { decision: 'VERIFIED' }, { version: 1 }])
+    assert.equal(staffAlertReadSchema.safeParse({ entity: 'payment-result', ...extra }).success, false);
+});
+
+test('Support alert contracts allow only recipient-owned reads and the Support scope', () => {
+  assert.deepEqual(staffAlertReadSchema.parse({ entity: 'support' }), { entity: 'support' });
+  assert.ok(staffAlertQuerySchema.safeParse({ scope: 'support', unreadOnly: 'true', page: '2' }).success);
+  assert.ok(staffAlertReadAllSchema.safeParse({ scope: 'support' }).success);
+  assert.ok(staffEmailQuerySchema.safeParse({ kind: 'SUPPORT_CUSTOMER_REPLY' }).success);
+  for (const extra of [{ userId: 'foreign' }, { caseId: 'foreign' }, { body: 'private' }, { version: 1 }, { kind: 'SUPPORT_ASSIGNED' }])
+    assert.equal(staffAlertReadSchema.safeParse({ entity: 'support', ...extra }).success, false);
+  assert.equal(staffAlertReadAllSchema.safeParse({ scope: 'support', assignedStaffId: 'foreign' }).success, false);
+});
+
+test('Owner account alerts accept only receipt actions and account email kinds', () => {
+  assert.deepEqual(staffAlertReadSchema.parse({ entity: 'account' }), { entity: 'account' });
+  assert.ok(staffAlertQuerySchema.safeParse({ scope: 'accounts', page: '2', unreadOnly: 'true' }).success);
+  assert.ok(staffAlertReadAllSchema.safeParse({ scope: 'accounts' }).success);
+  assert.ok(staffEmailQuerySchema.safeParse({ kind: 'ACCOUNT_DEACTIVATED' }).success);
+  for (const extra of [{ userId: 'foreign' }, { accountId: 'foreign' }, { role: 'OWNER' }, { active: false }, { version: 2 }, { kind: 'ACCOUNT_CREATED' }])
+    assert.equal(staffAlertReadSchema.safeParse({ entity: 'account', ...extra }).success, false);
+  assert.equal(staffAlertReadAllSchema.safeParse({ scope: 'accounts', role: 'OWNER' }).success, false);
+});
+
+test('task alerts advance at the 24-hour and passed-deadline boundaries without timezone drift', () => {
+  const now = new Date('2026-10-06T04:00:00.000Z');
+  assert.equal(taskAlertKind(new Date(now.getTime() + 86_400_001), now), 'TASK_ASSIGNED');
+  assert.equal(taskAlertKind(new Date(now.getTime() + 86_400_000), now), 'TASK_DUE_SOON');
+  assert.equal(taskAlertKind(now, now), 'TASK_DUE_SOON');
+  assert.equal(taskAlertKind(new Date(now.getTime() - 1), now), 'TASK_OVERDUE');
+  assert.equal(taskAlertKind(new Date('2026-10-07T12:00:00+08:00'), now), 'TASK_DUE_SOON');
+});
+test('staff alerts reject forged recipients, ambiguous reads and invalid scopes', () => {
+  assert.deepEqual(staffAlertQuerySchema.parse({}), { page: 1, unreadOnly: false, scope: 'all' });
+  assert.ok(staffAlertQuerySchema.safeParse({ scope: 'tasks', unreadOnly: 'true', page: '2' }).success);
+  assert.ok(staffAlertReadSchema.safeParse({ entity: 'task', kind: 'TASK_DUE_SOON', deadline: '2026-10-07T12:00:00+08:00' }).success);
+  assert.ok(staffAlertReadSchema.safeParse({ entity: 'payment', version: 1 }).success);
+  for (const input of [{ entity: 'task', kind: 'TASK_ASSIGNED' }, { entity: 'task', kind: 'TASK_DUE', deadline: '2026-10-07' },
+    { entity: 'task', kind: 'TASK_ASSIGNED', deadline: '2026-10-07T04:00:00Z', userId: 'foreign' },
+    { entity: 'payment', version: 0 }, { entity: 'payment', version: 1, kind: 'TASK_ASSIGNED' }])
+    assert.equal(staffAlertReadSchema.safeParse(input).success, false);
+  for (const query of [{ scope: 'customer' }, { page: 0 }, { userId: 'foreign' }])
+    assert.equal(staffAlertQuerySchema.safeParse(query).success, false);
+  assert.equal(staffAlertReadAllSchema.safeParse({ scope: 'tasks', userId: 'foreign' }).success, false);
+});
+
+test('Finance alert reads require a captured version and bounded, explicit queue filters', () => {
+  assert.deepEqual(financeAlertQuerySchema.parse({}), { page: 1, unreadOnly: false });
+  assert.deepEqual(financeAlertQuerySchema.parse({ page: '2', unreadOnly: 'true' }), { page: 2, unreadOnly: true });
+  for (const query of [{ page: '0' }, { page: '100001' }, { unreadOnly: 'yes' }, { userId: 'someone-else' }])
+    assert.equal(financeAlertQuerySchema.safeParse(query).success, false);
+  assert.ok(financeAlertReadSchema.safeParse({ version: 2 }).success);
+  for (const body of [{}, { version: 0 }, { version: 1.5 }, { version: '1' }, { version: 1, userId: 'someone-else' }])
+    assert.equal(financeAlertReadSchema.safeParse(body).success, false);
+});
 
 test('verified funds allocate by installment order with centavo precision', () => {
   const items = [
@@ -41,8 +157,8 @@ test('customer email templates substitute only approved event fields', () => {
   { subject: 'Update: Payment verified', text: 'Finance checked this payment.\nhttps://example.test/portal/payments' });
 });
 
-test('schedule fixtures match the executed Django generate_schedule baseline', () => {
-  const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures/django-schedules.json'), 'utf8')) as {
+test('schedule fixtures preserve the fixed-day installment policy', () => {
+  const fixtures = JSON.parse(readFileSync(join(__dirname, 'fixtures/schedule-policy.json'), 'utf8')) as {
     total: string; count: number; cadence: Cadence; start: string;
     items: { sequenceNo: number; dueDate: string; expectedAmount: string }[];
   }[];
@@ -214,10 +330,27 @@ test('production startup rejects missing email and insecure origins', () => {
     process.env = previous;
   }
 });
+test('Redis config rejects other protocols and requires production credentials, namespaces and remote TLS', () => {
+  const previous = { ...process.env };
+  try {
+    Object.assign(process.env, { NODE_ENV: 'development',
+      DATABASE_URL: 'postgresql://fresh:fresh@localhost:5435/synthetic_test', WEB_ORIGIN: 'http://localhost:3000',
+      BETTER_AUTH_SECRET: 'synthetic-config-secret-at-least-32-characters', REDIS_URL: 'https://redis.example.test' });
+    assert.throws(() => readConfig(), /REDIS_URL must use/);
+    Object.assign(process.env, { NODE_ENV: 'production', BETTER_AUTH_URL: 'https://freshphones.example.test/api/auth',
+      WEB_ORIGIN: 'https://freshphones.example.test', AUTH_REQUIRE_STAFF_MFA: 'true', REDIS_URL: 'redis://redis.example.test' });
+    delete process.env.REDIS_NAMESPACE;
+    assert.throws(() => readConfig(), /authenticated Redis/);
+    process.env.REDIS_URL = 'redis://:synthetic@redis.example.test'; process.env.REDIS_NAMESPACE = 'synthetic-production';
+    assert.throws(() => readConfig(), /requires TLS/);
+  } finally { process.env = previous; }
+});
 test('production startup requires private S3 storage configuration', () => {
   const previous = { ...process.env };
   try {
     Object.assign(process.env, { NODE_ENV: 'production',
+      REDIS_URL: 'rediss://:synthetic-test@redis.example.test:6379', REDIS_NAMESPACE: 'synthetic-production',
+      BETTER_AUTH_SECRET: 'generated-better-auth-test-secret-at-least-32-characters', BETTER_AUTH_URL: 'https://freshphones.example.test/api/auth', AUTH_REQUIRE_STAFF_MFA: 'true',
       WEB_ORIGIN: 'https://freshphones.example.test', JWT_SECRET: 'generated-unit-test-secret-at-least-32-characters',
       RESEND_API_KEY: 'unit-test-key', EMAIL_FROM: 'Fresh Phones PH <updates@freshphones.ph>', PRIVATE_STORAGE_PROVIDER: 'local' });
     assert.throws(() => readConfig(), /private S3 storage/);
@@ -226,10 +359,12 @@ test('production startup requires private S3 storage configuration', () => {
     assert.throws(() => readConfig(), /Private S3 storage requires/);
   } finally { process.env = previous; }
 });
-test('production startup rejects the example email sender', () => {
+test('production startup rejects the example sender and unapproved privacy documents', () => {
   const previous = { ...process.env };
   try {
     Object.assign(process.env, { NODE_ENV: 'production',
+      REDIS_URL: 'rediss://:synthetic-test@redis.example.test:6379', REDIS_NAMESPACE: 'synthetic-production',
+      BETTER_AUTH_SECRET: 'generated-better-auth-test-secret-at-least-32-characters', BETTER_AUTH_URL: 'https://freshphones.example.test/api/auth', AUTH_REQUIRE_STAFF_MFA: 'true',
       WEB_ORIGIN: 'https://freshphones.example.test', JWT_SECRET: 'generated-unit-test-secret-at-least-32-characters',
       RESEND_API_KEY: 'unit-test-key', PRIVATE_STORAGE_PROVIDER: 's3',
       PRIVATE_STORAGE_S3_ENDPOINT: 'https://storage.example.test/storage/v1/s3',
@@ -242,6 +377,41 @@ test('production startup rejects the example email sender', () => {
     process.env.EMAIL_FROM = 'Fresh Phones Test <onboarding@resend.dev>';
     assert.throws(() => readConfig(), /explicit EMAIL_FROM/);
     process.env.EMAIL_FROM = 'Fresh Phones PH <updates@freshphones.ph>';
-    assert.equal(readConfig().EMAIL_FROM, process.env.EMAIL_FROM);
+    assert.throws(() => readConfig(), /approved customer, employee and applicant privacy notices/);
   } finally { process.env = previous; }
+});
+test('production identity rejects legacy-only secrets, disabled staff MFA and cross-origin cookie deployment', () => {
+  const previous = { ...process.env };
+  try {
+    Object.assign(process.env, { NODE_ENV: 'production',
+      REDIS_URL: 'rediss://:synthetic-test@redis.example.test:6379', REDIS_NAMESPACE: 'synthetic-production', WEB_ORIGIN: 'https://freshphones.example.test',
+      JWT_SECRET: 'legacy-unit-test-secret-at-least-32-characters', BETTER_AUTH_URL: 'https://freshphones.example.test/api/auth' });
+    delete process.env.BETTER_AUTH_SECRET; delete process.env.AUTH_REQUIRE_STAFF_MFA;
+    assert.throws(() => readConfig(), /generated Better Auth secret/);
+    process.env.BETTER_AUTH_SECRET = 'generated-better-auth-test-secret-at-least-32-characters';
+    process.env.AUTH_REQUIRE_STAFF_MFA = 'false'; assert.throws(() => readConfig(), /staff MFA/);
+    process.env.AUTH_REQUIRE_STAFF_MFA = 'true'; process.env.BETTER_AUTH_URL = 'https://backend.example.test/api/auth';
+    assert.throws(() => readConfig(), /web origin/);
+    process.env.BETTER_AUTH_URL = 'https://freshphones.example.test/unexpected';
+    assert.throws(() => readConfig(), /BETTER_AUTH_URL/);
+  } finally { process.env = previous; }
+});
+test('record list contracts accept inclusive date bounds, one-sided dates and every correct status', () => {
+  for (const [schema, statuses] of [[batchListQuerySchema, ['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED']],
+    [clientListQuerySchema, ['ACTIVE', 'ON_HOLD', 'COMPLETED']]] as const) {
+    for (const status of statuses) assert.ok(schema.safeParse({ status }).success);
+    assert.deepEqual(schema.parse({ q: '  case  ', model: ' iPhone ', dateFrom: '2028-02-29', dateTo: '2028-02-29' }),
+      { page: 1, q: 'case', model: 'iPhone', dateFrom: '2028-02-29', dateTo: '2028-02-29' });
+    assert.ok(schema.safeParse({ dateFrom: '2028-02-29' }).success);
+    assert.ok(schema.safeParse({ dateTo: '2028-02-29' }).success);
+  }
+});
+test('record query contracts reject unknown keys, duplicate facets, invalid dates and wrong record statuses', () => {
+  for (const schema of [batchListQuerySchema, clientListQuerySchema])
+    for (const query of [{ dateFrom: '2027-02-29' }, { dateTo: '2028-02-30' },
+      { dateFrom: '2028-03-01', dateTo: '2028-02-29' }, { model: ['iPhone', 'iPad'] },
+      { q: 'a'.repeat(101) }, { model: 'a'.repeat(101) }, { userId: 'foreign' }, { dateFrom: '2028-01-01T00:00:00Z' }])
+      assert.equal(schema.safeParse(query).success, false, JSON.stringify(query));
+  assert.equal(batchListQuerySchema.safeParse({ status: 'ON_HOLD' }).success, false);
+  assert.equal(clientListQuerySchema.safeParse({ status: 'CANCELLED' }).success, false);
 });

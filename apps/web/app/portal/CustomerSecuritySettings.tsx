@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
-import { ArrowRight, LockKey, SignOut } from "@phosphor-icons/react";
-import { TYPESCRIPT_API, API_URL } from "@/lib/backend";
+import { API_URL } from "@/lib/backend";
 import { tsRequest } from "@/lib/ts-api";
+import { ArrowRight, LockKey, SignOut } from "@phosphor-icons/react";
+import Link from "next/link";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import styles from "./portal.module.css";
 
 type RequestState = "idle" | "sending" | "sent";
@@ -99,7 +99,7 @@ export function CustomerSecuritySettings({ email, onSignOut }: { email?: string;
 
   return <section className={`${styles.sectionCard} ${styles.settingsSecurity}`} aria-labelledby="settings-security-title">
     <div className={styles.sectionHeading}><span className={`${styles.sectionIcon} ${styles.settingsIcon}`}><LockKey weight="duotone" aria-hidden="true" /></span><div><p className={styles.eyebrow}>Account access</p><h2 id="settings-security-title">Security</h2></div></div>
-    {TYPESCRIPT_API ? <div className={styles.securityMethods}>
+    <div className={styles.securityMethods}>
       <div className={styles.securityMethod}>
         <h3>Change password</h3>
         <p>Use your current password to update it here. Other sessions will be signed out.</p>
@@ -123,7 +123,7 @@ export function CustomerSecuritySettings({ email, onSignOut }: { email?: string;
         </form>
         <form className={`${styles.securityForm} ${styles.resetCodeForm}`} onSubmit={resetWithCode}>
           <h4>Enter your reset code</h4>
-          <label>Code from email<input type="password" autoComplete="one-time-code" autoCapitalize="off" spellCheck={false} minLength={32} maxLength={128} required value={resetCode} onChange={(event) => setResetCode(event.target.value)} /></label>
+          <label>Code from email<input type="password" autoComplete="one-time-code" autoCapitalize="off" spellCheck={false} minLength={24} maxLength={128} required value={resetCode} onChange={(event) => setResetCode(event.target.value)} /></label>
           <label>New password<input ref={resetPasswordRef} type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} /></label>
           <label>Confirm new password<input type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={resetConfirm} onChange={(event) => setResetConfirm(event.target.value)} /></label>
           {resetError && <p className={styles.resetRequestError} role="alert">{resetError}</p>}
@@ -131,7 +131,8 @@ export function CustomerSecuritySettings({ email, onSignOut }: { email?: string;
           <button type="submit" disabled={resetBusy || resetSuccess}><LockKey aria-hidden="true" /> {resetBusy ? "Resetting…" : "Reset password"}</button>
         </form>
       </div>
-    </div> : <><p className={styles.settingsDescription}>Contact Customer Service if you need help with your account password.</p><Link className={styles.settingsLink} href="/portal/support">Contact support <ArrowRight weight="bold" aria-hidden="true" /></Link></>}
+    </div>
+    <p><Link className={styles.settingsLink} href="/security">Manage two-factor authentication and sessions <ArrowRight aria-hidden="true" /></Link></p>
     <div className={styles.settingsActions}><button type="button" onClick={onSignOut}><SignOut aria-hidden="true" /> Sign out</button></div>
   </section>;
 }

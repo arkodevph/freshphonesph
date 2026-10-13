@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import type { User } from '@freshphones/contracts';
+import { supportSources, type User } from '@freshphones/contracts';
 import { Database } from '../database';
 import { allowed } from '../auth/access';
-import { Prisma, type SupportStatus } from '../generated/prisma/client';
+import { Prisma, type SupportSource, type SupportStatus } from '../generated/prisma/client';
 import { notifyCustomer } from './notifications.service';
+import { notifySupport } from '../staff/support-alerts';
 
 const include = {
   client: { select: { name: true } }, assignedStaff: { select: { name: true } },
@@ -13,7 +14,7 @@ const include = {
 type CaseRow = Prisma.SupportCaseGetPayload<{ include: typeof include }>;
 const json = (value: unknown): Prisma.InputJsonValue => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 const view = (row: CaseRow) => ({
-  id: row.id, client: row.clientId, client_name: row.client.name, category: row.category,
+  id: row.id, client: row.clientId, client_name: row.client.name, category: row.category, source: row.source.toLowerCase(),
   description: row.description, assigned_staff: row.assignedStaffId,
   assigned_staff_name: row.assignedStaff?.name ?? null,
   status: row.status.toLowerCase(), resolution: row.resolution,
@@ -77,10 +78,12 @@ export class SupportService {
         ? before.status === 'WAITING_FOR_CLIENT' ? 'IN_PROGRESS' : before.status
         : input.needsReply ? 'WAITING_FOR_CLIENT' : before.status === 'WAITING_FOR_CLIENT' ? 'IN_PROGRESS' : before.status;
       const message = await tx.supportMessage.create({ data: { caseId: id, authorId: user.id, body: input.body } });
-      await tx.supportCase.update({ where: { id }, data: { status, version: { increment: 1 } } });
+      const updated = await tx.supportCase.update({ where: { id }, data: { status, version: { increment: 1 } } });
       await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.replied', entity: 'support', recordId: id,
         after: json({ messageId: message.id, authorType: clientId ? 'customer' : 'staff', status }) } });
       await tx.changeEvent.create({ data: { entity: 'support', recordId: id } });
+      if (clientId) await notifySupport(tx, updated, 'SUPPORT_CUSTOMER_REPLY');
+      else await tx.supportAlert.updateMany({ where: { caseId: id, kind: 'SUPPORT_CUSTOMER_REPLY', handledAt: null }, data: { handledAt: new Date() } });
       if (!clientId) await notifyCustomer(tx, before.clientId, 'support', 'Customer Service replied',
         input.needsReply ? `Customer Service needs your reply on your ${before.category} request.` : `Customer Service replied to your ${before.category} request.`,
         `/portal/support#case-${id}`);
@@ -96,26 +99,41 @@ export class SupportService {
       const current = await tx.user.findUnique({ where: { id: user.id } });
       if (!current?.active || current.role !== 'CUSTOMER' || current.clientId !== clientId)
         throw new ForbiddenException('Your access has changed.');
-      const row = await tx.supportCase.create({ data: { clientId, ...input }, include });
+      const row = await tx.supportCase.create({ data: { clientId, ...input, source: 'CUSTOMER_PORTAL' }, include });
       await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.created', entity: 'support', recordId: row.id, after: json(view(row)) } });
       await tx.changeEvent.create({ data: { entity: 'support', recordId: row.id } });
+      await notifySupport(tx, row, 'SUPPORT_NEW_CASE');
       return view(row);
     });
   }
 
-  async list(user: User, status?: string, page = 1, caseId?: string) {
+  async list(user: User, status?: string, page = 1, caseId?: string, source?: string) {
     if (!allowed(user, 'SUPPORT_MANAGE')) throw new ForbiddenException('Support access required.');
     if (status && !['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CLIENT', 'RESOLVED', 'CLOSED'].includes(status))
       throw new BadRequestException('Invalid case status.');
+    if (source && !supportSources.includes(source as SupportSource)) throw new BadRequestException('Invalid case source.');
     const where: Prisma.SupportCaseWhereInput = {
       ...(status ? { status: status as SupportStatus } : {}),
       ...(caseId ? { id: caseId } : {}),
+      ...(source ? { source: source as SupportSource } : {}),
     };
     const [rows, total] = await this.db.$transaction([
       this.db.supportCase.findMany({ where, include, orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20 }),
       this.db.supportCase.count({ where }),
     ]);
     return { count: total, next: page * 20 < total ? String(page + 1) : null, results: rows.map(view), page };
+  }
+
+  async clientOptions(user: User, query: string) {
+    if (!allowed(user, 'SUPPORT_MANAGE')) throw new ForbiddenException('Support access required.');
+    const q = query.trim();
+    if (q.length < 2 || q.length > 100) throw new BadRequestException('Search for a customer using 2–100 characters.');
+    const rows = await this.db.client.findMany({
+      where: { name: { contains: q, mode: 'insensitive' } },
+      select: { id: true, name: true, batch: { select: { code: true } } },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }], take: 20,
+    });
+    return rows.map((item) => ({ id: item.id, name: item.name, batch_code: item.batch.code }));
   }
 
   async update(user: User, id: string, input: { status?: SupportStatus; resolution?: string; assignedStaffId?: string | null; version: number }) {
@@ -144,6 +162,10 @@ export class SupportService {
       }, include });
       await tx.auditEntry.create({ data: { actorId: user.id, action: 'support.updated', entity: 'support', recordId: id, before: json(view(before)), after: json(view(row)) } });
       await tx.changeEvent.create({ data: { entity: 'support', recordId: id } });
+      if (['RESOLVED', 'CLOSED'].includes(row.status) || before.assignedStaffId !== row.assignedStaffId)
+        await tx.supportAlert.updateMany({ where: { caseId: id, handledAt: null }, data: { handledAt: new Date() } });
+      if (before.assignedStaffId !== row.assignedStaffId || (before.status === 'RESOLVED' && !['RESOLVED', 'CLOSED'].includes(row.status)))
+        await notifySupport(tx, row, row.assignedStaffId ? 'SUPPORT_ASSIGNED' : 'SUPPORT_NEW_CASE');
       if (before.status !== row.status || before.resolution !== row.resolution)
         await notifyCustomer(tx, row.clientId, 'support', 'Support case updated', `Your ${row.category} concern is now ${row.status.toLowerCase().replaceAll('_', ' ')}.`, `/portal/support#case-${id}`);
       return view(row);

@@ -1,0 +1,18 @@
+.page { min-height: 100vh; background: linear-gradient(145deg, #f7f7ff, #eaf7ff 55%, #fdf8ff); padding: clamp(1.25rem, 4vw, 3.5rem); color: #18233d; }
+.shell { max-width: 54rem; margin: 0 auto; }
+.back { display: inline-flex; padding: .65rem 0; color: #3156bd; font-size: .9rem; font-weight: 800; text-decoration: none; }
+.back:hover, .footer a:hover { text-decoration: underline; }
+.header { margin: 1.5rem 0 2rem; }
+.eyebrow { color: #4d60a2; font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.header h1 { margin: .5rem 0; color: #192b64; font-family: var(--font-fredoka), sans-serif; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.12; }
+.header p { color: #53627f; font-size: .9rem; }
+.draft, .review { border: 1px solid #e7c56d; border-radius: 1.25rem; background: #fff9e9; padding: 1.25rem 1.5rem; }
+.draft strong { color: #7c5000; }
+.draft p, .review li { margin: .35rem 0 0; color: #654e21; line-height: 1.65; }
+.sections { display: grid; gap: 1rem; margin: 1.5rem 0; }
+.sections section { border: 1px solid #e3e9f8; border-radius: 1.25rem; background: #fff; padding: 1.35rem 1.55rem; box-shadow: 0 12px 30px rgba(27, 50, 97, .04); }
+.sections h2, .review h2 { margin: 0 0 .75rem; color: #244589; font-family: var(--font-fredoka), sans-serif; font-size: 1.22rem; }
+.sections p { margin: .7rem 0 0; color: #35435e; line-height: 1.72; }
+.review ul { margin: .5rem 0 0; padding-left: 1.35rem; }
+.footer { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 2rem; font-size: .86rem; font-weight: 800; }
+.footer a { color: #3156bd; }

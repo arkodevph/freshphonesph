@@ -1,0 +1,69 @@
+.banner.banner {
+  --portal-text: var(--color-blue-ink);
+  --portal-muted: var(--color-ink-soft);
+  --portal-border: #aac4e2;
+  --portal-surface-alt: #ffffff80;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: #b4cfe5;
+  background: linear-gradient(125deg, #c1e4f4 0%, var(--color-sky-2) 58%, #fae2ef 100%);
+  color: var(--portal-text);
+}
+.banner.night {
+  --portal-text: #f7f9ff;
+  --portal-muted: #d2dbee;
+  --portal-border: #a9bddb40;
+  --portal-surface-alt: #ffffff12;
+  border-color: #8098bd66;
+  background: radial-gradient(ellipse at 100% 0%, #c487ad33, transparent 60%), linear-gradient(120deg, #19334e 0%, #283c5b 58%, #514254 100%);
+}
+.banner > :not(.art) { position: relative; z-index: 1; }
+.art { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
+.art img { position: absolute; height: auto; }
+.cloud { opacity: .34; }
+.cloudOne { top: -48px; left: 48%; width: 220px; }
+.cloudTwo { right: -35px; bottom: -48px; width: 210px; opacity: .45; }
+.heart { top: 20px; left: 45%; width: 48px; transform: rotate(-8deg); filter: grayscale(1) contrast(1.15) drop-shadow(0 4px 6px #4b6aa518); }
+.bubble { top: 83px; left: 58%; width: 34px; transform: rotate(-15deg) scaleX(.82); opacity: .85; }
+.bird { bottom: 18px; left: 42%; width: 62px; filter: drop-shadow(0 5px 8px #4b6aa518); }
+.plan .cloudOne { left: 55%; }
+.plan .heart { left: 48%; }
+.plan .bubble { left: 68%; }
+.plan .bird { left: 62%; bottom: 12px; }
+.night .plan .cloudOne { top: -76px; left: auto; right: 18%; width: 190px; opacity: .2; }
+.night .plan .cloudTwo { right: -40px; bottom: -80px; width: 190px; opacity: .18; }
+.night .plan .heart { top: 18px; left: 48%; width: 38px; opacity: .6; }
+.night .plan .bubble { top: 20px; left: auto; right: 12%; width: 26px; opacity: .7; }
+.night .plan .bird { left: auto; right: 32%; bottom: 10px; width: 48px; opacity: .5; }
+.night .balance .cloudOne { top: -76px; left: auto; right: 18%; width: 190px; opacity: .2; }
+.night .balance .cloudTwo { right: -40px; bottom: -80px; width: 190px; opacity: .18; }
+.night .balance .heart { top: 18px; width: 38px; opacity: .6; }
+.night .balance .bubble { top: 20px; left: auto; right: 12%; width: 26px; opacity: .7; }
+.night .balance .bird { bottom: 10px; width: 48px; opacity: .5; }
+@container (max-width: 680px) {
+  .plan .cloudOne { top: -68px; left: auto; right: -25px; width: 150px; opacity: .24; }
+  .plan .cloudTwo { bottom: -85px; width: 180px; }
+  .plan .heart { top: 94px; left: auto; right: 22px; width: 34px; }
+  .plan .bubble { top: 158px; left: auto; right: 51px; width: 24px; }
+  .plan .bird { bottom: 17px; left: auto; right: 24px; width: 48px; }
+}
+@container (max-width: 600px) {
+  .night .plan .cloudOne { right: -30px; top: -76px; width: 160px; opacity: .14; }
+  .night .plan .heart { top: 92px; right: 14px; left: auto; width: 28px; opacity: .4; }
+  .night .plan .bubble { top: 58px; right: 16px; width: 22px; opacity: .5; }
+  .night .plan .cloudTwo { bottom: -80px; width: 160px; }
+  .night .plan .bird { right: 18px; bottom: 12px; width: 44px; opacity: .4; }
+}
+@container (max-width: 520px) {
+  .balance .cloudOne { top: 130px; left: auto; right: -25px; width: 150px; opacity: .3; }
+  .balance .cloudTwo { right: -45px; bottom: -96px; width: 180px; opacity: .3; }
+  .balance .heart { top: 150px; left: 16px; width: 34px; }
+  .balance .bubble { top: 113px; left: auto; right: 28px; width: 24px; }
+  .balance .bird { bottom: 106px; left: auto; right: 12px; width: 44px; }
+  .night .balance .cloudOne { top: 130px; right: -25px; width: 150px; opacity: .14; }
+  .night .balance .cloudTwo { right: -45px; bottom: -96px; width: 180px; opacity: .14; }
+  .night .balance .heart { top: 150px; left: 16px; width: 28px; opacity: .4; }
+  .night .balance .bubble { top: 113px; right: 28px; width: 22px; opacity: .5; }
+  .night .balance .bird { bottom: 106px; width: 44px; opacity: .4; }
+}

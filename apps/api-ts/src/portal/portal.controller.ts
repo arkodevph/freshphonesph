@@ -1,3 +1,4 @@
+import { AbusePolicy } from '../abuse/policies';
 import { BadRequestException, Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
@@ -55,12 +56,16 @@ export class PortalController {
   }
   @Get('support/cases') @Requires('SUPPORT_MANAGE') cases(
     @CurrentUser() user: User, @Query('status') status?: string, @Query('page') rawPage?: string, @Query('case') caseId?: string,
+    @Query('source') source?: string,
   ) {
     const page = rawPage === undefined ? 1 : Number(rawPage);
     if (!Number.isInteger(page) || page < 1 || page > 10000) throw new BadRequestException('Invalid page number.');
     if (caseId && !z.string().uuid().safeParse(caseId).success) throw new BadRequestException('Invalid case ID.');
-    return this.support.list(user, status?.toUpperCase(), page, caseId);
+    return this.support.list(user, status?.toUpperCase(), page, caseId, source?.toUpperCase());
   }
+  @Get('support/client-options') @Requires('SUPPORT_MANAGE') clientOptions(
+    @CurrentUser() user: User, @Query('q') query?: string,
+  ) { return this.support.clientOptions(user, query ?? ''); }
   @Get('support/cases/:id') @Requires('SUPPORT_MANAGE') caseDetail(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
     return this.support.detail(user, id);
   }
@@ -95,6 +100,7 @@ export class PortalController {
     await this.emailDelivery.refreshReminders();
     return updated;
   }
+  @AbusePolicy('email')
   @Post('customer-notification-settings/test-reminder') @Requires('ACCOUNT_MANAGE') @HttpCode(200)
   testReminder(@CurrentUser() user: User, @Body(new Validate(testReminderSchema)) body: z.infer<typeof testReminderSchema>) {
     return this.emailDelivery.sendTestReminder(user.id, body.email);
@@ -105,11 +111,13 @@ export class PortalController {
     return this.documents.list(user, clientId);
   }
   @Post('portal/documents/:key')
+  @AbusePolicy('upload')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024, files: 1 } }))
   uploadMine(@CurrentUser() user: User, @Param('key') key: string, @UploadedFile() file?: PrivateUpload) {
     return this.documents.uploadMine(user, key, file);
   }
   @Post('clients/:clientId/documents/:key')
+  @AbusePolicy('upload')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024, files: 1 } }))
   uploadClient(@CurrentUser() user: User, @Param('clientId', ParseUUIDPipe) clientId: string,
     @Param('key') key: string, @UploadedFile() file?: PrivateUpload) {
@@ -120,6 +128,7 @@ export class PortalController {
     @Body(new Validate(reviewSchema)) body: z.infer<typeof reviewSchema>) {
     return this.documents.review(user, id, body);
   }
+  @AbusePolicy('download')
   @Get('documents/:id/file') async readDocument(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string,
     @Res() response: Response) {
     const file = await this.documents.read(user, id);

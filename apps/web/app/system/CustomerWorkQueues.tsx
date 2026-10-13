@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, ArrowUpRight, FileText, Headset, Receipt } from "@phosphor-icons/react";
-import { can, useMe } from "@/lib/useMe";
-import { useLiveRecords } from "@/lib/useLiveRecords";
 import { getCustomerWork, type CustomerWorkKind, type CustomerWorkPage } from "@/lib/customer-work";
-import { TYPESCRIPT_API } from "@/lib/backend";
+import { useLiveRecords } from "@/lib/useLiveRecords";
+import { can, useMe } from "@/lib/useMe";
+import { ArrowRight, ArrowUpRight, FileText, Headset, Receipt } from "@phosphor-icons/react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+
 
 const sections = {
   support: { title: "Customer concerns", description: "Open or in progress cases", Icon: Headset },
@@ -71,7 +71,7 @@ function WorkSection({ kind, compact }: { kind: CustomerWorkKind; compact: boole
 
 export default function CustomerWorkQueues({ compact = false }: { compact?: boolean }) {
   const me = useMe();
-  if (!TYPESCRIPT_API || !me) return null;
+  if (!me) return null;
   const kinds: CustomerWorkKind[] = [
     ...(can(me, "SUPPORT_MANAGE") ? ["support" as const] : []),
     ...(["owner", "records"].includes(me.role ?? "") ? ["documents" as const] : []),

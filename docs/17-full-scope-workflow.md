@@ -11,16 +11,16 @@ The target is a mobile-responsive operations platform with:
 
 - a Next.js TypeScript frontend on a client-owned VPS;
 - a separate NestJS TypeScript API on Railway;
-- PostgreSQL and private S3-compatible storage on Supabase;
-- Redis for cross-instance events, queues, and rate limiting;
+- Neon PostgreSQL, Better Auth and separate private S3-compatible storage (provider pending);
+- Redis Streams/BullMQ events and workers implemented locally following renewed direction on 2026-10-09; broader abuse limits also implemented locally; production provisioning and proxy/quota acceptance pending;
 - email through Resend;
 - server-enforced role permissions and audited sensitive actions; and
 - no direct website payment processing, official BIR invoice generation, or automatic wage
   decisions in Version 1.
 
-The repository currently contains a working Django API. That code is the behavioral baseline
-for the TypeScript migration, not the target backend. Do not remove it until the corresponding
-NestJS slice passes parity tests and its cutover gate.
+The repository uses a NestJS/Prisma API in `apps/api-ts/`, a Next.js interface in
+`apps/web/`, and shared contracts in `packages/contracts/`. Existing contract fixtures and
+integration tests preserve business behavior. Scope delivery and acceptance remain explicit.
 
 ## Source-of-truth order
 
@@ -48,8 +48,8 @@ Next.js 16 web (VPS)
 NestJS API (Railway, two replicas)
    |          |          |          |
    v          v          v          v
-PostgreSQL  private S3  Redis      Resend
-(Supabase)  storage     events/jobs email
+PostgreSQL  private S3  Event/jobs Resend
+(Neon)     provider TBD design TBD email
 ```
 
 | Concern | Target | Rule |
@@ -57,13 +57,13 @@ PostgreSQL  private S3  Redis      Resend
 | Web | Next.js 16, React 19, TypeScript, Tailwind CSS v4 | UI is not a trusted authorization boundary |
 | API | NestJS, TypeScript, REST | Controllers stay thin; services own writes and business rules |
 | Data | PostgreSQL through Prisma migrations | Money uses decimal types; balances stay derived |
-| Auth | Supabase Auth JWTs validated by the API | Supabase owns identity/session recovery; every protected route authenticates server-side |
+| Auth | Better Auth sessions validated by the API (planned) | Better Auth handles identity/session recovery after a verified migration; every protected route authenticates server-side |
 | Authorization | Stable permission keys plus NestJS guards | Each route declares the permission it requires |
 | Validation | DTO validation at the API boundary | Reject invalid money, state transitions, and file metadata |
-| Files | Private Supabase Storage through S3-compatible signed URLs | No public customer, payment-proof, employee, or applicant files |
+| Files | Private S3-compatible storage; provider pending | No public customer, payment-proof, employee, or applicant files |
 | Email | Resend from the API | Use approved templates and recipients only |
-| Live updates | Authenticated SSE; Redis fan-out after a successful commit | Events carry only refresh identifiers; clients refetch authorized data after reconnecting |
-| Background work | Redis-backed workers | Retries cover email, notifications, exports, document processing, reminders, and AI work; payment verification remains transactional |
+| Live updates | Authenticated SSE after commit; production fan-out design pending | Events carry only refresh identifiers; clients refetch authorized data after reconnecting |
+| Background work | Durable workers; production design pending | Retries cover email, notifications, exports, document processing, reminders, and AI work; payment verification remains transactional |
 | Tests | Unit, API integration, authorization matrix, and end-to-end tests | Every scope row needs repeatable evidence |
 
 ## Non-negotiable acceptance rules
@@ -108,8 +108,8 @@ Complete before changing backend behavior:
 2. Record unresolved client decisions as `Blocked - client`; do not invent legal, tax, HR, or
    privacy policy.
 3. Freeze stable public API paths where practical so the current frontend can move slice by
-   slice from Django to NestJS.
-4. Capture the current Django response contracts and the 80 discovered backend tests as
+   slice in NestJS.
+4. Capture the shared response contracts and current backend tests as
    migration evidence.
 5. Approve the TypeScript stack and this workflow.
 
@@ -118,12 +118,12 @@ unrecorded scope conflict.
 
 ### Gate 1 - Build the TypeScript foundation
 
-Create the NestJS service under `apps/api-ts/` while the Django API remains available for
+Maintain the NestJS service under `apps/api-ts/` with contract fixtures available for
 comparison.
 
 1. Add NestJS, Prisma, PostgreSQL configuration, structured environment validation, and health
    checks.
-2. Integrate Supabase Auth and individual employee/customer account linkage; validate its JWTs in the API.
+2. Integrate Better Auth and preserve individual employee/customer account linkage; verify sessions and business permissions in the API.
 3. Port stable permission keys and enforce them through API guards.
 4. Add audit logging and private-storage signing as shared services.
 5. Establish unit, integration, and authorization-matrix test helpers.
@@ -197,6 +197,11 @@ authorized fields; notification retries do not duplicate records.
 
 ### Gate 6 - Add the assistive AI layer last
 
+**Deferred — API funding unavailable (2026-10-08 user decision).** Skip this gate
+for current delivery and continue with the remaining non-AI work. Resume only when
+paid AI API funding is available and the user requests it; retain the requirements
+below for that future work.
+
 AI work starts only after role permissions and core records are stable.
 
 Allowed behavior:
@@ -225,7 +230,7 @@ metadata without logging unnecessary private content.
 2. Complete backup/restore rehearsal and incident contacts.
 3. Implement client-approved retention/deletion rules and notice/version acceptance.
 4. Run the permission matrix against every protected endpoint.
-5. Provision the client-owned VPS, Railway, Supabase, Redis, Cloudflare, and Resend accounts.
+5. Provision the client-owned VPS, Railway, Neon, chosen private storage, Cloudflare, and Resend accounts; resolve event/job infrastructure separately.
 
 **Exit evidence:** security checklist, restore record, privacy checklist, production account
 ownership record, and no high-severity release blocker.

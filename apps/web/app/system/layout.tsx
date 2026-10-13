@@ -1,46 +1,52 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { LegalGate } from "@/components/LegalGate";
+import { StaffAlerts } from "@/components/StaffAlerts";
+import { listNotifications, readAllNotifications, readNotification, type NotificationRecord } from "@/lib/api";
+import { logoutSession } from "@/lib/auth";
+import { availableRoute } from "@/lib/backend";
+import { can, useMe } from "@/lib/useMe";
+import {
+    Bell,
+    Briefcase,
+    CaretDown,
+    ChartBar,
+    Headset,
+    ListChecks,
+    MagnifyingGlass,
+    Moon,
+    Receipt,
+    ShieldCheck,
+    SignOut,
+    Sparkle,
+    SquaresFour,
+    Stack,
+    Sun,
+    TrayArrowDown,
+    Users,
+} from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Bell,
-  Briefcase,
-  CaretDown,
-  ChartBar,
-  Headset,
-  ListChecks,
-  MagnifyingGlass,
-  Moon,
-  Receipt,
-  ShieldCheck,
-  SignOut,
-  Sparkle,
-  SquaresFour,
-  Stack,
-  Sun,
-  TrayArrowDown,
-  Users,
-} from "@phosphor-icons/react";
-import { logoutSession, isAuthed } from "@/lib/auth";
-import { listNotifications, readAllNotifications, readNotification, type NotificationRecord } from "@/lib/api";
-import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
-import { can, useMe } from "@/lib/useMe";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 const NAV = [
+  { icon: Stack, label: "Public catalog", href: "/system/catalog", perms: ["CATALOG_MANAGE"] },
   { icon: SquaresFour, label: "Dashboard", href: "/system", perms: [] as string[] },
   { icon: Stack, label: "Paluwagan Records", href: "/system/records", perms: ["BATCH_MANAGE", "BATCH_READ"] },
   { icon: Receipt, label: "Payments & Finance", href: "/system/payments", perms: ["PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY"] },
   { icon: Users, label: "Clients", href: "/system/clients", perms: ["CLIENT_MANAGE", "CLIENT_READ"] },
-  { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: ["TASK_READ"] },
+  { icon: ShieldCheck, label: "Agents", href: "/system/agents", perms: ["AGENT_MANAGE"] },
+  { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
+  { icon: ShieldCheck, label: "HR action approvals", href: "/system/hr-actions", perms: ["HR_CONFIDENTIAL"] },
   { icon: ChartBar, label: "Reports", href: "/system/reports", perms: ["REPORT_VIEW"] },
   { icon: Headset, label: "Customer Service", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
   { icon: TrayArrowDown, label: "Customer work", href: "/system/customer-work", perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"] },
   { icon: Briefcase, label: "Recruitment", href: "/system/recruitment", perms: ["RECRUITMENT_MANAGE", "AGENT_MANAGE"] },
-  { icon: Bell, label: "Notification settings", href: TYPESCRIPT_API ? "/system/notification-settings" : null, perms: ["ACCOUNT_MANAGE"] },
+  { icon: Bell, label: "Notification settings", href: "/system/notification-settings", perms: ["ACCOUNT_MANAGE"] },
   { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
   { icon: ShieldCheck, label: "User Management", href: "/system/team", perms: ["ROLE_ASSIGN", "ACCOUNT_MANAGE"] },
+  { icon: ShieldCheck, label: "Retention & deletion", href: "/system/retention", perms: ["RETENTION_MANAGE"] },
 ] as const;
 
 const formatRole = (role?: string | null) =>
@@ -63,8 +69,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
   const actionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isAuthed()) router.replace("/login");
-    else setReady(true);
+    setReady(true);
   }, [router]);
 
   useEffect(() => {
@@ -76,7 +81,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    if (!TYPESCRIPT_API || !me || !can(me, "NOTIFICATION_READ")) return;
+    if (!me || !can(me, "NOTIFICATION_READ")) return;
     const load = () => listNotifications().then((page) => {
       setNotifications(page.items); setUnread(page.unread);
     }).catch(() => undefined);
@@ -159,7 +164,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
     void transition.finished.finally(() => root.classList.remove("system-theme-iris-transition"));
   }
 
-  if (!ready || (TYPESCRIPT_API && !me)) {
+  if (!ready || (!me)) {
     return (
       <main className="grid min-h-screen place-items-center bg-[#f4f5f7]">
         <p className="text-sm font-600 text-[#70727a]">Checking session…</p>
@@ -168,7 +173,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
   }
 
   const visibleNav = NAV.filter((item) =>
-    (!TYPESCRIPT_API || (item.href && availableRoute(item.href))) &&
+    ((item.href && availableRoute(item.href))) &&
     (item.href !== "/system/customer-work" || can(me, "SUPPORT_MANAGE", "PAYMENT_VERIFY") || me?.role === "owner" || me?.role === "records") &&
     (item.perms.length === 0 || can(me, ...item.perms)));
   const current = visibleNav.find((item) => item.href === pathname)?.label ?? "Workspace";
@@ -264,8 +269,8 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
             <button className="system-icon-button" type="button" onClick={toggleTheme} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
               {theme === "dark" ? <Sun className="h-[19px] w-[19px]" /> : <Moon className="h-[19px] w-[19px]" />}
             </button>
-            <div className="system-popover-anchor">
-              <button className="system-icon-button system-notification-button" aria-label={`${unread} unread notifications`} aria-expanded={openPanel === "notifications"} aria-controls="notifications-panel" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell className="h-[19px] w-[19px]" />{unread > 0 && <span>{unread > 9 ? "9+" : unread}</span>}</button>
+            {me?.account_type === "employee" ? <StaffAlerts canFinance={can(me, "PAYMENT_VERIFY")} canResults={can(me, "PAYMENT_READ") && can(me, "PAYMENT_RECORD")} canSupport={can(me, "SUPPORT_MANAGE")} canAccounts={can(me, "ACCOUNT_MANAGE")} open={openPanel === "notifications"} onToggle={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")} onClose={() => setOpenPanel(null)} /> : <div className="system-popover-anchor">
+              <button className="system-icon-button" aria-label="Notifications" aria-expanded={openPanel === "notifications"} aria-controls="notifications-panel" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell className="h-[19px] w-[19px]" /></button>
               {openPanel === "notifications" && (
                 <section id="notifications-panel" className="system-popover system-notifications-popover" aria-label="Notifications">
                   <div className="system-popover-heading"><strong>Notifications</strong>{unread > 0 ? <button type="button" onClick={markAllRead}>Mark all read</button> : <small>All read</small>}</div>
@@ -276,7 +281,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
                   ))}</div> : <div className="system-notification-empty"><span><Bell weight="fill" /></span><strong>You&apos;re all caught up</strong><p>No new staff notifications.</p></div>}
                 </section>
               )}
-            </div>
+            </div>}
             <div className="system-popover-anchor">
               <button className="system-top-profile system-profile-button" type="button" aria-expanded={openPanel === "profile"} aria-controls="profile-panel" onClick={() => setOpenPanel(openPanel === "profile" ? null : "profile")}>
                 <span className="system-avatar">{initials}</span><span className="hidden min-w-0 sm:block"><strong className="block max-w-36 truncate">{me?.full_name ?? "Staff"}</strong><small>{formatRole(me?.role)}</small></span><CaretDown className="hidden h-3.5 w-3.5 sm:block" />
@@ -285,6 +290,8 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
                 <section id="profile-panel" className="system-popover system-profile-popover" aria-label="Account menu">
                   <div className="system-profile-summary"><span className="system-avatar">{initials}</span><div><strong>{me?.full_name ?? "Staff"}</strong><small>{me?.email}</small></div></div>
                   <div className="system-profile-role"><span>Access level</span><strong>{formatRole(me?.role)}</strong></div>
+                  <Link href="/privacy/employee" onClick={() => setOpenPanel(null)} className="system-profile-legal-link">Employee privacy notice</Link>
+                  <Link href="/security" onClick={() => setOpenPanel(null)} className="system-profile-legal-link">Account security</Link>
                   <button type="button" onClick={logout}><SignOut /> Log out</button>
                 </section>
               )}
@@ -292,7 +299,7 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
           </div>
         </header>
 
-        <main className="system-content">{availableRoute(pathname) ? children : (
+        <main className="system-content">{availableRoute(pathname) ? <LegalGate>{children}</LegalGate> : (
           <section className="glass rounded-3xl p-10 text-center">
             <h1 className="font-display text-xl font-700 text-blue-ink">This section is not available yet.</h1>
             <Link href="/system" className="mt-3 inline-block text-blue">Return to dashboard</Link>

@@ -1,9 +1,12 @@
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import type { Permission, User } from '@freshphones/contracts';
-import { allowed } from '../auth/access';
+import type { Permission, User, applicantListQuerySchema, jobOpeningListQuerySchema } from '@freshphones/contracts';
+import type { z } from 'zod';
+import * as queries from './queries';
+import { allowed, requireCurrentUser } from '../auth/access';
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { PrivateStorageService, type PrivateUpload } from '../storage/private-storage.service';
+import { LegalService } from '../legal/legal.service';
 
 const json = (value: unknown): Prisma.InputJsonValue =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -13,13 +16,15 @@ export class RecruitmentService {
   constructor(
     @Inject(Database) private readonly db: Database,
     @Inject(PrivateStorageService) private readonly storage: PrivateStorageService,
+    @Inject(LegalService) private readonly legal: LegalService,
   ) {}
 
-  private async write<T>(user: User, permission: Permission, run: (tx: Prisma.TransactionClient) => Promise<T>) {
+  private async write<T>(user: User, permission: Permission, run: (tx: Prisma.TransactionClient) => Promise<T>, confidential = false) {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
       const current = await tx.user.findUnique({ where: { id: user.id } });
-      if (!current?.active || !allowed(current, permission)) throw new ForbiddenException('Your access has changed.');
+      if (!current?.active || !allowed(current, permission) || (confidential && !allowed(current, 'HR_CONFIDENTIAL')))
+        throw new ForbiddenException('Your access has changed.');
       return run(tx);
     });
   }
@@ -34,7 +39,9 @@ export class RecruitmentService {
 
   async apply(input: {
     jobId: string; fullName: string; email: string; phone: string; message: string;
+    privacyNoticeVersion?: string; privacyNoticeAcknowledged?: boolean;
   }, upload?: PrivateUpload) {
+    const { privacyNoticeVersion, privacyNoticeAcknowledged, ...applicantFields } = input;
     const file = upload ? this.storage.validateDocument(upload, {
       allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
       maxBytes: 5 * 1024 * 1024,
@@ -47,7 +54,7 @@ export class RecruitmentService {
     }) : undefined;
     try {
       const applicant = await this.db.$transaction(async (tx) => {
-        if (!await tx.jobOpening.findFirst({ where: { id: input.jobId, isOpen: true }, select: { id: true } }))
+        if (!await tx.jobOpening.findFirst({ where: { id: applicantFields.jobId, isOpen: true }, select: { id: true } }))
           throw new NotFoundException('Open job not found.');
         let storedFileId: string | undefined;
         if (file && storageKey) {
@@ -59,11 +66,13 @@ export class RecruitmentService {
         }
         const result = await tx.applicant.create({
           data: {
-            ...input,
+            ...applicantFields,
             ...(storedFileId ? { attachments: { create: { storedFileId } } } : {}),
           },
           select: { id: true },
         });
+        await this.legal.recordApplicantAcknowledgement(tx, result.id,
+          { privacyNoticeVersion, privacyNoticeAcknowledged });
         await tx.changeEvent.create({ data: { entity: 'applicant', recordId: result.id } });
         return result;
       });
@@ -74,13 +83,13 @@ export class RecruitmentService {
     }
   }
 
-  async jobs(page = 1) {
-    const [items, total] = await this.db.$transaction([
-      this.db.jobOpening.findMany({ include: { _count: { select: { applicants: true } } }, orderBy: { createdAt: 'desc' }, skip: (page - 1) * 20, take: 20 }),
-      this.db.jobOpening.count(),
-    ]);
-    return { items, total, page, pageSize: 20 };
+  jobs(query: z.infer<typeof jobOpeningListQuerySchema>) { return queries.jobs(this.db, query); }
+  job(id: string) { return queries.job(this.db, id); }
+  async applicant(user: User, id: string) {
+    await requireCurrentUser(this.db, user, 'RECRUITMENT_MANAGE', 'HR_CONFIDENTIAL');
+    return queries.applicant(this.db, id);
   }
+  summary() { return queries.summary(this.db); }
 
   async createJob(user: User, input: {
     title: string; description: string; location: string; employmentType: string; isOpen: boolean;
@@ -113,30 +122,9 @@ export class RecruitmentService {
     });
   }
 
-  async applicants(query: { page: number; q: string; status?: string }) {
-    if (query.status && !['RECEIVED', 'REVIEWING', 'SHORTLISTED', 'REJECTED', 'HIRED'].includes(query.status))
-      throw new ConflictException('Invalid applicant status.');
-    const where: Prisma.ApplicantWhereInput = {
-      ...(query.status ? { status: query.status as Prisma.EnumApplicantStatusFilter['equals'] } : {}),
-      ...(query.q ? { OR: [
-        { fullName: { contains: query.q, mode: 'insensitive' } },
-        { email: { contains: query.q, mode: 'insensitive' } },
-        { job: { title: { contains: query.q, mode: 'insensitive' } } },
-      ] } : {}),
-    };
-    const [items, total] = await this.db.$transaction([
-      this.db.applicant.findMany({
-        where,
-        include: {
-          job: { select: { id: true, title: true } },
-          reviewer: { select: { id: true, name: true } },
-          attachments: { include: { storedFile: { select: { id: true, originalName: true, mimeType: true, size: true } } } },
-        },
-        orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * 20, take: 20,
-      }),
-      this.db.applicant.count({ where }),
-    ]);
-    return { items, total, page: query.page, pageSize: 20 };
+  async applicants(user: User, query: z.infer<typeof applicantListQuerySchema>) {
+    await requireCurrentUser(this.db, user, 'RECRUITMENT_MANAGE', 'HR_CONFIDENTIAL');
+    return queries.applicants(this.db, query);
   }
 
   async updateApplicant(user: User, id: string, input: {
@@ -145,7 +133,7 @@ export class RecruitmentService {
   }) {
     return this.write(user, 'RECRUITMENT_MANAGE', async (tx) => {
       const before = await tx.applicant.findUnique({ where: { id } });
-      if (!before) throw new NotFoundException('Applicant not found.');
+      if (!before || before.retentionErasedAt) throw new NotFoundException('Applicant not found.');
       const changed = await tx.applicant.updateMany({ where: { id, version: input.version }, data: {
         ...(input.status ? { status: input.status } : {}),
         ...(input.reviewerNotes !== undefined ? { reviewerNotes: input.reviewerNotes } : {}),
@@ -159,11 +147,12 @@ export class RecruitmentService {
         before: json(before), after: json(after),
       } });
       await tx.changeEvent.create({ data: { entity: 'applicant', recordId: id } });
-      return after;
-    });
+      return queries.applicant(tx, id);
+    }, true);
   }
 
-  async applicantAttachment(id: string) {
+  async applicantAttachment(user: User, id: string) {
+    await requireCurrentUser(this.db, user, 'RECRUITMENT_MANAGE', 'HR_CONFIDENTIAL');
     const attachment = await this.db.applicantAttachment.findUnique({ where: { id }, include: { storedFile: true } });
     if (!attachment) throw new NotFoundException('Applicant attachment not found.');
     return {
@@ -175,11 +164,11 @@ export class RecruitmentService {
 
   async agents(query: { page: number; q: string }) {
     const where: Prisma.AgentWhereInput = query.q ? { OR: [
-      { fullName: { contains: query.q, mode: 'insensitive' } },
-      { agentCode: { contains: query.q, mode: 'insensitive' } },
+      { name: { contains: query.q, mode: 'insensitive' } },
+      { code: { contains: query.q, mode: 'insensitive' } },
     ] } : {};
     const [items, total] = await this.db.$transaction([
-      this.db.agent.findMany({ where, orderBy: { fullName: 'asc' }, skip: (query.page - 1) * 20, take: 20 }),
+      this.db.agent.findMany({ where, orderBy: { name: 'asc' }, skip: (query.page - 1) * 20, take: 20 }),
       this.db.agent.count({ where }),
     ]);
     return { items, total, page: query.page, pageSize: 20 };
@@ -187,7 +176,7 @@ export class RecruitmentService {
 
   async createAgent(user: User, input: { fullName: string; agentCode: string; phone: string; active: boolean }) {
     return this.write(user, 'AGENT_MANAGE', async (tx) => {
-      const result = await tx.agent.create({ data: input });
+      const result = await tx.agent.create({ data: { name: input.fullName, code: input.agentCode, active: input.active } });
       await tx.auditEntry.create({ data: {
         actorId: user.id, action: 'agent.created', entity: 'agent', recordId: result.id, after: json(result),
       } });
@@ -199,7 +188,7 @@ export class RecruitmentService {
     return this.write(user, 'AGENT_MANAGE', async (tx) => {
       const before = await tx.agent.findUnique({ where: { id } });
       if (!before) throw new NotFoundException('Agent not found.');
-      const changed = await tx.agent.updateMany({ where: { id, version }, data: { ...input, version: { increment: 1 } } });
+      const changed = await tx.agent.updateMany({ where: { id, version }, data: { name: input.fullName, code: input.agentCode, active: input.active, version: { increment: 1 } } });
       if (!changed.count) throw new ConflictException('This agent changed. Refresh and try again.');
       const after = await tx.agent.findUniqueOrThrow({ where: { id } });
       await tx.auditEntry.create({ data: {
@@ -215,14 +204,14 @@ export class RecruitmentService {
     if (!value) return { found: false } as const;
     const agent = await this.db.agent.findFirst({
       where: { OR: [
-        { agentCode: { equals: value, mode: 'insensitive' } },
-        { fullName: { contains: value, mode: 'insensitive' } },
+        { code: { equals: value, mode: 'insensitive' } },
+        { name: { contains: value, mode: 'insensitive' } },
       ] },
-      orderBy: { fullName: 'asc' },
+      orderBy: { name: 'asc' },
     });
     if (!agent) return { found: false } as const;
-    const code = agent.agentCode;
+    const code = agent.code;
     const masked = code.length <= 4 ? '*'.repeat(code.length) : `${code.slice(0, 2)}${'*'.repeat(code.length - 4)}${code.slice(-2)}`;
-    return { found: true, fullName: agent.fullName, agentCode: masked, active: agent.active } as const;
+    return { found: true, fullName: agent.name, agentCode: masked, active: agent.active } as const;
   }
 }

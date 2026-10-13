@@ -149,7 +149,7 @@ export class DocumentsService {
           update: { status: 'SUBMITTED', customerNote: '', internalNote: '', version: { increment: 1 } },
           create: { clientId, typeId, status: 'SUBMITTED' },
         });
-        const latest = await tx.customerDocument.aggregate({ where: { requirementId: requirement.id }, _max: { revision: true } });
+        const latest = await tx.requirementDocument.aggregate({ where: { requirementId: requirement.id }, _max: { revision: true } });
         const stored = await tx.storedFile.create({ data: {
           storageKey,
           originalName: file.originalname.slice(0, 255) || 'document',
@@ -157,7 +157,7 @@ export class DocumentsService {
           size: file.size,
           uploadedById: user.id,
         } });
-        const document = await tx.customerDocument.create({ data: {
+        const document = await tx.requirementDocument.create({ data: {
           clientId, requirementId: requirement.id, storedFileId: stored.id,
           revision: (latest._max.revision ?? 0) + 1,
         } });
@@ -220,7 +220,7 @@ export class DocumentsService {
   }
 
   async content(user: User, id: string) {
-    const document = await this.db.customerDocument.findUnique({
+    const document = await this.db.requirementDocument.findUnique({
       where: { id },
       include: { storedFile: true },
     });

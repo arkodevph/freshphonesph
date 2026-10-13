@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Permission, User } from '@freshphones/contracts';
-import { allowed } from '../auth/access';
+import { allowed, requireCurrentUser } from '../auth/access';
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -18,8 +18,10 @@ const taskInclude = {
   assignee: { select: { id: true, name: true, role: true } },
   creator: { select: { id: true, name: true } },
   attachments: { include: { storedFile: { select: { id: true, originalName: true, mimeType: true, size: true } } }, orderBy: { createdAt: 'asc' as const } },
-  reviews: { include: { reviewer: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' as const } },
+  review: { include: { reviewer: { select: { id: true, name: true } } } },
 } as const;
+const projectTask = <T extends { review: unknown }>(task: T, user: Pick<User, 'role' | 'hrConfidentialAccess'>) =>
+  ({ ...task, review: allowed(user, 'KPI_REVIEW') ? task.review : null });
 
 @Injectable()
 export class WorkService {
@@ -29,12 +31,12 @@ export class WorkService {
     @Inject(NotificationsService) private readonly notifications: NotificationsService,
   ) {}
 
-  private async write<T>(user: User, permission: Permission, run: (tx: Prisma.TransactionClient) => Promise<T>) {
+  private async write<T>(user: User, permission: Permission, run: (tx: Prisma.TransactionClient, current: Pick<User, 'role' | 'hrConfidentialAccess'>) => Promise<T>) {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
       const current = await tx.user.findUnique({ where: { id: user.id } });
       if (!current?.active || !allowed(current, permission)) throw new ForbiddenException('Your access has changed.');
-      return run(tx);
+      return run(tx, current);
     });
   }
 
@@ -51,6 +53,7 @@ export class WorkService {
   }
 
   async tasks(user: User, query: { page: number; q: string; status?: string }) {
+    user = await requireCurrentUser(this.db, user, 'TASK_READ');
     if (query.status && !['TODO', 'IN_PROGRESS', 'SUBMITTED', 'DONE'].includes(query.status))
       throw new ConflictException('Invalid task status.');
     const where: Prisma.TaskWhereInput = {
@@ -65,13 +68,13 @@ export class WorkService {
       this.db.task.findMany({ where, include: taskInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (query.page - 1) * 20, take: 20 }),
       this.db.task.count({ where }),
     ]);
-    return { items, total, page: query.page, pageSize: 20 };
+    return { items: items.map((task) => projectTask(task, user)), total, page: query.page, pageSize: 20 };
   }
 
   async create(user: User, input: {
     title: string; instructions: string; assigneeId: string; priority: 'LOW' | 'MEDIUM' | 'HIGH'; deadline: string;
   }) {
-    return this.write(user, 'TASK_ASSIGN', async (tx) => {
+    return this.write(user, 'TASK_ASSIGN', async (tx, current) => {
       const assignee = await tx.user.findFirst({ where: { id: input.assigneeId, active: true, role: { not: 'CUSTOMER' } } });
       if (!assignee) throw new NotFoundException('Active staff assignee not found.');
       const task = await tx.task.create({
@@ -89,12 +92,12 @@ export class WorkService {
         variables: { title: task.title, deadline: task.deadline.toLocaleString('en-PH') },
         link: '/system/tasks',
       });
-      return task;
+      return projectTask(task, current);
     });
   }
 
   async progress(user: User, id: string, status: 'TODO' | 'IN_PROGRESS', version: number) {
-    return this.write(user, 'TASK_SUBMIT', async (tx) => {
+    return this.write(user, 'TASK_SUBMIT', async (tx, current) => {
       const before = await tx.task.findFirst({ where: { id, ...this.scope(user) } });
       if (!before) throw new NotFoundException('Task not found.');
       if (['SUBMITTED', 'DONE'].includes(before.status)) throw new ConflictException('Submitted tasks cannot return to progress.');
@@ -106,18 +109,18 @@ export class WorkService {
         before: json(before), after: json(after),
       } });
       await tx.changeEvent.create({ data: { entity: 'task', recordId: id } });
-      return after;
+      return projectTask(after, current);
     });
   }
 
   async submit(user: User, id: string, version: number) {
-    return this.write(user, 'TASK_SUBMIT', async (tx) => {
+    return this.write(user, 'TASK_SUBMIT', async (tx, current) => {
       const before = await tx.task.findUnique({ where: { id } });
       if (!before || before.assigneeId !== user.id) throw new NotFoundException('Task not found.');
       if (['SUBMITTED', 'DONE'].includes(before.status)) throw new ConflictException('This task was already submitted.');
       const submittedAt = new Date();
       const changed = await tx.task.updateMany({ where: { id, version, assigneeId: user.id }, data: {
-        status: 'SUBMITTED', submissionTimestamp: submittedAt,
+        status: 'SUBMITTED', submittedAt: submittedAt,
         lateFlag: submittedAt > before.deadline, version: { increment: 1 },
       } });
       if (!changed.count) throw new ConflictException('This task changed. Refresh and try again.');
@@ -127,7 +130,7 @@ export class WorkService {
         before: json(before), after: json(after),
       } });
       await tx.changeEvent.create({ data: { entity: 'task', recordId: id } });
-      return after;
+      return projectTask(after, current);
     });
   }
 
@@ -143,7 +146,7 @@ export class WorkService {
       label: 'task attachment',
     });
     try {
-      return await this.write(user, 'TASK_SUBMIT', async (tx) => {
+      return await this.write(user, 'TASK_SUBMIT', async (tx, current) => {
         const task = await tx.task.findUnique({ where: { id } });
         if (!task || (task.assigneeId !== user.id && !allowed(user, 'TASK_ASSIGN')))
           throw new NotFoundException('Task not found.');
@@ -158,7 +161,7 @@ export class WorkService {
           after: json({ attachmentId: attachment.id, mimeType: stored.mimeType, size: stored.size }),
         } });
         await tx.changeEvent.create({ data: { entity: 'task', recordId: id } });
-        return tx.task.findUniqueOrThrow({ where: { id }, include: taskInclude });
+        return projectTask(await tx.task.findUniqueOrThrow({ where: { id }, include: taskInclude }), current);
       });
     } catch (error) {
       await this.storage.remove(storageKey);
@@ -179,11 +182,12 @@ export class WorkService {
     };
   }
 
-  kpiQueue() {
+  async kpiQueue(user: User) {
+    await requireCurrentUser(this.db, user, 'KPI_REVIEW');
     return this.db.task.findMany({
-      where: { status: 'SUBMITTED', lateFlag: true, reviews: { none: {} } },
+      where: { status: 'SUBMITTED', lateFlag: true, review: null },
       include: taskInclude,
-      orderBy: { submissionTimestamp: 'asc' },
+      orderBy: { submittedAt: 'asc' },
     });
   }
 
@@ -194,8 +198,8 @@ export class WorkService {
     return this.write(user, 'KPI_REVIEW', async (tx) => {
       const task = await tx.task.findUnique({ where: { id: input.taskId } });
       if (!task) throw new NotFoundException('Task not found.');
-      const evidence = task.submissionTimestamp
-        ? `Submitted ${task.submissionTimestamp.toISOString()} vs deadline ${task.deadline.toISOString()} (${task.lateFlag ? 'LATE' : 'ON TIME'}).`
+      const evidence = task.submittedAt
+        ? `Submitted ${task.submittedAt.toISOString()} vs deadline ${task.deadline.toISOString()} (${task.lateFlag ? 'LATE' : 'ON TIME'}).`
         : 'Not yet submitted.';
       const review = await tx.kpiReview.create({ data: {
         ...input, reviewerId: user.id, factualEvidence: evidence,

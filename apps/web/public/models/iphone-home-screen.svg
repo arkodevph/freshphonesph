@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1300" viewBox="0 0 600 1300">
+<defs>
+ <linearGradient id="wall" x2=".8" y2="1"><stop stop-color="#072b72"/><stop offset=".45" stop-color="#227cca"/><stop offset="1" stop-color="#fdb3a4"/></linearGradient>
+ <linearGradient id="wave" x2="1" y2="1"><stop stop-color="#55dbf8"/><stop offset="1" stop-color="#725fe7"/></linearGradient>
+ <g id="tile"><rect width="96" height="96" rx="23"/></g>
+ <g id="phone"><path d="M29 24l14 19-9 10c7 12 15 20 27 27l10-9 18 13c-9 25-35 12-56-8S3 31 29 24" fill="white" transform="translate(5 -5) scale(.85)"/></g>
+ <g id="camera"><rect x="15" y="30" width="66" height="45" rx="10" fill="#222a3b"/><path d="M31 31l6-11h23l7 11" fill="#222a3b"/><circle cx="48" cy="52" r="16" fill="#a7aec2"/><circle cx="48" cy="52" r="11" fill="#222a3b"/></g>
+ <g id="mail"><rect x="14" y="27" width="68" height="45" rx="6" fill="white"/><path d="M15 29l33 26 33-26" fill="none" stroke="#398bf3" stroke-width="4"/></g>
+ <g id="safari"><circle cx="48" cy="48" r="34" fill="white"/><circle cx="48" cy="48" r="29" fill="#199fec"/><path d="M64 28L49 50 32 68 46 45Z" fill="white"/><path d="M64 28L49 50 46 45Z" fill="#ff4055"/></g>
+ <g id="messages"><path d="M80 46c0 18-16 30-35 30l-19 7 5-13c-10-6-15-14-15-24 0-17 14-29 32-29s32 12 32 29" fill="white"/></g>
+</defs>
+<g transform="rotate(180 300 650)">
+<rect width="600" height="1300" fill="url(#wall)"/>
+<path d="M-100 920C500 500 140 170 760-80L840 240C380 650 640 970 230 1400H-100Z" fill="url(#wave)" opacity=".75"/>
+<g font-family="Arial,sans-serif" fill="white" text-anchor="middle">
+ <text x="76" y="49" font-size="25" font-weight="bold">9:41</text>
+ <g transform="translate(467 26)" fill="white"><rect y="13" width="5" height="8"/><rect x="8" y="9" width="5" height="12"/><rect x="16" y="4" width="5" height="17"/><path d="M31 9q12-12 24 0l-4 4q-8-8-16 0zm8 9q4-4 8 0l-4 5z"/><rect x="66" y="4" width="30" height="17" rx="4" fill="none" stroke="white" stroke-width="2"/><rect x="69" y="7" width="23" height="11" rx="2"/><rect x="97" y="9" width="3" height="7"/></g>
+ <g transform="translate(45 120)"><rect width="510" height="225" rx="30" fill="#0b4f93" opacity=".7"/><text x="30" y="48" text-anchor="start" font-size="25">Manila</text><text x="30" y="116" text-anchor="start" font-size="66">29°</text><circle cx="438" cy=" seventy" r="0"/><circle cx="429" cy=" seventy" r="0"/><circle cx="434" cy="78" r="31" fill="#ffd361"/><text x="30" y="164" text-anchor="start" font-size="23">Mostly sunny</text><text x="30" y="197" text-anchor="start" font-size="19">H:31°  L:26°</text></g>
+ <g transform="translate(45 394)"><use href="#tile" fill="white"/><text x="48" y="28" fill="#f0444c" font-size="17">TUESDAY</text><text x="48" y="77" fill="#171d29" font-size="50">6</text><text x="48" y="124" font-size="18">Calendar</text></g>
+ <g transform="translate(183 394)"><use href="#tile" fill="white"/><g transform="translate(48 48)"><ellipse cy="-19" rx="12" ry="22" fill="#ff5045"/><ellipse cy="-19" rx="12" ry="22" fill="#ffc731" transform="rotate(60)"/><ellipse cy="-19" rx="12" ry="22" fill="#50ca68" transform="rotate(120)"/><ellipse cy="-19" rx="12" ry="22" fill="#47c5ed" transform="rotate(180)"/><ellipse cy="-19" rx="12" ry="22" fill="#6263df" transform="rotate(240)"/><ellipse cy="-19" rx="12" ry="22" fill="#e44e9f" transform="rotate(300)"/></g><text x="48" y="124" font-size="18">Photos</text></g>
+ <g transform="translate(321 394)"><use href="#tile" fill="#dce0e8"/><use href="#camera"/><text x="48" y="124" font-size="18">Camera</text></g>
+ <g transform="translate(459 394)"><use href="#tile" fill="#398bf3"/><use href="#mail"/><text x="48" y="124" font-size="18">Mail</text></g>
+ <g transform="translate(45 559)"><use href="#tile" fill="#20212a"/><circle cx="48" cy="48" r="34" fill="white"/><path d="M48 23v25l19 13" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round"/><text x="48" y="124" font-size="18">Clock</text></g>
+ <g transform="translate(183 559)"><use href="#tile" fill="#f8fafc"/><path d="M0 32h96M28 0v96M0 80l96-45" stroke="#a8d69a" stroke-width="13"/><path d="M49 0v96" stroke="#50a4ff" stroke-width="10"/><path d="M48 32l14 27-14-7-14 7z" fill="white"/><text x="48" y="124" font-size="18">Maps</text></g>
+ <g transform="translate(321 559)"><use href="#tile" fill="#238be9"/><path d="M27 72l28-49M39 23l29 49M23 58h50" stroke="white" stroke-width="8" stroke-linecap="round"/><text x="48" y="124" font-size="18">App Store</text></g>
+ <g transform="translate(459 559)"><use href="#tile" fill="#adb3be"/><circle cx="48" cy="48" r="31" fill="none" stroke="#454b55" stroke-width="12" stroke-dasharray="9 4"/><circle cx="48" cy="48" r="17" fill="none" stroke="#454b55" stroke-width="7"/><text x="48" y="124" font-size="18">Settings</text></g>
+ <g transform="translate(45 724)"><use href="#tile" fill="#fff"/><path d="M0 24h96" stroke="#ffcd3b" stroke-width="48"/><path d="M14 58h68M14 73h68" stroke="#d2d5db" stroke-width="2"/><text x="48" y="124" font-size="18">Notes</text></g>
+ <g transform="translate(183 724)"><use href="#tile" fill="#30c85b"/><rect x="16" y="30" width="44" height="36" rx="7" fill="white"/><path d="M64 38l18-10v42L64 60z" fill="white"/><text x="48" y="124" font-size="18">FaceTime</text></g>
+ <g transform="translate(321 724)"><use href="#tile" fill="#fa4968"/><text x="48" y="72" font-size="74">♫</text><text x="48" y="124" font-size="18">Music</text></g>
+ <g transform="translate(459 724)"><use href="#tile" fill="#20212a"/><rect x="18" y="28" width="60" height="43" rx="6" fill="#edb25c"/><path d="M18 37h60M18 48h60" stroke="#8bbcd0" stroke-width="9"/><text x="48" y="124" font-size="18">Wallet</text></g>
+ <rect x="252" y="1030" width="96" height="35" rx="18" fill="white" opacity=".25"/><text x="300" y="1054" font-size="18">Search</text>
+ <rect x="22" y="1108" width="556" height="142" rx="39" fill="white" opacity=".28"/>
+ <g transform="translate(45 1131)"><use href="#tile" fill="#28cb59"/><use href="#phone"/></g>
+ <g transform="translate(183 1131)"><use href="#tile" fill="white"/><use href="#safari"/></g>
+ <g transform="translate(321 1131)"><use href="#tile" fill="#2bd15c"/><use href="#messages"/></g>
+ <g transform="translate(459 1131)"><use href="#tile" fill="#fa4968"/><text x="48" y="72" font-size="74">♫</text></g>
+ <rect x="204" y="1271" width="192" height="7" rx="4" fill="white"/>
+</g>
+</g>
+</svg>

@@ -10,7 +10,7 @@ export function centsAsAmount(cents: bigint): string {
   return `${cents / 100n}.${(cents % 100n).toString().padStart(2, '0')}`;
 }
 
-// Preserve the Django baseline's fixed 7/15/30-day cadence. Calendar dates require policy approval.
+// Preserve the agreed fixed 7/15/30-day cadence. Calendar dates require policy approval.
 export function generateSchedule(plan: {
   contractPrice: string; installmentCount: number; cadence: Cadence; startDate: Date;
 }) {

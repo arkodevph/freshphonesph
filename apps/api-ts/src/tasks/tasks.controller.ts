@@ -1,3 +1,4 @@
+import { AbusePolicy } from '../abuse/policies';
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
@@ -43,6 +44,7 @@ export class TasksController {
     return this.tasks.start(user, id, body.version);
   }
   @Post('tasks/:id/submit') @HttpCode(200)
+  @AbusePolicy('upload')
   @UseInterceptors(FileInterceptor('attachment', { limits: { fileSize: 5 * 1024 * 1024, files: 1 } }))
   submit(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string,
     @Body(new Validate(submitSchema)) body: z.infer<typeof submitSchema>, @UploadedFile() file?: PrivateUpload) {
@@ -53,6 +55,7 @@ export class TasksController {
     @Body(new Validate(versionSchema)) body: z.infer<typeof versionSchema>) {
     return this.tasks.complete(user, id, body.version);
   }
+  @AbusePolicy('download')
   @Get('tasks/:id/attachment') async attachment(@CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string, @Res() response: Response) {
     const file = await this.tasks.attachment(user, id);

@@ -5,6 +5,7 @@ import { Bell, FloppyDisk, Info, PaperPlaneTilt } from "@phosphor-icons/react";
 import { tsRequest } from "@/lib/ts-api";
 import { can, useMe } from "@/lib/useMe";
 import styles from "./notification-settings.module.css";
+import StaffEmailSettings from "@/components/StaffEmailSettings";
 
 type Template = { kind: string; subject: string; body: string; version: number };
 type Settings = { reminderDays: string; reminderVersion: number; testEmailConfigured: boolean; usingResendTestSender: boolean; templates: Template[] };
@@ -17,6 +18,7 @@ export default function NotificationSettingsPage() {
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState("");
   const [testEmail, setTestEmail] = useState("");
+  const [audience, setAudience] = useState<"customer" | "staff">("customer");
   useEffect(() => {
     if (!can(me, "ACCOUNT_MANAGE")) return;
     void tsRequest<Settings>("/customer-notification-settings").then(setSettings).catch((caught) => setError(caught instanceof Error ? caught.message : "Could not load notification settings."));
@@ -51,9 +53,11 @@ export default function NotificationSettingsPage() {
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not send the test reminder."); }
     finally { setSaving(""); }
   }
-  if (!can(me, "ACCOUNT_MANAGE")) return <main className={styles.page}><p>Owner access is required for customer email settings.</p></main>;
+  if (!can(me, "ACCOUNT_MANAGE")) return <main className={styles.page}><p>Owner access is required for email settings.</p></main>;
   return <main className={styles.page}>
-    <header><p className={styles.eyebrow}>Customer communications</p><h1><Bell weight="duotone" aria-hidden="true" /> Notification settings</h1><p>Review the wording customers receive by email and choose when installment reminders run.</p></header>
+    <header><p className={styles.eyebrow}>Email communications</p><h1><Bell weight="duotone" aria-hidden="true" /> Notification settings</h1><p>Review customer and staff email wording, reminder timing and staff delivery status.</p></header>
+    <div className={styles.audience} role="group" aria-label="Email audience"><button type="button" aria-pressed={audience === "customer"} onClick={() => setAudience("customer")}>Customer email</button><button type="button" aria-pressed={audience === "staff"} onClick={() => setAudience("staff")}>Staff email</button></div>
+    <div hidden={audience !== "staff"}><StaffEmailSettings /></div><div hidden={audience !== "customer"}>
     {error && <p className={styles.error} role="alert">{error}</p>}{notice && <p className={styles.success} role="status">{notice}</p>}
     {!settings ? <p>Loading settings…</p> : <>
       <section className={styles.card}><h2>Installment reminders</h2><p>Enter days before the due date, separated by commas. For example, <strong>3,0</strong> sends one reminder three days before and one on the due date. Leave blank to stop reminders.</p><label htmlFor="reminder-days">Days before due date</label><div className={styles.row}><input id="reminder-days" value={settings.reminderDays} onChange={(event) => setSettings({ ...settings, reminderDays: event.target.value })} placeholder="Disabled" /><button type="button" disabled={Boolean(saving)} onClick={saveReminders}><FloppyDisk aria-hidden="true" /> {saving === "reminders" ? "Saving…" : "Save timing"}</button></div></section>
@@ -65,5 +69,6 @@ export default function NotificationSettingsPage() {
       <div className={styles.note}><Info aria-hidden="true" /><span>Use <code>{'{title}'}</code> in every subject and <code>{'{message}'}</code> and <code>{'{url}'}</code> in each email body. The system fills them from the customer’s own event.</span></div>
       <div className={styles.grid}>{settings.templates.map((template) => <section className={styles.card} key={template.kind}><h2>{labels[template.kind]}</h2><label htmlFor={`subject-${template.kind}`}>Subject</label><input id={`subject-${template.kind}`} value={template.subject} onChange={(event) => editTemplate(template.kind, "subject", event.target.value)} maxLength={180} /><label htmlFor={`body-${template.kind}`}>Email body</label><textarea id={`body-${template.kind}`} value={template.body} onChange={(event) => editTemplate(template.kind, "body", event.target.value)} maxLength={2500} rows={7} /><button type="button" disabled={Boolean(saving)} onClick={() => saveTemplate(template)}><FloppyDisk aria-hidden="true" /> {saving === template.kind ? "Saving…" : "Save email"}</button></section>)}</div>
     </>}
+    </div>
   </main>;
 }

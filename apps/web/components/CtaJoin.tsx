@@ -56,6 +56,7 @@ export default function CtaJoin() {
             <p className="mt-4 text-xs font-600 text-white/70">
               Official and only page of Fresh Phones PH.
             </p>
+            <p className="mt-6 text-sm text-white">Already a customer? <a href="/support" className="font-700 underline underline-offset-4">Start or follow a support request</a>.</p>
           </div>
         </div>
       </Reveal>

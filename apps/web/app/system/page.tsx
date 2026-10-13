@@ -1,32 +1,33 @@
 "use client";
 
-import Link from "next/link";
+import { availableRoute } from "@/lib/backend";
+import { can, useMe } from "@/lib/useMe";
 import {
-  ArrowUpRight,
-  CheckCircle,
-  Headset,
-  ListChecks,
-  Receipt,
-  ShieldCheck,
-  Stack,
-  Users,
+    ArrowUpRight,
+    Briefcase,
+    CheckCircle,
+    Headset,
+    ListChecks,
+    Receipt,
+    ShieldCheck,
+    Stack,
+    Users,
 } from "@phosphor-icons/react";
-import { useMe, can } from "@/lib/useMe";
+import Link from "next/link";
+import CustomerWorkQueues from "./CustomerWorkQueues";
 import DashboardCards from "./DashboardCards";
 import PaymentsCta from "./PaymentsCta";
-import CustomerWorkQueues from "./CustomerWorkQueues";
-import { availableRoute, TYPESCRIPT_API } from "@/lib/backend";
 
 const SHORTCUTS = [
-  { icon: Stack, label: "Manage batches", detail: "Paluwagan records", href: "/system/records" },
-  { icon: Users, label: "Open clients", detail: "Members and schedules", href: "/system/clients" },
-  { icon: Receipt, label: "Review payments", detail: "Record and verify", href: "/system/payments" },
-  { icon: Headset, label: "Support cases", detail: "Customer concerns", href: "/system/support" },
+  { icon: Stack, label: "Open batches", detail: "Paluwagan records", href: "/system/records", perms: ["BATCH_READ", "BATCH_MANAGE"] },
+  { icon: Users, label: "Open clients", detail: "Members and schedules", href: "/system/clients", perms: ["CLIENT_READ", "CLIENT_MANAGE"] },
+  { icon: Receipt, label: "Review payments", detail: "Record and verify", href: "/system/payments", perms: ["PAYMENT_READ", "PAYMENT_RECORD"] },
+  { icon: Headset, label: "Support cases", detail: "Customer concerns", href: "/system/support", perms: ["SUPPORT_MANAGE"] },
 ] as const;
 
 export default function DashboardPage() {
   const me = useMe();
-  const hasCustomerWork = TYPESCRIPT_API && (can(me, "SUPPORT_MANAGE", "PAYMENT_VERIFY") || me?.role === "owner" || me?.role === "records");
+  const hasCustomerWork = (can(me, "SUPPORT_MANAGE", "PAYMENT_VERIFY") || me?.role === "owner" || me?.role === "records");
   const displayName = me?.full_name?.split(" ")[0] ?? "there";
   const date = new Intl.DateTimeFormat("en-PH", {
     weekday: "long",
@@ -80,7 +81,7 @@ export default function DashboardPage() {
           </div>
           <ul className="system-status-list">
             <li><span className="status-dot is-green" /><div><strong>Database connected</strong><small>Local development environment</small></div></li>
-            <li><span className="status-dot is-violet" /><div><strong>{TYPESCRIPT_API ? "Installment schedules enabled" : "Finance verification active"}</strong><small>{TYPESCRIPT_API ? "Agreed totals preserved for enrolled clients" : "Only verified payments affect balances"}</small></div></li>
+            <li><span className="status-dot is-violet" /><div><strong>{"Installment schedules enabled"}</strong><small>{"Agreed totals preserved for enrolled clients"}</small></div></li>
             <li><span className="status-dot is-blue" /><div><strong>Role access enabled</strong><small>Module permissions enforced by API</small></div></li>
           </ul>
         </aside>
@@ -103,7 +104,14 @@ export default function DashboardPage() {
             <span className="system-panel-note">Core modules</span>
           </div>
           <div className="system-shortcuts">
-            {SHORTCUTS.filter(({ href }) => availableRoute(href)).map(({ icon: Icon, label, detail, href }) => (
+            {can(me, "RECRUITMENT_MANAGE") && availableRoute("/system/recruitment") && (
+              <Link href="/system/recruitment" className="system-shortcut">
+                <span className="system-shortcut-icon"><Briefcase weight="fill" /></span>
+                <span className="min-w-0 flex-1"><strong>Manage job board</strong><small>Openings and applications</small></span>
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            )}
+            {SHORTCUTS.filter(({ href, perms }) => availableRoute(href) && can(me, ...perms)).map(({ icon: Icon, label, detail, href }) => (
               <Link key={href} href={href} className="system-shortcut">
                 <span className="system-shortcut-icon"><Icon weight="fill" /></span>
                 <span className="min-w-0 flex-1">

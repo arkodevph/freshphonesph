@@ -1,0 +1,77 @@
+.panel { --payment-accent: #2b60ae; --payment-accent-soft: #eaf3fc; --payment-verified: #267369; --payment-button: #2f6bdf; --payment-button-text: #fff; min-width: 0; padding: 20px 18px; border: 1px solid var(--portal-border); border-radius: 20px; background: var(--portal-surface); color: var(--portal-text); }
+:global(html[data-system-theme="dark"]) .panel { --payment-accent: #9fc6f5; --payment-accent-soft: #253442; --payment-verified: #8cd8c9; --payment-button: #9fc6f5; --payment-button-text: #132742; }
+.header, .sectionHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.header h2 { margin: 0; font-size: 19px; font-weight: 800; line-height: 1.4; }
+.header > a, .sectionHeading > a { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border: 1px solid var(--portal-border); border-radius: 50%; color: var(--payment-accent); text-decoration: none; }
+.header > a svg, .sectionHeading > a svg { width: 16px; height: 16px; }
+.header > a:hover, .sectionHeading > a:hover { border-color: var(--payment-accent); background: var(--payment-accent-soft); }
+.progressSummary { padding-top: 16px; text-align: center; }
+.ring { position: relative; width: 136px; height: 136px; margin: 0 auto 14px; }
+.ring > svg { width: 100%; height: 100%; overflow: visible; transform: rotate(-90deg); }
+.ringTrack, .ringFill { fill: none; stroke-width: 5; }
+.ringTrack { stroke: var(--payment-accent-soft); }
+.ringFill { stroke: var(--payment-verified); }
+.ring > div { position: absolute; inset: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--portal-surface-alt); }
+.ring strong { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ring > div > span { margin-top: 3px; color: var(--portal-muted); font-size: 13px; line-height: 1.4; }
+.balanceLabel { margin: 0; color: var(--portal-muted); font-size: 14px; line-height: 1.5; }
+.balanceAmount { margin: 3px 0 0; font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.3; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 17px 0 0; padding-bottom: 20px; border-bottom: 1px solid var(--portal-border); text-align: left; }
+.figures > div:last-child { text-align: right; }
+.figures dt { color: var(--portal-muted); font-size: 13px; line-height: 1.5; }
+.figures dd { margin: 3px 0 0; font-size: 15px; font-weight: 800; line-height: 1.4; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.chartSection { margin-top: 18px; }
+.sectionHeading h3 { margin: 0; font-size: 16px; font-weight: 800; line-height: 1.4; }
+.sectionHeading > a { flex-basis: 32px; width: 32px; height: 32px; }
+.chart { display: grid; grid-template-columns: 43px minmax(0, 1fr); gap: 5px; margin-top: 12px; padding: 15px 10px 7px; border-radius: 14px; background: var(--portal-surface-alt); }
+.axis { display: flex; height: 110px; flex-direction: column; justify-content: space-between; color: var(--portal-muted); font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
+.plot { position: relative; min-width: 0; }
+.gridLines { position: absolute; inset: 0 0 auto; display: flex; height: 110px; flex-direction: column; justify-content: space-between; pointer-events: none; }
+.gridLines > span { border-top: 1px dashed var(--portal-border); }
+.bars { position: relative; display: flex; align-items: stretch; justify-content: space-around; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.bars > li { flex: 1; min-width: 0; max-width: 32px; }
+.bars a { display: grid; justify-items: center; gap: 7px; min-width: 0; padding: 0 1px 4px; border-radius: 6px; color: var(--portal-muted); text-decoration: none; }
+.bars a:hover .barColumn { opacity: .75; }
+.barColumn { position: relative; width: 100%; height: 110px; }
+.expectedBar, .verifiedBar { position: absolute; right: 0; bottom: 0; left: 0; border-radius: 6px 6px 3px 3px; }
+.expectedBar { background: var(--payment-accent-soft); border: 1px solid color-mix(in srgb, var(--payment-accent) 30%, transparent); }
+.verifiedBar { background: var(--payment-verified); }
+.barLabel { font-size: 13px; font-weight: 700; line-height: 1.3; }
+.chartCaption { display: grid; justify-items: center; gap: 7px; margin-top: 10px; color: var(--portal-muted); font-size: 12px; line-height: 1.5; }
+.chartCaption > span:last-child { display: flex; align-items: center; gap: 5px; }
+.chartCaption i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
+.verifiedKey { background: var(--payment-verified); }
+.chartCaption .expectedKey { margin-left: 7px; border: 1px solid color-mix(in srgb, var(--payment-accent) 30%, transparent); background: var(--payment-accent-soft); }
+.staffSection { margin-top: 22px; }
+.staffCard { margin-top: 12px; padding: 0 11px 11px; border-radius: 15px; background: var(--portal-surface-alt); }
+.staffList { margin: 0; padding: 0; list-style: none; }
+.staffList li { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 15px 0; }
+.staffList li + li { border-top: 1px dashed var(--portal-border); }
+.staffAvatar { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: #fae8d5; color: #805331; font-size: 12px; font-weight: 800; }
+.financeAvatar { background: #e8f4f1; color: #267369; }
+:global(html[data-system-theme="dark"]) .staffAvatar { background: #40352c; color: #f0c69d; }
+:global(html[data-system-theme="dark"]) .financeAvatar { background: #263a37; color: #8cd8c9; }
+.staffCopy { flex: 1; min-width: 0; }
+.staffCopy strong { display: block; font-size: 14px; font-weight: 800; line-height: 1.4; overflow-wrap: anywhere; }
+.staffCopy > span { display: block; margin-top: 2px; color: var(--portal-muted); font-size: 12px; line-height: 1.5; }
+.staffRecord { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; min-height: 40px; padding: 0 9px; border: 1px solid var(--portal-border); border-radius: 999px; color: var(--payment-accent); font-size: 12px; font-weight: 700; text-decoration: none; }
+.staffRecord:hover { border-color: var(--payment-accent); background: var(--payment-accent-soft); }
+.staffRecord svg { width: 13px; height: 13px; }
+.viewAll { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border-radius: 9px; background: var(--payment-accent-soft); color: var(--payment-accent); font-size: 14px; font-weight: 800; text-decoration: none; }
+.viewAll:hover { box-shadow: inset 0 0 0 1px var(--payment-accent); }
+.viewAll svg { width: 16px; height: 16px; }
+.staffNote { margin: 7px 0 0; color: var(--portal-muted); font-size: 13px; line-height: 1.5; }
+.emptyState { margin: 12px 0 0; padding: 16px 0; color: var(--portal-muted); font-size: 14px; line-height: 1.6; }
+.emptyState p { margin: 0; }
+.emptyState button { min-height: 44px; margin-top: 10px; padding: 0 13px; border-radius: 9px; background: var(--payment-button); color: var(--payment-button-text); font-weight: 700; cursor: pointer; }
+.panel :focus-visible { outline: 2px solid var(--payment-accent); outline-offset: 3px; }
+.skeleton { display: grid; justify-items: center; gap: 17px; }
+.placeholder { display: block; width: 100%; height: 16px; border-radius: 7px; background: var(--portal-surface-alt); animation: paymentOverviewPulse 1.5s ease-in-out infinite alternate; }
+.skeletonRing { width: 136px; height: 136px; margin-top: 5px; border-radius: 50%; }
+.skeletonAmount { width: 80%; height: 30px; }
+.skeletonChart { height: 153px; margin: 15px 0 6px; border-radius: 14px; }
+.skeletonPerson { height: 70px; }
+.skeletonAction { height: 44px; }
+@keyframes paymentOverviewPulse { to { opacity: .45; } }
+@media (max-width: 700px) { .panel { padding: 20px; } .staffRecord { padding: 0 10px; } }
+@media (prefers-reduced-motion: reduce) { .placeholder { animation: none; } }

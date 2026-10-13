@@ -1,13 +1,25 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { z } from 'zod';
-import { reportQuerySchema, reportSnapshotSchema, type User } from '@freshphones/contracts';
+import { reportQuerySchema, reportSnapshotSchema, type PaymentReport, type ReportKind, type User } from '@freshphones/contracts';
 import { Database } from '../database';
 import { Prisma } from '../generated/prisma/client';
 import { workbook } from './xlsx';
+import { collections } from './collections';
+import { reconciliation, reconciliationColumns, reconciliationExceptions } from './reconciliation';
+import { allowed } from '../auth/access';
+import { effectiveAmount, verifiedTotals } from '../finance/ledger';
 
 type ReportQuery = z.infer<typeof reportQuerySchema>;
 type SnapshotInput = z.infer<typeof reportSnapshotSchema>;
-const csv = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+const csv = (value: unknown) => {
+  const text = String(value ?? '');
+  const safe = typeof value === 'string' && /^[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
+  return `"${safe.replaceAll('"', '""')}"`;
+};
+const snapshotInclude = {
+  createdBy: { select: { id: true, name: true } },
+  analysis: { include: { submittedBy: { select: { id: true, name: true } } } },
+} as const;
 
 @Injectable()
 export class ReportsService {
@@ -31,29 +43,65 @@ export class ReportsService {
 
   async dashboard(query: ReportQuery) {
     const base = this.where({ ...query, status: undefined });
-    const [activeBatches, verified, pending, clarification, openConcerns, lateTasks] = await this.db.$transaction([
-      this.db.batch.count({ where: { status: 'ACTIVE' } }),
-      this.db.payment.aggregate({ where: { ...base, status: 'VERIFIED' }, _count: true, _sum: { amount: true } }),
-      this.db.payment.aggregate({ where: { ...base, status: 'PENDING' }, _count: true, _sum: { amount: true } }),
-      this.db.payment.count({ where: { ...base, status: 'NEEDS_CLARIFICATION' } }),
-      this.db.supportCase.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CLIENT'] } } }),
-      this.db.task.count({ where: { lateFlag: true } }),
-    ]);
+    return this.db.$transaction(async (tx) => {
+      const [activeBatches, verified, pending, clarification, openConcerns, lateTasks] = await Promise.all([
+        tx.batch.count({ where: { status: 'ACTIVE' } }), verifiedTotals(tx, base),
+        tx.payment.aggregate({ where: { ...base, status: 'PENDING' }, _count: true, _sum: { amount: true } }),
+        tx.payment.count({ where: { ...base, status: 'NEEDS_CLARIFICATION' } }),
+        tx.supportCase.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CLIENT'] } } }),
+        tx.task.count({ where: { lateFlag: true } }),
+      ]);
+      return {
+        activeBatches,
+        verifiedPayments: verified.count,
+        verifiedAmount: verified.effective.toFixed(2),
+        originalVerifiedAmount: verified.original.toFixed(2), adjustmentAmount: verified.adjustment.toFixed(2),
+        pendingVerification: pending._count,
+        pendingAmount: (pending._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
+        needsClarification: clarification,
+        openConcerns,
+        lateTasks,
+      };
+    }, { isolationLevel: 'RepeatableRead' });
+  }
+
+  async paymentReport(query: ReportQuery, db: Prisma.TransactionClient = this.db): Promise<PaymentReport> {
+    if (db === this.db) return this.db.$transaction((tx) => this.paymentReport(query, tx), { isolationLevel: 'RepeatableRead' });
+    const groups = await db.payment.groupBy({ by: ['status'], where: this.where(query), _count: true, _sum: { amount: true } });
+    const verified = await verifiedTotals(db, this.where(query));
+    const group = (status: string) => groups.find((item) => item.status === status);
     return {
-      activeBatches,
-      verifiedPayments: verified._count,
-      verifiedAmount: (verified._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
-      pendingVerification: pending._count,
-      pendingAmount: (pending._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
-      needsClarification: clarification,
-      openConcerns,
-      lateTasks,
+      total: groups.reduce((total, item) => total + item._count, 0),
+      verifiedPayments: group('VERIFIED')?._count ?? 0,
+      verifiedAmount: verified.effective.toFixed(2),
+      originalVerifiedAmount: verified.original.toFixed(2), adjustmentAmount: verified.adjustment.toFixed(2),
+      pendingVerification: group('PENDING')?._count ?? 0,
+      pendingAmount: (group('PENDING')?._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
+      needsClarification: group('NEEDS_CLARIFICATION')?._count ?? 0,
+      rejectedPayments: group('REJECTED')?._count ?? 0,
     };
+  }
+
+  async batchOptions(query: { q?: string; page: number }) {
+    const where: Prisma.BatchWhereInput = query.q ? { code: { contains: query.q, mode: 'insensitive' } } : {};
+    const [items, total] = await this.db.$transaction([
+      this.db.batch.findMany({ where, select: { id: true, code: true }, orderBy: [{ code: 'asc' }, { id: 'asc' }],
+        skip: (query.page - 1) * 20, take: 20 }),
+      this.db.batch.count({ where }),
+    ]);
+    return { items, total, page: query.page, pageSize: 20 };
   }
 
   async paymentCsv(query: ReportQuery) {
     const rows = await this.paymentRows(query);
     return rows.map((row) => row.map(csv).join(',')).join('\r\n');
+  }
+
+  collectionReport(query: ReportQuery & { page?: number }) { return collections(this.db, query); }
+  reconciliationReport(query: ReportQuery & { page?: number }) { return reconciliation(this.db, query); }
+  reconciliationExceptions(user: User, query: ReportQuery & { page?: number }) {
+    if (!allowed(user, 'PAYMENT_READ')) throw new ForbiddenException('Payment-read access is required to review individual exceptions.');
+    return reconciliationExceptions(this.db, query);
   }
 
   private async paymentRows(query: ReportQuery) {
@@ -62,20 +110,22 @@ export class ReportsService {
       select: {
         paymentDate: true, amount: true, method: true, status: true,
         batch: { select: { code: true } },
+        adjustments: { select: { amount: true } },
       },
       orderBy: [{ paymentDate: 'asc' }, { id: 'asc' }],
     });
-    return [['Payment date', 'Batch', 'Status', 'Method', 'Amount (PHP)'], ...payments.map((payment) => [
+    return [['Payment date', 'Batch', 'Status', 'Method', 'Amount (PHP)', 'Finance adjustments (PHP)', 'Current credit / claim (PHP)'], ...payments.map((payment) => [
       payment.paymentDate.toISOString().slice(0, 10), payment.batch.code,
       payment.status, payment.method, payment.amount.toFixed(2),
+      effectiveAmount(payment).sub(payment.amount).toFixed(2), effectiveAmount(payment).toFixed(2),
     ])];
   }
 
-  async taskReport(query: ReportQuery) {
+  async taskReport(query: ReportQuery, db: Prisma.TransactionClient = this.db) {
     const createdAt = this.dateRange(query);
-    const tasks = await this.db.task.findMany({
+    const tasks = await db.task.findMany({
       where: { ...(createdAt ? { createdAt } : {}) },
-      select: { status: true, lateFlag: true, submissionTimestamp: true, reviews: { select: { id: true } } },
+      select: { status: true, lateFlag: true, submittedAt: true, review: { select: { id: true } } },
     });
     const byStatus = Object.fromEntries(['TODO', 'IN_PROGRESS', 'SUBMITTED', 'DONE'].map((status) => [
       status, tasks.filter((task) => task.status === status).length,
@@ -83,18 +133,18 @@ export class ReportsService {
     return {
       total: tasks.length,
       byStatus,
-      submitted: tasks.filter((task) => task.submissionTimestamp).length,
+      submitted: tasks.filter((task) => task.submittedAt).length,
       late: tasks.filter((task) => task.lateFlag === true).length,
-      reviewed: tasks.filter((task) => task.reviews.length > 0).length,
+      reviewed: tasks.filter((task) => Boolean(task.review)).length,
       disclaimer: 'Late status is an objective timing fact only and does not trigger a wage or disciplinary action.',
     };
   }
 
-  async supportReport(query: ReportQuery) {
+  async supportReport(query: ReportQuery, db: Prisma.TransactionClient = this.db) {
     const createdAt = this.dateRange(query);
-    const cases = await this.db.supportCase.findMany({
+    const cases = await db.supportCase.findMany({
       where: { ...(createdAt ? { createdAt } : {}) },
-      select: { category: true, status: true, createdAt: true, closedAt: true },
+      select: { category: true, source: true, status: true, createdAt: true, closedAt: true },
     });
     const categories = new Map<string, { category: string; total: number; closed: number; turnaround: number[] }>();
     for (const item of cases) {
@@ -116,6 +166,10 @@ export class ReportsService {
           ? Math.round((item.turnaround.reduce((sum, value) => sum + value, 0) / item.turnaround.length) * 10) / 10
           : null,
       })).sort((a, b) => b.total - a.total || a.category.localeCompare(b.category)),
+      sources: Object.entries(cases.reduce<Record<string, number>>((counts, item) => {
+        counts[item.source] = (counts[item.source] ?? 0) + 1;
+        return counts;
+      }, {})).map(([source, total]) => ({ source, total })).sort((a, b) => b.total - a.total || a.source.localeCompare(b.source)),
     };
   }
 
@@ -127,59 +181,114 @@ export class ReportsService {
     };
   }
 
-  async export(kind: 'payments' | 'tasks' | 'support', format: 'csv' | 'xlsx', query: ReportQuery) {
+  async export(kind: ReportKind, format: 'csv' | 'xlsx', query: ReportQuery) {
     let rows: unknown[][];
     if (kind === 'payments') rows = await this.paymentRows(query);
-    else if (kind === 'tasks') {
-      const createdAt = this.dateRange(query);
-      const tasks = await this.db.task.findMany({
-        where: { ...(createdAt ? { createdAt } : {}) },
-        include: { assignee: { select: { name: true } }, reviews: { select: { decision: true } } },
-        orderBy: { createdAt: 'asc' },
-      });
-      rows = [['Task', 'Assignee', 'Status', 'Deadline', 'Submitted', 'Late', 'KPI decision'], ...tasks.map((task) => [
-        task.title, task.assignee.name, task.status, task.deadline.toISOString(),
-        task.submissionTimestamp?.toISOString() ?? '', task.lateFlag === null ? '' : task.lateFlag ? 'Late' : 'On time',
-        task.reviews[0]?.decision ?? '',
-      ])];
+    else if (kind === 'collections') {
+      const report = await collections(this.db, query, true);
+      const columns = ['clients', 'scheduledClients', 'clientsWithoutSchedule', 'agreedAmount', 'verifiedAmount',
+        'pendingAmount', 'remainingBalance', 'overpaidAmount', 'collectedInPeriod', 'verifiedPaymentsInPeriod',
+        'pendingInPeriod', 'pendingPaymentsInPeriod', 'adjustmentAmount', 'adjustmentsInPeriod'] as const;
+      rows = [
+        ['Period from', query.dateFrom ?? 'All earlier dates', 'Period to', query.dateTo ?? 'All later dates'],
+        ['Balances use current issued schedules and verified credits including Finance adjustments, grouped by current client batch. Period credit uses the original payment date, not adjustment creation date.'],
+        ['Overpaid amounts are unapplied verified funds, including clients without schedules. They are not a refund authorization.'],
+        ['Batch', 'Status', 'Current clients', 'With issued schedule', 'Without issued schedule', 'Agreed / issued total (PHP)',
+          'Verified overall (PHP)', 'Pending overall (PHP)', 'Remaining overall (PHP)', 'Overpaid overall (PHP)',
+          'Verified in period (PHP)', 'Verified payments in period', 'Pending in period (PHP)', 'Pending payments in period', 'Finance adjustments overall (PHP)', 'Finance adjustments on period payments (PHP)'],
+        ...report.items.map((item) => [item.code, item.status, ...columns.map((field) => item[field])]),
+        ['All scoped batches', '', ...columns.map((field) => report.totals[field])],
+      ];
+    } else if (kind === 'reconciliation') {
+      const report = await reconciliation(this.db, query, true);
+      rows = [
+        ['Period from', query.dateFrom ?? 'All earlier dates', 'Period to', query.dateTo ?? 'All later dates'],
+        ['Internal payment and verification-audit comparison. External bank statements have not been matched. Dates use recorded payment dates; batch uses the recorded payment batch.'],
+        ['Review flags may overlap and do not authorize an adjustment, refund or verification. Possible duplicate references compare all ledger records.'],
+        ['Batch', 'Method', ...reconciliationColumns.map(([, label]) => label)],
+        ...report.items.map((item) => [item.batchCode, item.method, ...reconciliationColumns.map(([field]) => item[field])]),
+        ['All scoped records', '', ...reconciliationColumns.map(([field]) => report.totals[field])],
+      ];
+    } else if (kind === 'tasks') {
+      const report = await this.taskReport(query);
+      rows = [['Status', 'Tasks'], ...Object.entries(report.byStatus).map(([status, total]) => [status, total]),
+        ['Submitted', report.submitted], ['Late', report.late], ['Reviewed', report.reviewed]];
     } else {
-      const createdAt = this.dateRange(query);
-      const cases = await this.db.supportCase.findMany({
-        where: { ...(createdAt ? { createdAt } : {}) }, include: { client: { select: { name: true } } }, orderBy: { createdAt: 'asc' },
-      });
-      rows = [['Client', 'Category', 'Status', 'Received', 'Closed', 'Turnaround hours'], ...cases.map((item) => [
-        item.client.name, item.category, item.status, item.createdAt.toISOString(), item.closedAt?.toISOString() ?? '',
-        item.closedAt ? ((item.closedAt.getTime() - item.createdAt.getTime()) / 3_600_000).toFixed(1) : '',
-      ])];
+      const report = await this.supportReport(query);
+      rows = [['Category', 'Cases', 'Closed', 'Average turnaround hours'], ...report.categories.map(item => [
+        item.category, item.total, item.closed, item.averageTurnaroundHours ?? '',
+      ]), [], ['Source', 'Cases'], ...report.sources.map((item) => [item.source, item.total])];
     }
     return format === 'xlsx' ? workbook(rows, kind) : rows.map((row) => row.map(csv).join(',')).join('\r\n');
   }
 
   async createSnapshot(user: User, input: SnapshotInput) {
-    const query = { dateFrom: input.periodStart, dateTo: input.periodEnd } as ReportQuery;
-    const payload = input.kind === 'PAYMENTS' ? await this.dashboard(query)
-      : input.kind === 'TASKS' ? await this.taskReport(query) : await this.supportReport(query);
+    const query: ReportQuery = { dateFrom: input.periodStart, dateTo: input.periodEnd,
+      ...(input.batchId ? { batchId: input.batchId } : {}), ...(input.status ? { status: input.status } : {}) };
     return this.db.$transaction(async (tx) => {
-      const snapshot = await tx.reportSnapshot.create({ data: {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+      const current = await tx.user.findUnique({ where: { id: user.id } });
+      if (!current?.active || !allowed(current, 'REPORT_VIEW')) throw new ForbiddenException('Your report access has changed.');
+      const batch = input.batchId ? await tx.batch.findUnique({ where: { id: input.batchId }, select: { code: true } }) : null;
+      if (input.batchId && !batch) throw new NotFoundException('This batch is no longer available.');
+      const payload = input.kind === 'PAYMENTS' ? {
+        ...await this.paymentReport(query, tx),
+        filters: { ...(input.batchId ? { batchId: input.batchId, batchCode: batch!.code } : {}),
+          ...(input.status ? { status: input.status } : {}) },
+      } : input.kind === 'COLLECTIONS' ? await (async () => {
+        const report = await collections(tx, query, true);
+        return { totals: report.totals, batches: report.items, balanceBasis: 'current', paymentGrouping: 'current_client_batch',
+          filters: input.batchId ? { batchId: input.batchId, batchCode: batch!.code } : {} };
+      })() : input.kind === 'RECONCILIATION' ? await (async () => {
+        const report = await reconciliation(tx, query, true);
+        return { totals: report.totals, groups: report.items, basis: 'current_payment_state', paymentGrouping: 'recorded_payment_batch',
+          externalStatementMatched: false, filters: input.batchId ? { batchId: input.batchId, batchCode: batch!.code } : {} };
+      })() : input.kind === 'TASKS' ? await this.taskReport(query, tx) : await this.supportReport(query, tx);
+      const created = await tx.reportSnapshot.create({ data: {
         kind: input.kind,
         periodStart: new Date(input.periodStart),
         periodEnd: new Date(input.periodEnd),
         payload: JSON.parse(JSON.stringify(payload)) as Prisma.InputJsonValue,
         createdById: user.id,
       } });
+      if (input.analysis) {
+        const submission = await tx.reportAnalysis.create({ data: { snapshotId: created.id, body: input.analysis, submittedById: user.id } });
+        await tx.auditEntry.create({ data: { actorId: user.id, action: 'report_analysis.submitted', entity: 'report_analysis',
+          recordId: submission.id, after: { snapshotId: created.id, body: submission.body } } });
+      }
+      const snapshot = await tx.reportSnapshot.findUniqueOrThrow({ where: { id: created.id }, include: snapshotInclude });
       await tx.auditEntry.create({ data: {
         actorId: user.id, action: 'report_snapshot.created', entity: 'report_snapshot',
         recordId: snapshot.id, after: JSON.parse(JSON.stringify(snapshot)) as Prisma.InputJsonValue,
       } });
       return snapshot;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  }
+
+  async submitAnalysis(user: User, snapshotId: string, body: string) {
+    return this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740030)`;
+      const current = await tx.user.findUnique({ where: { id: user.id } });
+      if (!current?.active || !allowed(current, 'REPORT_VIEW')) throw new ForbiddenException('Your report access has changed.');
+      const snapshot = await tx.reportSnapshot.findUnique({ where: { id: snapshotId }, include: { analysis: { select: { id: true } } } });
+      if (!snapshot) throw new NotFoundException('Saved report not found.');
+      if (snapshot.analysis) throw new ConflictException('This saved report already has submitted analysis. It cannot be replaced.');
+      const submission = await tx.reportAnalysis.create({ data: { snapshotId, body, submittedById: user.id },
+        include: { submittedBy: { select: { id: true, name: true } } } });
+      await tx.auditEntry.create({ data: { actorId: user.id, action: 'report_analysis.submitted', entity: 'report_analysis',
+        recordId: submission.id, after: { snapshotId, body: submission.body } } });
+      return submission;
     });
   }
 
-  async snapshots(page: number) {
+  async snapshots(query: { page: number; kind?: string }) {
+    const where = query.kind ? { kind: query.kind } : {};
     const [items, total] = await this.db.$transaction([
-      this.db.reportSnapshot.findMany({ include: { createdBy: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' }, skip: (page - 1) * 20, take: 20 }),
-      this.db.reportSnapshot.count(),
+      this.db.reportSnapshot.findMany({ where, include: snapshotInclude,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (query.page - 1) * 20, take: 20 }),
+      this.db.reportSnapshot.count({ where }),
     ]);
-    return { items, total, page, pageSize: 20 };
+    return { items, total, page: query.page, pageSize: 20 };
   }
 }

@@ -10,7 +10,7 @@ import { downloadAccountPdf } from "@/lib/account-pdf";
 import DocumentSheetSkeleton from "./DocumentSheetSkeleton";
 import styles from "./financial-document.module.css";
 
-type Statement = { title: string; notice: string; generatedAt: string; balance: ClientBalance; verifiedPayments: Pick<Payment, "id" | "amount" | "paymentDate" | "method" | "referenceNumber">[] };
+type Statement = { title: string; notice: string; generatedAt: string; balance: ClientBalance; verifiedPayments: Pick<Payment, "id" | "amount" | "effectiveAmount" | "adjustments" | "paymentDate" | "method" | "referenceNumber">[] };
 type Confirmation = { title: string; notice: string; generatedAt: string; payment: Payment };
 const money = (value: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(value));
 const day = (value: string) => new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
@@ -51,8 +51,9 @@ export default function FinancialDocumentPage() {
         <dl className={styles.details}><div><dt>Customer</dt><dd>{client.name}</dd></div><div><dt>Batch</dt><dd>{client.batch.code}</dd></div><div><dt>Unit</dt><dd>{client.unitModel || client.batch.model}</dd></div></dl>
         {"balance" in document ? <>
           <h2>Account balance</h2><dl className={styles.totals}><div><dt>Total due</dt><dd>{money(document.balance.totalDue)}</dd></div><div><dt>Finance-verified paid</dt><dd>{money(document.balance.verifiedPaid)}</dd></div><div><dt>Remaining balance</dt><dd>{money(document.balance.remainingBalance)}</dd></div></dl>
-          <h2>Verified payments</h2>{document.verifiedPayments.length ? <table><thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead><tbody>{document.verifiedPayments.map((payment) => <tr key={payment.id}><td>{day(payment.paymentDate)}</td><td>{payment.method}</td><td>{payment.referenceNumber || "—"}</td><td>{money(payment.amount)}</td></tr>)}</tbody></table> : <p>No verified payments yet.</p>}
-        </> : <><h2>Verified payment</h2><dl className={styles.totals}><div><dt>Amount</dt><dd>{money(document.payment.amount)}</dd></div><div><dt>Payment date</dt><dd>{day(document.payment.paymentDate)}</dd></div><div><dt>Method</dt><dd>{document.payment.method}</dd></div><div><dt>Reference</dt><dd>{document.payment.referenceNumber || "—"}</dd></div></dl></>}
+          <h2>Verified payments</h2>{document.verifiedPayments.length ? <table><thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Original</th><th>Current credit</th></tr></thead><tbody>{document.verifiedPayments.map((payment) => <tr key={payment.id}><td>{day(payment.paymentDate)}</td><td>{payment.method}</td><td>{payment.referenceNumber || "—"}</td><td>{money(payment.amount)}</td><td>{money(payment.effectiveAmount ?? payment.amount)}</td></tr>)}</tbody></table> : <p>No verified payments yet.</p>}
+        </> : <><h2>Verified payment</h2><dl className={styles.totals}><div><dt>Original verified amount</dt><dd>{money(document.payment.amount)}</dd></div><div><dt>Current credit</dt><dd>{money(document.payment.effectiveAmount ?? document.payment.amount)}</dd></div><div><dt>Payment date</dt><dd>{day(document.payment.paymentDate)}</dd></div><div><dt>Method</dt><dd>{document.payment.method}</dd></div><div><dt>Reference</dt><dd>{document.payment.referenceNumber || "—"}</dd></div></dl></>}
+        {("payment" in document ? [document.payment] : document.verifiedPayments).filter((payment) => payment.adjustments?.length).map((payment) => <section key={payment.id}><h2>Adjustment history · {day(payment.paymentDate)}</h2><ul>{payment.adjustments?.map((entry) => <li key={entry.id}>Adjustment {entry.sequence}: {money(entry.amount)} · {money(entry.beforeAmount)} → {money(entry.afterAmount)} · {new Date(entry.createdAt).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}</li>)}</ul></section>)}
         <footer><strong>{document.notice}</strong><p>Payments are coordinated externally. This document reflects the records verified by Finance at the time shown above.</p></footer>
       </article>}
   </main>;

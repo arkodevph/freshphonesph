@@ -1,8 +1,8 @@
 "use client";
 
-import { createPortal } from "react-dom";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
-import { TYPESCRIPT_API } from "@/lib/backend";
+import { createPortal } from "react-dom";
+
 import styles from "./customer-portal-tour.module.css";
 
 type TourMode = "desktop" | "tablet" | "mobile";
@@ -92,7 +92,7 @@ export function useCustomerPortalTour({ autoStart, accountId }: { autoStart: boo
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const autoStartedKey = useRef<string | null>(null);
-  const steps = mode === "mobile" ? MOBILE_STEPS : mode === "tablet" ? (TYPESCRIPT_API ? TABLET_STEPS : TABLET_STEPS.filter((step) => step.target !== "notifications")) : (TYPESCRIPT_API ? DESKTOP_STEPS : DESKTOP_STEPS.filter((step) => step.target !== "documents"));
+  const steps = mode === "mobile" ? MOBILE_STEPS : mode === "tablet" ? (TABLET_STEPS) : (DESKTOP_STEPS);
   const step = steps[Math.min(stepIndex, steps.length - 1)];
   const nextStep = steps[stepIndex + 1];
   const storageKey = accountId == null ? null : `${STORAGE_PREFIX}${accountId}`;

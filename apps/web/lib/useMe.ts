@@ -1,33 +1,33 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchMe, type Me } from "./api";
-import { getStoredMe, saveMe } from "./auth";
-import { TYPESCRIPT_API } from "./backend";
-import { clearTokens } from "./auth";
-import { useRouter } from "next/navigation";
+import { clearSessionCache, saveMe } from "./auth";
+import { supportSignInHref } from "./support-entry";
 
-/** Current user's identity + permissions, from cache or a fresh fetch. */
+/** Current user's identity and permissions, checked against the session cookie. */
 export function useMe() {
   const router = useRouter();
-  const [me, setMe] = useState<Me | null>(() => TYPESCRIPT_API ? null : getStoredMe());
+  const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
-    if (me && !TYPESCRIPT_API) return;
     let active = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    const expire = () => { clearTokens(); setMe(null); router.replace("/login"); };
+    const expire = () => { clearSessionCache(); setMe(null); router.replace(supportSignInHref(window.location.pathname, window.location.hash)); };
     window.addEventListener("fp-session-expired", expire);
+    const requireMfa = () => router.replace('/security');
+    window.addEventListener('fp-mfa-required', requireMfa);
     const refresh = () => { clearTimeout(retry); void fetchMe()
       .then((m) => {
         if (!active) return;
         saveMe(m);
         setMe(m);
       })
-      .catch(() => { if (active && TYPESCRIPT_API) retry = setTimeout(refresh, 5000); }); };
+      .catch(() => { if (active) retry = setTimeout(refresh, 5000); }); };
     refresh();
     window.addEventListener("focus", refresh);
-    return () => { active = false; clearTimeout(retry); window.removeEventListener("focus", refresh); window.removeEventListener("fp-session-expired", expire); };
+    return () => { active = false; clearTimeout(retry); window.removeEventListener("focus", refresh); window.removeEventListener("fp-session-expired", expire); window.removeEventListener('fp-mfa-required', requireMfa); };
   }, [router]);
 
   return me;
