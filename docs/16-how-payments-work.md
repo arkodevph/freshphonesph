@@ -90,7 +90,7 @@ A `Payment` row is a **claim about money that moved externally** — not money i
 ### The invariant
 `remaining_balance = total_due − sum(VERIFIED payments)`. Pending/rejected are excluded.
 Balance is **derived** from verified payments (no mutable "paid" field → cannot drift).
-See `payments_app/selectors.py` and `docs/15`.
+See `apps/api-ts/src/finance/` and [15-payments-reporting-architecture.md](15-payments-reporting-architecture.md).
 
 ### Where the gateway would have been
 | Normal e-commerce | This system |

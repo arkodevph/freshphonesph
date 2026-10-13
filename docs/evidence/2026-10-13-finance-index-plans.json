@@ -1,0 +1,188 @@
+{
+  "rows": 100000,
+  "before": {
+    "latest_payments": {
+      "executionMs": 81.854,
+      "sharedHitBlocks": 0,
+      "localHitBlocks": 0,
+      "nodes": [
+        {
+          "type": "Limit",
+          "index": null,
+          "rows": 20
+        },
+        {
+          "type": "Sort",
+          "index": null,
+          "rows": 20
+        },
+        {
+          "type": "Seq Scan",
+          "index": null,
+          "rows": 100000
+        }
+      ]
+    },
+    "customer_verified": {
+      "executionMs": 0.277,
+      "sharedHitBlocks": 0,
+      "localHitBlocks": 152,
+      "nodes": [
+        {
+          "type": "Limit",
+          "index": null,
+          "rows": 20
+        },
+        {
+          "type": "Sort",
+          "index": null,
+          "rows": 20
+        },
+        {
+          "type": "Bitmap Heap Scan",
+          "index": null,
+          "rows": 150
+        },
+        {
+          "type": "Bitmap Index Scan",
+          "index": "probe_client_status",
+          "rows": 150
+        }
+      ]
+    },
+    "batch_period": {
+      "executionMs": 0.3,
+      "sharedHitBlocks": 0,
+      "localHitBlocks": 14,
+      "nodes": [
+        {
+          "type": "Aggregate",
+          "index": null,
+          "rows": 1
+        },
+        {
+          "type": "Bitmap Heap Scan",
+          "index": null,
+          "rows": 8
+        },
+        {
+          "type": "BitmapAnd",
+          "index": null,
+          "rows": 0
+        },
+        {
+          "type": "Bitmap Index Scan",
+          "index": "probe_batch_status",
+          "rows": 991
+        },
+        {
+          "type": "Bitmap Index Scan",
+          "index": "probe_date",
+          "rows": 822
+        }
+      ]
+    },
+    "status_period": {
+      "executionMs": 0.658,
+      "sharedHitBlocks": 0,
+      "localHitBlocks": 302,
+      "nodes": [
+        {
+          "type": "Aggregate",
+          "index": null,
+          "rows": 1
+        },
+        {
+          "type": "Bitmap Heap Scan",
+          "index": null,
+          "rows": 616
+        },
+        {
+          "type": "Bitmap Index Scan",
+          "index": "probe_date",
+          "rows": 822
+        }
+      ]
+    }
+  },
+  "after": {
+    "latest_payments": {
+      "executionMs": 0.033,
+      "sharedHitBlocks": 0,
+      "localHitBlocks": 17,
+      "nodes": [
+        {
+          "type": "Limit",
+          "index": null,
+          "rows": 20
+        },
+        {
+          "type": "Index Scan",
+          "index": "probe_created_id",
+          "rows": 20
+        }
+      ]
+    },
+    "customer_verified": {
+      "executionMs": 0.07,
+      "sharedHitBlocks": 0,
+      "localHitBlocks": 23,
+      "nodes": [
+        {
+          "type": "Limit",
+          "index": null,
+          "rows": 20
+        },
+        {
+          "type": "Index Scan",
+          "index": "probe_client_status_created_id",
+          "rows": 20
+        }
+      ]
+    },
+    "batch_period": {
+      "executionMs": 0.051,
+      "sharedHitBlocks": 0,
+      "localHitBlocks": 11,
+      "nodes": [
+        {
+          "type": "Aggregate",
+          "index": null,
+          "rows": 1
+        },
+        {
+          "type": "Bitmap Heap Scan",
+          "index": null,
+          "rows": 8
+        },
+        {
+          "type": "Bitmap Index Scan",
+          "index": "probe_batch_date_id",
+          "rows": 8
+        }
+      ]
+    },
+    "status_period": {
+      "executionMs": 0.606,
+      "sharedHitBlocks": 0,
+      "localHitBlocks": 298,
+      "nodes": [
+        {
+          "type": "Aggregate",
+          "index": null,
+          "rows": 1
+        },
+        {
+          "type": "Bitmap Heap Scan",
+          "index": null,
+          "rows": 616
+        },
+        {
+          "type": "Bitmap Index Scan",
+          "index": "probe_status_date_id",
+          "rows": 616
+        }
+      ]
+    }
+  }
+}

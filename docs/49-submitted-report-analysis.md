@@ -1,0 +1,11 @@
+# Submitted analysis for saved reporting periods
+
+Fresh Phones PH scope §9 calls for prior reporting periods **and submitted analysis** to be retained. Saved period reports already captured figures and filters. This increment lets a report viewer submit a human-written interpretation alongside those captured figures.
+
+On `/system/reports`, a report viewer can write up to 4,000 characters while saving a bounded period, or save figures first and submit analysis later from that saved report's history entry. Analysis must contain at least 20 non-whitespace characters. The entry shows its author and submission time next to the original saved figures and filters. Existing numeric-only snapshots stay readable and can receive analysis without recalculating their figures. The UI reminds writers to avoid personal identifiers and private evidence because every role with `REPORT_VIEW` can read the report history.
+
+One analysis submission is allowed per saved report. It is a separate `ReportAnalysis` row with a unique snapshot reference. The API and PostgreSQL reject replacement or deletion after submission; a later interpretation requires a new saved period report. Submitting analysis never changes a saved payload, a live payment, a balance, or a Finance verification. The submission writes an audit entry in the same transaction. The same `REPORT_VIEW` roles that can save period reports may submit and read analysis, per the user decision on 2026-10-08.
+
+API: `POST /api/reports/snapshots` accepts optional `analysis`, and `POST /api/reports/snapshots/:id/analysis` attaches one to an existing snapshot. `GET /api/reports/snapshots` includes submitted analysis, author and time. Both writes validate strict request bodies and recheck current report access within the transaction. The migration is `20261008060000_report_analysis_submission`.
+
+Engineering checks use a dedicated PostgreSQL test database and cover role and anonymous denial, initial and later submission, validation, simultaneous submissions, immutable history, audit evidence and unchanged figures after a live payment edit. Production text, retention decisions and named report UAT remain with Fresh Phones PH. This is manual analysis; it does not use the deferred AI assistant.

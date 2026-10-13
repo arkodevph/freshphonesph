@@ -1,4 +1,9 @@
-import { DeviceMobile, CalendarCheck, Wallet, Confetti } from "@phosphor-icons/react/dist/ssr";
+import {
+  DeviceMobile,
+  CalendarCheck,
+  Wallet,
+  Confetti,
+} from "@phosphor-icons/react/dist/ssr";
 import SectionHeading from "./SectionHeading";
 import Reveal from "./Reveal";
 
@@ -44,26 +49,28 @@ export default function HowItWorks() {
           aria-hidden
         />
         <ol className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-          {steps.map((s, i) => (
-            <Reveal as="li" key={s.title} delay={i * 90} className="relative">
-              <div className="flex items-center gap-4 lg:flex-col lg:items-start lg:gap-0">
-                <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl chrome text-blue-ink lg:mb-5">
-                  <s.icon weight="duotone" className="h-7 w-7" />
-                  <span className="font-display absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-blue text-xs font-700 text-white shadow">
-                    {i + 1}
+          {steps.map((s, i) => {
+            return (
+              <Reveal as="li" key={s.title} delay={i * 90} className="relative">
+                <div className="flex items-center gap-4 lg:flex-col lg:items-start lg:gap-0">
+                  <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl chrome text-blue-ink lg:mb-5">
+                    <s.icon weight="duotone" className="h-7 w-7" />
+                    <span className="font-display absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-blue text-xs font-700 text-white shadow">
+                      {i + 1}
+                    </span>
                   </span>
-                </span>
-                <div>
-                  <h3 className="font-display text-xl font-700 text-blue-ink">
-                    {s.title}
-                  </h3>
-                  <p className="mt-1.5 text-sm font-500 leading-relaxed text-ink-soft">
-                    {s.body}
-                  </p>
+                  <div>
+                    <h3 className="font-display text-xl font-700 text-blue-ink">
+                      {s.title}
+                    </h3>
+                    <p className="mt-1.5 text-sm font-500 leading-relaxed text-ink-soft">
+                      {s.body}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </Reveal>
-          ))}
+              </Reveal>
+            );
+          })}
         </ol>
       </div>
     </section>

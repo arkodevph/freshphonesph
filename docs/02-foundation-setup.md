@@ -1,99 +1,55 @@
 # 02 — Foundation & Setup
 
-How the repository establishes the TypeScript target foundation. This is the
-**Month 2 - Core Foundation** groundwork (§17). A Django baseline already exists; the steps
-below create its NestJS replacement without removing verified behavior early.
+The repository contains a Next.js web app in `apps/web/`, a NestJS API in `apps/api-ts/`,
+and shared Zod contracts in `packages/contracts/`. Prisma owns the schema and migrations.
 
-## Target monorepo layout
+## Local setup
 
-The Next.js application remains in `apps/web`. The TypeScript backend is built beside the
-current Django service under `apps/api-ts` until cutover; shared contracts may live in
-`packages/` when they remove proven duplication.
-
-```
-freshphonesph/
-├─ apps/
-│  ├─ web/                     # Next.js — public site (§4) + portal (§5) + staff dashboard  → client VPS
-│  │  ├─ app/
-│  │  │  ├─ (public)/          # landing (existing) + catalog, how-it-works, faqs,
-│  │  │  │                     #   agent-verify, careers, requirements, login
-│  │  │  ├─ (portal)/          # authenticated customer portal
-│  │  │  └─ (staff)/           # authenticated employee dashboard (role-gated)
-│  │  ├─ components/           # existing landing components + shared UI
-│  │  └─ lib/                  # api client, auth session, feature flags
-│  ├─ api/                     # Current Django behavioral baseline during migration
-│  └─ api-ts/                  # NestJS TypeScript target API                               → Railway
-│     ├─ src/                  # Domain modules, guards, services, controllers
-│     └─ prisma/               # Target schema, migrations, seed data
-├─ packages/                   # (JS-side shared packages, optional)
-│  ├─ ui/                      # shared React components (Radix/shadcn)
-│  └─ config/                  # eslint/tsconfig/tailwind presets
-├─ docs/                       # this planning set
-├─ docker-compose.yml          # local infra: Postgres + MinIO + MailHog (mirrors ARKO)
-├─ turbo.json                  # JS build orchestration
-├─ pnpm-workspace.yaml         # apps/*, packages/*
-└─ package.json                # workspace root
+```bash
+pnpm install
+cp apps/api-ts/.env.example apps/api-ts/.env
 ```
 
-> Prisma migrations are the target schema source of truth. Django migrations remain historical
-> migration input until TypeScript cutover. See [09-tech-stack.md](09-tech-stack.md).
+Configure the local PostgreSQL connection, a generated `BETTER_AUTH_SECRET`, `WEB_ORIGIN`,
+private storage and Redis settings. Set `NEXT_PUBLIC_API_URL=http://localhost:4100` in
+`apps/web/.env.local`. The frontend always uses the NestJS API.
 
-> Migrating the current app into `apps/web` is a mechanical move (files + import path
-> `@/…` stays working via tsconfig paths). The landing page keeps rendering throughout.
-
-## Foundation build order (Month 2)
-
-Each step has a verification check (per CLAUDE.md goal-driven execution).
-
-1. **Workspace init** → verify: `web` (Next.js) builds and the landing page still renders at
-   `/`; `api-ts` health check boots under NestJS.
-2. **NestJS + Prisma + Supabase PostgreSQL** → verify: Prisma migrations apply to a clean
-   PostgreSQL database and the API health check reads it.
-3. **JWT authentication** → verify: token obtain/refresh and password reset work; a protected
-   endpoint accepts a valid token; email reaches MailHog locally.
-4. **Role model + NestJS permission guards** (see [04-roles-access.md](04-roles-access.md)) → verify:
-   the API rejects an under-privileged role on a protected endpoint (not just hidden in UI).
-5. **Optional database policies on sensitive tables** → verify: policy blocks unauthorized
-   direct reads. Primary authorization stays in NestJS guards.
-6. **Employee & customer account provisioning** → verify: an owner/HR can create an employee
-   account with a role; a customer account maps to a client record.
-7. **Batch & client records CRUD** (the core source of truth, §6) → verify: create batch,
-   attach client, edit history logged to audit table.
-8. **Audit logging** (NestJS service/interceptors where appropriate) → verify: sensitive changes (role, payment
-   verification, record edits) write an audit entry with actor/action/before-after (§16).
-
-Completing 1–8 = **Core Foundation acceptance** milestone (§20).
-
-## Environment variables
-
-Copy `apps/api-ts/.env.example` to `apps/api-ts/.env` for local development.
-
-Server-only (never shipped to the browser):
-
-```
-# NestJS API (Railway)
-DATABASE_URL=                 # Supabase Postgres connection string
-JWT_SECRET=                   # at least 32 random characters
-WEB_ORIGIN=                   # exact VPS-hosted web origin
-RESEND_API_KEY=
-EMAIL_FROM=
+```bash
+docker compose up -d
+pnpm db:generate
+pnpm db:migrate
 ```
 
-The existing web app continues to use the Django API until a NestJS vertical slice passes its
-parity and reconciliation gate. This prevents dual writes and preserves the current interface
-during migration.
+Run these commands in separate terminals:
 
-For the opt-in records and customer-schedule preview using the existing interface, see
-[19-records-typescript-preview.md](19-records-typescript-preview.md).
+```bash
+pnpm --filter @fresh/api-ts dev
+pnpm --filter @fresh/api-ts worker:dev
+pnpm --filter @fresh/web dev
+```
 
-## Account ownership (§20)
+Alternatively, `./freshphones.sh` starts local infrastructure and all three processes.
+The web app is at `http://localhost:3000`; the API defaults to `http://localhost:4100`.
+Verify API connectivity with `GET /api/health` and Redis/worker readiness with
+`GET /api/health/redis` when Redis is configured.
 
-Production **domain, hosting, database, email, and other third-party accounts should be owned
-and paid by Fresh Phones PH**, with the developer given the access needed to build and
-maintain. Provisioning these under client ownership is a Month-1 prerequisite.
+## Development accounts
 
-## What is intentionally deferred
+Provision regular employee and linked customer accounts through `POST /api/accounts`.
 
-- Redis (add only if justified — §18.6).
-- Payment gateway / checkout (out of scope — §19).
-- Native mobile apps (V1 is a mobile-**responsive** web system — §19).
+## Verification
+
+```bash
+pnpm typecheck
+pnpm test:api-ts
+pnpm --filter @fresh/web test
+```
+
+Integration tests require a separate real PostgreSQL test database; see the test scripts in
+`apps/api-ts/package.json`. Receipt OCR uses Python and Tesseract independently of the API framework.
+
+## Account ownership
+
+Fresh Phones PH owns production domain, hosting, database, email and third-party accounts.
+Production provisioning, approved content and business acceptance remain tracked in
+[BUILD_STATUS.md](BUILD_STATUS.md) and [20-v6-architecture-decision.md](20-v6-architecture-decision.md).

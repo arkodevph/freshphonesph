@@ -40,8 +40,8 @@ Bacurin (M4 verified payments)  ──► Somontina (M5 portal shows verified hi
 Dela Rosa (M6 tasks)            ──► Bacurin (M7 reporting reads task/KPI metrics)
 ```
 
-**Implication for Justine Cane (you):** M4 depends on Tambong's `auth_app` (roles/permissions,
-esp. the Finance role) and `batches_app`/`clients_app` (a payment attaches to a client + batch).
+**Implication for Justine Cane (you):** M4 depends on Tambong's identity module (`apps/api-ts/src/auth/`) (roles/permissions,
+esp. the Finance role) and the records module (`apps/api-ts/src/records/`) (a payment attaches to a client + batch).
 Coordinate the **client/batch schema and the role names** with Tambong early so M4 isn't
 blocked. M7 depends on M4 being done first (and on M6 for task/KPI metrics).
 
