@@ -72,9 +72,11 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
     }
+
     for (const stop of this.streams) {
       stop();
     }
+
     this.redis?.disconnect();
   }
   private digest(value: string) {
@@ -129,6 +131,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
         this.redisRetryAt = Date.now() + 2000;
       }
     }
+
     if (retryMs === undefined) {
       try {
         const rows = await this.db.$transaction(
@@ -175,6 +178,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
         );
       }
     }
+
     if (retryMs > 0) {
       const seconds = Math.max(1, Math.ceil(retryMs / 1000));
 
@@ -214,6 +218,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
           ) {
             return false;
           }
+
           await tx.$executeRaw`INSERT INTO "AbuseStreamLease" ("id", "accountKey", "addressKey", "expiresAt")
           VALUES (${id}::uuid, ${accountKey}, ${addressKey}, statement_timestamp() + interval '90 seconds')`;
 
@@ -228,6 +233,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
         "Live updates are temporarily unavailable. Try again shortly.",
       );
     }
+
     if (!admitted) {
       response.setHeader("Retry-After", "30");
 
@@ -236,6 +242,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
         429,
       );
     }
+
     let stopped = false,
       renewing = false;
 
@@ -245,6 +252,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
       if (stopped) {
         return;
       }
+
       stopped = true;
 
       clearInterval(timer);
@@ -260,6 +268,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
       if (!response.writableEnded) {
         response.end();
       }
+
       void this.db.abuseStreamLease
         .deleteMany({ where: { id } })
         .catch(() => {});
@@ -269,6 +278,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
       if (renewing || stopped) {
         return;
       }
+
       renewing = true;
 
       try {
@@ -312,6 +322,7 @@ export class AbuseService implements OnModuleInit, OnModuleDestroy {
     if (this.cleaning) {
       return;
     }
+
     this.cleaning = true;
 
     try {

@@ -90,6 +90,7 @@ export function snapshotInput(
       error: "Choose both dates before saving a period report.",
     };
   }
+
   const result = reportSnapshotSchema.safeParse({
     kind: kind.toUpperCase(),
     periodStart: filters.dateFrom,

@@ -39,6 +39,7 @@ export class PublicAbuseGuard implements CanActivate {
         context.switchToHttp().getResponse<Response>(),
       );
     }
+
     return true;
   }
 }
@@ -55,6 +56,7 @@ export class AccountAbuseGuard implements CanActivate {
     if (!request.user) {
       return true;
     }
+
     const response = context.switchToHttp().getResponse<Response>(),
       address = addressGroup(request.ip);
 
@@ -87,6 +89,7 @@ export class AccountAbuseGuard implements CanActivate {
         await this.abuse.openStream(request.user.id, address, response);
       }
     }
+
     return true;
   }
 }

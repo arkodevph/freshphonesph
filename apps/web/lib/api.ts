@@ -64,9 +64,11 @@ export const getCatalogItems = (query: CatalogQuery) => {
   if (query.visibility) {
     params.set("visibility", query.visibility);
   }
+
   if (query.availability) {
     params.set("availability", query.availability);
   }
+
   return tsRequest<Page<CatalogItem>>(`/catalog/items?${params}`);
 };
 
@@ -118,9 +120,11 @@ export async function getPublicCatalog(
   if (query.q) {
     params.set("q", query.q);
   }
+
   if (query.availability) {
     params.set("availability", query.availability);
   }
+
   const response = await fetch(`${API_URL}/api/catalog?${params}`, {
     signal,
     cache: "no-store",
@@ -130,8 +134,10 @@ export async function getPublicCatalog(
   if (!response.ok) {
     throw new Error("We couldn’t load the current catalog.");
   }
+
   return response.json();
 }
+
 export type {
   Agent,
   AgentInput,
@@ -193,9 +199,11 @@ export const getStaffEmailDeliveries = (query: {
   if (query.status) {
     params.set("status", query.status);
   }
+
   if (query.kind) {
     params.set("kind", query.kind);
   }
+
   return tsRequest<Page<StaffEmailDelivery>>(
     `/staff-notification-settings/deliveries?${params}`,
   );
@@ -333,6 +341,7 @@ export function listPayments(params: Record<string, string> = {}) {
     if (normalized.get("status")) {
       normalized.set("status", normalized.get("status")!.toUpperCase());
     }
+
     return tsRequest<Page<TsPayment>>(`/payments?${normalized}`).then(
       (page) => {
         return toPage(page, toPayment);
@@ -419,6 +428,7 @@ export function findDuplicatePayments(
   if (excludeId) {
     query.set("excludeId", String(excludeId));
   }
+
   return tsRequest<PaymentDuplicateMatch[]>(`/payments/duplicates?${query}`);
 }
 
@@ -485,6 +495,7 @@ export function getDashboard() {
     };
   });
 }
+
 export type RecordOverview = {
   activeBatches: number | null;
   clients: number | null;
@@ -708,6 +719,7 @@ export async function listBatchChoices(): Promise<Batch[]> {
     if (!result.next) {
       return batches;
     }
+
     page++;
   }
 }
@@ -739,6 +751,7 @@ export function createBatch(body: {
       new Error("Choose a cadence and 1–600 installments."),
     );
   }
+
   endDate.setUTCDate(endDate.getUTCDate() + days * body.num_installments);
 
   return tsRequest<TsBatch>("/batches", {
@@ -818,6 +831,7 @@ export function updateClientReleaseStatus(
     })
     .then(toClient);
 }
+
 export type ReleaseUpdate = {
   id: string;
   status: string;
@@ -889,6 +903,7 @@ export async function getPortalRecords(paymentPage = 1) {
   if (user.role !== "CUSTOMER" || !user.clientId) {
     throw new Error("A customer account is required.");
   }
+
   const [client, schedule, balance, payments] = await Promise.all([
     tsRequest<TsClient>(`/clients/${user.clientId}`),
     tsRequest<ClientSchedule>(`/clients/${user.clientId}/schedule`).catch(
@@ -896,6 +911,7 @@ export async function getPortalRecords(paymentPage = 1) {
         if (error instanceof ApiError && error.status === 409) {
           return null;
         }
+
         throw error;
       },
     ),
@@ -974,6 +990,7 @@ export type ClientRequirement = {
 export function listRequirementTypes() {
   return tsRequest<RequirementType[]>("/requirement-types");
 }
+
 export function createRequirementType(
   body: Omit<RequirementType, "id" | "version">,
 ) {
@@ -982,6 +999,7 @@ export function createRequirementType(
     body: JSON.stringify(body),
   });
 }
+
 export function updateRequirementType(
   id: string,
   body: Omit<RequirementType, "id" | "version">,
@@ -992,9 +1010,11 @@ export function updateRequirementType(
     body: JSON.stringify({ record: body, version }),
   });
 }
+
 export function listClientRequirements(clientId: RecordId) {
   return tsRequest<ClientRequirement[]>(`/clients/${clientId}/requirements`);
 }
+
 export function uploadClientDocument(
   clientId: RecordId,
   typeId: string,
@@ -1009,6 +1029,7 @@ export function uploadClientDocument(
     body,
   );
 }
+
 export function reviewClientRequirement(
   id: string,
   body: {
@@ -1023,6 +1044,7 @@ export function reviewClientRequirement(
     body: JSON.stringify({ ...body, internalNote: body.internalNote ?? "" }),
   });
 }
+
 export function getDocumentUrl(id: string) {
   return `${API_URL}/api/documents/${id}/content`;
 }
@@ -1042,11 +1064,13 @@ export type NotificationPage = Page<NotificationRecord> & { unread: number };
 export function listNotifications(unreadOnly = false) {
   return tsRequest<NotificationPage>(`/notifications?unreadOnly=${unreadOnly}`);
 }
+
 export function readNotification(id: string) {
   return tsRequest<NotificationRecord>(`/notifications/${id}/read`, {
     method: "PATCH",
   });
 }
+
 export function readAllNotifications() {
   return tsRequest<{ updated: number }>("/notifications/read-all", {
     method: "POST",
@@ -1179,6 +1203,7 @@ export function createPortalSupport(body: {
     body: JSON.stringify(body),
   });
 }
+
 export const getSupportCaseDetail = (id: RecordId, staff = false) => {
   return tsRequest<SupportCaseDetail>(
     staff ? `/support/cases/${id}` : `/portal/support/${id}`,
@@ -1270,6 +1295,7 @@ export function uploadCustomerDocument(
     body,
   );
 }
+
 export const reviewCustomerDocument = (
   id: string,
   status: "APPROVED" | "NEEDS_CLARIFICATION",
@@ -1371,6 +1397,7 @@ export function listTasks(params: Record<string, string> = {}) {
     if (normalized.get("status")) {
       normalized.set("status", normalized.get("status")!.toUpperCase());
     }
+
     return tsRequest<Page<TsTask>>(`/work/tasks?${normalized}`).then((page) => {
       return toPage(page, toTask);
     });
@@ -1580,6 +1607,7 @@ export function getCareers() {
     });
   });
 }
+
 export function applyToJob(
   body: {
     job: RecordId;
@@ -1609,11 +1637,14 @@ export function applyToJob(
 
     form.append("privacyNoticeAcknowledged", "true");
   }
+
   if (attachment) {
     form.append("attachment", attachment);
   }
+
   return tsUpload<{ detail: string }>("/careers/apply", form);
 }
+
 export function verifyAgent(q: string) {
   return tsRequest<AgentVerifyResult>(
     `/agents/verify?q=${encodeURIComponent(q)}`,
@@ -1629,12 +1660,14 @@ export function listJobs(params: Record<string, string> | number = {}) {
   if (normalized.get("status")) {
     normalized.set("status", normalized.get("status")!.toUpperCase());
   }
+
   const query = normalized.size ? `?${normalized}` : "";
 
   return tsRequest<Page<TsJob>>(`/recruitment/jobs${query}`).then((page) => {
     return toPage(page, toJob);
   });
 }
+
 export const getRecruitmentSummary = () => {
   return tsRequest<import("@freshphones/contracts").RecruitmentSummary>(
     "/recruitment/summary",
@@ -1663,12 +1696,14 @@ export function createJob(body: Partial<JobOpening> & { title: string }) {
     }),
   }).then(toJob);
 }
+
 export function updateJob(id: RecordId, body: Partial<JobOpening>) {
   if (!body.version) {
     return Promise.reject(
       new Error("Refresh this job opening before updating it."),
     );
   }
+
   return tsRequest<TsJob>(`/recruitment/jobs/${id}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -1683,6 +1718,7 @@ export function updateJob(id: RecordId, body: Partial<JobOpening>) {
     }),
   }).then(toJob);
 }
+
 export function listApplicants(params: Record<string, string> = {}) {
   const qs = new URLSearchParams(params).toString();
 
@@ -1692,6 +1728,7 @@ export function listApplicants(params: Record<string, string> = {}) {
     if (normalized.get("status")) {
       normalized.set("status", normalized.get("status")!.toUpperCase());
     }
+
     return tsRequest<Page<TsApplicant>>(
       `/recruitment/applicants?${normalized}`,
     ).then((page) => {
@@ -1699,6 +1736,7 @@ export function listApplicants(params: Record<string, string> = {}) {
     });
   }
 }
+
 export function updateApplicant(
   id: RecordId,
   body: { status?: string; reviewer_notes?: string; version?: number },
@@ -1708,6 +1746,7 @@ export function updateApplicant(
       new Error("Refresh this applicant before updating it."),
     );
   }
+
   return tsRequest<TsApplicant>(`/recruitment/applicants/${id}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -1719,6 +1758,7 @@ export function updateApplicant(
     }),
   }).then(toApplicant);
 }
+
 export function listAgents() {
   return getAgentDirectory().then((page) => {
     return toPage(page, (agent) => {
@@ -1732,6 +1772,7 @@ export function listAgents() {
     });
   });
 }
+
 export function createAgent(body: {
   full_name: string;
   agent_code: string;
@@ -1838,14 +1879,17 @@ export function listEmployees(params: Record<string, string> = {}) {
     if (role) {
       qs.set("role", formToApiRole[role] ?? role.toUpperCase());
     }
+
     if (status) {
       qs.set("status", status.toUpperCase());
     }
+
     return tsRequest<Page<TsAccount>>(`/accounts?${qs}`).then((page) => {
       return toPage(page, toEmployee);
     });
   }
 }
+
 export function getEmployee(id: RecordId) {
   return tsRequest<TsAccount>(`/accounts/${id}`).then(toEmployee);
 }
@@ -1882,6 +1926,7 @@ export function updateEmployee(
       new Error("Refresh this account before updating it."),
     );
   }
+
   return tsRequest<TsAccount>(`/accounts/${id}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -1897,6 +1942,7 @@ export function updateEmployee(
     }),
   }).then(toEmployee);
 }
+
 export function getEmployeeHrAccessHistory(id: RecordId, page = 1) {
   return tsRequest<Page<import("@freshphones/contracts").HrAccessDecision>>(
     `/accounts/${id}/hr-access-history?page=${page}`,
@@ -1913,17 +1959,20 @@ export async function downloadPaymentsExport(
   if (normalized.get("status")) {
     normalized.set("status", normalized.get("status")!.toUpperCase());
   }
+
   return downloadReportExport("payments", fmt, Object.fromEntries(normalized));
 }
 
 export function getTaskReport(params: Record<string, string> = {}) {
   return tsRequest<TaskReport>(`/reports/tasks?${new URLSearchParams(params)}`);
 }
+
 export function getSupportReport(params: Record<string, string> = {}) {
   return tsRequest<SupportReport>(
     `/reports/support?${new URLSearchParams(params)}`,
   );
 }
+
 export const getPaymentReport = (params: Record<string, string> = {}) => {
   return tsRequest<PaymentReport>(
     `/reports/payments?${new URLSearchParams(params)}`,
@@ -2008,6 +2057,7 @@ export async function downloadReportExport(
     }, 1000);
   }
 }
+
 export const downloadOperationsExport = (
   kind: "tasks" | "support",
   format: "csv" | "xlsx",

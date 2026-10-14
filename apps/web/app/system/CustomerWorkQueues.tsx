@@ -43,9 +43,11 @@ function waitingFor(date: string) {
   if (hours < 1) {
     return "Less than 1 hour";
   }
+
   if (hours < 24) {
     return `${hours} hour${hours === 1 ? "" : "s"}`;
   }
+
   const days = Math.floor(hours / 24);
 
   return `${days} day${days === 1 ? "" : "s"}`;
@@ -76,6 +78,7 @@ function WorkSection({
 
           return;
         }
+
         setData(result);
 
         setError(null);
@@ -225,6 +228,7 @@ export default function CustomerWorkQueues({
   if (!me) {
     return null;
   }
+
   const kinds: CustomerWorkKind[] = [
     ...(can(me, "SUPPORT_MANAGE") ? ["support" as const] : []),
     ...(["owner", "records"].includes(me.role ?? "")
@@ -240,6 +244,7 @@ export default function CustomerWorkQueues({
       </p>
     );
   }
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {kinds.map((kind) => {

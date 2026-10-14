@@ -43,6 +43,7 @@ export class StaffEmailController {
     if (!staffEmailKinds.includes(kind as StaffEmailKind)) {
       throw new BadRequestException("Unknown staff email template.");
     }
+
     return this.emails.updateTemplate(user, kind as StaffEmailKind, input);
   }
   @Patch("timing") timing(

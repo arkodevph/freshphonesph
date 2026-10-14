@@ -70,6 +70,7 @@ export class SupportService {
     if (user.role !== "CUSTOMER" || !user.clientId) {
       throw new ForbiddenException("A linked customer account is required.");
     }
+
     return user.clientId;
   }
 
@@ -92,6 +93,7 @@ export class SupportService {
     if (!clientId && !allowed(user, "SUPPORT_MANAGE")) {
       throw new ForbiddenException("Support access required.");
     }
+
     const row = await this.db.supportCase.findFirst({
       where: { id, ...(clientId ? { clientId } : {}) },
       include: {
@@ -107,6 +109,7 @@ export class SupportService {
     if (!row) {
       throw new NotFoundException("Case not found.");
     }
+
     return {
       ...view(row),
       last_message: row.messages.length
@@ -137,6 +140,7 @@ export class SupportService {
     if (!clientId && !allowed(user, "SUPPORT_MANAGE")) {
       throw new ForbiddenException("Support access required.");
     }
+
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -150,6 +154,7 @@ export class SupportService {
       ) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       const before = await tx.supportCase.findFirst({
         where: { id, ...(clientId ? { clientId } : {}) },
         include,
@@ -158,11 +163,13 @@ export class SupportService {
       if (!before) {
         throw new NotFoundException("Case not found.");
       }
+
       if (before.status === "CLOSED" || before.status === "RESOLVED") {
         throw new ConflictException(
           "This case is finished. Create a follow-up case.",
         );
       }
+
       const status = clientId
         ? before.status === "WAITING_FOR_CLIENT"
           ? "IN_PROGRESS"
@@ -212,6 +219,7 @@ export class SupportService {
           data: { handledAt: new Date() },
         });
       }
+
       if (!clientId) {
         await notifyCustomer(
           tx,
@@ -224,6 +232,7 @@ export class SupportService {
           `/portal/support#case-${id}`,
         );
       }
+
       return {
         id: message.id,
         body: message.body,
@@ -249,6 +258,7 @@ export class SupportService {
       ) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       const row = await tx.supportCase.create({
         data: { clientId, ...input, source: "CUSTOMER_PORTAL" },
         include,
@@ -284,6 +294,7 @@ export class SupportService {
     if (!allowed(user, "SUPPORT_MANAGE")) {
       throw new ForbiddenException("Support access required.");
     }
+
     if (
       status &&
       ![
@@ -296,9 +307,11 @@ export class SupportService {
     ) {
       throw new BadRequestException("Invalid case status.");
     }
+
     if (source && !supportSources.includes(source as SupportSource)) {
       throw new BadRequestException("Invalid case source.");
     }
+
     const where: Prisma.SupportCaseWhereInput = {
       ...(status ? { status: status as SupportStatus } : {}),
       ...(caseId ? { id: caseId } : {}),
@@ -328,6 +341,7 @@ export class SupportService {
     if (!allowed(user, "SUPPORT_MANAGE")) {
       throw new ForbiddenException("Support access required.");
     }
+
     const q = query.trim();
 
     if (q.length < 2 || q.length > 100) {
@@ -335,6 +349,7 @@ export class SupportService {
         "Search for a customer using 2–100 characters.",
       );
     }
+
     const rows = await this.db.client.findMany({
       where: { name: { contains: q, mode: "insensitive" } },
       select: { id: true, name: true, batch: { select: { code: true } } },
@@ -360,6 +375,7 @@ export class SupportService {
     if (!allowed(user, "SUPPORT_MANAGE")) {
       throw new ForbiddenException("Support access required.");
     }
+
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -368,6 +384,7 @@ export class SupportService {
       if (!current?.active || !allowed(current, "SUPPORT_MANAGE")) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       const before = await tx.supportCase.findUnique({
         where: { id },
         include,
@@ -376,11 +393,13 @@ export class SupportService {
       if (!before) {
         throw new NotFoundException("Case not found.");
       }
+
       if (before.version !== input.version) {
         throw new ConflictException(
           "This case changed. Refresh and review it.",
         );
       }
+
       if (input.assignedStaffId) {
         const assignee = await tx.user.findUnique({
           where: { id: input.assignedStaffId },
@@ -395,6 +414,7 @@ export class SupportService {
           );
         }
       }
+
       const status = input.status ?? before.status;
 
       if (before.status === "CLOSED") {
@@ -402,6 +422,7 @@ export class SupportService {
           "Closed cases cannot be changed. Create a follow-up case.",
         );
       }
+
       const resolution = input.resolution ?? before.resolution;
 
       if (["RESOLVED", "CLOSED"].includes(status) && !resolution.trim()) {
@@ -409,6 +430,7 @@ export class SupportService {
           "A resolution is required before resolving or closing a case.",
         );
       }
+
       const row = await tx.supportCase.update({
         where: { id },
         data: {
@@ -449,6 +471,7 @@ export class SupportService {
           data: { handledAt: new Date() },
         });
       }
+
       if (
         before.assignedStaffId !== row.assignedStaffId ||
         (before.status === "RESOLVED" &&
@@ -460,6 +483,7 @@ export class SupportService {
           row.assignedStaffId ? "SUPPORT_ASSIGNED" : "SUPPORT_NEW_CASE",
         );
       }
+
       if (
         before.status !== row.status ||
         before.resolution !== row.resolution
@@ -473,6 +497,7 @@ export class SupportService {
           `/portal/support#case-${id}`,
         );
       }
+
       return view(row);
     });
   }

@@ -61,11 +61,13 @@ export function useRecruitmentDirectory<T>(
 
       return;
     }
+
     void fetcher({ ...scope.query, page: String(scope.page) })
       .then((result) => {
         if (request !== sequence.current) {
           return;
         }
+
         const last = Math.max(
           1,
           Math.ceil(result.count / (result.page_size ?? 20)),
@@ -76,12 +78,14 @@ export function useRecruitmentDirectory<T>(
 
           return;
         }
+
         setData(result);
       })
       .catch((caught) => {
         if (request !== sequence.current) {
           return;
         }
+
         if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
           onDenied();
         } else {

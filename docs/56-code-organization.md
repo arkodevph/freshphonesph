@@ -2,7 +2,7 @@
 
 Run `pnpm format` to expand function bodies, brace control flow and format source files.
 Run `pnpm format:check` to verify the same rules. The formatter inserts blank lines between
-completed semicolon-terminated executable statements and compares emitted syntax for changed files before writing.
+completed statements and compares emitted syntax for changed files before writing.
 Imports stay together without blank lines between them; import comments are preserved.
 Formatting may split adjacent JSX text strings; the check compares their combined text.
 
@@ -36,7 +36,9 @@ Feature components and hooks stay beside their routes. Avoid importing a page to
 shared implementation details.
 
 Identical record form fields and input styles live in `components/FormField.tsx`.
-Date defaults use `lib/date.ts`; calendar keyboard navigation uses the existing
+PHP currency formatting uses `lib/currency.ts`, with feature-specific missing-value handling
+kept in its callers. JSON requests, uploads and downloads share session recovery and error
+events in `lib/ts-api.ts`. Date defaults use `lib/date.ts`; calendar keyboard navigation uses the existing
 `lib/portal-membership-calendar.ts` utilities. Session identity stays in React state
 and is fetched using the session cookie; there is no unused local-storage identity cache.
 

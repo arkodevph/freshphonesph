@@ -15,6 +15,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Use a migrated dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const suffix = randomUUID().slice(0, 8);
@@ -50,6 +51,7 @@ class Session {
         })
         .join("; ");
     }
+
     return response;
   }
   async login(role: Role) {
@@ -63,6 +65,7 @@ class Session {
     return this;
   }
 }
+
 const post = (body: unknown): RequestInit => {
   return { method: "POST", body: JSON.stringify(body) };
 };
@@ -144,6 +147,7 @@ before(async () => {
 
     people.set(role, user.id);
   }
+
   const payment = await db.payment.create({
     data: {
       clientId: client.id,
@@ -194,6 +198,7 @@ test("saved periods accept one immutable human analysis, including older numeric
   ]) {
     assert.equal((await analyst.request(endpoint, post(bad))).status, 400);
   }
+
   assert.equal(
     (
       await anonymous.request(
@@ -371,6 +376,7 @@ test("saved periods accept one immutable human analysis, including older numeric
 
     assert.ok(item?.analysis?.submittedBy.name);
   }
+
   assert.equal(
     (await csTeam.request("/reports/snapshots?kind=PAYMENTS")).status,
     403,

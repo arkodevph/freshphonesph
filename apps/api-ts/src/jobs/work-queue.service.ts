@@ -30,6 +30,7 @@ export class WorkQueueService implements OnApplicationShutdown {
     if (!config.REDIS_URL) {
       return;
     }
+
     const connection = (this.connection = redisConnection(config));
 
     const options = {
@@ -70,10 +71,12 @@ export class WorkQueueService implements OnApplicationShutdown {
     if (!this.connection) {
       return { mode: "database-local", redis: "disabled", worker: "disabled" };
     }
+
     try {
       if (this.connection.status !== "ready") {
         throw new Error();
       }
+
       await this.connection.ping();
 
       const heartbeat = await this.connection.get(heartbeatKey(this.config));

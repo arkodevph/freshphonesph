@@ -57,6 +57,7 @@ test("admin job and applicant updates send current optimistic versions", async (
         _count: { applicants: 2 },
       });
     }
+
     return Response.json({
       id: path.split("/").at(-1),
       jobId: "fd9c9a83-c948-4c80-80d7-03f73a9e3ba9",

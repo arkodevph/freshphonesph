@@ -182,6 +182,7 @@ export function useClientsWorkspace() {
 
       return;
     }
+
     setLoading(true);
 
     setError(null);
@@ -201,6 +202,7 @@ export function useClientsWorkspace() {
       if (version !== requestVersion.current) {
         return;
       }
+
       const lastPage = Math.max(1, Math.ceil(c.count / 20));
 
       if (!focusedClient && page > lastPage) {
@@ -208,6 +210,7 @@ export function useClientsWorkspace() {
 
         return;
       }
+
       setClients(c.results);
 
       if (
@@ -222,6 +225,7 @@ export function useClientsWorkspace() {
 
         setSchedule(null);
       }
+
       setTotal(c.count);
 
       setHasNext(Boolean(c.next));
@@ -229,9 +233,11 @@ export function useClientsWorkspace() {
       if (version !== requestVersion.current) {
         return;
       }
+
       if (e instanceof ApiError && [401, 403].includes(e.status)) {
         clearPrivate();
       }
+
       setClients([]);
 
       setTotal(0);
@@ -268,6 +274,7 @@ export function useClientsWorkspace() {
     if (!canManage) {
       return;
     }
+
     const version = ++choicesVersion.current;
 
     try {
@@ -282,9 +289,11 @@ export function useClientsWorkspace() {
       if (version !== choicesVersion.current) {
         return;
       }
+
       if (e instanceof ApiError && [401, 403].includes(e.status)) {
         clearPrivate();
       }
+
       setBatches([]);
 
       setChoicesError(
@@ -307,9 +316,11 @@ export function useClientsWorkspace() {
         if (version !== scheduleVersion.current || scheduleId.current !== id) {
           return;
         }
+
         if (e instanceof ApiError && [401, 403].includes(e.status)) {
           clearPrivate();
         }
+
         scheduleId.current = null;
 
         setSchedule(null);
@@ -362,6 +373,7 @@ export function useClientsWorkspace() {
     if (!me || canManage) {
       return;
     }
+
     ++privateVersion.current;
 
     ++choicesVersion.current;
@@ -408,6 +420,7 @@ export function useClientsWorkspace() {
     for (const key of keys) {
       params.delete(key);
     }
+
     window.history.replaceState(
       null,
       "",
@@ -421,6 +434,7 @@ export function useClientsWorkspace() {
     if (focusedClient) {
       removeLink("client", "documents");
     }
+
     setFilters((current) => {
       return { ...current, [key]: value };
     });
@@ -442,6 +456,7 @@ export function useClientsWorkspace() {
     if (mutation.current) {
       return;
     }
+
     const access = privateVersion.current;
 
     mutation.current = true;
@@ -461,6 +476,7 @@ export function useClientsWorkspace() {
       if (access !== privateVersion.current) {
         return;
       }
+
       flash("Client added — schedule generated.");
 
       setForm((f) => {
@@ -472,9 +488,11 @@ export function useClientsWorkspace() {
       if (access !== privateVersion.current) {
         return;
       }
+
       if (e instanceof ApiError && [401, 403].includes(e.status)) {
         clearPrivate();
       }
+
       setError(e instanceof Error ? e.message : "Could not add client.");
     } finally {
       setSaving(false);
@@ -493,6 +511,7 @@ export function useClientsWorkspace() {
 
       return;
     }
+
     scheduleId.current = id;
 
     setSchedule({ id, items: [] });
@@ -510,6 +529,7 @@ export function useClientsWorkspace() {
     ) {
       return;
     }
+
     const access = privateVersion.current;
 
     mutation.current = true;
@@ -529,6 +549,7 @@ export function useClientsWorkspace() {
       if (access !== privateVersion.current) {
         return;
       }
+
       setReleaseDraft(null);
 
       flash("Release update posted. The customer has been notified.");
@@ -538,9 +559,11 @@ export function useClientsWorkspace() {
       if (access !== privateVersion.current) {
         return;
       }
+
       if (e instanceof ApiError && [401, 403].includes(e.status)) {
         clearPrivate();
       }
+
       setError(
         e instanceof Error ? e.message : "Could not update release status.",
       );
@@ -550,6 +573,7 @@ export function useClientsWorkspace() {
       setReleasing(false);
     }
   }
+
   return {
     createClientFormProps: {
       onCreate,

@@ -90,9 +90,11 @@ export class PrivateStorageService {
     if (!file) {
       throw new BadRequestException("Choose a receipt proof image.");
     }
+
     if (file.size < 1 || file.size > 5 * 1024 * 1024) {
       throw new BadRequestException("Receipt proof must be 5 MB or smaller.");
     }
+
     const signature = signatures[file.mimetype];
 
     if (!signature || !signature(file.buffer)) {
@@ -100,6 +102,7 @@ export class PrivateStorageService {
         "Use a valid JPG, PNG or WebP receipt image.",
       );
     }
+
     return file;
   }
 
@@ -108,6 +111,7 @@ export class PrivateStorageService {
       if (!file) {
         throw new BadRequestException(`Choose a ${policy.label} file.`);
       }
+
       const maxBytes = Math.min(policy.maxBytes, 10 * 1024 * 1024);
 
       if (file.size < 1 || file.size > maxBytes) {
@@ -115,6 +119,7 @@ export class PrivateStorageService {
           `${policy.label} must be ${Math.floor(maxBytes / 1024 / 1024)} MB or smaller.`,
         );
       }
+
       if (
         !policy.allowedMimeTypes.includes(file.mimetype) ||
         !documentSignatures[file.mimetype]?.(file.buffer)
@@ -123,14 +128,18 @@ export class PrivateStorageService {
           `The selected ${policy.label} file type is not allowed.`,
         );
       }
+
       return file;
     }
+
     if (!file) {
       throw new BadRequestException("Choose a document to upload.");
     }
+
     if (file.size < 1 || file.size > 5 * 1024 * 1024) {
       throw new BadRequestException("Document must be 5 MB or smaller.");
     }
+
     const signature = documentSignatures[file.mimetype];
 
     if (!signature || !signature(file.buffer)) {
@@ -138,6 +147,7 @@ export class PrivateStorageService {
         "Use a valid PDF, JPG, PNG or WebP document.",
       );
     }
+
     return file;
   }
 
@@ -174,6 +184,7 @@ export class PrivateStorageService {
         flag: "wx",
       });
     }
+
     return storageKey;
   }
 
@@ -181,6 +192,7 @@ export class PrivateStorageService {
     if (!/^[0-9a-f-]{36}$/i.test(storageKey)) {
       throw new NotFoundException("Private file is unavailable.");
     }
+
     const file = await this.db.storedFile.findUnique({
       where: { storageKey },
       select: { purgePending: true },
@@ -189,6 +201,7 @@ export class PrivateStorageService {
     if (!file || file.purgePending) {
       throw new NotFoundException("Private file is unavailable.");
     }
+
     try {
       if (this.s3) {
         const result = await this.s3.send(
@@ -201,8 +214,10 @@ export class PrivateStorageService {
         if (!result.Body) {
           throw new Error("Missing object body");
         }
+
         return Buffer.from(await result.Body.transformToByteArray());
       }
+
       return await readFile(resolve(this.directory, storageKey));
     } catch {
       throw new NotFoundException("Private file is unavailable.");
@@ -213,6 +228,7 @@ export class PrivateStorageService {
     if (!/^[0-9a-f-]{36}$/i.test(storageKey)) {
       return;
     }
+
     if (this.s3) {
       await this.s3.send(
         new DeleteObjectCommand({
@@ -223,6 +239,7 @@ export class PrivateStorageService {
 
       return;
     }
+
     await unlink(resolve(this.directory, storageKey)).catch(() => {
       return undefined;
     });
@@ -241,14 +258,17 @@ export class PrivateStorageService {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return;
       }
+
       throw error;
     }
+
     throw new Error("Storage removal was not confirmed.");
   }
   async eraseLocalMail(id: string) {
     if (!/^[0-9a-f-]{36}$/i.test(id)) {
       throw new Error("Invalid mail key.");
     }
+
     await this.eraseLocal(resolve(process.cwd(), ".local/mail", `${id}.txt`));
   }
   async localMailIndex(): Promise<LocalMailCopy[]> {
@@ -260,6 +280,7 @@ export class PrivateStorageService {
           if (error.code === "ENOENT") {
             return [];
           }
+
           throw error;
         })
       ).filter((file) => {
@@ -276,6 +297,7 @@ export class PrivateStorageService {
                 if (error.code === "ENOENT") {
                   return null;
                 }
+
                 throw error;
               },
             );
@@ -283,6 +305,7 @@ export class PrivateStorageService {
             if (!bytes) {
               return;
             }
+
             const recipient = /^To:\s*([^\r\n]+)$/im
               .exec(bytes.toString())?.[1]
               .trim()
@@ -298,6 +321,7 @@ export class PrivateStorageService {
           }),
         );
       }
+
       return copies;
     } catch {
       throw new ServiceUnavailableException(
@@ -317,6 +341,7 @@ export class PrivateStorageService {
     if (!addresses.size) {
       return [];
     }
+
     return (index ?? (await this.localMailIndex()))
       .filter((copy) => {
         return addresses.has(copy.recipient);
@@ -329,9 +354,11 @@ export class PrivateStorageService {
     if (!/^[0-9a-f-]{36}$/i.test(storageKey)) {
       throw new Error("Invalid storage key.");
     }
+
     if (!this.s3) {
       return this.eraseLocal(resolve(this.directory, storageKey));
     }
+
     const Bucket = this.config.PRIVATE_STORAGE_S3_BUCKET!;
 
     const versioning = await this.s3.send(
@@ -366,6 +393,7 @@ export class PrivateStorageService {
             );
           }
         }
+
         KeyMarker = page.IsTruncated ? page.NextKeyMarker : undefined;
 
         VersionIdMarker = page.IsTruncated
@@ -390,6 +418,7 @@ export class PrivateStorageService {
     } else {
       await this.s3.send(new DeleteObjectCommand({ Bucket, Key: storageKey }));
     }
+
     try {
       await this.s3.send(new HeadObjectCommand({ Bucket, Key: storageKey }));
     } catch (error) {
@@ -402,8 +431,10 @@ export class PrivateStorageService {
 
         return;
       }
+
       throw error;
     }
+
     throw new Error("Object removal was not confirmed.");
   }
 }

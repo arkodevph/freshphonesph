@@ -24,6 +24,7 @@ export async function notifyCustomer(
   if (!account?.active) {
     return;
   }
+
   const notification = await tx.notification.create({
     data: { userId: account.id, kind, title, message, targetPath },
   });
@@ -41,6 +42,7 @@ export class NotificationsService {
     if (user.role !== "CUSTOMER") {
       throw new ForbiddenException("Customer account required.");
     }
+
     return this.db.notification.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -61,6 +63,7 @@ export class NotificationsService {
     if (user.role !== "CUSTOMER") {
       throw new ForbiddenException("Customer account required.");
     }
+
     const result = await this.db.notification.updateMany({
       where: { id, userId: user.id, readAt: null },
       data: { readAt: new Date() },
@@ -75,6 +78,7 @@ export class NotificationsService {
     ) {
       throw new NotFoundException("Notification not found.");
     }
+
     return this.db.notification.findUniqueOrThrow({
       where: { id },
       select: {
@@ -93,6 +97,7 @@ export class NotificationsService {
     if (user.role !== "CUSTOMER") {
       throw new ForbiddenException("Customer account required.");
     }
+
     const result = await this.db.notification.updateMany({
       where: { userId: user.id, readAt: null },
       data: { readAt: new Date() },

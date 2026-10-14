@@ -18,6 +18,7 @@ async function main() {
       "Set PRIVATE_STORAGE_PROVIDER=s3 and the private bucket configuration.",
     );
   }
+
   const directory = resolve(
     config.PRIVATE_STORAGE_DIR ?? resolve(__dirname, "../.local/private"),
   );
@@ -55,6 +56,7 @@ async function main() {
       if (!file || file.purgePending) {
         continue;
       }
+
       eligible++;
 
       const local = await readFile(resolve(directory, key));
@@ -85,6 +87,7 @@ async function main() {
         ) {
           throw new Error(`Verification failed for ${key}.`);
         }
+
         uploaded++;
       }
     }
@@ -93,12 +96,14 @@ async function main() {
 
     await db.$disconnect();
   }
+
   console.log(
     apply
       ? `Verified ${uploaded}/${eligible} eligible private files in the bucket. Local originals retained until approved erasure.`
       : `Dry run: ${eligible} eligible private files would be copied and verified. Pass --apply to copy.`,
   );
 }
+
 void main().catch((error) => {
   console.error(error instanceof Error ? error.message : "Migration failed.");
 

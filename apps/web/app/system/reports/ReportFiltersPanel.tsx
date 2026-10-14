@@ -1,11 +1,10 @@
 "use client";
 
-import { defaultReportFilters, type ReportFilters } from "@/lib/report-filters";
+import { type ReportFilters } from "@/lib/report-filters";
 import type { ReportBatchOption, ReportKind } from "@freshphones/contracts";
-import type { Dispatch, RefObject, SetStateAction } from "react";
 import { type FormEvent } from "react";
 import styles from "./reports.module.css";
-import { BatchPicker, LoadedReport, names, statusNames } from "./report-view";
+import { BatchPicker, names, statusNames } from "./report-view";
 
 type Props = {
   kind: ReportKind;
@@ -13,18 +12,8 @@ type Props = {
   busy: "csv" | "xlsx" | "save" | null;
   draft: ReportFilters;
   edit: (field: keyof ReportFilters, value: string) => void;
-  setDraft: Dispatch<SetStateAction<ReportFilters>>;
-  setApplied: Dispatch<SetStateAction<ReportFilters>>;
-  setReportPage: Dispatch<SetStateAction<number>>;
-  setBatch: Dispatch<SetStateAction<ReportBatchOption | null>>;
-  setAppliedBatch: Dispatch<SetStateAction<ReportBatchOption | null>>;
-  setLoading: Dispatch<SetStateAction<boolean>>;
-  setReport: Dispatch<SetStateAction<LoadedReport | null>>;
-  setValidation: Dispatch<SetStateAction<string | null>>;
-  setActionError: Dispatch<SetStateAction<string | null>>;
-  setNotice: Dispatch<SetStateAction<string | null>>;
-  setAnalysisDraft: Dispatch<SetStateAction<string>>;
-  sequence: RefObject<number>;
+  onReset: () => void;
+  onBatchChange: (item: ReportBatchOption | null) => void;
   batch: ReportBatchOption | null;
   validation: string | null;
   dirty: boolean;
@@ -36,18 +25,8 @@ export default function ReportFiltersPanel({
   busy,
   draft,
   edit,
-  setDraft,
-  setApplied,
-  setReportPage,
-  setBatch,
-  setAppliedBatch,
-  setLoading,
-  setReport,
-  setValidation,
-  setActionError,
-  setNotice,
-  setAnalysisDraft,
-  sequence,
+  onReset,
+  onBatchChange,
   batch,
   validation,
   dirty,
@@ -106,50 +85,14 @@ export default function ReportFiltersPanel({
             <button type="submit" className={styles.primary}>
               Apply filters
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                const filters = defaultReportFilters();
-
-                setDraft(filters);
-
-                setApplied(filters);
-
-                setReportPage(1);
-
-                setBatch(null);
-
-                setAppliedBatch(null);
-
-                setLoading(true);
-
-                setReport(null);
-
-                setValidation(null);
-
-                setActionError(null);
-
-                setNotice(null);
-
-                setAnalysisDraft("");
-
-                sequence.current++;
-              }}
-            >
+            <button type="button" onClick={onReset}>
               This month
             </button>
           </div>
         </fieldset>
         {["payments", "collections", "reconciliation"].includes(kind) && (
           <fieldset disabled={Boolean(busy)}>
-            <BatchPicker
-              value={batch}
-              onChange={(item) => {
-                setBatch(item);
-
-                edit("batchId", item?.id ?? "");
-              }}
-            />
+            <BatchPicker value={batch} onChange={onBatchChange} />
           </fieldset>
         )}
       </form>

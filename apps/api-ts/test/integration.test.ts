@@ -41,6 +41,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "TEST_DATABASE_URL must point to a dedicated database ending in _test. Apply migrations to it first.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const password = "Integration-password-123!";
@@ -85,6 +86,7 @@ class Session {
 
       this.cookies.set(key, value.join("="));
     }
+
     return response;
   }
   cookie() {
@@ -112,6 +114,7 @@ class Session {
     });
   }
 }
+
 const post = (value: unknown): RequestInit => {
   return { method: "POST", body: JSON.stringify(value) };
 };
@@ -150,6 +153,7 @@ async function stream(session: Session, apiBase = base) {
         if (chunk.done) {
           break;
         }
+
         text += new TextDecoder().decode(chunk.value);
       }
     } catch {
@@ -167,6 +171,7 @@ async function stream(session: Session, apiBase = base) {
         return setTimeout(resolve, 30);
       });
     }
+
     assert.ok(predicate(), `Stream condition did not arrive. Received ${text}`);
   };
 
@@ -293,6 +298,7 @@ before(async () => {
 
     accounts.set(role, user.id);
   }
+
   second = await createApp({
     NODE_ENV: "test",
     PORT: 4100,
@@ -376,11 +382,13 @@ test("role matrix is enforced for every foundation collection", async () => {
         `${role} ${route}`,
       );
     }
+
     const overview = await (await session.request("/overview")).json();
 
     if (!rolePermissions[role].includes("CLIENT_READ")) {
       assert.equal(overview.clients, null);
     }
+
     await session.request("/auth/logout", post({}));
   }
 });
@@ -433,6 +441,7 @@ test("recruitment role matrix protects listings, applicant details and writes", 
         403,
       );
     }
+
     if (!canReadApplicants) {
       assert.equal(
         (
@@ -450,6 +459,7 @@ test("recruitment role matrix protects listings, applicant details and writes", 
         403,
       );
     }
+
     await session.request("/auth/logout", post({}));
   }
 });
@@ -611,6 +621,7 @@ test("owner and recruitment staff share the public job board and applicant revie
         403,
       );
     }
+
     const reviewer = canReviewApplicants ? staff : owner;
 
     const reviewed = await reviewer.request(
@@ -736,6 +747,7 @@ test("owner and recruitment staff share the public job board and applicant revie
       await owner.request("/auth/logout", post({}));
     }
   }
+
   await customer.request("/auth/logout", post({}));
 });
 
@@ -1229,6 +1241,7 @@ test("enrollment snapshots exact installments, freezes terms and rolls back inva
       409,
     );
   }
+
   assert.equal(
     (
       await owner.request(
@@ -1286,6 +1299,7 @@ test("enrollment snapshots exact installments, freezes terms and rolls back inva
       400,
     );
   }
+
   const filtered = await (
     await owner.request(`/clients?batchId=${batch.id}&q=Schedule`)
   ).json();
@@ -1844,6 +1858,7 @@ test("payment duplicate precheck finds matching references across clients", asyn
 
       created.push((await response.json()).id);
     }
+
     const matches = (await (await records.request(query)).json()) as Array<{
       id: string;
       clientId: string;
@@ -2085,6 +2100,7 @@ test("password reset is single-use and revokes existing sessions without exposin
       resetMail = text;
     }
   }
+
   assert.ok(token);
 
   assert.ok(resetMail.includes(`Reset code: ${token}`));
@@ -2159,6 +2175,7 @@ test("changing a customer password keeps the current session and revokes other s
         assert.ok(text.includes(`Reset code: ${resetCode}`));
       }
     }
+
     assert.ok(resetCode);
 
     assert.equal(
@@ -2651,8 +2668,10 @@ test("support updates and notifications are scoped to the linked customer", asyn
     ) {
       break;
     }
+
     await delivery.deliver();
   }
+
   assert.equal(
     (await db.notification.findUniqueOrThrow({ where: { id: unread.id } }))
       .emailStatus,
@@ -2922,6 +2941,7 @@ test("staff work queues show only authorized, actionable records and open exact 
       403,
     );
   }
+
   assert.equal(
     (await support.request("/operations/customer-work?kind=documents")).status,
     403,
@@ -3247,6 +3267,7 @@ test("Owner can edit audited customer email templates while other roles cannot",
         new Response(JSON.stringify({ id: randomUUID() }), { status: 200 }),
       );
     }
+
     return originalFetch(input, init);
   };
 
@@ -3277,6 +3298,7 @@ test("Owner can edit audited customer email templates while other roles cannot",
 
     configured.NODE_ENV = originalEnvironment;
   }
+
   assert.deepEqual(submitted?.to, [testAddress]);
 
   assert.match(submitted?.subject ?? "", /TEST · Upcoming installment/);
@@ -3484,8 +3506,10 @@ test("Owner can edit audited customer email templates while other roles cannot",
     ) {
       break;
     }
+
     await delivery.deliver();
   }
+
   assert.equal(
     (await db.notification.findUniqueOrThrow({ where: { id: notice.id } }))
       .emailStatus,
@@ -3893,6 +3917,7 @@ test("record details and history enforce role permissions, field minimization an
         `${role} ${route}`,
       );
     }
+
     if (!rolePermissions[role].includes("CLIENT_MANAGE")) {
       assert.equal(
         (
@@ -3904,8 +3929,10 @@ test("record details and history enforce role permissions, field minimization an
         403,
       );
     }
+
     await session.request("/auth/logout", post({}));
   }
+
   assert.equal(
     (await new Session().request(`/clients/${client.id}/history`)).status,
     401,
@@ -4020,6 +4047,7 @@ test("record details and history enforce role permissions, field minimization an
       400,
     );
   }
+
   assert.equal(
     (await owner.request(`/batches/${randomUUID()}/history`)).status,
     404,
@@ -4208,6 +4236,7 @@ test("agent directory permissions, optimistic updates and privacy match the publ
         `${role} ${route}`,
       );
     }
+
     assert.equal(
       (
         await session.request(
@@ -4232,8 +4261,10 @@ test("agent directory permissions, optimistic updates and privacy match the publ
         403,
       );
     }
+
     await session.request("/auth/logout", post({}));
   }
+
   assert.equal((await new Session().request("/agents")).status, 401);
 
   assert.equal((await owner.request("/agents", post(input))).status, 409);
@@ -4460,6 +4491,7 @@ test("batch assignments restrict every handler read and filter, preserve schedul
       400,
     );
   }
+
   assert.equal(
     (
       await handler.request(
@@ -4573,6 +4605,7 @@ test("batch assignments restrict every handler read and filter, preserve schedul
   ]) {
     assert.equal((await (await handler.request(route)).json()).total, 1);
   }
+
   assert.equal(
     (await (await handler.request(`/clients?id=${clients[1].id}`)).json())
       .total,
@@ -4598,6 +4631,7 @@ test("batch assignments restrict every handler read and filter, preserve schedul
   ]) {
     assert.equal((await handler.request(route)).status, 200, route);
   }
+
   for (const route of [
     `/batches/${batches[1].id}`,
     `/clients/${clients[1].id}`,
@@ -4606,6 +4640,7 @@ test("batch assignments restrict every handler read and filter, preserve schedul
   ]) {
     assert.equal((await handler.request(route)).status, 404, route);
   }
+
   for (const route of [
     `/batches/${batches[0].id}/history`,
     `/clients/${clients[0].id}/history`,
@@ -4620,6 +4655,7 @@ test("batch assignments restrict every handler read and filter, preserve schedul
       route,
     );
   }
+
   assert.equal(
     (await handler.request(`/clients/${clients[0].id}/schedule`, post({})))
       .status,
@@ -4753,6 +4789,7 @@ test("live events disclose only current assignments and invalidate the previous 
       200,
     );
   }
+
   const batch = await (
     await owner.request(
       "/batches",
@@ -4904,11 +4941,13 @@ async function alertAccount(key: string, role: Role = "FINANCE_OFFICER") {
 
   return { user, session };
 }
+
 async function resetAlertLoginLimit() {
   await db.loginAttempt.deleteMany({
     where: { key: tokenHash("login-ip:127.0.0.1") },
   });
 }
+
 type AlertSnapshot = {
   items: {
     id: string;
@@ -4961,6 +5000,7 @@ test("Finance alerts enforce every role, origin, strict input and current review
   ] as const) {
     assert.equal((await anonymous.request(path, options)).status, 401);
   }
+
   for (const role of roles) {
     const { session } = await alertAccount(`matrix-${role}`, role);
 
@@ -4990,6 +5030,7 @@ test("Finance alerts enforce every role, origin, strict input and current review
       role,
     );
   }
+
   const { session, user } = await alertAccount("strict");
 
   for (const query of [
@@ -5003,6 +5044,7 @@ test("Finance alerts enforce every role, origin, strict input and current review
       400,
     );
   }
+
   for (const body of [
     {},
     { version: 0 },
@@ -5018,6 +5060,7 @@ test("Finance alerts enforce every role, origin, strict input and current review
       400,
     );
   }
+
   assert.equal(
     (
       await session.request(
@@ -5232,6 +5275,7 @@ test("Finance pending backlog is paginated, private per reviewer and reads leave
   } finally {
     await db.payment.deleteMany({ where: { id: { in: ids } } });
   }
+
   assert.equal(
     await db.financeAlertRead.count({ where: { paymentId: { in: ids } } }),
     0,
@@ -5573,6 +5617,7 @@ async function staffAlertSnapshot(
 
   return response.json();
 }
+
 function staffRead(alert: StaffAlert): RequestInit {
   return post(
     alert.entity === "payment"
@@ -5586,6 +5631,7 @@ function staffRead(alert: StaffAlert): RequestInit {
             : { entity: "task", kind: alert.kind, deadline: alert.deadline },
   );
 }
+
 async function alertTask(
   assigneeId: string,
   title: string,
@@ -5667,6 +5713,7 @@ test("staff alerts enforce assignee isolation for every role and deny Finance/cu
         role,
       );
     }
+
     assert.equal(
       (await session.request("/staff/alerts?scope=finance")).status,
       rolePermissions[role].includes("PAYMENT_VERIFY") ? 200 : 403,
@@ -5695,6 +5742,7 @@ test("staff alerts enforce assignee isolation for every role and deny Finance/cu
       role,
     );
   }
+
   const anonymous = new Session();
 
   assert.equal((await anonymous.request("/staff/alerts")).status, 401);
@@ -5716,6 +5764,7 @@ test("staff alerts enforce assignee isolation for every role and deny Finance/cu
   ]) {
     assert.equal((await session.request(`/staff/alerts${query}`)).status, 400);
   }
+
   for (const body of [
     { entity: "task", kind: "TASK_ASSIGNED" },
     {
@@ -5732,6 +5781,7 @@ test("staff alerts enforce assignee isolation for every role and deny Finance/cu
       400,
     );
   }
+
   assert.equal(
     (
       await session.request(
@@ -5834,6 +5884,7 @@ test("task alert backlog pages safely and reminder SQL matches exact time bounda
       );
     }
   }
+
   const ids: string[] = Array.from({ length: 25 }, () => {
     return randomUUID();
   });
@@ -6446,6 +6497,7 @@ async function recordedResultPayment(
 
   return { payment: await response.json(), input };
 }
+
 const decideResult = (
   session: Session,
   id: string,
@@ -6593,6 +6645,7 @@ test("Finance decisions notify active Records and the recorder once and retain h
       recipients.length,
     );
   }
+
   const snapshot = await staffAlertSnapshot(records.session, "?scope=results");
 
   assert.equal(snapshot.resultCount, 3);
@@ -6812,6 +6865,7 @@ test("Finance result details and reads enforce every role, recipient, current ac
         role,
       );
     }
+
     if (permitted) {
       assert.equal(
         (await session.request(`/staff/alerts/results/${foreignResult.id}`))
@@ -6832,6 +6886,7 @@ test("Finance result details and reads enforce every role, recipient, current ac
       );
     }
   }
+
   const strict = await alertAccount("result-strict", "RECORDS");
 
   const result = await seededResult(strict.user.id, payment.id);
@@ -6852,6 +6907,7 @@ test("Finance result details and reads enforce every role, recipient, current ac
       400,
     );
   }
+
   assert.equal(
     (await strict.session.request("/staff/alerts?scope=results&userId=foreign"))
       .status,
@@ -7405,6 +7461,7 @@ test("Finance result delivery commits atomically and duplicate decisions cannot 
 
     await db.$executeRawUnsafe("DROP FUNCTION fail_result_delivery()");
   }
+
   assert.equal((await decideResult(recorder.session, payment.id)).status, 403);
 
   const responses = await Promise.all([
@@ -7478,6 +7535,7 @@ async function quietStaffEmails() {
     data: { status: "SKIPPED", attemptId: null },
   });
 }
+
 async function mailTask(
   userId: string,
   hours = 48,
@@ -7493,6 +7551,7 @@ async function mailTask(
     },
   });
 }
+
 async function queueAssigned(task: Awaited<ReturnType<typeof mailTask>>) {
   await db.$transaction((tx) => {
     return queueTaskEmail(tx, task, "TASK_ASSIGNED");
@@ -7590,6 +7649,7 @@ test("staff email settings and delivery controls enforce every role, strict inpu
       );
     }
   }
+
   assert.equal(
     (
       await owner.request(
@@ -7966,6 +8026,7 @@ test("staff emails cover all seven kinds with correct recipients, private conten
       /Secret Finance|private note|account details|\b25\.00\b|GCash/,
     );
   }
+
   const finalPending = (await recordedResultPayment(recorder.session)).payment;
 
   // Each local delivery batch is bounded, so drain it as a worker would.
@@ -7979,6 +8040,7 @@ test("staff emails cover all seven kinds with correct recipients, private conten
   ) {
     await app.get(EmailDeliveryService).deliver();
   }
+
   assert.equal(
     (await db.staffEmail.findUniqueOrThrow({ where: { id: assignedMail.id } }))
       .status,
@@ -8535,9 +8597,11 @@ test("staff email failures back off, preserve provider payload, stop at five att
       app.get<Config>(CONFIG).EMAIL_FROM = "changed-sender@example.test";
     }
   }
+
   for (const args of deliveries) {
     assert.deepEqual(args.slice(0, 5), deliveries[0].slice(0, 5));
   }
+
   assert.equal(
     new Set(
       deliveries.map((args) => {
@@ -8708,6 +8772,7 @@ test("staff email provider requests retain one idempotency key and exact payload
         }),
       );
     }
+
     return originalFetch(input, init);
   };
 
@@ -8841,6 +8906,7 @@ test("staff email outbox failures roll back task assignments and Finance decisio
 
     await db.$executeRawUnsafe("DROP FUNCTION fail_staff_email_outbox()");
   }
+
   assert.equal((await decideResult(finance.session, payment.id)).status, 200);
 
   const results = await db.paymentResultAlert.findMany({
@@ -9019,6 +9085,7 @@ async function createAlertSupport(customer: Session, label: string) {
 
   return response.json() as Promise<{ id: string; version: number }>;
 }
+
 async function assignAlertSupport(
   owner: Session,
   id: string,
@@ -9034,6 +9101,7 @@ async function assignAlertSupport(
 
   return response.json() as Promise<{ id: string; version: number }>;
 }
+
 async function supportFixture(key: string) {
   await resetSupportLoginLimit();
 
@@ -9063,6 +9131,7 @@ test("Support alerts route new cases to active heads, isolate recipients and enf
   for (const role of roles) {
     matrix.set(role, await alertAccount(`support-role-${role}`, role));
   }
+
   const customer = await new Session().login("CUSTOMER");
 
   const created = await createAlertSupport(
@@ -9138,6 +9207,7 @@ test("Support alerts route new cases to active heads, isolate recipients and enf
         assert.equal(own[0].targetPath, `/system/support?case=${created.id}`);
       }
     }
+
     const target = alerts.find((a) => {
       return a.userId === matrix.get("CS_HEAD")!.user.id;
     })!;
@@ -9153,6 +9223,7 @@ test("Support alerts route new cases to active heads, isolate recipients and enf
       role,
     );
   }
+
   const head = matrix.get("CS_HEAD")!.session;
 
   const target = alerts.find((a) => {
@@ -9175,6 +9246,7 @@ test("Support alerts route new cases to active heads, isolate recipients and enf
       400,
     );
   }
+
   assert.equal(
     (
       await head.request(`/staff/alerts/${target.id}/read`, {
@@ -9540,6 +9612,7 @@ test("Support selected-scope mark-all covers all pages and preserves other alert
       201,
     );
   }
+
   const first = await staffAlertSnapshot(
     team.session,
     "?scope=support&unreadOnly=true",
@@ -10035,6 +10108,7 @@ test("Support outbox failures roll back case creation, replies and assignments; 
 
     await db.$executeRawUnsafe("DROP FUNCTION fail_support_outbox()");
   }
+
   const concurrent = await Promise.all([
     owner.request(
       `/support/cases/${assigned.id}`,
@@ -10107,6 +10181,7 @@ async function createAlertAccount(
     version: number;
   }>;
 }
+
 async function updateAlertAccount(
   owner: Session,
   account: { id: string; version: number },
@@ -10139,6 +10214,7 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
   for (const role of roles) {
     matrix.set(role, await alertAccount(`account-role-${role}`, role));
   }
+
   const owner = matrix.get("OWNER")!;
 
   const subject = await createAlertAccount(owner.session, "matrix");
@@ -10220,6 +10296,7 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
       assert.equal(queue.accountCount, role === "OWNER" ? 1 : 0, role);
     }
   }
+
   const foreignOwner = await alertAccount("account-foreign-owner", "OWNER");
 
   assert.equal(
@@ -10273,6 +10350,7 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
       400,
     );
   }
+
   assert.equal(
     (
       await owner.session.request(`/staff/alerts/${target.id}/read`, {
@@ -10527,6 +10605,7 @@ test("Account mark-all reads all historical pages without changing access, sessi
       role: i % 2 === 0 ? "CS_TEAM" : "RECORDS",
     });
   }
+
   const task = await alertTask(owner.user.id, "Unrelated Owner task");
 
   const first = await staffAlertSnapshot(
@@ -10717,6 +10796,7 @@ test("Account emails use four Owner templates, private local previews and frozen
       /Account subject|account-mail|@|Integration-password|RECORDS|CS_TEAM/,
     );
   }
+
   for (
     let i = 0;
     i < 12 &&
@@ -10727,6 +10807,7 @@ test("Account emails use four Owner templates, private local previews and frozen
   ) {
     await app.get(EmailDeliveryService).deliver();
   }
+
   for (const row of rows) {
     assert.equal(
       (await db.staffEmail.findUniqueOrThrow({ where: { id: row.id } })).status,
@@ -10745,6 +10826,7 @@ test("Account emails use four Owner templates, private local previews and frozen
       /Account subject|Integration-password|passwordHash/,
     );
   }
+
   const settings = await (
     await owner.session.request("/staff-notification-settings")
   ).json();
@@ -11041,6 +11123,7 @@ test("Account SSE events and read invalidations stay private to each active Owne
 
       assert.equal(feed.text.includes(subject.id), false);
     }
+
     assert.doesNotMatch(
       feeds[0].text,
       /Account subject|account-stream|Integration-password|passwordHash/,
@@ -11168,6 +11251,7 @@ test("Account outbox failure rolls back creation, access, audit and session revo
 
     await db.$executeRawUnsafe("DROP FUNCTION fail_account_outbox()");
   }
+
   const responses = await Promise.all([
     owner.session.request(
       `/accounts/${subject.id}`,
@@ -11277,6 +11361,7 @@ async function recordFilterFixture(key: string) {
     other,
   };
 }
+
 async function filterPage(
   session: Session,
   kind: "batches" | "clients",
@@ -11308,6 +11393,7 @@ test("Records/Clients filters enforce the full role matrix and strict inputs at 
   for (const path of ["/batches", "/clients"]) {
     assert.equal((await new Session().request(path + query)).status, 401);
   }
+
   for (const role of roles) {
     const { session } = await alertAccount(`filter-matrix-${role}`, role);
 
@@ -11322,6 +11408,7 @@ test("Records/Clients filters enforce the full role matrix and strict inputs at 
       );
     }
   }
+
   await resetAlertLoginLimit();
 
   const owner = await alertAccount("filter-input-owner", "OWNER");
@@ -11347,6 +11434,7 @@ test("Records/Clients filters enforce the full role matrix and strict inputs at 
       );
     }
   }
+
   assert.equal(
     (await owner.session.request("/batches?status=ON_HOLD")).status,
     400,
@@ -11398,6 +11486,7 @@ test("batch model/status/start-date filters intersect assignments and include bo
       }),
     );
   }
+
   const query = {
     q: f.prefix,
     model: "pHoNe 15",
@@ -11468,6 +11557,7 @@ test("batch model/status/start-date filters intersect assignments and include bo
 
     assert.equal(result.items[0].id, fixtures[index].id);
   }
+
   assert.equal(
     (
       await filterPage(f.owner.session, "batches", {
@@ -11516,6 +11606,7 @@ test("client filters use displayed unit fallback and joined date, preserve legac
       }),
     );
   }
+
   const before = await Promise.all([
     db.auditEntry.count(),
     db.changeEvent.count(),
@@ -11691,6 +11782,7 @@ test("handler filter counts and exact client links cannot expand assigned access
       assert.deepEqual(hidden.items, []);
     }
   }
+
   assert.equal(
     (await filterPage(f.handler.session, "clients", { id: foreign.id })).total,
     0,
@@ -11734,6 +11826,7 @@ test("handler filter counts and exact client links cannot expand assigned access
       0,
     );
   }
+
   assert.equal(
     (await f.handler.session.request(`/clients/${own.id}`)).status,
     404,
@@ -11775,6 +11868,7 @@ test("combined record filters paginate accurate totals without duplicates and ke
 
     clientIds.push(client.id);
   }
+
   const query = {
     q: f.prefix,
     model: "ipad",
@@ -11840,6 +11934,7 @@ test("combined record filters paginate accurate totals without duplicates and ke
       [],
     );
   }
+
   const linked = await filterPage(f.handler.session, "clients", {
     id: clientIds[0],
   });
@@ -11876,6 +11971,7 @@ test("merged operations endpoints retain the existing permission grants and enfo
       );
     }
   }
+
   for (const path of [
     "/recruitment/jobs",
     "/requirement-types",
@@ -11885,6 +11981,7 @@ test("merged operations endpoints retain the existing permission grants and enfo
   ]) {
     assert.equal((await new Session().request(path)).status, 401, path);
   }
+
   assert.equal(rolePermissions.COO.includes("SUPPORT_MANAGE"), false);
 
   assert.equal(rolePermissions.CORE_HANDLER.includes("BATCH_READ"), true);
@@ -12250,6 +12347,7 @@ test("merged operations reports count existing task submissions/reviews and supp
       "PK",
     );
   }
+
   const snapshot = await owner.session.request(
     "/reports/snapshots",
     post({ kind: "TASKS", periodStart: "2034-01-01", periodEnd: "2034-01-01" }),

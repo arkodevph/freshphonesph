@@ -60,21 +60,25 @@ export function StaffAlerts({
 
       return;
     }
+
     if (scope === "results" && !canResults) {
       setScope("all");
 
       return;
     }
+
     if (scope === "support" && !canSupport) {
       setScope("all");
 
       return;
     }
+
     if (scope === "accounts" && !canAccounts) {
       setScope("all");
 
       return;
     }
+
     const request = ++sequence.current;
 
     setLoading(true);
@@ -85,6 +89,7 @@ export function StaffAlerts({
       if (request !== sequence.current) {
         return;
       }
+
       setError(null);
 
       const lastPage = Math.max(1, Math.ceil(result.total / result.pageSize));
@@ -94,14 +99,17 @@ export function StaffAlerts({
 
         return;
       }
+
       setSnapshot(result);
     } catch (error) {
       if (request !== sequence.current) {
         return;
       }
+
       if (error instanceof ApiError && [401, 403].includes(error.status)) {
         setSnapshot(null);
       }
+
       setError(
         error instanceof Error ? error.message : "Could not load staff alerts.",
       );
@@ -164,6 +172,7 @@ export function StaffAlerts({
     ) {
       return;
     }
+
     pendingReads.current.add(key);
 
     setBusy(true);
@@ -190,6 +199,7 @@ export function StaffAlerts({
       void currentLoad.current();
     }
   }
+
   const unread = snapshot?.unreadCount ?? 0;
 
   const label = error

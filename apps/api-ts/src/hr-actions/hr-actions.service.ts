@@ -99,6 +99,7 @@ export class HrActionsService {
         "Only approved HR or COO staff may submit requests.",
       );
     }
+
     const where: Prisma.KpiReviewWhereInput = {
       decision: "ACTION_RECOMMENDED",
       hrActionRequests: { none: { status: { in: ["PENDING", "APPROVED"] } } },
@@ -157,6 +158,7 @@ export class HrActionsService {
         "Only approved HR or COO staff may submit requests.",
       );
     }
+
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -171,6 +173,7 @@ export class HrActionsService {
           "Your confidential HR access has changed.",
         );
       }
+
       const review = await tx.kpiReview.findUnique({
         where: { id: input.reviewId },
       });
@@ -178,9 +181,11 @@ export class HrActionsService {
       if (!review) {
         throw new NotFoundException("KPI review not found.");
       }
+
       if (review.decision !== "ACTION_RECOMMENDED") {
         throw new ConflictException("This review has no recommended action.");
       }
+
       if (
         await tx.hrActionRequest.findFirst({
           where: {
@@ -193,6 +198,7 @@ export class HrActionsService {
           "This review already has a pending or approved request.",
         );
       }
+
       const row = await tx.hrActionRequest.create({
         data: {
           reviewId: review.id,
@@ -235,6 +241,7 @@ export class HrActionsService {
         "Only the Owner may decide HR action requests.",
       );
     }
+
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -243,6 +250,7 @@ export class HrActionsService {
       if (!current?.active || current.role !== "OWNER") {
         throw new ForbiddenException("Your Owner access has changed.");
       }
+
       const before = await tx.hrActionRequest.findUnique({
         where: { id },
         include,
@@ -251,14 +259,17 @@ export class HrActionsService {
       if (!before) {
         throw new NotFoundException("HR action request not found.");
       }
+
       if (before.version !== input.version) {
         throw new ConflictException(
           "This request changed. Refresh before deciding.",
         );
       }
+
       if (before.status !== "PENDING") {
         throw new ConflictException("This request has already been decided.");
       }
+
       const changed = await tx.hrActionRequest.updateMany({
         where: { id, version: input.version, status: "PENDING" },
         data: {
@@ -275,6 +286,7 @@ export class HrActionsService {
           "This request changed. Refresh before deciding.",
         );
       }
+
       const row = await tx.hrActionRequest.findUniqueOrThrow({
         where: { id },
         include,

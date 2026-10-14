@@ -9,6 +9,7 @@ export default function ReportsPage() {
   if (!me) {
     return <p role="status">Checking report access…</p>;
   }
+
   if (me.account_type !== "employee" || !can(me, "REPORT_VIEW")) {
     return (
       <section className="system-panel p-8">
@@ -17,6 +18,7 @@ export default function ReportsPage() {
       </section>
     );
   }
+
   return (
     <ReportsDashboard key={me.id} canReviewPayments={can(me, "PAYMENT_READ")} />
   );

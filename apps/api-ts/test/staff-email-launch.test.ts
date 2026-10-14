@@ -202,6 +202,7 @@ test("smoke sends one synthetic text email and records private provider evidence
   for (const status of ["inboxDelivery", "authenticatedLink", "ownerUat"]) {
     assert.equal(evidence[status], "pending");
   }
+
   assert.ok(!saved.includes(environment.RESEND_API_KEY));
 
   assert.equal((await stat(f.directory)).mode & 0o777, 0o700);
@@ -301,6 +302,7 @@ test("retry cannot redirect a saved smoke run to a different sender, address or 
       /different sender, recipient or web origin/,
     );
   }
+
   assert.equal(f.requests.length, 1);
 });
 
@@ -329,6 +331,7 @@ test("unknown sends cannot be retried at 23 hours or after a backwards clock cha
       /window expired or its timestamp is invalid/,
     );
   }
+
   assert.equal(f.requests.length, 0);
 });
 

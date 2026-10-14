@@ -117,6 +117,7 @@ export default function RecordsPage() {
 
       return;
     }
+
     setLoading(true);
 
     setError(null);
@@ -133,6 +134,7 @@ export default function RecordsPage() {
       if (version !== requestVersion.current) {
         return;
       }
+
       const lastPage = Math.max(1, Math.ceil(result.count / 20));
 
       if (page > lastPage) {
@@ -140,6 +142,7 @@ export default function RecordsPage() {
 
         return;
       }
+
       setBatches(result.results);
 
       setTotal(result.count);
@@ -149,9 +152,11 @@ export default function RecordsPage() {
       if (version !== requestVersion.current) {
         return;
       }
+
       if (e instanceof ApiError && [401, 403].includes(e.status)) {
         clearPrivate();
       }
+
       setBatches([]);
 
       setTotal(0);
@@ -196,6 +201,7 @@ export default function RecordsPage() {
     if (!me || canManage) {
       return;
     }
+
     ++privateVersion.current;
 
     setDetails(null);
@@ -235,6 +241,7 @@ export default function RecordsPage() {
     if (mutation.current) {
       return;
     }
+
     const access = privateVersion.current;
 
     mutation.current = true;
@@ -257,6 +264,7 @@ export default function RecordsPage() {
       if (access !== privateVersion.current) {
         return;
       }
+
       flash("Batch created.");
 
       setForm((f) => {
@@ -268,9 +276,11 @@ export default function RecordsPage() {
       if (access !== privateVersion.current) {
         return;
       }
+
       if (e instanceof ApiError && [401, 403].includes(e.status)) {
         clearPrivate();
       }
+
       setError(e instanceof Error ? e.message : "Could not create batch.");
     } finally {
       setSaving(false);

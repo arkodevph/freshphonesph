@@ -44,6 +44,7 @@ export function CatalogWorkspace() {
       if (request !== sequence.current) {
         return;
       }
+
       if (query.page > 1 && page.items.length === 0) {
         setQuery((current) => {
           return { ...current, page: 1 };
@@ -51,6 +52,7 @@ export function CatalogWorkspace() {
 
         return;
       }
+
       setResult(page);
     } catch (failure) {
       if (request === sequence.current) {

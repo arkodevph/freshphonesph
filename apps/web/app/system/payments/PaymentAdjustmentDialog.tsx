@@ -1,16 +1,10 @@
 "use client";
 
+import { formatPeso as money } from "@/lib/currency";
 import { useEffect, useRef, useState } from "react";
 import { paymentAdjustmentSchema } from "@freshphones/contracts";
 import { adjustPayment, type Payment } from "@/lib/api";
 import styles from "./adjustments.module.css";
-
-const money = (value: string | number) => {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(Number(value));
-};
 
 export default function PaymentAdjustmentDialog({
   payment,
@@ -51,11 +45,13 @@ export default function PaymentAdjustmentDialog({
     if (busy.current || !confirmed) {
       return;
     }
+
     const key = JSON.stringify({ amount, reason: reason.trim() });
 
     if (submission.current?.key !== key) {
       submission.current = { key, id: crypto.randomUUID() };
     }
+
     const parsed = paymentAdjustmentSchema.safeParse({
       correctedAmount: amount,
       reason,
@@ -69,6 +65,7 @@ export default function PaymentAdjustmentDialog({
 
       return;
     }
+
     if (Number(amount) === Number(payment.amount)) {
       setError(
         "Enter a corrected credit that differs from the current credit.",
@@ -76,6 +73,7 @@ export default function PaymentAdjustmentDialog({
 
       return;
     }
+
     busy.current = true;
 
     setSaving(true);
@@ -96,6 +94,7 @@ export default function PaymentAdjustmentDialog({
       setSaving(false);
     }
   }
+
   return (
     <dialog
       ref={dialog}
@@ -242,6 +241,7 @@ export function AdjustmentHistory({ payment }: { payment: Payment }) {
   if (!payment.adjustments?.length) {
     return null;
   }
+
   return (
     <section className={styles.history} aria-label="Payment adjustments">
       <h3>Adjustment history</h3>

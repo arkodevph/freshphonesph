@@ -26,6 +26,7 @@ export default function AgentVerification() {
     if (!query.trim()) {
       return;
     }
+
     setLoading(true);
 
     setError(null);

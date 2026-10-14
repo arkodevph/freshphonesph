@@ -55,6 +55,7 @@ export class RedisEventsService implements OnModuleInit, OnModuleDestroy {
     if (!this.enabled) {
       return;
     }
+
     this.reader = redisConnection(this.config, true);
 
     this.reader.on("ready", () => {
@@ -91,6 +92,7 @@ export class RedisEventsService implements OnModuleInit, OnModuleDestroy {
 
           continue;
         }
+
         if (generation !== this.generation) {
           // New/reconnected readers catch up through an authorized HTTP snapshot.
           const latest = await redis.xrevrange(key, "+", "-", "COUNT", 1);
@@ -103,6 +105,7 @@ export class RedisEventsService implements OnModuleInit, OnModuleDestroy {
 
           this.events.emit("hint", null);
         }
+
         if (Date.now() >= nextCheck) {
           const first = await redis.xrange(key, "-", "+", "COUNT", 1);
 
@@ -118,8 +121,10 @@ export class RedisEventsService implements OnModuleInit, OnModuleDestroy {
 
             this.events.emit("hint", null);
           }
+
           nextCheck = Date.now() + 15_000;
         }
+
         const result = (await redis.xread(
           "COUNT",
           100,
@@ -133,6 +138,7 @@ export class RedisEventsService implements OnModuleInit, OnModuleDestroy {
         if (!result) {
           continue;
         }
+
         const entries = result[0][1];
 
         // Detect trim/reset before advancing: new entries can arrive before the periodic check.
@@ -143,6 +149,7 @@ export class RedisEventsService implements OnModuleInit, OnModuleDestroy {
             this.events.emit("hint", null);
           }
         }
+
         const ids = entries
           .map(([, fields]) => {
             return fields[0] === "eventId" &&
@@ -175,6 +182,7 @@ export class RedisEventsService implements OnModuleInit, OnModuleDestroy {
             });
           }
         }
+
         cursor = entries.at(-1)![0];
       } catch {
         if (!this.stopped) {

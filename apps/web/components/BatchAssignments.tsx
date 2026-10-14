@@ -74,6 +74,7 @@ export function BatchAssignments({
       if (current !== sequence.current) {
         return;
       }
+
       setBatch(record);
 
       setOptions(choices);
@@ -123,14 +124,17 @@ export function BatchAssignments({
     if (!record) {
       return;
     }
+
     void Promise.all([getBatchDetails(id), getAssignmentOptions()])
       .then(([latest, choices]) => {
         if (current !== sequence.current) {
           return;
         }
+
         if (latest.version !== record.version) {
           setOutdated(true);
         }
+
         setOptions(choices);
       })
       .catch(() => {});
@@ -148,6 +152,7 @@ export function BatchAssignments({
     if (!batch || saving || outdated) {
       return;
     }
+
     setSaving(true);
 
     setError(null);
@@ -166,6 +171,7 @@ export function BatchAssignments({
       if (error instanceof ApiError && error.status === 409) {
         setOutdated(true);
       }
+
       setError(
         error instanceof Error ? error.message : "Could not save assignments.",
       );
@@ -173,6 +179,7 @@ export function BatchAssignments({
       setSaving(false);
     }
   }
+
   const select = (key: "handlerId" | "agentId", label: string) => {
     const items = key === "handlerId" ? options.handlers : options.agents;
 

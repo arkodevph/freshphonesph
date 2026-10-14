@@ -59,6 +59,7 @@ export function ClientPicker({
 
       return;
     }
+
     const requestVersion = searchVersion.current;
 
     let cancelled = false;
@@ -73,6 +74,7 @@ export function ClientPicker({
           if (cancelled || requestVersion !== searchVersion.current) {
             return;
           }
+
           setResults(page.results);
 
           setOpen(true);
@@ -102,6 +104,7 @@ export function ClientPicker({
     if (active < 0) {
       return;
     }
+
     document
       .getElementById(`${listId}-${active}`)
       ?.scrollIntoView({ block: "nearest" });
@@ -156,6 +159,7 @@ export function ClientPicker({
             if (selected) {
               onSelect(null);
             }
+
             setResults([]);
 
             setLoading(false);

@@ -87,6 +87,7 @@ class HealthController {
         "Redis or background workers unavailable.",
       );
     }
+
     return { status: "ok", redis: status.redis, worker: status.worker };
   }
   @Public() @Get() async health() {
@@ -99,6 +100,7 @@ class HealthController {
     }
   }
 }
+
 @Module({})
 class AppModule {}
 
@@ -215,6 +217,7 @@ export async function createApp(config: Config = readConfig()) {
 
         return;
       }
+
       next();
     } catch (error) {
       res
@@ -245,6 +248,7 @@ export async function createApp(config: Config = readConfig()) {
         return;
       }
     }
+
     next();
   });
 

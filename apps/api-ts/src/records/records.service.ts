@@ -137,6 +137,7 @@ export class RecordsService {
       if (!current?.active || !allowed(current, permission)) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       return run(tx);
     });
   }
@@ -192,8 +193,10 @@ export class RecordsService {
       ) {
         throw new BadRequestException("Invalid batch status.");
       }
+
       where.status = query.status as Prisma.EnumBatchStatusFilter["equals"];
     }
+
     const [items, total] = await this.db.$transaction(
       [
         this.db.batch.findMany({
@@ -250,6 +253,7 @@ export class RecordsService {
     if (!batch) {
       throw new NotFoundException("Batch not found.");
     }
+
     return batchJson(batch);
   }
   async assignmentOptions(user: User) {
@@ -297,11 +301,13 @@ export class RecordsService {
       if (!before) {
         throw new NotFoundException("Batch not found.");
       }
+
       if (before.version !== input.version) {
         throw new ConflictException(
           "This batch changed. Load the latest assignments and review them.",
         );
       }
+
       if (
         input.handlerId &&
         input.handlerId !== before.handlerId &&
@@ -312,6 +318,7 @@ export class RecordsService {
       ) {
         throw new BadRequestException("Choose an active handler account.");
       }
+
       if (
         input.agentId &&
         input.agentId !== before.agentId &&
@@ -322,12 +329,14 @@ export class RecordsService {
       ) {
         throw new BadRequestException("Choose an active agent.");
       }
+
       if (
         input.handlerId === before.handlerId &&
         input.agentId === before.agentId
       ) {
         return batchJson(before);
       }
+
       await tx.batch.update({
         where: { id },
         data: {
@@ -366,6 +375,7 @@ export class RecordsService {
           });
         }
       }
+
       return batchJson(after);
     });
   }
@@ -417,6 +427,7 @@ export class RecordsService {
     if (!agent) {
       throw new NotFoundException("Agent not found.");
     }
+
     return agent;
   }
   async updateAgent(
@@ -431,6 +442,7 @@ export class RecordsService {
       if (!before) {
         throw new NotFoundException("Agent not found.");
       }
+
       const changed = await tx.agent.updateMany({
         where: { id, version },
         data: { ...input, version: { increment: 1 } },
@@ -441,6 +453,7 @@ export class RecordsService {
           "This agent changed. Reload the directory and review the latest record.",
         );
       }
+
       const after = await tx.agent.findUniqueOrThrow({ where: { id } });
 
       await this.record(
@@ -466,6 +479,7 @@ export class RecordsService {
           }),
         });
       }
+
       return after;
     });
   }
@@ -473,6 +487,7 @@ export class RecordsService {
     if (!query) {
       return { found: false };
     }
+
     const byCode = await this.db.agent.findUnique({
       where: { code: query.toUpperCase() },
       select: { name: true, code: true, active: true },
@@ -490,6 +505,7 @@ export class RecordsService {
     if (matches.length !== 1) {
       return { found: false };
     }
+
     const agent = matches[0];
 
     const maskedCode =
@@ -516,11 +532,13 @@ export class RecordsService {
       if (!before) {
         throw new NotFoundException("Batch not found.");
       }
+
       if (before.version !== version) {
         throw new ConflictException(
           "This batch changed while you were editing. Refresh and review the latest record.",
         );
       }
+
       const termsChanged =
         before.startDate.toISOString().slice(0, 10) !== input.startDate ||
         before.endDate.toISOString().slice(0, 10) !== input.endDate ||
@@ -539,6 +557,7 @@ export class RecordsService {
           "Plan terms are locked after schedules are issued. Create a new batch for a different plan.",
         );
       }
+
       this.validatePlan({
         ...input,
         contractPrice: input.contractPrice ?? before.contractPrice?.toFixed(2),
@@ -562,6 +581,7 @@ export class RecordsService {
           "This batch changed while you were editing. Refresh and review the latest record.",
         );
       }
+
       const after = await tx.batch.findUniqueOrThrow({
         where: { id },
         include: batchInclude,
@@ -632,11 +652,14 @@ export class RecordsService {
       if (!["ACTIVE", "ON_HOLD", "COMPLETED"].includes(query.status)) {
         throw new BadRequestException("Invalid client status.");
       }
+
       where.status = query.status as Prisma.EnumClientStatusFilter["equals"];
     }
+
     if (query.batchId) {
       where.batchId = query.batchId;
     }
+
     const [items, total] = await this.db.$transaction(
       [
         this.db.client.findMany({
@@ -660,6 +683,7 @@ export class RecordsService {
     ) {
       throw new NotFoundException("Client not found.");
     }
+
     const client = await this.db.client.findFirst({
       where: { id, retentionErasedAt: null, ...clientScope(user) },
       include: clientInclude,
@@ -668,6 +692,7 @@ export class RecordsService {
     if (!client) {
       throw new NotFoundException("Client not found.");
     }
+
     return clientJson(client);
   }
   private validatePlan(input: BatchInput) {
@@ -678,6 +703,7 @@ export class RecordsService {
     ) {
       return;
     }
+
     const items = generateSchedule({
       ...input,
       contractPrice: input.contractPrice,
@@ -702,6 +728,7 @@ export class RecordsService {
         "Set the agreed batch payment terms before enrolling a client or issuing a schedule.",
       );
     }
+
     return generateSchedule({
       ...batch,
       contractPrice: batch.contractPrice.toFixed(2),
@@ -717,6 +744,7 @@ export class RecordsService {
         "Choose a planned or active batch for enrollment.",
       );
     }
+
     return batch;
   }
   async createClient(user: User, input: ClientInput) {
@@ -777,19 +805,23 @@ export class RecordsService {
       if (!before || before.retentionErasedAt) {
         throw new NotFoundException("Client not found.");
       }
+
       if (before.version !== version) {
         throw new ConflictException(
           "This client changed while you were editing. Refresh and review the latest record.",
         );
       }
+
       if (before.batchId !== input.batchId) {
         if (await tx.scheduleItem.count({ where: { clientId: id } })) {
           throw new ConflictException(
             "This client has an issued schedule and cannot be moved to another batch.",
           );
         }
+
         await this.enrollment(tx, input.batchId);
       }
+
       const changed = await tx.client.updateMany({
         where: { id, version },
         data: {
@@ -804,6 +836,7 @@ export class RecordsService {
           "This client changed while you were editing. Refresh and review the latest record.",
         );
       }
+
       const after = await tx.client.findUniqueOrThrow({
         where: { id },
         include: clientInclude,
@@ -833,6 +866,7 @@ export class RecordsService {
           `/portal/release#release-update-${update.id}`,
         );
       }
+
       return clientJson(after);
     });
   }
@@ -872,6 +906,7 @@ export class RecordsService {
         "Collection date is only available when the unit is ready or released.",
       );
     }
+
     if (input.collectionDate) {
       const parsed = new Date(`${input.collectionDate}T00:00:00Z`);
 
@@ -882,12 +917,14 @@ export class RecordsService {
         throw new BadRequestException("Enter a valid collection date.");
       }
     }
+
     return this.write(user, "CLIENT_MANAGE", async (tx) => {
       const before = await tx.client.findUnique({ where: { id } });
 
       if (!before || before.retentionErasedAt) {
         throw new NotFoundException("Client not found.");
       }
+
       if (
         before.releaseStatus === input.status &&
         !input.note &&
@@ -897,6 +934,7 @@ export class RecordsService {
           "Add a note, a collection date, or a new status.",
         );
       }
+
       const changed = await tx.client.updateMany({
         where: { id, version: input.version },
         data: { releaseStatus: input.status, version: { increment: 1 } },
@@ -907,6 +945,7 @@ export class RecordsService {
           "This client changed. Refresh and review the latest record.",
         );
       }
+
       const update = await tx.releaseUpdate.create({
         data: {
           clientId: id,
@@ -964,6 +1003,7 @@ export class RecordsService {
         "This client does not have an issued schedule yet. Ask Records to review the batch terms.",
       );
     }
+
     const totalDue = items
       .reduce((sum, item) => {
         return sum.add(item.expectedAmount);
@@ -1001,6 +1041,7 @@ export class RecordsService {
       if (!client) {
         throw new NotFoundException("Client not found.");
       }
+
       if (!(await tx.scheduleItem.count({ where: { clientId: id } }))) {
         const items = this.plan(client.batch);
 
@@ -1020,6 +1061,7 @@ export class RecordsService {
           { items },
         );
       }
+
       return this.readSchedule(tx, id);
     });
   }
@@ -1032,6 +1074,7 @@ export class RecordsService {
     if (!result) {
       throw new NotFoundException("Account not found.");
     }
+
     return result;
   }
   async accounts(query: AccountQuery) {
@@ -1064,6 +1107,7 @@ export class RecordsService {
     ) {
       throw new NotFoundException("Account not found.");
     }
+
     const where = {
       entity: "account",
       recordId: id,
@@ -1110,6 +1154,7 @@ export class RecordsService {
       ) {
         throw new BadRequestException("Client not found.");
       }
+
       const result = await tx.user.create({
         data: {
           name: input.name,
@@ -1156,24 +1201,29 @@ export class RecordsService {
       if (!before) {
         throw new NotFoundException("Account not found.");
       }
+
       if (before.version !== version) {
         throw new ConflictException(
           "This account has changed. Refresh and try again.",
         );
       }
+
       if (id === user.id && input.active === false) {
         throw new BadRequestException(
           "You cannot deactivate your own account.",
         );
       }
+
       if (id === user.id && input.role && input.role !== before.role) {
         throw new BadRequestException("You cannot change your own role.");
       }
+
       if (input.role === "CUSTOMER" && before.role !== "CUSTOMER") {
         throw new BadRequestException(
           "Create customer access from the linked client record.",
         );
       }
+
       if (
         before.role === "CUSTOMER" &&
         input.role &&
@@ -1183,6 +1233,7 @@ export class RecordsService {
           "Customer access remains linked to its client record.",
         );
       }
+
       const roleChanged = Boolean(input.role && input.role !== before.role);
 
       const activeChanged =
@@ -1198,6 +1249,7 @@ export class RecordsService {
             "Owner confidential HR access is automatic.",
           );
         }
+
         if (
           !input.hrAccessReason ||
           input.hrAccessReason.trim().length < 3 ||
@@ -1207,6 +1259,7 @@ export class RecordsService {
             "Give a reason for the confidential HR access decision.",
           );
         }
+
         if (
           input.hrConfidentialAccess &&
           (!eligibleForConfidentialHr(nextRole) || !nextActive)
@@ -1216,6 +1269,7 @@ export class RecordsService {
           );
         }
       }
+
       const hrConfidentialAccess =
         nextActive && eligibleForConfidentialHr(nextRole)
           ? (input.hrConfidentialAccess ??
@@ -1227,6 +1281,7 @@ export class RecordsService {
       if (!roleChanged && !activeChanged && !hrChanged) {
         return before;
       }
+
       const updated = await tx.user.updateMany({
         where: { id, version },
         data: {
@@ -1242,12 +1297,14 @@ export class RecordsService {
           "This account has changed. Refresh and try again.",
         );
       }
+
       if (input.active === false || roleChanged || hrChanged) {
         await tx.session.updateMany({
           where: { userId: id, revokedAt: null },
           data: { revokedAt: new Date() },
         });
       }
+
       const after = await tx.user.findUniqueOrThrow({
         where: { id },
         select: accountSelect,
@@ -1262,6 +1319,7 @@ export class RecordsService {
 
         await this.record(tx, user.id, "account", id, action, before, after);
       }
+
       if (hrChanged || (roleChanged && input.hrConfidentialAccess === true)) {
         await this.record(
           tx,
@@ -1283,6 +1341,7 @@ export class RecordsService {
           },
         );
       }
+
       await notifyAccount(tx, user, before, after);
 
       return after;
@@ -1328,6 +1387,7 @@ export class RecordsService {
     if (!record) {
       throw new NotFoundException("Record not found.");
     }
+
     const where = { entity, recordId: id };
 
     const [rows, total] = await this.db.$transaction([

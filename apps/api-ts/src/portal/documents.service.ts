@@ -56,15 +56,18 @@ export class DocumentsService {
     if (user.role === "CUSTOMER" && user.clientId === clientId) {
       return;
     }
+
     if (this.staff(user)) {
       return;
     }
+
     throw new NotFoundException("Documents not found.");
   }
   private ownClient(user: User) {
     if (user.role !== "CUSTOMER" || !user.clientId) {
       throw new ForbiddenException("Linked customer account required.");
     }
+
     return user.clientId;
   }
 
@@ -83,6 +86,7 @@ export class DocumentsService {
     ) {
       throw new NotFoundException("Client not found.");
     }
+
     const rows = await this.db.customerDocument.findMany({
       where: { clientId },
       include,
@@ -120,6 +124,7 @@ export class DocumentsService {
     if (!requirement(key)) {
       throw new BadRequestException("Unknown requirement.");
     }
+
     const file = this.storage.validateDocument(upload);
 
     const storageKey = await this.storage.saveDocument(file);
@@ -138,6 +143,7 @@ export class DocumentsService {
         ) {
           throw new ForbiddenException("Your access has changed.");
         }
+
         if (
           !(await tx.client.findUnique({
             where: { id: clientId },
@@ -146,6 +152,7 @@ export class DocumentsService {
         ) {
           throw new NotFoundException("Client not found.");
         }
+
         const previous = await tx.customerDocument.findFirst({
           where: { clientId, requirementKey: key },
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -156,6 +163,7 @@ export class DocumentsService {
             "This requirement is already submitted. Wait for review before replacing it.",
           );
         }
+
         const stored = await tx.storedFile.create({
           data: {
             storageKey,
@@ -205,6 +213,7 @@ export class DocumentsService {
     if (!this.staff(user)) {
       throw new ForbiddenException("Records access required.");
     }
+
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -213,6 +222,7 @@ export class DocumentsService {
       if (!current?.active || !this.staff(current)) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       const before = await tx.customerDocument.findUnique({
         where: { id },
         include,
@@ -221,16 +231,19 @@ export class DocumentsService {
       if (!before) {
         throw new NotFoundException("Document not found.");
       }
+
       if (before.version !== input.version) {
         throw new ConflictException(
           "This document changed. Refresh and review it.",
         );
       }
+
       if (before.status !== "SUBMITTED") {
         throw new ConflictException(
           "Only submitted documents can be reviewed.",
         );
       }
+
       const clarification =
         input.status === "NEEDS_CLARIFICATION"
           ? (input.clarification?.trim() ?? "")
@@ -241,6 +254,7 @@ export class DocumentsService {
           "Explain what the customer needs to correct.",
         );
       }
+
       const row = await tx.customerDocument.update({
         where: { id },
         data: {
@@ -292,6 +306,7 @@ export class DocumentsService {
     if (!row) {
       throw new NotFoundException("Document not found.");
     }
+
     this.check(user, row.clientId);
 
     return {

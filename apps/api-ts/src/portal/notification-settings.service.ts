@@ -116,6 +116,7 @@ export class NotificationSettingsService {
       if (!current?.active || !allowed(current, "ACCOUNT_MANAGE")) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       return run(tx);
     });
   }
@@ -134,6 +135,7 @@ export class NotificationSettingsService {
           "Template changed. Refresh and review the latest wording.",
         );
       }
+
       const after = before
         ? await tx.customerEmailTemplate.update({
             where: { kind },
@@ -190,6 +192,7 @@ export class NotificationSettingsService {
           "Reminder settings changed. Refresh and review the latest values.",
         );
       }
+
       const after = before
         ? await tx.customerNotificationConfig.update({
             where: { key: "customer" },

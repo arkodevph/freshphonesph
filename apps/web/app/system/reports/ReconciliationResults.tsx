@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPeso as money } from "@/lib/currency";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Page,
@@ -10,13 +11,6 @@ import type {
 } from "@freshphones/contracts";
 import { getReconciliationExceptions } from "@/lib/api";
 import styles from "./reports.module.css";
-
-const money = (value: string) => {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(Number(value));
-};
 
 const flagNames: Record<ReconciliationFlag, string> = {
   DUPLICATE_REFERENCE: "Possible duplicate reference",
@@ -324,6 +318,7 @@ function PaymentExceptions({
       if (request !== sequence.current) {
         return;
       }
+
       const last = Math.max(1, Math.ceil(rows.total / rows.pageSize));
 
       if (page > last) {
@@ -331,6 +326,7 @@ function PaymentExceptions({
 
         return;
       }
+
       setResult(rows);
     } catch (reason) {
       if (request === sequence.current) {

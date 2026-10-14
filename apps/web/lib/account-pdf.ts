@@ -1,3 +1,4 @@
+import { formatPeso as money } from "./currency";
 import type { Client, ClientBalance, Payment } from "@freshphones/contracts";
 
 type Statement = {
@@ -22,13 +23,6 @@ type Confirmation = {
   notice: string;
   generatedAt: string;
   payment: Payment;
-};
-
-const money = (value: string) => {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(Number(value));
 };
 
 const date = (value: string) => {
@@ -58,6 +52,7 @@ export async function downloadAccountPdf(
   if (!regularResponse.ok || !boldResponse.ok) {
     throw new Error("Could not load the PDF font. Please try again.");
   }
+
   const pdf = await PDFDocument.create();
 
   pdf.registerFontkit(fontkit);
@@ -100,6 +95,7 @@ export async function downloadAccountPdf(
       if (y < 70) {
         newPage();
       }
+
       page.drawText(value, { x: 45, y, size, font, color });
 
       y -= size + 8;
@@ -112,6 +108,7 @@ export async function downloadAccountPdf(
 
           current = "";
         }
+
         let chunk = "";
 
         for (const character of word) {
@@ -123,12 +120,15 @@ export async function downloadAccountPdf(
 
             chunk = "";
           }
+
           chunk += character;
         }
+
         current = chunk;
 
         continue;
       }
+
       const candidate = current ? `${current} ${word}` : word;
 
       if (font.widthOfTextAtSize(candidate, size) > maxWidth && current) {
@@ -139,6 +139,7 @@ export async function downloadAccountPdf(
         current = candidate;
       }
     }
+
     if (current) {
       draw(current);
     }
@@ -187,6 +188,7 @@ export async function downloadAccountPdf(
     if (!record.verifiedPayments.length) {
       line("No verified payments yet.");
     }
+
     for (const payment of record.verifiedPayments) {
       line(
         `${date(payment.paymentDate)}  |  Credit: ${money(payment.effectiveAmount ?? payment.amount)}  |  Original: ${money(payment.amount)}  |  ${payment.method}  |  Ref: ${payment.referenceNumber || "—"}`,
@@ -210,12 +212,14 @@ export async function downloadAccountPdf(
 
     line(`Reference: ${record.payment.referenceNumber || "—"}`);
   }
+
   for (const payment of "payment" in record
     ? [record.payment]
     : record.verifiedPayments) {
     if (!payment.adjustments?.length) {
       continue;
     }
+
     y -= 10;
 
     line(`Adjustment history: ${date(payment.paymentDate)}`, 12, true, purple);
@@ -227,6 +231,7 @@ export async function downloadAccountPdf(
       );
     }
   }
+
   y -= 18;
 
   line(record.notice, 10, true, purple);

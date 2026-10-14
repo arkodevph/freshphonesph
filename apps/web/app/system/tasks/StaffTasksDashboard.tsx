@@ -36,6 +36,7 @@ export default function StaffTasksDashboard() {
   if (!me) {
     return <p role="status">Loading task access…</p>;
   }
+
   if (me.account_type !== "employee") {
     return (
       <section>
@@ -44,6 +45,7 @@ export default function StaffTasksDashboard() {
       </section>
     );
   }
+
   return (
     <TaskWorkspace
       key={`${me.id}:${can(me, "TASK_ASSIGN")}:${can(me, "KPI_REVIEW")}`}
@@ -139,6 +141,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     if (!staff) {
       return;
     }
+
     const request = ++listSequence.current;
 
     try {
@@ -157,6 +160,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       if (request !== listSequence.current) {
         return;
       }
+
       setTasks(taskData);
 
       setQueue(queueData);
@@ -180,6 +184,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     ) {
       return;
     }
+
     const request = ++detailSequence.current;
 
     try {
@@ -188,6 +193,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       if (request !== detailSequence.current || activeTaskId.current !== id) {
         return;
       }
+
       // Keep the record version captured when the report/review editor opened.
       if (
         activeSnapshot.current?.id === id &&
@@ -201,6 +207,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       if (request !== detailSequence.current || activeTaskId.current !== id) {
         return;
       }
+
       setError(message(caught));
 
       if (caught instanceof ApiError && [403, 404].includes(caught.status)) {
@@ -227,6 +234,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     if (!canAssign) {
       return;
     }
+
     void tsRequest<Assignee[]>("/tasks/assignees")
       .then(setAssignees)
       .catch((caught) => {
@@ -244,6 +252,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     if (activeTaskId.current === id) {
       return;
     }
+
     if (
       activeTaskId.current &&
       draft.current &&
@@ -259,6 +268,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
 
       return;
     }
+
     const request = ++detailSequence.current;
 
     activeTaskId.current = id;
@@ -288,6 +298,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     if (!dialog.current?.open) {
       dialog.current?.showModal();
     }
+
     try {
       const task = await tsRequest<Task>(`/tasks/${id}`);
 
@@ -342,6 +353,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       window.history.replaceState(null, "", "/system/tasks");
     }
   }
+
   function closeTask() {
     if (
       busy ||
@@ -350,10 +362,12 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     ) {
       return;
     }
+
     dialog.current?.close();
 
     clearTask();
   }
+
   async function loadLatestTask() {
     if (
       !active ||
@@ -364,12 +378,14 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     ) {
       return;
     }
+
     const id = active.id;
 
     activeTaskId.current = null;
 
     await openTask(id);
   }
+
   async function mutate(run: () => Promise<unknown>, success: string) {
     setBusy(true);
 
@@ -398,6 +414,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
           setActiveChanged(false);
         }
       }
+
       return true;
     } catch (caught) {
       setError(message(caught));
@@ -407,6 +424,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       setBusy(false);
     }
   }
+
   async function assign(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -426,12 +444,14 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       });
     }
   }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!active || activeChanged || (!report.trim() && !attachment)) {
       return;
     }
+
     const data = new FormData();
 
     data.set("version", String(active.version));
@@ -441,6 +461,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     if (attachment) {
       data.set("attachment", attachment);
     }
+
     if (
       await mutate(() => {
         return tsUpload(`/tasks/${active.id}/submit`, data);
@@ -451,12 +472,14 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       setAttachment(null);
     }
   }
+
   async function review(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!active || activeChanged) {
       return;
     }
+
     await mutate(() => {
       return tsRequest("/kpi/reviews", {
         method: "POST",
@@ -470,6 +493,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       });
     }, "KPI review recorded.");
   }
+
   async function download(task: Task) {
     try {
       const blob = await tsDownload(`/tasks/${task.id}/attachment`);
@@ -500,6 +524,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       </section>
     );
   }
+
   return (
     <main className={styles.page}>
       <Suspense fallback={null}>

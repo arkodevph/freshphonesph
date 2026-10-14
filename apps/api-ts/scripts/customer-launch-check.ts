@@ -22,6 +22,7 @@ function origin(value: string) {
   if (parsed.origin !== value.replace(/\/$/, "")) {
     throw new Error("API origin must not include a path.");
   }
+
   return parsed.origin;
 }
 
@@ -31,6 +32,7 @@ async function reachable(url: string) {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
+
   return response;
 }
 
@@ -40,16 +42,19 @@ async function main() {
   if (staging && config.NODE_ENV !== "production") {
     throw new Error("--staging requires NODE_ENV=production.");
   }
+
   if (config.NODE_ENV === "production" && !staging) {
     throw new Error(
       "Use --staging for the synthetic bucket check in a production-configured environment.",
     );
   }
+
   if (config.PRIVATE_STORAGE_PROVIDER === "s3" && !staging) {
     throw new Error(
       "Use --staging to acknowledge the synthetic write to a configured S3 bucket.",
     );
   }
+
   const apiOrigin = origin(
     apiOriginOption ?? `http://127.0.0.1:${config.PORT}`,
   );
@@ -107,6 +112,7 @@ async function main() {
       }
     });
   }
+
   await check(
     "Private storage upload, read, and cleanup with a synthetic image",
     async () => {
@@ -138,6 +144,7 @@ async function main() {
         if (!downloaded.equals(samplePng)) {
           throw new Error("Downloaded bytes did not match the upload.");
         }
+
         if (staging) {
           const endpoint = config.PRIVATE_STORAGE_S3_ENDPOINT!.replace(
             /\/$/,
@@ -183,6 +190,7 @@ async function main() {
       "[ACTION] Send one approved test notification to a named test mailbox and confirm delivery and its record link. This checker does not send email.",
     );
   }
+
   console.log(
     "[ACTION] Approve reminder offsets, privacy/retention rules, and the named customer UAT checklist before launch.",
   );

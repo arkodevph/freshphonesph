@@ -48,9 +48,11 @@ export function recordFilterQuery(
       params[key] = entry;
     }
   }
+
   if (kind === "client" && batchId) {
     params.batchId = batchId;
   }
+
   const result = (
     kind === "batch" ? batchListQuerySchema : clientListQuerySchema
   ).safeParse(params);

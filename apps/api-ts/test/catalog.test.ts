@@ -59,6 +59,7 @@ test("catalog contracts normalize codes and reject ambiguous prices, invalid ava
       JSON.stringify(patch),
     );
   }
+
   assert.equal(
     catalogUpdateSchema.safeParse({ version: 0, record: listing }).success,
     false,
@@ -83,6 +84,7 @@ test("public queries cannot select hidden listings; search and page sizes are bo
 
     assert.equal(publicCatalogQuerySchema.safeParse(query).success, false);
   }
+
   assert.equal(
     catalogQuerySchema.safeParse({ visibility: "HIDDEN" }).success,
     true,
@@ -206,6 +208,7 @@ test("public breakdowns match issued schedule rounding and timing without changi
       );
     }
   }
+
   const thirds = catalogPlanBreakdown({
     totalAmount: "100",
     installmentCount: 3,

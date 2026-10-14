@@ -95,6 +95,7 @@ test("staff email contracts reject forged recipients, unsafe subjects, unsupport
       false,
     );
   }
+
   const timing = { version: 0, dueSoonHours: 24, overdueHours: 0 };
 
   assert.ok(staffEmailTimingSchema.safeParse(timing).success);
@@ -111,6 +112,7 @@ test("staff email contracts reject forged recipients, unsafe subjects, unsupport
       false,
     );
   }
+
   assert.equal(staffEmailQuerySchema.safeParse({ page: 0 }).success, false);
 
   assert.equal(
@@ -151,6 +153,7 @@ test("Finance results require staff payment recording and reading access, includ
       role,
     );
   }
+
   assert.equal(canReadPaymentResults({ role: "RECORDS" }), true);
 
   assert.equal(canReadPaymentResults({ role: "CUSTOMER" }), false);
@@ -215,6 +218,7 @@ test("Support alert contracts allow only recipient-owned reads and the Support s
       false,
     );
   }
+
   assert.equal(
     staffAlertReadAllSchema.safeParse({
       scope: "support",
@@ -256,6 +260,7 @@ test("Owner account alerts accept only receipt actions and account email kinds",
       false,
     );
   }
+
   assert.equal(
     staffAlertReadAllSchema.safeParse({ scope: "accounts", role: "OWNER" })
       .success,
@@ -327,6 +332,7 @@ test("staff alerts reject forged recipients, ambiguous reads and invalid scopes"
   ]) {
     assert.equal(staffAlertReadSchema.safeParse(input).success, false);
   }
+
   for (const query of [
     { scope: "customer" },
     { page: 0 },
@@ -334,6 +340,7 @@ test("staff alerts reject forged recipients, ambiguous reads and invalid scopes"
   ]) {
     assert.equal(staffAlertQuerySchema.safeParse(query).success, false);
   }
+
   assert.equal(
     staffAlertReadAllSchema.safeParse({ scope: "tasks", userId: "foreign" })
       .success,
@@ -360,6 +367,7 @@ test("Finance alert reads require a captured version and bounded, explicit queue
   ]) {
     assert.equal(financeAlertQuerySchema.safeParse(query).success, false);
   }
+
   assert.ok(financeAlertReadSchema.safeParse({ version: 2 }).success);
 
   for (const body of [
@@ -477,6 +485,7 @@ test("installments preserve totals and positive amounts even at centavo boundari
       }),
     );
   }
+
   assert.throws(() => {
     return generateSchedule({
       contractPrice: "0.01",
@@ -1020,6 +1029,7 @@ test("record list contracts accept inclusive date bounds, one-sided dates and ev
     for (const status of statuses) {
       assert.ok(schema.safeParse({ status }).success);
     }
+
     assert.deepEqual(
       schema.parse({
         q: "  case  ",
@@ -1061,6 +1071,7 @@ test("record query contracts reject unknown keys, duplicate facets, invalid date
       );
     }
   }
+
   assert.equal(
     batchListQuerySchema.safeParse({ status: "ON_HOLD" }).success,
     false,

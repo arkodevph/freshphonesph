@@ -47,11 +47,13 @@ export function addressGroup(address: string | undefined) {
   if (!address || !ipaddr.isValid(address)) {
     return "unknown";
   }
+
   const parsed = ipaddr.process(address);
 
   if (parsed.kind() === "ipv4") {
     return parsed.toString();
   }
+
   return `${parsed
     .toByteArray()
     .slice(0, 8)

@@ -27,6 +27,7 @@ export async function notifyAccount(
   if (after.role === "CUSTOMER" || before?.role === "CUSTOMER") {
     return;
   }
+
   const kinds: AccountAlertKind[] = before
     ? [
         ...(before.role !== after.role
@@ -45,6 +46,7 @@ export async function notifyAccount(
   if (!kinds.length) {
     return;
   }
+
   const recipients = await tx.user.findMany({
     where: { active: true, role: "OWNER" },
     select: { id: true },
@@ -53,6 +55,7 @@ export async function notifyAccount(
   if (!recipients.length) {
     return;
   }
+
   const alerts = await tx.accountAlert.createManyAndReturn({
     skipDuplicates: true,
     data: recipients.flatMap((user) => {
@@ -77,6 +80,7 @@ export async function notifyAccount(
   if (!alerts.length) {
     return;
   }
+
   await tx.changeEvent.createMany({
     data: alerts.map((alert) => {
       return { entity: "account-alert", recordId: alert.id };
@@ -85,9 +89,11 @@ export async function notifyAccount(
 
   await queueAccountEmails(tx, alerts);
 }
+
 export function accountAlertVisibleSql(userId: string) {
   return Prisma.sql`r."userId" = ${userId}::uuid AND u.active AND u.role = 'OWNER'`;
 }
+
 export function accountAlertRows(userId: string) {
   return Prisma.sql`SELECT r.id, NULL::uuid AS "paymentId", NULL::uuid AS "caseId", r."accountId", r."accountVersion" AS version,
     'account'::text AS entity, r.kind::text AS kind, NULL::text AS amount, r."accountName" AS "clientName", r."actorName" AS "batchCode",
@@ -97,6 +103,7 @@ export function accountAlertRows(userId: string) {
     NULL::timestamp AS deadline, r."createdAt", r."createdAt" AS "updatedAt", r."readAt", r."createdAt" AS "occurredAt"
     FROM "AccountAlert" r JOIN "User" u ON u.id = r."userId" WHERE ${accountAlertVisibleSql(userId)}`;
 }
+
 export async function accountAlertIsVisible(
   tx: Prisma.TransactionClient,
   userId: string,

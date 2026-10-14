@@ -64,6 +64,7 @@ export default function SecurityPage() {
       }
     }
   }
+
   useEffect(() => {
     void load();
   }, []);
@@ -91,6 +92,7 @@ export default function SecurityPage() {
       setCode("");
     }
   }
+
   function enable(event: FormEvent) {
     event.preventDefault();
 
@@ -107,6 +109,7 @@ export default function SecurityPage() {
       setSaved(false);
     });
   }
+
   function verify(event: FormEvent) {
     event.preventDefault();
 
@@ -127,6 +130,7 @@ export default function SecurityPage() {
       await load();
     });
   }
+
   function manage(action: "disable" | "recovery-codes") {
     void run(async () => {
       const data = await tsRequest<{ backupCodes?: string[] }>(
@@ -147,6 +151,7 @@ export default function SecurityPage() {
       await load();
     });
   }
+
   return (
     <main className={styles.page}>
       <div className={styles.wrap}>

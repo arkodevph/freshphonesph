@@ -84,6 +84,7 @@ export class NotificationsController {
     if (this.queues.control) {
       return this.queues.request("operations-reminders");
     }
+
     return this.notifications.runTaskReminders();
   }
 
@@ -91,6 +92,7 @@ export class NotificationsController {
     if (this.queues.control) {
       return this.queues.request("reconcile");
     }
+
     return this.notifications.deliverPending();
   }
 }

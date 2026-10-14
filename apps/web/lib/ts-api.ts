@@ -49,9 +49,11 @@ async function refreshSession() {
       if (current.ok) {
         return;
       }
+
       if (current.status !== 401) {
         throw await responseError(current, "Could not check your session.");
       }
+
       const response = await fetch(`${API_URL}/api/auth/refresh`, {
         method: "POST",
         credentials: "include",
@@ -61,12 +63,14 @@ async function refreshSession() {
         if (response.status === 401 && typeof window !== "undefined") {
           window.dispatchEvent(new Event("fp-session-expired"));
         }
+
         if (response.status === 401) {
           throw new ApiError(
             "Your session expired. Please sign in again.",
             response.status,
           );
         }
+
         throw await responseError(response, "Could not check your session.");
       }
     };
@@ -83,105 +87,94 @@ async function refreshSession() {
         refreshing = null;
       });
   }
+
   return refreshing;
+}
+
+async function authenticatedResponse(
+  send: () => Promise<Response>,
+  allowRefresh: boolean,
+  failure: string,
+): Promise<Response> {
+  let response = await send();
+
+  if (response.status === 401 && allowRefresh) {
+    await refreshSession();
+
+    response = await send();
+  }
+
+  if (!response.ok) {
+    if (typeof window !== "undefined") {
+      if (response.status === 412) {
+        window.dispatchEvent(new Event("fp-mfa-required"));
+      }
+
+      if (response.status === 428) {
+        window.dispatchEvent(new Event("fp-legal-required"));
+      }
+    }
+
+    throw await responseError(response, `${failure} (${response.status}).`);
+  }
+
+  return response;
 }
 
 export async function tsRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const send = () => {
-    return fetch(`${API_URL}/api${path}`, {
-      ...options,
-      credentials: "include",
-      cache: "no-store",
-      headers: {
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...options.headers,
-      },
-    });
-  };
+  const response = await authenticatedResponse(
+    () => {
+      return fetch(`${API_URL}/api${path}`, {
+        ...options,
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          ...(options.body ? { "Content-Type": "application/json" } : {}),
+          ...options.headers,
+        },
+      });
+    },
+    !path.startsWith("/auth/") || path === "/auth/me",
+    "Request failed",
+  );
 
-  let response = await send();
-
-  if (
-    response.status === 401 &&
-    (!path.startsWith("/auth/") || path === "/auth/me")
-  ) {
-    await refreshSession();
-
-    response = await send();
-  }
-  if (!response.ok) {
-    if (response.status === 412 && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("fp-mfa-required"));
-    }
-    if (response.status === 428 && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("fp-legal-required"));
-    }
-    throw await responseError(response, `Request failed (${response.status}).`);
-  }
   return response.status === 204
     ? (undefined as T)
     : (response.json() as Promise<T>);
 }
 
 export async function tsUpload<T>(path: string, body: FormData): Promise<T> {
-  const send = () => {
-    return fetch(`${API_URL}/api${path}`, {
-      method: "POST",
-      body,
-      credentials: "include",
-      cache: "no-store",
-    });
-  };
+  const response = await authenticatedResponse(
+    () => {
+      return fetch(`${API_URL}/api${path}`, {
+        method: "POST",
+        body,
+        credentials: "include",
+        cache: "no-store",
+      });
+    },
+    true,
+    "Request failed",
+  );
 
-  let response = await send();
-
-  if (response.status === 401) {
-    await refreshSession();
-
-    response = await send();
-  }
-  if (!response.ok) {
-    if (response.status === 412 && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("fp-mfa-required"));
-    }
-    if (response.status === 428 && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("fp-legal-required"));
-    }
-    throw await responseError(response, `Request failed (${response.status}).`);
-  }
   return response.json() as Promise<T>;
 }
 
 export async function tsDownload(path: string): Promise<Blob> {
-  const send = () => {
-    return fetch(`${API_URL}/api${path}`, {
-      credentials: "include",
-      cache: "no-store",
-    });
-  };
+  const response = await authenticatedResponse(
+    () => {
+      return fetch(`${API_URL}/api${path}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+    },
+    true,
+    "Download failed",
+  );
 
-  let response = await send();
-
-  if (response.status === 401) {
-    await refreshSession();
-
-    response = await send();
-  }
-  if (!response.ok) {
-    if (response.status === 412 && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("fp-mfa-required"));
-    }
-    if (response.status === 428 && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("fp-legal-required"));
-    }
-    throw await responseError(
-      response,
-      `Download failed (${response.status}).`,
-    );
-  }
   return response.blob();
 }
 

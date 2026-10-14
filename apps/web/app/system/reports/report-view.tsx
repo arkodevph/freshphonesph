@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPeso as currency } from "@/lib/currency";
 import {
   getReportBatches,
   getReportSnapshots,
@@ -77,14 +78,6 @@ export const dateLabel = (date: string) => {
 
 export const periodLabel = (filters: ReportFilters) => {
   return `${filters.dateFrom ? dateLabel(filters.dateFrom) : "All earlier dates"} – ${filters.dateTo ? dateLabel(filters.dateTo) : "All later dates"}`;
-};
-
-export const currency = (value: string) => {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    minimumFractionDigits: 2,
-  }).format(Number(value));
 };
 
 export function BatchPicker({
@@ -307,6 +300,7 @@ export function ReportResults({
       />
     );
   }
+
   if (report.kind === "collections") {
     return (
       <CollectionResults
@@ -316,6 +310,7 @@ export function ReportResults({
       />
     );
   }
+
   if (report.kind === "payments") {
     const data = report.data;
 
@@ -365,6 +360,7 @@ export function ReportResults({
       </>
     );
   }
+
   if (report.kind === "tasks") {
     const data = report.data;
 
@@ -407,6 +403,7 @@ export function ReportResults({
       </>
     );
   }
+
   const data = report.data;
 
   return (
@@ -730,6 +727,7 @@ export function ReportHistory({ kind }: { kind: ReportKind }) {
       if (request !== sequence.current) {
         return;
       }
+
       const last = Math.max(1, Math.ceil(rows.total / rows.pageSize));
 
       if (page > last) {
@@ -737,6 +735,7 @@ export function ReportHistory({ kind }: { kind: ReportKind }) {
 
         return;
       }
+
       setResult(rows);
     } catch (reason) {
       if (request === sequence.current) {
@@ -876,6 +875,7 @@ export function SavedReport({
     if (busy || draft.trim().length < 20) {
       return;
     }
+
     setBusy(true);
 
     setError(null);
@@ -890,6 +890,7 @@ export function SavedReport({
       setBusy(false);
     }
   }
+
   const report: LoadedReport =
     item.kind === "PAYMENTS"
       ? { kind: "payments", data: item.payload }
@@ -1002,3 +1003,5 @@ export function SavedReport({
     </details>
   );
 }
+
+export { formatPeso as currency } from "@/lib/currency";

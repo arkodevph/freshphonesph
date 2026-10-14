@@ -91,6 +91,7 @@ export function RecordDetails({
       if (request !== sequence.current) {
         return;
       }
+
       setRecord(current);
 
       setDraft(recordDraft(current));
@@ -129,6 +130,7 @@ export function RecordDetails({
         })
         .catch(() => {});
     }
+
     return () => {
       stopped = true;
 
@@ -146,6 +148,7 @@ export function RecordDetails({
     if (!snapshot) {
       return;
     }
+
     void read()
       .then((latest) => {
         if (request === sequence.current && recordChanged(snapshot, latest)) {
@@ -160,6 +163,7 @@ export function RecordDetails({
       dirty ? setDiscard("close") : onClose();
     }
   }
+
   function reload() {
     if (dirty) {
       setDiscard("reload");
@@ -167,12 +171,14 @@ export function RecordDetails({
       void load();
     }
   }
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
 
     if (!record || !draft || saving || outdated) {
       return;
     }
+
     setSaving(true);
 
     setError(null);
@@ -192,6 +198,7 @@ export function RecordDetails({
 
           return;
         }
+
         await updateBatchDetails(id, record.version, parsed.data);
       } else {
         const parsed = clientSchema.safeParse(clientEditInput(draft));
@@ -207,8 +214,10 @@ export function RecordDetails({
 
           return;
         }
+
         await updateClientDetails(id, record.version, parsed.data);
       }
+
       onSaved();
 
       onClose();
@@ -224,6 +233,7 @@ export function RecordDetails({
           /* Keep the original conflict visible. */
         }
       }
+
       setError(
         error instanceof Error ? error.message : "Could not save the record.",
       );
@@ -231,6 +241,7 @@ export function RecordDetails({
       setSaving(false);
     }
   }
+
   const field = (
     label: string,
     key: keyof RecordDraft,

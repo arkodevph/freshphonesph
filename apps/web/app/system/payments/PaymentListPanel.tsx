@@ -126,6 +126,7 @@ export default function PaymentListPanel({
 
             window.history.replaceState(null, "", "/system/payments");
           }
+
           resetPaymentPage();
 
           if (term === appliedPaymentQuery && paymentPage === 1) {

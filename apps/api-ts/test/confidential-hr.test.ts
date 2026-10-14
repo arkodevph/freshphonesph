@@ -40,6 +40,7 @@ test("confidential access requires an Owner or an explicit grant for an eligible
       );
     }
   }
+
   for (const role of ["HR_PAYROLL", "COO"] as const) {
     assert.equal(allowed({ role }, "HR_CONFIDENTIAL"), false);
 
@@ -95,6 +96,7 @@ test("confidential decisions require a captured version and a bounded reason and
       );
     }
   }
+
   assert.equal(
     accountUpdateSchema.safeParse({
       hrConfidentialAccess: true,

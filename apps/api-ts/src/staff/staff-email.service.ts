@@ -70,6 +70,7 @@ export class StaffEmailService {
       if (!current?.active || !allowed(current, "ACCOUNT_MANAGE")) {
         throw new ForbiddenException("Owner access is required.");
       }
+
       return run(tx);
     });
   }
@@ -117,6 +118,7 @@ export class StaffEmailService {
           "Staff template changed. Refresh and review the latest wording.",
         );
       }
+
       const data = {
         enabled: input.enabled,
         subject: input.subject,
@@ -165,6 +167,7 @@ export class StaffEmailService {
           "Staff reminder timing changed. Refresh and review the latest values.",
         );
       }
+
       const data = {
         dueSoonHours: input.dueSoonHours,
         overdueHours: input.overdueHours,
@@ -235,6 +238,7 @@ export class StaffEmailService {
           if (!task || !["TODO", "IN_PROGRESS"].includes(task.status)) {
             return;
           }
+
           const currentTiming = await tx.staffNotificationConfig.findUnique({
             where: { key: "staff" },
           });
@@ -251,9 +255,11 @@ export class StaffEmailService {
           }
         });
       }
+
       if (rows.length < 100) {
         break;
       }
+
       cursor = rows.at(-1)!.id;
     }
   }
@@ -269,25 +275,31 @@ export class StaffEmailService {
     if (!user?.active || user.role === "CUSTOMER") {
       return "Recipient no longer has active staff access.";
     }
+
     if (user.email !== row.recipientEmail) {
       return "Recipient email changed; review the current account.";
     }
+
     if (row.accountAlertId) {
       if (!allowed(user, "ACCOUNT_MANAGE")) {
         return "Recipient no longer has Owner account access.";
       }
+
       return (await accountAlertIsVisible(tx, user.id, row.accountAlertId))
         ? null
         : "Account event is no longer available to this recipient.";
     }
+
     if (row.supportAlertId) {
       if (!allowed(user, "SUPPORT_MANAGE")) {
         return "Recipient no longer has Customer Service access.";
       }
+
       return (await supportAlertIsVisible(tx, user.id, row.supportAlertId))
         ? null
         : "Support case was reassigned, finished or already answered.";
     }
+
     if (row.taskId) {
       const task = await tx.task.findUnique({ where: { id: row.taskId } });
 
@@ -299,6 +311,7 @@ export class StaffEmailService {
       ) {
         return "Task was submitted, completed, reassigned or rescheduled.";
       }
+
       if (row.kind !== "TASK_ASSIGNED") {
         const timing = await tx.staffNotificationConfig.findUnique({
           where: { key: "staff" },
@@ -327,6 +340,7 @@ export class StaffEmailService {
       if (!allowed(user, "PAYMENT_VERIFY")) {
         return "Recipient no longer has Finance review access.";
       }
+
       const payment = await tx.payment.findUnique({
         where: { id: row.paymentId! },
       });
@@ -342,6 +356,7 @@ export class StaffEmailService {
       if (!hasResultEmailAccess(user)) {
         return "Recipient no longer has payment recording and reading access.";
       }
+
       const result = await tx.paymentResultAlert.findUnique({
         where: { id: row.resultId! },
       });
@@ -355,6 +370,7 @@ export class StaffEmailService {
         return "Saved Finance result is no longer available to this recipient.";
       }
     }
+
     return null;
   }
 
@@ -390,6 +406,7 @@ export class StaffEmailService {
         ) {
           return null;
         }
+
         const reason = await this.eligibility(tx, current, claimedAt, true);
 
         if (
@@ -414,6 +431,7 @@ export class StaffEmailService {
 
           return null;
         }
+
         if (
           current.kind === "TASK_DUE_SOON" ||
           current.kind === "TASK_OVERDUE"
@@ -442,6 +460,7 @@ export class StaffEmailService {
             return null;
           }
         }
+
         if (!(await staffTemplate(tx, current.kind)).enabled) {
           // Paused items do not consume attempts or block the first page of the queue.
           await tx.staffEmail.update({
@@ -454,6 +473,7 @@ export class StaffEmailService {
 
           return null;
         }
+
         const rendered = renderCustomerEmail(
           { subject: current.subjectTemplate, body: current.bodyTemplate },
           {
@@ -482,6 +502,7 @@ export class StaffEmailService {
       if (!row) {
         continue;
       }
+
       try {
         await send(
           row.id,
@@ -561,6 +582,7 @@ export class StaffEmailService {
             !(await this.eligibility(tx, row, new Date())),
         });
       }
+
       return { items, total, page: query.page, pageSize: 20 };
     });
   }
@@ -571,27 +593,33 @@ export class StaffEmailService {
       if (!row) {
         throw new NotFoundException("Staff email delivery not found.");
       }
+
       if (row.version !== version) {
         throw new ConflictException(
           "Delivery changed. Refresh its status before retrying.",
         );
       }
+
       if (row.status !== "FAILED") {
         throw new ConflictException("Only failed staff emails can be retried.");
       }
+
       if (Date.now() - row.createdAt.getTime() >= staffEmailWindowMs) {
         throw new ConflictException(
           "Delivery window expired. Review the in-app alert instead.",
         );
       }
+
       if (!(await staffTemplate(tx, row.kind)).enabled) {
         throw new ConflictException("This staff email type is paused.");
       }
+
       const reason = await this.eligibility(tx, row, new Date());
 
       if (reason) {
         throw new ConflictException(reason);
       }
+
       const after = await tx.staffEmail.update({
         where: { id },
         data: {

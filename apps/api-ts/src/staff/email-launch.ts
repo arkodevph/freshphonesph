@@ -10,6 +10,7 @@ type Environment = Pick<
 >;
 
 export class EmailLaunchError extends Error {}
+
 export type EmailLaunchOptions =
   { mode: "check" | "help" } | { mode: "send"; to: string; runId: string };
 
@@ -17,9 +18,11 @@ export function parseEmailLaunchOptions(args: string[]): EmailLaunchOptions {
   if (!args.length) {
     return { mode: "check" };
   }
+
   if (args.length === 1 && args[0] === "--help") {
     return { mode: "help" };
   }
+
   const values = new Map<string, string>();
 
   for (const arg of args) {
@@ -38,8 +41,10 @@ export function parseEmailLaunchOptions(args: string[]): EmailLaunchOptions {
         "Use --send, --to=one-approved-address and --run-id=UUID, each once.",
       );
     }
+
     values.set(key, value);
   }
+
   const to = z.string().trim().email().max(254).safeParse(values.get("--to"));
 
   const runId = z.string().uuid().safeParse(values.get("--run-id"));
@@ -49,6 +54,7 @@ export function parseEmailLaunchOptions(args: string[]): EmailLaunchOptions {
       "Sending requires --send, one valid --to address and a UUID --run-id.",
     );
   }
+
   return { mode: "send", to: to.data, runId: runId.data.toLowerCase() };
 }
 
@@ -78,6 +84,7 @@ export function inspectStaffEmailLaunch(env: Environment) {
   } catch {
     /* Invalid origins are reported without their values. */
   }
+
   const checks = {
     apiKeyConfigured: Boolean(apiKey && !/[\r\n]/.test(apiKey)),
     productionSenderFormat: Boolean(
@@ -157,6 +164,7 @@ export async function sendStaffEmailSmoke(
       "Configure RESEND_API_KEY, an explicit production EMAIL_FROM and a public HTTPS WEB_ORIGIN before sending.",
     );
   }
+
   const now =
     options.now ??
     (() => {
@@ -198,6 +206,7 @@ export async function sendStaffEmailSmoke(
     )) {
       throw error;
     }
+
     try {
       evidence = evidenceSchema.parse(JSON.parse(await readFile(path, "utf8")));
     } catch {
@@ -205,6 +214,7 @@ export async function sendStaffEmailSmoke(
         "Existing smoke evidence is invalid. Review it before attempting another message.",
       );
     }
+
     if (
       evidence.runId !== parsed.runId ||
       JSON.stringify(evidence.payload) !== JSON.stringify(payload)
@@ -214,9 +224,11 @@ export async function sendStaffEmailSmoke(
       );
     }
   }
+
   if (evidence.providerId && evidence.acceptedAt) {
     return { providerId: evidence.providerId, path, reused: true };
   }
+
   const age = now().getTime() - new Date(evidence.preparedAt).getTime();
 
   if (age < 0 || age >= retryWindow) {
@@ -224,6 +236,7 @@ export async function sendStaffEmailSmoke(
       "The smoke retry window expired or its timestamp is invalid. Check provider history before preparing a new run.",
     );
   }
+
   let response: Response;
 
   try {
@@ -242,11 +255,13 @@ export async function sendStaffEmailSmoke(
       "Provider response was unavailable. Retry this same run ID and configuration within 23 hours.",
     );
   }
+
   if (!response.ok) {
     throw new EmailLaunchError(
       `Provider rejected the smoke request (HTTP ${response.status}). Check its dashboard; retry the same run ID and configuration.`,
     );
   }
+
   let providerId: string;
 
   try {
@@ -258,6 +273,7 @@ export async function sendStaffEmailSmoke(
       "Provider acceptance could not be recorded. Check its dashboard or retry the same run ID and configuration.",
     );
   }
+
   try {
     await saveEvidence(path, {
       ...evidence,
@@ -269,5 +285,6 @@ export async function sendStaffEmailSmoke(
       "Provider accepted the message, but private evidence could not be saved. Retry this same run ID and configuration within 23 hours.",
     );
   }
+
   return { providerId, path, reused: false };
 }

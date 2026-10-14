@@ -91,17 +91,21 @@ export class StaffAlertsService {
     if (user.role === "CUSTOMER") {
       throw new ForbiddenException("Staff access required.");
     }
+
     if (scope === "finance" && !allowed(user, "PAYMENT_VERIFY")) {
       throw new ForbiddenException("Finance verification access required.");
     }
+
     if (scope === "results" && !canReadPaymentResults(user)) {
       throw new ForbiddenException(
         "Payment recording and read access required.",
       );
     }
+
     if (scope === "support" && !allowed(user, "SUPPORT_MANAGE")) {
       throw new ForbiddenException("Customer Service access required.");
     }
+
     if (scope === "accounts" && !allowed(user, "ACCOUNT_MANAGE")) {
       throw new ForbiddenException("Owner account access required.");
     }
@@ -119,15 +123,19 @@ export class StaffAlertsService {
     if (allowed(user, "PAYMENT_VERIFY")) {
       source = Prisma.sql`${source} UNION ALL ${financeAlertRows(user.id)}`;
     }
+
     if (canReadPaymentResults(user)) {
       source = Prisma.sql`${source} UNION ALL ${paymentResultRows(user.id)}`;
     }
+
     if (allowed(user, "SUPPORT_MANAGE")) {
       source = Prisma.sql`${source} UNION ALL ${supportAlertRows(user.id)}`;
     }
+
     if (allowed(user, "ACCOUNT_MANAGE")) {
       source = Prisma.sql`${source} UNION ALL ${accountAlertRows(user.id)}`;
     }
+
     const scope = alertScopeSql(query.scope);
 
     const [rows, counts] = await this.db.$transaction(
@@ -181,6 +189,7 @@ export class StaffAlertsService {
             targetPath: `/system/team?account=${row.accountId}`,
           };
         }
+
         if (row.entity === "support") {
           return {
             ...base,
@@ -193,6 +202,7 @@ export class StaffAlertsService {
             targetPath: `/system/support?case=${row.caseId}`,
           };
         }
+
         if (row.entity === "payment") {
           return {
             ...base,
@@ -204,6 +214,7 @@ export class StaffAlertsService {
             targetPath: `/system/payments?payment=${row.id}`,
           };
         }
+
         if (row.entity === "payment-result") {
           return {
             ...base,
@@ -216,6 +227,7 @@ export class StaffAlertsService {
             targetPath: `/system/payments?payment=${row.paymentId}&result=${row.id}`,
           };
         }
+
         const kind = row.kind as TaskAlertKind;
 
         const deadline = row.deadline!.toISOString();
@@ -266,6 +278,7 @@ export class StaffAlertsService {
       if (!current?.active) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       this.access(current, scope);
 
       return run(tx, current, new Date());
@@ -277,11 +290,13 @@ export class StaffAlertsService {
     if (input.entity === "payment") {
       return this.finance.read(user, id, input.version);
     }
+
     if (input.entity === "account") {
       return this.write(user, "accounts", async (tx, _current, now) => {
         if (!(await accountAlertIsVisible(tx, user.id, id))) {
           throw new NotFoundException("Account alert not found.");
         }
+
         const alert = await tx.accountAlert.findUniqueOrThrow({
           where: { id },
         });
@@ -289,6 +304,7 @@ export class StaffAlertsService {
         if (alert.readAt) {
           return { id, readAt: alert.readAt.toISOString() };
         }
+
         await tx.accountAlert.update({ where: { id }, data: { readAt: now } });
 
         await tx.changeEvent.create({
@@ -298,11 +314,13 @@ export class StaffAlertsService {
         return { id, readAt: now.toISOString() };
       });
     }
+
     if (input.entity === "support") {
       return this.write(user, "support", async (tx, _current, now) => {
         if (!(await supportAlertIsVisible(tx, user.id, id))) {
           throw new NotFoundException("Active Support alert not found.");
         }
+
         const alert = await tx.supportAlert.findUniqueOrThrow({
           where: { id },
         });
@@ -310,6 +328,7 @@ export class StaffAlertsService {
         if (alert.readAt) {
           return { id, readAt: alert.readAt.toISOString() };
         }
+
         await tx.supportAlert.update({ where: { id }, data: { readAt: now } });
 
         await tx.changeEvent.create({
@@ -319,6 +338,7 @@ export class StaffAlertsService {
         return { id, readAt: now.toISOString() };
       });
     }
+
     if (input.entity === "payment-result") {
       return this.write(user, "results", async (tx, _current, now) => {
         const result = await tx.paymentResultAlert.findFirst({
@@ -328,9 +348,11 @@ export class StaffAlertsService {
         if (!result) {
           throw new NotFoundException("Finance result alert not found.");
         }
+
         if (result.readAt) {
           return { id, readAt: result.readAt.toISOString() };
         }
+
         const updated = await tx.paymentResultAlert.update({
           where: { id },
           data: { readAt: now },
@@ -343,6 +365,7 @@ export class StaffAlertsService {
         return { id, readAt: updated.readAt!.toISOString() };
       });
     }
+
     return this.write(user, "tasks", async (tx, _current, now) => {
       const task = await tx.task.findFirst({
         where: {
@@ -356,6 +379,7 @@ export class StaffAlertsService {
       if (!task) {
         throw new NotFoundException("Active task alert not found.");
       }
+
       if (
         task.deadline.getTime() !== new Date(input.deadline).getTime() ||
         taskAlertKind(task.deadline, now) !== input.kind
@@ -364,6 +388,7 @@ export class StaffAlertsService {
           "This task alert changed. Refresh the alerts and open the current task.",
         );
       }
+
       const where = {
         userId_taskId_kind: { userId: user.id, taskId: id, kind: input.kind },
       };
@@ -373,6 +398,7 @@ export class StaffAlertsService {
       if (previous?.deadline.getTime() === task.deadline.getTime()) {
         return { id, readAt: previous.readAt.toISOString() };
       }
+
       const receipt = await tx.taskAlertRead.upsert({
         where,
         create: {
@@ -445,6 +471,7 @@ export class StaffAlertsService {
           data: { entity: "staff-alert-read", recordId: user.id },
         });
       }
+
       return { updated: tasks + finance + results + support + accounts };
     });
   }
@@ -459,6 +486,7 @@ export class StaffAlertsService {
     if (!result) {
       throw new NotFoundException("Finance result alert not found.");
     }
+
     return {
       id: result.id,
       paymentId: result.paymentId,

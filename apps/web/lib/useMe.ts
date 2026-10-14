@@ -74,6 +74,7 @@ export function can(me: Me | null, ...perms: string[]): boolean {
   if (!me) {
     return false;
   }
+
   return perms.some((p) => {
     return me.permissions.includes(p);
   });

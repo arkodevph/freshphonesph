@@ -37,18 +37,22 @@ function value(snapshot: Record<string, unknown>, key: string) {
   if (raw === null || raw === undefined || raw === "") {
     return null;
   }
+
   if (typeof raw !== "string" && typeof raw !== "number") {
     return null;
   }
+
   if (["startDate", "endDate", "joinedAt", "collectionDate"].includes(key)) {
     return String(raw).slice(0, 10);
   }
+
   // Prisma's JSON decimal snapshots may omit trailing zeroes.
   if (key === "contractPrice") {
     return String(raw)
       .replace(/^(\d+)$/, "$1.00")
       .replace(/^(\d+\.\d)$/, "$10");
   }
+
   return String(raw);
 }
 
@@ -73,6 +77,7 @@ export function historyChanges(
       },
     ];
   }
+
   const selected =
     action === "release.updated"
       ? {
@@ -93,19 +98,24 @@ export function historyChanges(
     if (oldValue === newValue) {
       return [];
     }
+
     const display = (snapshot: Record<string, unknown>, raw: string | null) => {
       if (!raw) {
         return raw;
       }
+
       if (field === "batchId") {
         return value(object(snapshot.batch), "code") ?? raw;
       }
+
       if (field === "handlerId") {
         return value(object(snapshot.handler), "name") ?? raw;
       }
+
       if (field === "agentId") {
         return value(object(snapshot.agent), "name") ?? raw;
       }
+
       return raw;
     };
 

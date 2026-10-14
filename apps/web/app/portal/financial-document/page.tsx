@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPeso as money } from "@/lib/currency";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -39,13 +40,6 @@ type Confirmation = {
   payment: Payment;
 };
 
-const money = (value: string) => {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(Number(value));
-};
-
 const day = (value: string) => {
   return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString(
     "en-PH",
@@ -78,6 +72,7 @@ export default function FinancialDocumentPage() {
 
       return;
     }
+
     void (async () => {
       try {
         const user = await tsRequest<User>("/auth/me");
@@ -87,6 +82,7 @@ export default function FinancialDocumentPage() {
 
           return;
         }
+
         const [account, record] = await Promise.all([
           tsRequest<Client>(`/clients/${user.clientId}`),
           paymentId
@@ -125,6 +121,7 @@ export default function FinancialDocumentPage() {
               if (!document || !client) {
                 return;
               }
+
               setDownloadError("");
 
               setDownloading(true);

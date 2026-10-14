@@ -53,6 +53,7 @@ export class RecruitmentService {
       ) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       return run(tx);
     });
   }
@@ -125,6 +126,7 @@ export class RecruitmentService {
         ) {
           throw new NotFoundException("Open job not found.");
         }
+
         let storedFileId: string | undefined;
 
         if (file && storageKey) {
@@ -139,6 +141,7 @@ export class RecruitmentService {
 
           storedFileId = stored.id;
         }
+
         const result = await tx.applicant.create({
           data: {
             ...applicantFields,
@@ -166,6 +169,7 @@ export class RecruitmentService {
       if (storageKey) {
         await this.storage.remove(storageKey);
       }
+
       throw error;
     }
   }
@@ -242,6 +246,7 @@ export class RecruitmentService {
       if (!before) {
         throw new NotFoundException("Job opening not found.");
       }
+
       const changed = await tx.jobOpening.updateMany({
         where: { id, version },
         data: { ...input, version: { increment: 1 } },
@@ -252,6 +257,7 @@ export class RecruitmentService {
           "This job opening changed. Refresh and try again.",
         );
       }
+
       const after = await tx.jobOpening.findUniqueOrThrow({
         where: { id },
         include: { _count: { select: { applicants: true } } },
@@ -308,6 +314,7 @@ export class RecruitmentService {
         if (!before || before.retentionErasedAt) {
           throw new NotFoundException("Applicant not found.");
         }
+
         const changed = await tx.applicant.updateMany({
           where: { id, version: input.version },
           data: {
@@ -325,6 +332,7 @@ export class RecruitmentService {
             "This applicant changed. Refresh and try again.",
           );
         }
+
         const after = await tx.applicant.findUniqueOrThrow({ where: { id } });
 
         await tx.auditEntry.create({
@@ -364,6 +372,7 @@ export class RecruitmentService {
     if (!attachment) {
       throw new NotFoundException("Applicant attachment not found.");
     }
+
     return {
       data: await this.storage.read(attachment.storedFile.storageKey),
       mimeType: attachment.storedFile.mimeType,
@@ -443,6 +452,7 @@ export class RecruitmentService {
       if (!before) {
         throw new NotFoundException("Agent not found.");
       }
+
       const changed = await tx.agent.updateMany({
         where: { id, version },
         data: {
@@ -458,6 +468,7 @@ export class RecruitmentService {
           "This agent changed. Refresh and try again.",
         );
       }
+
       const after = await tx.agent.findUniqueOrThrow({ where: { id } });
 
       await tx.auditEntry.create({
@@ -481,6 +492,7 @@ export class RecruitmentService {
     if (!value) {
       return { found: false } as const;
     }
+
     const agent = await this.db.agent.findFirst({
       where: {
         OR: [
@@ -494,6 +506,7 @@ export class RecruitmentService {
     if (!agent) {
       return { found: false } as const;
     }
+
     const code = agent.code;
 
     const masked =

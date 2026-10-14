@@ -3,7 +3,6 @@
 import { reportFilterQuery, type ReportFilters } from "@/lib/report-filters";
 import type { ReportBatchOption, ReportKind } from "@freshphones/contracts";
 import { DownloadSimple, FloppyDisk } from "@phosphor-icons/react";
-import type { Dispatch, RefObject, SetStateAction } from "react";
 import styles from "./reports.module.css";
 import {
   LoadedReport,
@@ -27,13 +26,9 @@ type Props = {
   notice: string | null;
   error: string | null;
   canReviewPayments: boolean;
-  sequence: RefObject<number>;
-  setReport: Dispatch<SetStateAction<LoadedReport | null>>;
-  setLoading: Dispatch<SetStateAction<boolean>>;
-  setReportPage: Dispatch<SetStateAction<number>>;
+  onPage: (page: number) => void;
   analysisDraft: string;
-  setAnalysisDraft: Dispatch<SetStateAction<string>>;
-  setActionError: Dispatch<SetStateAction<string | null>>;
+  onAnalysisChange: (value: string) => void;
 };
 
 export default function ReportResultsPanel({
@@ -50,13 +45,9 @@ export default function ReportResultsPanel({
   notice,
   error,
   canReviewPayments,
-  sequence,
-  setReport,
-  setLoading,
-  setReportPage,
+  onPage,
   analysisDraft,
-  setAnalysisDraft,
-  setActionError,
+  onAnalysisChange,
 }: Props) {
   return (
     <section
@@ -156,15 +147,7 @@ export default function ReportResultsPanel({
             scope={reportFilterQuery(kind, applied).params ?? undefined}
             canReviewPayments={canReviewPayments}
             pageDisabled={dirty || Boolean(busy)}
-            onPage={(page) => {
-              sequence.current++;
-
-              setReport(null);
-
-              setLoading(true);
-
-              setReportPage(page);
-            }}
+            onPage={onPage}
           />
         )
       )}
@@ -178,9 +161,7 @@ export default function ReportResultsPanel({
         <textarea
           value={analysisDraft}
           onChange={(event) => {
-            setAnalysisDraft(event.target.value);
-
-            setActionError(null);
+            onAnalysisChange(event.target.value);
           }}
           disabled={loading || Boolean(busy)}
           maxLength={4000}

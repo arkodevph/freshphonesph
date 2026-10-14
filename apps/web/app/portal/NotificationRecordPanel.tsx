@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPeso as money } from "@/lib/currency";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,7 +20,7 @@ import {
 } from "@/lib/api";
 import { tsRequest } from "@/lib/ts-api";
 import { installmentState } from "@/lib/portal-schedule";
-import { manilaToday } from "@/lib/portal-attention";
+import { today as manilaToday } from "@/lib/date";
 import styles from "./notification-record.module.css";
 
 type Confirmation = {
@@ -36,13 +37,6 @@ type RecordDetail =
   | { kind: "document"; value: DocumentRequirement }
   | { kind: "installment"; value: PortalScheduleItem }
   | { kind: "generic" };
-
-const money = (value: string | number) => {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(Number(value));
-};
 
 const day = (value: string) => {
   return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString(
@@ -66,6 +60,7 @@ function recordTarget(path: string | null) {
   if (!path?.startsWith("/portal/")) {
     return { kind: "generic" as const };
   }
+
   const url = new URL(path, "https://freshphones.local");
 
   if (
@@ -74,6 +69,7 @@ function recordTarget(path: string | null) {
   ) {
     return { kind: "payment" as const, id: url.searchParams.get("payment")! };
   }
+
   if (
     url.pathname === "/portal/release" &&
     /^#release-update-[0-9a-f-]{36}$/i.test(url.hash)
@@ -83,12 +79,14 @@ function recordTarget(path: string | null) {
       id: url.hash.slice("#release-update-".length),
     };
   }
+
   if (
     url.pathname === "/portal/support" &&
     /^#case-[0-9a-f-]{36}$/i.test(url.hash)
   ) {
     return { kind: "support" as const, id: url.hash.slice("#case-".length) };
   }
+
   if (
     url.pathname === "/portal/documents" &&
     url.hash.startsWith("#document-")
@@ -98,6 +96,7 @@ function recordTarget(path: string | null) {
       key: decodeURIComponent(url.hash.slice("#document-".length)),
     };
   }
+
   if (
     url.pathname === "/portal/schedule" &&
     /^#installment-\d+$/.test(url.hash)
@@ -107,6 +106,7 @@ function recordTarget(path: string | null) {
       sequence: Number(url.hash.slice("#installment-".length)),
     };
   }
+
   return { kind: "generic" as const };
 }
 
@@ -159,10 +159,12 @@ export function NotificationRecordPanel({
           ),
         };
       }
+
       if (target.kind === "release") {
         if (clientId == null) {
           throw new Error("Could not find your unit record.");
         }
+
         const value = (await getReleaseUpdates(clientId)).find((item) => {
           return item.id === target.id;
         });
@@ -170,14 +172,17 @@ export function NotificationRecordPanel({
         if (!value) {
           throw new Error("This release update is no longer available.");
         }
+
         return { kind: "release", value };
       }
+
       if (target.kind === "support") {
         return {
           kind: "support",
           value: await getSupportCaseDetail(target.id),
         };
       }
+
       if (target.kind === "document") {
         const value = (await getCustomerDocuments()).find((item) => {
           return item.key === target.key;
@@ -186,8 +191,10 @@ export function NotificationRecordPanel({
         if (!value) {
           throw new Error("This document requirement is no longer available.");
         }
+
         return { kind: "document", value };
       }
+
       if (target.kind === "installment") {
         const value = schedule.find((item) => {
           return item.sequence_no === target.sequence;
@@ -196,8 +203,10 @@ export function NotificationRecordPanel({
         if (!value) {
           throw new Error("This installment is no longer available.");
         }
+
         return { kind: "installment", value };
       }
+
       return { kind: "generic" };
     };
 

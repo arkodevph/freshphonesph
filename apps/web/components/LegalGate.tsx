@@ -38,11 +38,13 @@ export function LegalGate({ children }: { children: ReactNode }) {
     if (!me) {
       return;
     }
+
     const userId = String(me.id);
 
     if (loadingFor.current === userId) {
       return;
     }
+
     loadingFor.current = userId;
 
     setLoadError(null);
@@ -56,6 +58,7 @@ export function LegalGate({ children }: { children: ReactNode }) {
         if (loadingFor.current !== userId) {
           return;
         }
+
         setStatus(result);
 
         setLoadedFor(userId);
@@ -99,6 +102,7 @@ export function LegalGate({ children }: { children: ReactNode }) {
       </section>
     );
   }
+
   if (loadError) {
     return (
       <section className={styles.screen} aria-label="Current privacy notice">
@@ -112,6 +116,7 @@ export function LegalGate({ children }: { children: ReactNode }) {
       </section>
     );
   }
+
   const document = status?.pending[0];
 
   if (!document) {
@@ -122,6 +127,7 @@ export function LegalGate({ children }: { children: ReactNode }) {
     if (!document || !checked || busy) {
       return;
     }
+
     setBusy(true);
 
     setActionError(null);
@@ -138,6 +144,7 @@ export function LegalGate({ children }: { children: ReactNode }) {
       setBusy(false);
     }
   }
+
   async function leave() {
     await logoutSession().catch(() => {
       return undefined;
@@ -145,6 +152,7 @@ export function LegalGate({ children }: { children: ReactNode }) {
 
     window.location.assign("/login");
   }
+
   return (
     <section
       className={styles.screen}

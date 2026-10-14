@@ -51,6 +51,7 @@ test("clearing filters restores the complete ordered FAQ and unknown searches yi
   ]) {
     assert.deepEqual(filterFaqs(query), [], query);
   }
+
   const before = JSON.stringify(faqs);
 
   filterFaqs("payments", "payments");

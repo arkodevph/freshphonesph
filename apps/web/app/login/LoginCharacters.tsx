@@ -54,6 +54,7 @@ export default function LoginCharacters({ mood }: { mood: CharacterMood }) {
     if (!interactive) {
       return;
     }
+
     setFacingPassword((current) => {
       return { ...current, [name]: !current[name] };
     });
@@ -93,6 +94,7 @@ export default function LoginCharacters({ mood }: { mood: CharacterMood }) {
       if (event.pointerType !== "mouse" || motion.matches) {
         return;
       }
+
       window.cancelAnimationFrame(frame);
 
       frame = window.requestAnimationFrame(() => {
@@ -101,6 +103,7 @@ export default function LoginCharacters({ mood }: { mood: CharacterMood }) {
         if (!element) {
           return;
         }
+
         const bounds = element.getBoundingClientRect();
 
         const x = Math.max(
@@ -128,6 +131,7 @@ export default function LoginCharacters({ mood }: { mood: CharacterMood }) {
         element.style.setProperty("--pointer-lean", `${x * 3}deg`);
       });
     }
+
     function reset() {
       window.cancelAnimationFrame(frame);
 
@@ -137,6 +141,7 @@ export default function LoginCharacters({ mood }: { mood: CharacterMood }) {
 
       stage.current?.style.setProperty("--pointer-lean", "0deg");
     }
+
     window.addEventListener("pointermove", follow, { passive: true });
 
     document.addEventListener("pointerleave", reset);

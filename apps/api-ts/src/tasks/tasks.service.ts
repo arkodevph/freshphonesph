@@ -98,6 +98,7 @@ export class TasksService {
     if (allowed(user, "TASK_ASSIGN") || task.assigneeId === user.id) {
       return;
     }
+
     throw new NotFoundException("Task not found.");
   }
   private async write<T>(
@@ -128,6 +129,7 @@ export class TasksService {
       if (!current?.active || current.role === "CUSTOMER") {
         throw new ForbiddenException("Staff access required.");
       }
+
       return run(tx, current);
     });
   }
@@ -157,6 +159,7 @@ export class TasksService {
     if (!allowed(user, "TASK_ASSIGN")) {
       throw new ForbiddenException("Task assignment access required.");
     }
+
     return this.db.user.findMany({
       where: { active: true, role: { not: "CUSTOMER" } },
       select: { id: true, name: true, role: true },
@@ -210,6 +213,7 @@ export class TasksService {
     if (!row) {
       throw new NotFoundException("Task not found.");
     }
+
     this.visible(user, row);
 
     return view(row, allowed(user, "KPI_REVIEW"));
@@ -227,15 +231,18 @@ export class TasksService {
     if (!allowed(user, "TASK_ASSIGN")) {
       throw new ForbiddenException("Task assignment access required.");
     }
+
     const deadline = new Date(input.deadline);
 
     if (deadline.getTime() <= Date.now()) {
       throw new BadRequestException("Choose a future deadline.");
     }
+
     return this.write(user, async (tx, current) => {
       if (!allowed(current, "TASK_ASSIGN")) {
         throw new ForbiddenException("Your task access has changed.");
       }
+
       const assignee = await tx.user.findUnique({
         where: { id: input.assigneeId },
         select: { active: true, role: true },
@@ -244,6 +251,7 @@ export class TasksService {
       if (!assignee?.active || assignee.role === "CUSTOMER") {
         throw new BadRequestException("Choose an active staff assignee.");
       }
+
       const row = await tx.task.create({
         data: {
           title: input.title,
@@ -275,12 +283,15 @@ export class TasksService {
       if (!before || before.assigneeId !== user.id) {
         throw new NotFoundException("Task not found.");
       }
+
       if (before.version !== version) {
         throw new ConflictException("Task changed. Refresh and try again.");
       }
+
       if (before.status !== "TODO") {
         throw new ConflictException("Only a new task can be started.");
       }
+
       const row = await tx.task.update({
         where: { id },
         data: { status: "IN_PROGRESS", version: { increment: 1 } },
@@ -313,6 +324,7 @@ export class TasksService {
         "Add a report or an attachment before submitting.",
       );
     }
+
     const file = upload ? this.storage.validateDocument(upload) : undefined;
 
     const storageKey = file ? await this.storage.saveDocument(file) : undefined;
@@ -324,12 +336,15 @@ export class TasksService {
         if (!before || before.assigneeId !== user.id) {
           throw new NotFoundException("Task not found.");
         }
+
         if (before.version !== version) {
           throw new ConflictException("Task changed. Refresh and try again.");
         }
+
         if (before.status !== "TODO" && before.status !== "IN_PROGRESS") {
           throw new ConflictException("Task was already submitted.");
         }
+
         const submittedAt = new Date();
 
         const stored =
@@ -381,6 +396,7 @@ export class TasksService {
       if (storageKey) {
         await this.storage.remove(storageKey);
       }
+
       throw error;
     }
   }
@@ -388,10 +404,12 @@ export class TasksService {
     if (!allowed(user, "TASK_ASSIGN")) {
       throw new ForbiddenException("Task assignment access required.");
     }
+
     return this.write(user, async (tx, current) => {
       if (!allowed(current, "TASK_ASSIGN")) {
         throw new ForbiddenException("Your task access has changed.");
       }
+
       const before = await tx.task.findUnique({
         where: { id },
         include: { review: { select: { id: true } } },
@@ -400,17 +418,21 @@ export class TasksService {
       if (!before) {
         throw new NotFoundException("Task not found.");
       }
+
       if (before.version !== version) {
         throw new ConflictException("Task changed. Refresh and try again.");
       }
+
       if (before.status !== "SUBMITTED") {
         throw new ConflictException("Only submitted tasks can be completed.");
       }
+
       if (before.lateFlag && !before.review) {
         throw new ConflictException(
           "A late submission needs a human KPI review first.",
         );
       }
+
       const row = await tx.task.update({
         where: { id },
         data: { status: "DONE", version: { increment: 1 } },
@@ -447,6 +469,7 @@ export class TasksService {
     ) {
       throw new NotFoundException("Task attachment not found.");
     }
+
     return {
       data: await this.storage.read(row.attachment.storageKey),
       mimeType: row.attachment.mimeType,
@@ -459,6 +482,7 @@ export class TasksService {
     if (!allowed(user, "KPI_REVIEW")) {
       throw new ForbiddenException("KPI review access required.");
     }
+
     const where: Prisma.TaskWhereInput = {
       status: "SUBMITTED",
       lateFlag: true,
@@ -491,6 +515,7 @@ export class TasksService {
     if (!allowed(user, "KPI_REVIEW")) {
       throw new ForbiddenException("KPI review access required.");
     }
+
     const [rows, count] = await this.db.$transaction([
       this.db.kpiReview.findMany({
         include: {
@@ -539,10 +564,12 @@ export class TasksService {
     if (!allowed(user, "KPI_REVIEW")) {
       throw new ForbiddenException("KPI review access required.");
     }
+
     return this.write(user, async (tx, current) => {
       if (!allowed(current, "KPI_REVIEW")) {
         throw new ForbiddenException("Your KPI access has changed.");
       }
+
       const task = await tx.task.findUnique({
         where: { id: input.taskId },
         include: { review: { select: { id: true } } },
@@ -551,14 +578,17 @@ export class TasksService {
       if (!task) {
         throw new NotFoundException("Task not found.");
       }
+
       if (task.version !== input.version) {
         throw new ConflictException("Task changed. Refresh and review it.");
       }
+
       if (task.status !== "SUBMITTED" || task.review) {
         throw new ConflictException(
           "Only an unreviewed submission can be reviewed.",
         );
       }
+
       const evidence = `Submitted ${task.submittedAt!.toISOString()} vs deadline ${task.deadline.toISOString()} (${task.lateFlag ? "LATE" : "on time"}).`;
 
       const review = await tx.kpiReview.create({

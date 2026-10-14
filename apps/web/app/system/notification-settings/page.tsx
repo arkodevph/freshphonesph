@@ -49,6 +49,7 @@ export default function NotificationSettingsPage() {
     if (!can(me, "ACCOUNT_MANAGE")) {
       return;
     }
+
     void tsRequest<Settings>("/customer-notification-settings")
       .then(setSettings)
       .catch((caught) => {
@@ -76,6 +77,7 @@ export default function NotificationSettingsPage() {
         : current;
     });
   }
+
   async function saveTemplate(template: Template) {
     setSaving(template.kind);
 
@@ -116,10 +118,12 @@ export default function NotificationSettingsPage() {
       setSaving("");
     }
   }
+
   async function saveReminders() {
     if (!settings) {
       return;
     }
+
     setSaving("reminders");
 
     setError("");
@@ -159,6 +163,7 @@ export default function NotificationSettingsPage() {
       setSaving("");
     }
   }
+
   async function sendTestReminder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -187,6 +192,7 @@ export default function NotificationSettingsPage() {
       setSaving("");
     }
   }
+
   if (!can(me, "ACCOUNT_MANAGE")) {
     return (
       <main className={styles.page}>
@@ -194,6 +200,7 @@ export default function NotificationSettingsPage() {
       </main>
     );
   }
+
   return (
     <main className={styles.page}>
       <header>

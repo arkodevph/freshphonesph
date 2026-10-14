@@ -25,6 +25,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Use a migrated dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100",
   password = "Synthetic-retention-test-password123!";
 
@@ -62,6 +63,7 @@ async function call(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }
+
 async function success<T>(response: Response, status = 201): Promise<T> {
   const body = await response.json();
 
@@ -69,11 +71,13 @@ async function success<T>(response: Response, status = 201): Promise<T> {
 
   return body as T;
 }
+
 async function preview(scope: RetentionScope, subjectId: string) {
   return success<RetentionPreview>(
     await call("/retention/preview", { scope, subjectId }),
   );
 }
+
 async function policy(scope: RetentionScope, days = 1) {
   const draft = await success<{ id: string }>(
     await call("/retention/policies", {
@@ -96,6 +100,7 @@ async function policy(scope: RetentionScope, days = 1) {
 
   return draft.id;
 }
+
 async function application(status: "REJECTED" | "REVIEWING" = "REJECTED") {
   return db.applicant.create({
     data: {
@@ -111,6 +116,7 @@ async function application(status: "REJECTED" | "REVIEWING" = "REJECTED") {
     },
   });
 }
+
 async function file(originalName = "private-id.pdf") {
   const storageKey = randomUUID(),
     payload = Buffer.from("%PDF-synthetic confidential bytes");
@@ -127,6 +133,7 @@ async function file(originalName = "private-id.pdf") {
     },
   });
 }
+
 async function request(scope: RetentionScope, subjectId: string) {
   const current = await preview(scope, subjectId);
 
@@ -141,6 +148,7 @@ async function request(scope: RetentionScope, subjectId: string) {
     }),
   );
 }
+
 async function approve(row: RetentionRequest) {
   return success<RetentionRequest>(
     await call(`/retention/requests/${row.id}/decision`, {
@@ -150,6 +158,7 @@ async function approve(row: RetentionRequest) {
     }),
   );
 }
+
 async function execute(row: RetentionRequest) {
   return success<RetentionRequest>(
     await call(`/retention/requests/${row.id}/execute`, {
@@ -234,6 +243,7 @@ before(async () => {
         .join("; "),
     );
   }
+
   batchId = (
     await db.batch.create({
       data: {
@@ -260,9 +270,11 @@ after(async () => {
   if (app) {
     await app.close();
   }
+
   if (second) {
     await second.close();
   }
+
   if (directory) {
     await rm(directory, { recursive: true, force: true });
   }
@@ -286,6 +298,7 @@ test("retention is Owner only, defaults to no approved rules, validates inputs, 
       401,
     );
   }
+
   const applicant = await application();
 
   const initial = await preview("APPLICANT", applicant.id);
@@ -312,6 +325,7 @@ test("retention is Owner only, defaults to no approved rules, validates inputs, 
   ]) {
     assert.equal((await call("/retention/policies", invalid)).status, 400);
   }
+
   const first = await policy("APPLICANT");
 
   assert.equal(
@@ -583,6 +597,7 @@ test("applicant erasure removes PII and audit copies; failed storage stays inacc
   } finally {
     storage.erase = erase;
   }
+
   assert.equal(result!.status, "FILES_PENDING");
 
   assert.equal(result!.files[0].status, "FAILED");
@@ -855,6 +870,7 @@ test("customer erasure preserves exact financial facts and clears linked records
   ] as const) {
     assert.deepEqual(current[key], payment[key], key);
   }
+
   assert.equal(current.receiptName, "");
 
   assert.equal(current.referenceNumber, "");
@@ -1058,6 +1074,7 @@ test("inactive employee erasure preserves task facts and disables credentials; u
   ] as const) {
     assert.deepEqual(current[key], task[key]);
   }
+
   assert.equal(current.report, "");
 
   assert.equal(
@@ -1159,6 +1176,7 @@ test("orphan files purge idempotently; active storage leases are respected and e
   } finally {
     storage.erase = original;
   }
+
   const job = await db.retentionFileJob.findFirstOrThrow({
     where: { requestId: approved.id },
   });

@@ -60,6 +60,7 @@ test("invalid ranges and impossible calendar dates never produce an API query", 
 
       assert.ok(result.error);
     }
+
     assert.equal(
       recordFilterQuery(
         kind,
@@ -81,6 +82,7 @@ test("filter queries reject wrong record statuses, invalid assignments and out-o
       null,
     );
   }
+
   assert.equal(
     recordFilterQuery(
       "client",

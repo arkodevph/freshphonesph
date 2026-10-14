@@ -26,5 +26,6 @@ export default async function PortalSectionPage({
   ) {
     notFound();
   }
+
   return <PortalDashboard section={section as PortalSection} />;
 }

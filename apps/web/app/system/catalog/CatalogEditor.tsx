@@ -78,6 +78,7 @@ export function CatalogEditor({
     if (!current || busy.current) {
       return;
     }
+
     const request = ++checkSequence.current;
 
     try {
@@ -132,6 +133,7 @@ export function CatalogEditor({
       dirty || file ? setConfirm("close") : onClose();
     }
   }
+
   function accept(row: CatalogItem) {
     setItem(row);
 
@@ -145,10 +147,12 @@ export function CatalogEditor({
 
     onSaved(row);
   }
+
   async function run(work: () => Promise<CatalogItem>, photo = false) {
     if (busy.current) {
       return;
     }
+
     busy.current = true;
 
     checkSequence.current++;
@@ -182,6 +186,7 @@ export function CatalogEditor({
         ) {
           setOutdated(true);
         }
+
         setError(
           failure instanceof Error
             ? failure.message
@@ -196,10 +201,12 @@ export function CatalogEditor({
       }
     }
   }
+
   async function reload() {
     if (!item || busy.current) {
       return;
     }
+
     busy.current = true;
 
     checkSequence.current++;
@@ -244,12 +251,14 @@ export function CatalogEditor({
       }
     }
   }
+
   function save(event: React.FormEvent) {
     event.preventDefault();
 
     if (outdated || busy.current) {
       return;
     }
+
     const parsed = catalogItemSchema.safeParse(draft);
 
     if (!parsed.success) {
@@ -263,12 +272,14 @@ export function CatalogEditor({
 
       return;
     }
+
     void run(() => {
       return item
         ? updateCatalogItem(item.id, item.version, parsed.data)
         : createCatalogItem(parsed.data);
     });
   }
+
   const photo = item ? catalogPhoto(item, true) : null;
 
   const parsedPlan = catalogPlanSchema.safeParse(draft.installmentPlan);
