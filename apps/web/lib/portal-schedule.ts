@@ -1,5 +1,5 @@
 import type { PortalScheduleItem } from "./api";
-import { manilaToday } from "./portal-attention";
+import { today as manilaToday } from "./date";
 
 const cents = (value: string | number) => {
   return Math.round(Number(value) * 100);

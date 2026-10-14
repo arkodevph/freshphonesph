@@ -20,7 +20,7 @@ import {
 } from "@/lib/api";
 import { tsRequest } from "@/lib/ts-api";
 import { installmentState } from "@/lib/portal-schedule";
-import { manilaToday } from "@/lib/portal-attention";
+import { today as manilaToday } from "@/lib/date";
 import styles from "./notification-record.module.css";
 
 type Confirmation = {

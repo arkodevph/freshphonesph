@@ -20,8 +20,11 @@ import {
   type PortalSummary,
   type ReleaseUpdate,
   type SupportCase,
-  type SupportCaseDetail,
 } from "@/lib/api";
+import {
+  createSupportConversation,
+  type SupportConversationState,
+} from "@/lib/support-conversation";
 import { logoutSession } from "@/lib/auth";
 import { portalAttention } from "@/lib/portal-attention";
 import { signInDestination } from "@/lib/support-entry";
@@ -92,9 +95,13 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
 
-  const [caseDetail, setCaseDetail] = useState<SupportCaseDetail | null>(null);
+  const [caseState, setCaseState] = useState<SupportConversationState>({
+    status: "idle",
+  });
 
-  const [caseLoading, setCaseLoading] = useState(false);
+  const caseDetail = caseState.status === "ready" ? caseState.detail : null;
+
+  const caseLoading = caseState.status === "loading";
 
   const [replyText, setReplyText] = useState("");
 
@@ -142,6 +149,28 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
   const [submitting, setSubmitting] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+
+  const [conversation] = useState(() => {
+    return createSupportConversation(getSupportCaseDetail, (state) => {
+      setCaseState(state);
+
+      if (state.status === "error") {
+        setError(state.message);
+      }
+    });
+  });
+
+  useEffect(() => {
+    void conversation.select(null);
+
+    setActiveCaseId(null);
+
+    setReplyText("");
+
+    return () => {
+      conversation.cancel();
+    };
+  }, [conversation, section, me?.id]);
 
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -602,16 +631,14 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
       loadSupport();
     }
 
-    if (section === "support" && activeCaseId) {
-      void getSupportCaseDetail(activeCaseId)
-        .then(setCaseDetail)
-        .catch(() => {});
+    if (section === "support") {
+      void conversation.reload();
     }
 
     loadNotifications();
   }, [
     section,
-    activeCaseId,
+    conversation,
     loadRecords,
     loadAttention,
     loadPending,
@@ -794,7 +821,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
     setActiveCaseId(null);
 
-    setCaseDetail(null);
+    void conversation.select(null);
 
     setReplyText("");
 
@@ -804,39 +831,23 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
   }
 
   async function openCase(id: string) {
-    if (activeCaseId === id) {
-      setActiveCaseId(null);
+    const nextId = conversation.selected?.id === id ? null : id;
 
-      setCaseDetail(null);
+    setActiveCaseId(nextId);
 
-      return;
-    }
-
-    setActiveCaseId(id);
-
-    setCaseDetail(null);
-
-    setCaseLoading(true);
+    setReplyText("");
 
     setError(null);
 
-    try {
-      setCaseDetail(await getSupportCaseDetail(id));
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Could not load this request.",
-      );
-    } finally {
-      setCaseLoading(false);
-    }
+    await conversation.select(nextId);
   }
 
   async function submitReply(event: React.FormEvent) {
     event.preventDefault();
 
-    if (!activeCaseId || !replyText.trim() || replying) {
+    const selection = conversation.selected;
+
+    if (!selection || !replyText.trim() || replying) {
       return;
     }
 
@@ -845,21 +856,27 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     setError(null);
 
     try {
-      await replySupportCase(activeCaseId, replyText.trim());
-
-      setReplyText("");
-
-      setCaseDetail(await getSupportCaseDetail(activeCaseId));
+      await replySupportCase(selection.id, replyText.trim());
 
       loadSupport();
 
-      setNotice("Reply sent to Customer Service.");
+      if (conversation.selected === selection) {
+        setReplyText("");
+
+        await conversation.reload();
+
+        if (conversation.selected === selection) {
+          setNotice("Reply sent to Customer Service.");
+        }
+      }
     } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Could not send your reply.",
-      );
+      if (conversation.selected === selection) {
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Could not send your reply.",
+        );
+      }
     } finally {
       setReplying(false);
     }

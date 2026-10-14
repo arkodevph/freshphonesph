@@ -17,7 +17,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import type { PortalScheduleItem, PortalSummary } from "@/lib/api";
-import { manilaToday } from "@/lib/portal-attention";
+import { today as manilaToday } from "@/lib/date";
 import {
   calendarMonthDays,
   membershipCalendarEvents,

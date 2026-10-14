@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { manilaToday, portalAttention } from "../lib/portal-attention";
+import { portalAttention } from "../lib/portal-attention";
+import { today as manilaToday } from "../lib/date";
 import type {
   DocumentRequirement,
   PortalScheduleItem,

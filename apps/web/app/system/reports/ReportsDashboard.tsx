@@ -230,6 +230,56 @@ export default function ReportsDashboard({
     setAnalysisDraft("");
   }
 
+  function selectPage(page: number) {
+    sequence.current++;
+
+    setReport(null);
+
+    setLoading(true);
+
+    setReportPage(page);
+  }
+
+  function resetFilters() {
+    const filters = defaultReportFilters();
+
+    sequence.current++;
+
+    setDraft(filters);
+
+    setApplied(filters);
+
+    setReportPage(1);
+
+    setBatch(null);
+
+    setAppliedBatch(null);
+
+    setLoading(true);
+
+    setReport(null);
+
+    setValidation(null);
+
+    setActionError(null);
+
+    setNotice(null);
+
+    setAnalysisDraft("");
+  }
+
+  function selectBatch(item: ReportBatchOption | null) {
+    setBatch(item);
+
+    edit("batchId", item?.id ?? "");
+  }
+
+  function editAnalysis(value: string) {
+    setAnalysisDraft(value);
+
+    setActionError(null);
+  }
+
   async function runAction(action: "csv" | "xlsx" | "save") {
     if (operation.current || loading || !report || dirty) {
       return;
@@ -359,18 +409,8 @@ export default function ReportsDashboard({
         busy={busy}
         draft={draft}
         edit={edit}
-        setDraft={setDraft}
-        setApplied={setApplied}
-        setReportPage={setReportPage}
-        setBatch={setBatch}
-        setAppliedBatch={setAppliedBatch}
-        setLoading={setLoading}
-        setReport={setReport}
-        setValidation={setValidation}
-        setActionError={setActionError}
-        setNotice={setNotice}
-        setAnalysisDraft={setAnalysisDraft}
-        sequence={sequence}
+        onReset={resetFilters}
+        onBatchChange={selectBatch}
         batch={batch}
         validation={validation}
         dirty={dirty}
@@ -390,13 +430,9 @@ export default function ReportsDashboard({
         notice={notice}
         error={error}
         canReviewPayments={canReviewPayments}
-        sequence={sequence}
-        setReport={setReport}
-        setLoading={setLoading}
-        setReportPage={setReportPage}
+        onPage={selectPage}
         analysisDraft={analysisDraft}
-        setAnalysisDraft={setAnalysisDraft}
-        setActionError={setActionError}
+        onAnalysisChange={editAnalysis}
       />
       <ReportHistory key={`${kind}:${historyRefresh}`} kind={kind} />
     </div>

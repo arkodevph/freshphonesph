@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import type { PortalScheduleItem } from "@/lib/api";
-import { manilaToday } from "@/lib/portal-attention";
+import { today as manilaToday } from "@/lib/date";
 import { installmentState, scheduleDueNow } from "@/lib/portal-schedule";
 import {
   calendarDate,
