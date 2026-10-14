@@ -18,6 +18,7 @@ export function redisConnection(config: Config, consumer = false) {
   if (!config.REDIS_URL) {
     throw new Error("Configure REDIS_URL to run Redis services.");
   }
+
   const redis = new Redis(config.REDIS_URL, {
     maxRetriesPerRequest: consumer ? null : 1,
     enableOfflineQueue: consumer,

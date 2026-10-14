@@ -60,6 +60,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
     if (this.config.NODE_ENV === "test" || this.config.REDIS_URL) {
       return;
     }
+
     this.timer = setInterval(() => {
       void this.run();
     }, 30_000);
@@ -81,6 +82,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
 
       return;
     }
+
     // Settings are already committed. A Redis outage must not undo the saved response;
     // the recurring worker reads current database settings when processing resumes.
     try {
@@ -99,6 +101,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
     if (this.busy) {
       return;
     }
+
     this.busy = true;
 
     try {
@@ -109,6 +112,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
 
         this.reminderDay = today;
       }
+
       await this.staffEmails.queueReminders();
 
       await this.deliver();
@@ -159,6 +163,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         if (!item.client.account?.active) {
           continue;
         }
+
         const all = await this.db.scheduleItem.findMany({
           where: { clientId: item.clientId },
           orderBy: { sequenceNo: "asc" },
@@ -194,6 +199,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         if (!current || current.status === "PAID") {
           continue;
         }
+
         const outstanding = (
           Number(current.expectedAmount) - Number(current.paidApplied)
         ).toFixed(2);
@@ -264,6 +270,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         ) {
           return null;
         }
+
         if (
           !current.user.active ||
           current.emailAttempts >= 5 ||
@@ -286,6 +293,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
 
           return null;
         }
+
         const template = await this.settings.template(current.kind);
 
         const rendered = renderCustomerEmail(template, {
@@ -313,6 +321,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
       if (!notice) {
         continue;
       }
+
       try {
         await this.sendRendered(
           notice.id,
@@ -358,6 +367,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         console.error("Customer notification email delivery failed.");
       }
     }
+
     if (includeStaff) {
       await this.deliverStaff();
     }
@@ -386,6 +396,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         "Real email is not configured. Add RESEND_API_KEY and an EMAIL_FROM sender to the API environment, then restart it.",
       );
     }
+
     const due = new Date(`${philippineDate()}T00:00:00Z`);
 
     due.setUTCDate(due.getUTCDate() + 3);
@@ -442,6 +453,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
             "Delivery is no longer eligible.",
           );
         }
+
         if (this.config.NODE_ENV !== "production") {
           const directory = join(process.cwd(), ".local/mail");
 
@@ -455,6 +467,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
 
           return;
         }
+
         await this.sendViaResend(id, to, subject, text, sender);
       },
       { timeout: 20_000 },

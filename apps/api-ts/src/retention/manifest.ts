@@ -27,6 +27,7 @@ const maxActivity = (value: unknown, initial: Date): Date => {
     if (!item || typeof item !== "object") {
       return;
     }
+
     for (const [key, child] of Object.entries(item)) {
       if (
         /^(createdAt|updatedAt|closedAt|reviewedAt|submittedAt|verifiedAt|acknowledgedAt)$/.test(
@@ -41,6 +42,7 @@ const maxActivity = (value: unknown, initial: Date): Date => {
       }
     }
   }
+
   visit(value);
 
   return result;
@@ -52,14 +54,17 @@ export function fingerprint(value: unknown): string {
     if (item instanceof Date) {
       return item.toISOString();
     }
+
     if (item instanceof Prisma.Decimal) {
       return item.toFixed(2);
     }
+
     if (Array.isArray(item)) {
       return item.map(canonical).sort((a, b) => {
         return JSON.stringify(a).localeCompare(JSON.stringify(b));
       });
     }
+
     if (item && typeof item === "object") {
       return Object.fromEntries(
         Object.entries(item)
@@ -71,8 +76,10 @@ export function fingerprint(value: unknown): string {
           }),
       );
     }
+
     return item;
   }
+
   return createHash("sha256")
     .update(JSON.stringify(canonical(value)))
     .digest("hex");
@@ -110,6 +117,7 @@ export async function describe(
       if (file.purgePending) {
         blockers.push("A linked file is already awaiting deletion.");
       }
+
       if (
         !manifest.files.some((item) => {
           return item.id === file.id;
@@ -121,6 +129,7 @@ export async function describe(
           size: file.size,
         });
       }
+
       manifest.recordIds.push(file.id);
 
       state.push(file);
@@ -143,9 +152,11 @@ export async function describe(
         "Application is unavailable or already erased.",
       );
     }
+
     if (!["HIRED", "REJECTED"].includes(row.status)) {
       blockers.push("The application must be finalized as hired or rejected.");
     }
+
     heldTargets.push({ scope: "APPLICANT", subjectId: id });
 
     state.push(row);
@@ -173,6 +184,7 @@ export async function describe(
       records += row.attachments.length + row.legalAcknowledgements.length;
     }
   }
+
   async function customer(id: string, eraseProfile: boolean) {
     const row = await tx.client.findUnique({
       where: { id },
@@ -195,12 +207,15 @@ export async function describe(
     if (!row || row.retentionErasedAt) {
       throw new NotFoundException("Customer is unavailable or already erased.");
     }
+
     if (row.status !== "COMPLETED" || row.releaseStatus !== "RELEASED") {
       blockers.push("Complete the customer record and unit release first.");
     }
+
     if (row.account?.active) {
       blockers.push("Deactivate the customer portal account first.");
     }
+
     if (
       row.supportCases.some((item) => {
         return item.status !== "CLOSED";
@@ -208,6 +223,7 @@ export async function describe(
     ) {
       blockers.push("Close every support concern first.");
     }
+
     if (
       row.payments.some((item) => {
         return ["PENDING", "NEEDS_CLARIFICATION"].includes(item.status);
@@ -215,6 +231,7 @@ export async function describe(
     ) {
       blockers.push("Resolve pending payments and clarification first.");
     }
+
     const due = row.schedule.reduce((total, item) => {
       return total.add(item.expectedAmount);
     }, new Prisma.Decimal(0));
@@ -226,6 +243,7 @@ export async function describe(
         "The scheduled balance and any overpayment must be fully resolved.",
       );
     }
+
     if (
       eraseProfile &&
       row.payments.some((item) => {
@@ -236,11 +254,13 @@ export async function describe(
         "Finance adjustment evidence requires a separate approved disposition; it cannot be edited by this workflow.",
       );
     }
+
     heldTargets.push({ scope: "CUSTOMER", subjectId: id });
 
     if (row.account) {
       heldTargets.push({ scope: "EMPLOYEE", subjectId: row.account.id });
     }
+
     state.push(row);
 
     anchorAt = maxActivity(row, eraseProfile ? row.updatedAt : anchorAt);
@@ -251,6 +271,7 @@ export async function describe(
       if (row.account) {
         manifest.userIds.push(row.account.id);
       }
+
       manifest.paymentIds.push(
         ...row.payments.map((item) => {
           return item.id;
@@ -310,6 +331,7 @@ export async function describe(
       records += manifest.recordIds.length - 1;
     }
   }
+
   async function task(id: string, eraseProfile: boolean) {
     const row = await tx.task.findUniqueOrThrow({
       where: { id },
@@ -323,11 +345,13 @@ export async function describe(
     if (row.status !== "DONE") {
       blockers.push("Finish every linked task first.");
     }
+
     if (row.review?.hrActionRequests.length) {
       blockers.push(
         "Linked HR action evidence requires a separate approved disposition.",
       );
     }
+
     heldTargets.push(
       { scope: "EMPLOYEE", subjectId: row.assigneeId },
       { scope: "EMPLOYEE", subjectId: row.creatorId },
@@ -358,6 +382,7 @@ export async function describe(
       records += 1 + row.attachments.length + (row.review ? 1 : 0);
     }
   }
+
   if (target.scope === "APPLICANT") {
     await applicant(target.subjectId, true);
   } else if (target.scope === "CUSTOMER") {
@@ -371,6 +396,7 @@ export async function describe(
     if (!row || row.retentionErasedAt || row.role === "CUSTOMER") {
       throw new NotFoundException("Employee is unavailable or already erased.");
     }
+
     label = row.name;
 
     state.push(row);
@@ -384,6 +410,7 @@ export async function describe(
         "Only an inactive account belonging to another employee can be erased.",
       );
     }
+
     const batches = await tx.batch.findMany({
       where: { handlerId: row.id, status: { in: ["PLANNED", "ACTIVE"] } },
     });
@@ -395,6 +422,7 @@ export async function describe(
     if (batches.length || cases.length) {
       blockers.push("Reassign active batches and open support concerns first.");
     }
+
     const openCreated = await tx.task.count({
       where: { creatorId: row.id, status: { not: "DONE" } },
     });
@@ -404,6 +432,7 @@ export async function describe(
         "Finish or transfer open tasks created by this employee first.",
       );
     }
+
     const tasks = await tx.task.findMany({
       where: { assigneeId: row.id },
       select: { id: true },
@@ -412,6 +441,7 @@ export async function describe(
     for (const item of tasks) {
       await task(item.id, true);
     }
+
     const protectedRecords = await tx.hrActionRequest.count({
       where: { OR: [{ proposedById: row.id }, { decidedById: row.id }] },
     });
@@ -425,6 +455,7 @@ export async function describe(
         "Authored HR decisions or submitted report analysis require a separate approved disposition.",
       );
     }
+
     state.push(batches, cases, protectedRecords, analyses, openCreated);
 
     manifest.recordIds.push(
@@ -455,6 +486,7 @@ export async function describe(
         "Private file is unavailable or already awaiting deletion.",
       );
     }
+
     label = file.originalName;
 
     anchorAt = file.createdAt;
@@ -466,9 +498,11 @@ export async function describe(
         "This is a public catalog image. Manage it through the catalog.",
       );
     }
+
     if (file.applicantAttachment) {
       await applicant(file.applicantAttachment.applicantId, false);
     }
+
     const clients = [
       ...new Set(
         [
@@ -484,6 +518,7 @@ export async function describe(
     for (const id of clients) {
       await customer(id, false);
     }
+
     const tasks = [
       ...new Set(
         [file.workAttachment?.taskId, file.taskAttachment?.id].filter(
@@ -497,6 +532,7 @@ export async function describe(
     for (const id of tasks) {
       await task(id, false);
     }
+
     manifest.recordIds.push(
       ...[
         file.requirementDocument?.id,
@@ -512,6 +548,7 @@ export async function describe(
 
     state.push(file);
   }
+
   // A StoredFile can technically be linked by different tables. Never detach somebody else's copy as a side effect.
   if (target.scope !== "PRIVATE_FILE") {
     for (const item of manifest.files) {
@@ -553,12 +590,15 @@ export async function describe(
           "A linked file is shared with another record. Resolve its ownership before erasing this profile.",
         );
       }
+
       state.push(file);
     }
   }
+
   for (const file of manifest.files) {
     heldTargets.push({ scope: "PRIVATE_FILE", subjectId: file.id });
   }
+
   const holds = await tx.retentionHold.findMany({ where: { OR: heldTargets } });
 
   if (
@@ -570,6 +610,7 @@ export async function describe(
       "An active legal or operational hold prevents this deletion.",
     );
   }
+
   if (manifest.userIds.length) {
     const authRows = await Promise.all([
       tx.authAccount.findMany({ where: { userId: { in: manifest.userIds } } }),
@@ -592,6 +633,7 @@ export async function describe(
       );
     }
   }
+
   manifest.recordIds.push(...manifest.userIds);
 
   manifest.recordIds = [...new Set(manifest.recordIds)];
@@ -618,6 +660,7 @@ export async function describe(
   ) {
     blockers.push("Wait for in progress email delivery to finish.");
   }
+
   const notices = await tx.notification.findMany({
     where: {
       OR: [
@@ -636,6 +679,7 @@ export async function describe(
   ) {
     blockers.push("Wait for in progress customer email delivery to finish.");
   }
+
   const staffNotices = await tx.staffNotification.findMany({
     where: {
       OR: [
@@ -708,6 +752,7 @@ export async function describe(
     if (!value || typeof value !== "object") {
       return;
     }
+
     for (const [key, child] of Object.entries(value)) {
       if (
         ["email", "recipientEmail", "contact_email"].includes(key) &&
@@ -728,6 +773,7 @@ export async function describe(
       extractEmails(audit.after);
     }
   }
+
   // Notification read marks, retry counters and delivery state are excluded from the approval fingerprint.
   state.push(
     audits,
@@ -763,11 +809,13 @@ export function redactSnapshot(value: unknown): Prisma.InputJsonValue {
     if (typeof item === "string") {
       return safeStringKeys.test(key) ? item : "[erased]";
     }
+
     if (Array.isArray(item)) {
       return item.map((child) => {
         return visit(child);
       });
     }
+
     if (item && typeof item === "object") {
       return Object.fromEntries(
         Object.entries(item).map(([name, child]) => {
@@ -775,7 +823,9 @@ export function redactSnapshot(value: unknown): Prisma.InputJsonValue {
         }),
       );
     }
+
     return item;
   }
+
   return visit(value) as Prisma.InputJsonValue;
 }

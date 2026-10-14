@@ -16,6 +16,7 @@ export function useLiveRecords(reload: () => void, enabled = true) {
     if (!enabled) {
       return;
     }
+
     let stopped = false;
 
     let source: EventSource | undefined;
@@ -28,6 +29,7 @@ export function useLiveRecords(reload: () => void, enabled = true) {
       if (stopped) {
         return;
       }
+
       const backoff = Math.min(60_000, 2000 * 2 ** Math.min(failures++, 5));
 
       timer = setTimeout(
@@ -38,6 +40,7 @@ export function useLiveRecords(reload: () => void, enabled = true) {
               if (error instanceof ApiError && error.status === 401) {
                 return;
               }
+
               retry(
                 error instanceof ApiError ? error.retryAfterSeconds : undefined,
               );
@@ -51,6 +54,7 @@ export function useLiveRecords(reload: () => void, enabled = true) {
       if (stopped) {
         return;
       }
+
       source = new EventSource(`${API_URL}/api/events`, {
         withCredentials: true,
       });

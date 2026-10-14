@@ -12,11 +12,13 @@ export function verifiedPaymentPercent(
   if (!summary || summary.total_due == null || summary.verified_paid == null) {
     return null;
   }
+
   const total = cents(summary.total_due);
 
   if (total === 0 || !Number.isFinite(Number(summary.verified_paid))) {
     return null;
   }
+
   return Math.min(100, (cents(summary.verified_paid) * 100) / total);
 }
 
@@ -62,6 +64,7 @@ export function paymentStaff(payments: Payment[]) {
     if (!name?.trim()) {
       return;
     }
+
     const key = id == null ? `name:${name.trim().toLowerCase()}` : String(id);
 
     const existing = staff.get(key);
@@ -74,10 +77,12 @@ export function paymentStaff(payments: Payment[]) {
       staff.set(key, { id: key, name: name.trim(), roles: [role], paymentId });
     }
   }
+
   for (const payment of payments) {
     if (payment.status.toLowerCase() !== "verified") {
       continue;
     }
+
     add(payment.recorded_by, payment.recorded_by_name, "Recorder", payment.id);
 
     add(
@@ -87,5 +92,6 @@ export function paymentStaff(payments: Payment[]) {
       payment.id,
     );
   }
+
   return [...staff.values()];
 }

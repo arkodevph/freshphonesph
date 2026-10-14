@@ -118,6 +118,7 @@ export function Pagination<T>({
   if (data.count <= data.pageSize) {
     return null;
   }
+
   const pages = Math.ceil(data.count / data.pageSize);
 
   return (

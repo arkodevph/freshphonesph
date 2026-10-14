@@ -28,6 +28,7 @@ export class LegalController {
     if (!parsed.success) {
       throw new NotFoundException("Legal document not found.");
     }
+
     return this.legal.document(parsed.data);
   }
 

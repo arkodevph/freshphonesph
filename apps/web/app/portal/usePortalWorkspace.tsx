@@ -226,6 +226,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
         setProfileOpen(false);
       }
+
       if (
         !desktopNotificationsRef.current?.contains(event.target as Node) &&
         !mobileNotificationsRef.current?.contains(event.target as Node)
@@ -250,6 +251,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
           mobileNotificationButtonRef.current?.focus();
         }
       }
+
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
 
@@ -282,6 +284,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (themeTransitioning.current) {
       return;
     }
+
     const next = theme === "dark" ? "light" : "dark";
 
     const root = document.documentElement;
@@ -316,6 +319,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
       return;
     }
+
     const transition = (
       document as ViewTransitionDocument
     ).startViewTransition?.(applyTheme);
@@ -325,6 +329,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
       return;
     }
+
     themeTransitioning.current = true;
 
     root.classList.add("portal-theme-iris-transition");
@@ -342,6 +347,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (!menuOpen && !moreOpen) {
       return;
     }
+
     const previousOverflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -358,6 +364,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
       if (window.innerWidth > 900) {
         setMenuOpen(false);
       }
+
       if (window.innerWidth > 700) {
         setMoreOpen(false);
       }
@@ -380,12 +387,14 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (!moreOpen) {
       return;
     }
+
     moreCloseRef.current?.focus();
 
     const keepFocusInSheet = (event: KeyboardEvent) => {
       if (event.key !== "Tab") {
         return;
       }
+
       const focusable = moreSheetRef.current?.querySelectorAll<HTMLElement>(
         "a[href], button:not([disabled])",
       );
@@ -393,6 +402,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
       if (!focusable?.length) {
         return;
       }
+
       const first = focusable[0];
 
       const last = focusable[focusable.length - 1];
@@ -445,6 +455,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (!["payments", "notifications"].includes(section)) {
       return;
     }
+
     void getPendingCustomerPayments()
       .then((items) => {
         setPendingPayments(items);
@@ -460,6 +471,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (!me?.client_id || !["overview", "release"].includes(section)) {
       return;
     }
+
     void getReleaseUpdates(me.client_id)
       .then((updates) => {
         setReleaseUpdates(updates);
@@ -475,6 +487,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (section !== "overview") {
       return;
     }
+
     void Promise.all([getCustomerDocuments(), getPortalSupport()])
       .then(([documents, supportCases]) => {
         setAttentionDocuments(documents);
@@ -499,6 +512,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
           if (request !== recordsRequestRef.current) {
             return;
           }
+
           const pageSize = verifiedPayments.page_size ?? 20;
 
           const lastPage = Math.max(
@@ -511,6 +525,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
             return;
           }
+
           setSummary({
             full_name: client.name,
             batch_number: client.batch.code,
@@ -558,6 +573,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
         if (request !== recordsRequestRef.current) {
           return;
         }
+
         setRecordsStatus("error");
 
         setError(
@@ -585,11 +601,13 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (section === "support" || section === "membership") {
       loadSupport();
     }
+
     if (section === "support" && activeCaseId) {
       void getSupportCaseDetail(activeCaseId)
         .then(setCaseDetail)
         .catch(() => {});
     }
+
     loadNotifications();
   }, [
     section,
@@ -608,6 +626,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (me?.account_type !== "customer") {
       return;
     }
+
     refresh();
   }, [section, refresh, loadSupport, me?.id, me?.account_type]);
 
@@ -623,6 +642,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (!target || scrolledHash.current === target) {
       return;
     }
+
     if (section === "support" && target.startsWith("case-")) {
       const targetIndex = cases.findIndex((item) => {
         return `case-${item.id}` === target;
@@ -644,6 +664,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
         }
       }
     }
+
     const element = document.getElementById(target);
 
     if (element) {
@@ -657,6 +678,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
       ) {
         element.focus({ preventScroll: true });
       }
+
       if (section === "support" && target.startsWith("case-")) {
         void openCase(target.slice(5));
       }
@@ -676,6 +698,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (!summary || reportSubmitting) {
       return;
     }
+
     const request = reportText.trim();
 
     if (request.length < 10) {
@@ -685,6 +708,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
       return;
     }
+
     setReportSubmitting(true);
 
     setReportError(null);
@@ -787,6 +811,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
       return;
     }
+
     setActiveCaseId(id);
 
     setCaseDetail(null);
@@ -814,6 +839,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (!activeCaseId || !replyText.trim() || replying) {
       return;
     }
+
     setReplying(true);
 
     setError(null);
@@ -861,6 +887,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     if (markingAllNotifications) {
       return;
     }
+
     setMarkingAllNotifications(true);
 
     setNotificationActionError(null);

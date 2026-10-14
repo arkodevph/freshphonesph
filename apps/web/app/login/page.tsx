@@ -77,11 +77,13 @@ export default function LoginPage() {
         return;
       }
     }
+
     if (safeSupportReturn(destination)) {
       window.location.assign(destination);
 
       return;
     }
+
     router.push(destination);
   }
 
@@ -106,6 +108,7 @@ export default function LoginPage() {
       } catch {
         /* non-fatal: useMe() will retry */
       }
+
       await navigateAfterSignIn(destination);
     } catch (caughtError) {
       if (caughtError instanceof MfaChallenge) {

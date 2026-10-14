@@ -49,6 +49,7 @@ export async function notifyPaymentResult(
   if (!recipients.length) {
     return;
   }
+
   const results = await tx.paymentResultAlert.createManyAndReturn({
     data: recipients.map((recipient) => {
       return {

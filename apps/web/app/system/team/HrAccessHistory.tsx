@@ -37,6 +37,7 @@ export default function HrAccessHistory({
         if (!active) {
           return;
         }
+
         const last = Math.max(1, Math.ceil(data.total / data.pageSize));
 
         if (page > last) {

@@ -26,6 +26,7 @@ export class CustomerWorkController {
     if (!kind || !["support", "documents", "payments"].includes(kind)) {
       throw new BadRequestException("Invalid work queue.");
     }
+
     return this.work.list(
       user,
       kind as CustomerWorkKind,

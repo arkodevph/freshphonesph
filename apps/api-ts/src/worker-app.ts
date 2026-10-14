@@ -20,6 +20,7 @@ export async function createWorkerApp(config: Config = readConfig()) {
   if (!config.REDIS_URL) {
     throw new Error("Workers require REDIS_URL.");
   }
+
   const app = await NestFactory.createApplicationContext(
     {
       module: WorkerModule,

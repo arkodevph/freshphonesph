@@ -38,6 +38,7 @@ if (
     "Use a migrated dedicated TEST_DATABASE_URL ending in _test and TEST_REDIS_URL.",
   );
 }
+
 const origin = "http://localhost:3100",
   password = "Synthetic-Redis-password123!",
   suffix = randomUUID();
@@ -70,10 +71,13 @@ async function until(
     if (await check()) {
       return;
     }
+
     await delay(50);
   }
+
   assert.fail("Timed out waiting for Redis integration state.");
 }
+
 async function login(person: typeof owner, target = base) {
   const response = await fetch(`${target}/api/auth/login`, {
     method: "POST",
@@ -90,6 +94,7 @@ async function login(person: typeof owner, target = base) {
     })
     .join("; ");
 }
+
 async function sse(cookie: string, target = base) {
   const abort = new AbortController();
 
@@ -121,6 +126,7 @@ async function sse(cookie: string, target = base) {
         if (row.done) {
           break;
         }
+
         stream.text += decoder.decode(row.value);
       }
     } catch {
@@ -136,6 +142,7 @@ async function sse(cookie: string, target = base) {
 
   return stream;
 }
+
 async function notification(userId = owner.id) {
   const row = await db.notification.create({
     data: {
@@ -150,6 +157,7 @@ async function notification(userId = owner.id) {
 
   return row;
 }
+
 async function deletion() {
   const storageKey = randomUUID(),
     bytes = Buffer.from("synthetic private bytes");
@@ -184,6 +192,7 @@ async function deletion() {
 
     await retention.activatePolicy(user, draft.id, "Synthetic Owner review");
   }
+
   const preview = await retention.preview(user, {
     scope: "PRIVATE_FILE",
     subjectId: file.id,
@@ -213,6 +222,7 @@ async function deletion() {
 
   return { file, request: executed, jobId: executed.files[0].id };
 }
+
 before(async () => {
   directory = await mkdtemp(join(tmpdir(), "fresh-redis-private-"));
 
@@ -279,18 +289,23 @@ after(async () => {
   for (const stream of streams) {
     stream.stop();
   }
+
   if (otherWorker) {
     await otherWorker.close();
   }
+
   if (worker) {
     await worker.close();
   }
+
   if (app) {
     await app.close();
   }
+
   if (second) {
     await second.close();
   }
+
   if (redis) {
     let cursor = "0";
 
@@ -312,9 +327,11 @@ after(async () => {
 
     redis.disconnect();
   }
+
   for (const id of mailIds) {
     await rm(join(process.cwd(), ".local/mail", `${id}.txt`), { force: true });
   }
+
   if (directory) {
     await rm(directory, { recursive: true, force: true });
   }
@@ -374,6 +391,7 @@ test("only committed events publish, including lower sequence IDs that commit la
 
     await transaction;
   }
+
   await relayChanges(db, redis, config);
 
   assert.ok(
@@ -918,6 +936,7 @@ test("BullMQ retries infrastructure failures without losing the durable delivery
     if (id === row.id && failures++ < 1) {
       throw new Error("synthetic-secret-provider-data");
     }
+
     await original(id, staff);
   };
 
@@ -1006,6 +1025,7 @@ test("file worker retries are bounded and require execution evidence", async () 
 
       await retention.processFileJob(removal.jobId);
     }
+
     const job = await db.retentionFileJob.findUniqueOrThrow({
       where: { id: removal.jobId },
     });
@@ -1033,6 +1053,7 @@ test("file worker retries are bounded and require execution evidence", async () 
   } finally {
     storage.erase = original;
   }
+
   await retention.processFileJob(removal.jobId);
 
   assert.equal(
@@ -1088,6 +1109,7 @@ test(
         stdio: "ignore",
       });
     }
+
     await until(() => {
       return redis.status === "ready";
     }, 25_000);

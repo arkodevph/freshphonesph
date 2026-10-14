@@ -64,6 +64,7 @@ export class DocumentsService {
       if (!current?.active || !allowed(current, permission)) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       return run(tx);
     });
   }
@@ -134,6 +135,7 @@ export class DocumentsService {
       if (!before) {
         throw new NotFoundException("Requirement type not found.");
       }
+
       const changed = await tx.requirementType.updateMany({
         where: { id, version },
         data: {
@@ -147,6 +149,7 @@ export class DocumentsService {
           "This requirement type changed. Refresh and try again.",
         );
       }
+
       const after = await tx.requirementType.findUniqueOrThrow({
         where: { id },
       });
@@ -181,6 +184,7 @@ export class DocumentsService {
     if (!client) {
       throw new NotFoundException("Client not found.");
     }
+
     const [types, requirements] = await this.db.$transaction([
       this.db.requirementType.findMany({
         where: { active: true },
@@ -215,6 +219,7 @@ export class DocumentsService {
           updatedAt: null,
         };
       }
+
       return this.view(user, item);
     });
   }
@@ -252,11 +257,13 @@ export class DocumentsService {
     if (!type) {
       throw new NotFoundException("Requirement type not found.");
     }
+
     if (user.role === "CUSTOMER" && !type.customerCanUpload) {
       throw new ForbiddenException(
         "This document must be uploaded by Records.",
       );
     }
+
     const file = this.storage.validateDocument(upload, {
       allowedMimeTypes: type.allowedMimeTypes,
       maxBytes: type.maxBytes,
@@ -279,6 +286,7 @@ export class DocumentsService {
         if (!client) {
           throw new NotFoundException("Client not found.");
         }
+
         const requirement = await tx.clientRequirement.upsert({
           where: { clientId_typeId: { clientId, typeId } },
           update: {
@@ -347,6 +355,7 @@ export class DocumentsService {
             },
           );
         }
+
         return this.view(
           user,
           await tx.clientRequirement.findUniqueOrThrow({
@@ -384,11 +393,13 @@ export class DocumentsService {
       if (!before) {
         throw new NotFoundException("Client requirement not found.");
       }
+
       if (before.status !== "SUBMITTED") {
         throw new ConflictException(
           "Only a submitted document can be reviewed.",
         );
       }
+
       const changed = await tx.clientRequirement.updateMany({
         where: { id, version: input.version, status: "SUBMITTED" },
         data: {
@@ -404,6 +415,7 @@ export class DocumentsService {
           "This requirement was already reviewed. Refresh the checklist.",
         );
       }
+
       await tx.requirementReview.create({
         data: {
           requirementId: id,
@@ -450,6 +462,7 @@ export class DocumentsService {
           link: "/portal",
         });
       }
+
       return this.view(user, after);
     });
   }
@@ -466,6 +479,7 @@ export class DocumentsService {
     ) {
       throw new NotFoundException("Document not found.");
     }
+
     return {
       data: await this.storage.read(document.storedFile.storageKey),
       mimeType: document.storedFile.mimeType,

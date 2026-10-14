@@ -15,6 +15,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Use a migrated dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const suffix = randomUUID().slice(0, 8);
@@ -50,6 +51,7 @@ class Session {
         })
         .join("; ");
     }
+
     return response;
   }
   async login(role: Role) {
@@ -63,6 +65,7 @@ class Session {
     return this;
   }
 }
+
 const post = (value: unknown): RequestInit => {
   return { method: "POST", body: JSON.stringify(value) };
 };

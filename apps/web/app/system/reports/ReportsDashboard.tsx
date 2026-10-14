@@ -90,6 +90,7 @@ export default function ReportsDashboard({
 
       return;
     }
+
     const request = ++sequence.current;
 
     setLoading(true);
@@ -138,6 +139,7 @@ export default function ReportsDashboard({
           return;
         }
       }
+
       if (request === sequence.current) {
         setReport(loaded);
       }
@@ -170,6 +172,7 @@ export default function ReportsDashboard({
 
       return;
     }
+
     sequence.current++;
 
     setValidation(null);
@@ -190,10 +193,12 @@ export default function ReportsDashboard({
 
     setApplied({ ...draft });
   }
+
   function selectKind(next: ReportKind) {
     if (next === kind || operation.current) {
       return;
     }
+
     sequence.current++;
 
     const filters = { ...applied, batchId: "", status: "" };
@@ -224,10 +229,12 @@ export default function ReportsDashboard({
 
     setAnalysisDraft("");
   }
+
   async function runAction(action: "csv" | "xlsx" | "save") {
     if (operation.current || loading || !report || dirty) {
       return;
     }
+
     const query = reportFilterQuery(kind, applied);
 
     if (!query.params) {
@@ -235,6 +242,7 @@ export default function ReportsDashboard({
 
       return;
     }
+
     const saved = snapshotInput(kind, applied);
 
     if (action === "save" && !saved.input) {
@@ -242,6 +250,7 @@ export default function ReportsDashboard({
 
       return;
     }
+
     const written = analysisDraft.trim();
 
     if (action === "save" && written && written.length < 20) {
@@ -251,6 +260,7 @@ export default function ReportsDashboard({
 
       return;
     }
+
     operation.current = true;
 
     setBusy(action);
@@ -300,6 +310,7 @@ export default function ReportsDashboard({
       }
     }
   }
+
   const edit = (field: keyof ReportFilters, value: string) => {
     setDraft((current) => {
       return { ...current, [field]: value };

@@ -41,6 +41,7 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
     if (!this.config.REDIS_URL) {
       throw new Error("Workers require REDIS_URL.");
     }
+
     const connection = (this.connection = redisConnection(this.config, true));
 
     const options = {
@@ -90,6 +91,7 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
         );
       });
     }
+
     connection.on("ready", () => {
       void this.schedules();
     });
@@ -116,6 +118,7 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
     if (this.scheduling || this.queues.connection?.status !== "ready") {
       return;
     }
+
     this.scheduling = true;
 
     try {
@@ -147,12 +150,15 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
 
       return;
     }
+
     if (job.name === "operations-reminders") {
       return this.notifications.runTaskReminders();
     }
+
     if (job.name !== "reconcile") {
       throw new Error("Unknown maintenance job.");
     }
+
     await this.reconcile();
 
     await this.queues.connection!.set(
@@ -182,6 +188,7 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
         `${row.emailAttempts}-${row.emailNextAt.getTime()}`,
       );
     }
+
     const staff = await this.db.staffEmail.findMany({
       where: { status: { in: ["PENDING", "SENDING"] }, nextAt: { lte: now } },
       select: { id: true, version: true },
@@ -192,6 +199,7 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
     for (const row of staff) {
       await this.queues.enqueue("staff-email", row.id, String(row.version));
     }
+
     const operations = await this.db.notificationDelivery.findMany({
       where: {
         status: { in: ["PENDING", "FAILED"] },
@@ -210,6 +218,7 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
         `${row.attempts}-${row.nextAttemptAt.getTime()}`,
       );
     }
+
     const files = await this.db.retentionFileJob.findMany({
       where: {
         request: { status: "FILES_PENDING" },
@@ -245,6 +254,7 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
     ) {
       throw new Error("Invalid background job identifier.");
     }
+
     switch (job.name) {
       case "customer-email":
         return this.emails.deliver(id, false);
@@ -262,6 +272,7 @@ export class BackgroundWorkerService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) {
       clearInterval(this.timer);
     }
+
     const closing = Promise.all(
       this.workers.map((worker) => {
         return worker.close(this.connection?.status !== "ready");

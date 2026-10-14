@@ -84,6 +84,7 @@ export default function RetentionPage() {
     if (!access) {
       return;
     }
+
     const sequence = ++loadSequence.current;
 
     setLoading(true);
@@ -99,6 +100,7 @@ export default function RetentionPage() {
       if (sequence !== loadSequence.current) {
         return;
       }
+
       setPolicies(rules.items);
 
       setCandidates(records);
@@ -145,6 +147,7 @@ export default function RetentionPage() {
     if (access) {
       return;
     }
+
     setPolicies([]);
 
     setCandidates(emptyPage());
@@ -183,6 +186,7 @@ export default function RetentionPage() {
       setBusy(false);
     }
   }
+
   async function inspect(item: RetentionPreview) {
     await run(async () => {
       setPreview(await api.retentionPreview(item.scope, item.subjectId));
@@ -192,6 +196,7 @@ export default function RetentionPage() {
       setSelectedRequest(null);
     }, "Preview refreshed.");
   }
+
   async function savePolicy(event: FormEvent) {
     event.preventDefault();
 
@@ -207,6 +212,7 @@ export default function RetentionPage() {
       });
     }, "Policy draft saved. It has no effect until approved.");
   }
+
   async function exportLedger() {
     await run(async () => {
       const data = await api.retentionDeletionLedger();
@@ -228,9 +234,11 @@ export default function RetentionPage() {
       }, 1000);
     }, "Deletion ledger exported. Store it privately, separately from database backups, for restore reconciliation.");
   }
+
   if (!me) {
     return <p>Checking access…</p>;
   }
+
   if (!access) {
     return (
       <section className={styles.card}>
@@ -241,6 +249,7 @@ export default function RetentionPage() {
       </section>
     );
   }
+
   const active = policies.filter((item) => {
     return item.status === "ACTIVE";
   });

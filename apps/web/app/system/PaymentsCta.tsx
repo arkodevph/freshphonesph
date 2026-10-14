@@ -10,6 +10,7 @@ export default function PaymentsCta() {
   if (!can(me, "PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY")) {
     return null;
   }
+
   return (
     <Link href="/system/payments" className="system-primary-action">
       <Receipt weight="fill" className="h-5 w-5" />

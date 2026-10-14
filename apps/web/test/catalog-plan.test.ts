@@ -27,6 +27,7 @@ test("sample dates use fixed intervals across leap days, month ends and timezone
   ]) {
     assert.equal(catalogSampleDate(start, 7), null, start);
   }
+
   assert.equal(catalogSampleDate("2026-01-01", Infinity), null);
 
   assert.equal(catalogSampleDate("2026-01-01", -1), null);

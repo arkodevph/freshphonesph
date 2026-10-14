@@ -27,6 +27,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
     if (!node) {
       return;
     }
+
     const io = new IntersectionObserver(
       ([entry]) => {
         return setScrolled(!entry.isIntersecting);

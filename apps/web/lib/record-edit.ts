@@ -30,14 +30,18 @@ export function recordChanged(
   if (previous.version !== latest.version) {
     return true;
   }
+
   if ("code" in previous && "code" in latest) {
     return Boolean(previous.termsLocked) !== Boolean(latest.termsLocked);
   }
+
   if ("name" in previous && "name" in latest) {
     return Boolean(previous.scheduleIssued) !== Boolean(latest.scheduleIssued);
   }
+
   return true;
 }
+
 export function recordDraft(record: Batch | Client): RecordDraft {
   const empty: RecordDraft = {
     code: "",
@@ -69,6 +73,7 @@ export function recordDraft(record: Batch | Client): RecordDraft {
       endDate: record.endDate,
     };
   }
+
   return {
     ...empty,
     name: record.name,
@@ -80,6 +85,7 @@ export function recordDraft(record: Batch | Client): RecordDraft {
     releaseStatus: record.releaseStatus,
   };
 }
+
 export function batchEditInput(draft: RecordDraft): BatchInput {
   return {
     code: draft.code,
@@ -96,6 +102,7 @@ export function batchEditInput(draft: RecordDraft): BatchInput {
       : {}),
   };
 }
+
 export function clientEditInput(draft: RecordDraft): ClientInput {
   return {
     name: draft.name,

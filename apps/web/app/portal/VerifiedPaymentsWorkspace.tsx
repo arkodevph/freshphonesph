@@ -1,5 +1,6 @@
 "use client";
 
+import { pesoFormat as currency } from "@/lib/currency";
 import type { Payment, PendingCustomerPayment, PortalSummary } from "@/lib/api";
 import {
   ArrowRight,
@@ -16,12 +17,6 @@ import { verifiedPaymentPercent } from "@/lib/portal-payment-overview";
 import PortalBannerArt from "./PortalBannerArt";
 import bannerStyles from "./portal-banner.module.css";
 import styles from "./verified-payments.module.css";
-
-const currency = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-});
 
 const percent = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 1 });
 
@@ -42,6 +37,7 @@ function paymentDate(value: string) {
 
   return Number.isNaN(parsed.getTime()) ? value : date.format(parsed);
 }
+
 const methodName = (method: string) => {
   return method.toLowerCase() === "gcash"
     ? "GCash"
@@ -155,14 +151,17 @@ export default function VerifiedPaymentsWorkspace({
     if (loading || requestedPage.current == null) {
       return;
     }
+
     if (status === "error") {
       requestedPage.current = null;
 
       return;
     }
+
     if (pagination.page !== requestedPage.current) {
       return;
     }
+
     requestedPage.current = null;
 
     titleRef.current?.focus({ preventScroll: true });

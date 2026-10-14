@@ -15,12 +15,14 @@ export async function hashPassword(password: string) {
 
   return `${salt}:${derived.toString("hex")}`;
 }
+
 export async function verifyPassword(password: string, encoded: string) {
   const [salt, hash] = encoded.split(":");
 
   if (!salt || !hash) {
     return false;
   }
+
   const derived = (await scrypt(password, salt, 64)) as Buffer;
 
   const expected = Buffer.from(hash, "hex");
@@ -29,6 +31,7 @@ export async function verifyPassword(password: string, encoded: string) {
     expected.length === derived.length && timingSafeEqual(expected, derived)
   );
 }
+
 export const tokenHash = (value: string) => {
   return createHash("sha256").update(value).digest("hex");
 };

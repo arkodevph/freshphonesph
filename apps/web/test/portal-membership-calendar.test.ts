@@ -27,6 +27,7 @@ test("membership dates retain their date-only value and reject missing or imposs
   ]) {
     assert.equal(calendarDate(value), null);
   }
+
   assert.deepEqual(
     membershipMilestones({
       joined_at: "2026-09-01",

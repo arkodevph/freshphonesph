@@ -66,6 +66,7 @@ export class WorkService {
       if (!current?.active || !allowed(current, permission)) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       return run(tx, current);
     });
   }
@@ -91,6 +92,7 @@ export class WorkService {
     ) {
       throw new ConflictException("Invalid task status.");
     }
+
     const where: Prisma.TaskWhereInput = {
       ...this.scope(user),
       ...(query.status
@@ -151,6 +153,7 @@ export class WorkService {
       if (!assignee) {
         throw new NotFoundException("Active staff assignee not found.");
       }
+
       const task = await tx.task.create({
         data: {
           ...input,
@@ -203,11 +206,13 @@ export class WorkService {
       if (!before) {
         throw new NotFoundException("Task not found.");
       }
+
       if (["SUBMITTED", "DONE"].includes(before.status)) {
         throw new ConflictException(
           "Submitted tasks cannot return to progress.",
         );
       }
+
       const changed = await tx.task.updateMany({
         where: { id, version, assigneeId: user.id },
         data: { status, version: { increment: 1 } },
@@ -218,6 +223,7 @@ export class WorkService {
           "This task changed. Refresh and try again.",
         );
       }
+
       const after = await tx.task.findUniqueOrThrow({
         where: { id },
         include: taskInclude,
@@ -247,9 +253,11 @@ export class WorkService {
       if (!before || before.assigneeId !== user.id) {
         throw new NotFoundException("Task not found.");
       }
+
       if (["SUBMITTED", "DONE"].includes(before.status)) {
         throw new ConflictException("This task was already submitted.");
       }
+
       const submittedAt = new Date();
 
       const changed = await tx.task.updateMany({
@@ -267,6 +275,7 @@ export class WorkService {
           "This task changed. Refresh and try again.",
         );
       }
+
       const after = await tx.task.findUniqueOrThrow({
         where: { id },
         include: taskInclude,
@@ -322,11 +331,13 @@ export class WorkService {
         ) {
           throw new NotFoundException("Task not found.");
         }
+
         if (task.status === "DONE") {
           throw new ConflictException(
             "Completed tasks cannot receive attachments.",
           );
         }
+
         const stored = await tx.storedFile.create({
           data: {
             storageKey,
@@ -386,6 +397,7 @@ export class WorkService {
     ) {
       throw new NotFoundException("Task attachment not found.");
     }
+
     return {
       data: await this.storage.read(attachment.storedFile.storageKey),
       mimeType: attachment.storedFile.mimeType,
@@ -418,6 +430,7 @@ export class WorkService {
       if (!task) {
         throw new NotFoundException("Task not found.");
       }
+
       const evidence = task.submittedAt
         ? `Submitted ${task.submittedAt.toISOString()} vs deadline ${task.deadline.toISOString()} (${task.lateFlag ? "LATE" : "ON TIME"}).`
         : "Not yet submitted.";

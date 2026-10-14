@@ -18,6 +18,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Reconciliation tests require a dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const suffix = randomUUID().slice(0, 8);
@@ -169,6 +170,7 @@ before(async () => {
         .join("; "),
     });
   }
+
   const owner = sessions.get("OWNER")!.id;
 
   async function payment(
@@ -212,8 +214,10 @@ before(async () => {
         },
       });
     }
+
     return item;
   }
+
   const recorded = await payment(
     0,
     "PENDING",
@@ -311,6 +315,7 @@ test("reconciliation aggregates/export/history require REPORT_VIEW and exception
       );
     }
   }
+
   const detail = "/reports/reconciliation/exceptions";
 
   assert.equal((await request(null, detail)).status, 401);
@@ -468,6 +473,7 @@ test("reconciliation exports contain full scoped aggregates and no payment-level
     ]) {
       assert.ok(text.includes(value), value);
     }
+
     for (const privateValue of [
       auditedId,
       staleId,
@@ -480,6 +486,7 @@ test("reconciliation exports contain full scoped aggregates and no payment-level
       assert.equal(text.includes(privateValue), false);
     }
   }
+
   const response = await request("ANALYTICS", "/reports/snapshots", {
     kind: "RECONCILIATION",
     periodStart: "2048-02-01",
@@ -580,6 +587,7 @@ test("reconciliation group and exception pagination preserve complete exports/sn
       },
     });
   }
+
   const first = await figures();
 
   const second = await (
@@ -650,12 +658,14 @@ test("reconciliation group and exception pagination preserve complete exports/sn
     for (const group of groups) {
       assert.ok(text.includes(group.method), group.method);
     }
+
     if (format === "csv") {
       assert.ok(text.includes('"\'=METHOD-00"'));
     } else {
       assert.equal(text.includes("<f>"), false);
     }
   }
+
   const saved = await (
     await request("ANALYTICS", "/reports/snapshots", {
       kind: "RECONCILIATION",
@@ -683,6 +693,7 @@ test("reconciliation group and exception pagination preserve complete exports/sn
   for (const value of Object.values(empty.totals)) {
     assert.equal(value, typeof value === "number" ? 0 : "0.00");
   }
+
   const past = await (
     await request(
       "ANALYTICS",
@@ -714,6 +725,7 @@ test("strict reconciliation facets and revoked payment/report access are enforce
       );
     }
   }
+
   for (const query of ["page=2", "status=PENDING", "q=private", "q="]) {
     assert.equal(
       (
@@ -725,6 +737,7 @@ test("strict reconciliation facets and revoked payment/report access are enforce
       400,
     );
   }
+
   for (const facet of [{ status: "PENDING" }, { page: 2 }, { q: "private" }]) {
     assert.equal(
       (
@@ -738,6 +751,7 @@ test("strict reconciliation facets and revoked payment/report access are enforce
       400,
     );
   }
+
   assert.equal(
     (
       await request("OWNER", "/reports/snapshots", {

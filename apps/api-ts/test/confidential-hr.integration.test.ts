@@ -26,6 +26,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "TEST_DATABASE_URL must point to a migrated dedicated database ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const password = "Confidential-test-password-123!";
@@ -75,6 +76,7 @@ class Session {
         })
         .join("; ");
     }
+
     return result;
   }
   async login(person: { email: string }) {
@@ -88,6 +90,7 @@ class Session {
     return this;
   }
 }
+
 async function person(role: Role) {
   return db.user.create({
     data: {
@@ -99,6 +102,7 @@ async function person(role: Role) {
     },
   });
 }
+
 async function decision(
   subject: { id: string },
   granted: boolean,
@@ -121,6 +125,7 @@ async function decision(
     target,
   );
 }
+
 async function openStream(session: Session) {
   const controller = new AbortController();
 
@@ -145,6 +150,7 @@ async function openStream(session: Session) {
         if (item.done) {
           break;
         }
+
         text += new TextDecoder().decode(item.value);
       }
     } catch {
@@ -162,6 +168,7 @@ async function openStream(session: Session) {
         return setTimeout(resolve, 30);
       });
     }
+
     assert.ok(predicate(), "Expected stream condition did not arrive.");
   };
 
@@ -184,6 +191,7 @@ async function openStream(session: Session) {
     },
   };
 }
+
 before(async () => {
   const config = {
     NODE_ENV: "test" as const,
@@ -243,6 +251,7 @@ before(async () => {
 
     sessions.set(role, await new Session().login(user));
   }
+
   taskId = (
     await db.task.create({
       data: {
@@ -323,8 +332,10 @@ after(async () => {
     for (const key of privateKeys) {
       await app.get(PrivateStorageService).remove(key);
     }
+
     await app.close();
   }
+
   if (second) {
     await second.close();
   }
@@ -359,6 +370,7 @@ test("migration defaults every non-Owner off and all private routes deny every u
       );
     }
   }
+
   for (const path of paths) {
     assert.equal((await new Session().request(path)).status, 401, path);
   }
@@ -395,6 +407,7 @@ test("Owner alone can change grants or read decision history; invalid bodies and
       role,
     );
   }
+
   const owner = sessions.get("OWNER")!;
 
   for (const body of [
@@ -418,6 +431,7 @@ test("Owner alone can change grants or read decision history; invalid bodies and
       400,
     );
   }
+
   for (const role of roles.filter((value) => {
     return value !== "HR_PAYROLL" && value !== "COO";
   })) {
@@ -425,6 +439,7 @@ test("Owner alone can change grants or read decision history; invalid bodies and
 
     assert.equal((await decision(target, true)).status, 400, role);
   }
+
   const inactive = await person("HR_PAYROLL");
 
   await db.user.update({ where: { id: inactive.id }, data: { active: false } });
@@ -464,6 +479,7 @@ test("explicit grants unlock HR and COO after fresh sign-in and record a minimiz
         `${role} ${path}`,
       );
     }
+
     const history = await (
       await sessions
         .get("OWNER")!
@@ -509,6 +525,7 @@ test("both task API families redact private evaluations for managers and the emp
         `${role} ${path}`,
       );
     }
+
     if (rolePermissions[role].includes("REPORT_VIEW")) {
       const report = await session.request("/reports/tasks");
 
@@ -520,6 +537,7 @@ test("both task API families redact private evaluations for managers and the emp
       );
     }
   }
+
   const direct = await (
     await sessions.get("GENERAL_MANAGER")!.request(`/tasks/${taskId}`)
   ).json();
@@ -568,6 +586,7 @@ test("revocation stops the other replica stream and blocks fresh requests and st
         path,
       );
     }
+
     await assert.rejects(
       app.get(TasksService).kpiReviews(stale, 1),
       /access has changed/,
@@ -718,6 +737,7 @@ test("grants are cleared on every role change and deactivation and do not return
 
       assert.equal((await reactivated.json()).hrConfidentialAccess, false);
     }
+
     const history = await (
       await owner.request(`/accounts/${subject.id}/hr-access-history`)
     ).json();
@@ -795,6 +815,7 @@ test("history paging is bounded, stable and private; database constraints reject
   for (let index = 0; index < 24; index++) {
     assert.equal((await decision(subject, index % 2 === 0)).status, 200);
   }
+
   const owner = sessions.get("OWNER")!;
 
   const first = await (
@@ -830,6 +851,7 @@ test("history paging is bounded, stable and private; database constraints reject
       400,
     );
   }
+
   for (const role of ["GENERAL_MANAGER", "FINANCE_OFFICER", "OWNER"] as const) {
     await assert.rejects(
       db.user.update({
@@ -864,6 +886,7 @@ test("grant changes preserve job management, public pages and Finance permission
       403,
     );
   }
+
   const retiredOwner = await person("OWNER"),
     subject = await person("HR_PAYROLL");
 

@@ -21,6 +21,7 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
   throw new Error("Use a dedicated TEST_DATABASE_URL ending in _test.");
 }
+
 const endpoint = process.env.RETENTION_TEST_S3_ENDPOINT;
 
 if (
@@ -31,6 +32,7 @@ if (
     "Use an explicit local RETENTION_TEST_S3_ENDPOINT for this destructive synthetic bucket check.",
   );
 }
+
 test("strict S3 erasure removes all object versions and retained local migration copies", async () => {
   const directory = await mkdtemp(join(tmpdir(), "fresh-s3-retention-"));
 
@@ -104,6 +106,7 @@ test("strict S3 erasure removes all object versions and retained local migration
     ]) {
       await s3.send(new PutObjectCommand({ Bucket, Key: key, Body: content }));
     }
+
     await writeFile(
       join(directory, key),
       "Private retained local migration copy",
@@ -132,6 +135,7 @@ test("strict S3 erasure removes all object versions and retained local migration
     if (created) {
       await s3.send(new DeleteBucketCommand({ Bucket }));
     }
+
     s3.destroy();
 
     await db.$disconnect();

@@ -87,6 +87,7 @@ export default function ApplyForm() {
           return { ...current, job: requestedJob };
         });
       }
+
       setLoadState("ready");
     } catch {
       setLoadState("error");
@@ -105,6 +106,7 @@ export default function ApplyForm() {
 
       return;
     }
+
     if (!ACCEPTED_ATTACHMENT_TYPES.includes(file.type)) {
       setAttachment(undefined);
 
@@ -116,6 +118,7 @@ export default function ApplyForm() {
 
       return;
     }
+
     if (file.size > MAX_ATTACHMENT_BYTES) {
       setAttachment(undefined);
 
@@ -127,6 +130,7 @@ export default function ApplyForm() {
 
       return;
     }
+
     setAttachment(file);
   }
 

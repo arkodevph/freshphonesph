@@ -25,6 +25,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Use a migrated dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100",
   password = "Catalog-test-password-123!";
 
@@ -75,6 +76,7 @@ async function request(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }
+
 async function create(record: CatalogInput = input()) {
   const response = await request("/catalog/items", "OWNER", "POST", record);
 
@@ -82,6 +84,7 @@ async function create(record: CatalogInput = input()) {
 
   return (await response.json()) as CatalogItem;
 }
+
 async function update(
   item: CatalogItem,
   change: Partial<CatalogInput>,
@@ -123,6 +126,7 @@ async function update(
     target,
   );
 }
+
 before(async () => {
   directory = await mkdtemp(join(tmpdir(), "fresh-catalog-test-"));
 
@@ -212,9 +216,11 @@ after(async () => {
   if (app) {
     await app.close();
   }
+
   if (second) {
     await second.close();
   }
+
   if (directory) {
     await rm(directory, { recursive: true, force: true });
   }
@@ -237,6 +243,7 @@ test("anonymous and every role can see published catalog, while management route
         `${role} ${path}`,
       );
     }
+
     assert.equal(
       (await request("/catalog/items", role, "POST", input())).status,
       allowed ? 201 : denied,
@@ -335,6 +342,7 @@ test("publication, availability and prices change the public view without leakin
   ]) {
     assert.equal((await request(`/catalog?${query}`)).status, 400);
   }
+
   const audits = await db.auditEntry.findMany({
     where: { entity: "catalog", recordId: row.id },
   });
@@ -527,6 +535,7 @@ test("database constraints reject partial terms, invalid counts and totals small
       db.catalogItem.update({ where: { id: row.id }, data }),
     );
   }
+
   assert.equal(
     (await db.catalogItem.findUniqueOrThrow({ where: { id: row.id } }))
       .planTotalAmount,
@@ -545,6 +554,7 @@ test("search, availability, visibility and stable pagination cover the full back
       availability: i % 2 ? "AVAILABLE" : "SOLD_OUT",
     });
   }
+
   const first = await (await request(`/catalog?q=${prefix}&page=1`)).json();
 
   const next = await (await request(`/catalog?q=${prefix}&page=2`)).json();
@@ -662,6 +672,7 @@ test("product photos are publish-gated and never serve unrelated private files; 
       body: form,
     });
   }
+
   assert.equal(
     (await upload(Buffer.from("<svg/>"), "image/svg+xml", row.version)).status,
     400,

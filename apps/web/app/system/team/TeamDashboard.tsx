@@ -145,6 +145,7 @@ export default function TeamDashboard() {
     if (toastTimerRef.current) {
       clearTimeout(toastTimerRef.current);
     }
+
     setToast(next);
 
     toastTimerRef.current = setTimeout(() => {
@@ -194,6 +195,7 @@ export default function TeamDashboard() {
     if (toastTimerRef.current) {
       clearTimeout(toastTimerRef.current);
     }
+
     setToast(null);
 
     setFieldErrors({});
@@ -213,6 +215,7 @@ export default function TeamDashboard() {
     if (!canAdmin) {
       return;
     }
+
     const request = ++requestRef.current;
 
     setLoading(true);
@@ -228,6 +231,7 @@ export default function TeamDashboard() {
       if (request !== requestRef.current) {
         return;
       }
+
       setAccounts(result.results);
 
       setTotal(result.count);
@@ -239,9 +243,11 @@ export default function TeamDashboard() {
       if (request !== requestRef.current) {
         return;
       }
+
       if (error instanceof ApiError && [401, 403].includes(error.status)) {
         clearPrivate();
       }
+
       setAccounts([]);
 
       setTotal(0);
@@ -273,6 +279,7 @@ export default function TeamDashboard() {
     if (!canAdmin) {
       return;
     }
+
     const request = ++statsRef.current;
 
     try {
@@ -293,6 +300,7 @@ export default function TeamDashboard() {
       if (request !== statsRef.current) {
         return;
       }
+
       if (error instanceof ApiError && [401, 403].includes(error.status)) {
         clearPrivate();
       }
@@ -305,6 +313,7 @@ export default function TeamDashboard() {
       if (!canAdmin || selectedRef.current !== id) {
         return;
       }
+
       const request = ++detailRef.current;
 
       setDetailLoading(true);
@@ -321,6 +330,7 @@ export default function TeamDashboard() {
         if (request !== detailRef.current || selectedRef.current !== id) {
           return;
         }
+
         setManaged(null);
 
         manageDialogRef.current?.close();
@@ -328,6 +338,7 @@ export default function TeamDashboard() {
         if (error instanceof ApiError && [401, 403].includes(error.status)) {
           clearPrivate();
         }
+
         setDetailError(
           error instanceof Error
             ? error.message
@@ -346,6 +357,7 @@ export default function TeamDashboard() {
     if (canAdmin) {
       void loadDirectory();
     }
+
     return () => {
       ++requestRef.current;
     };
@@ -355,6 +367,7 @@ export default function TeamDashboard() {
     if (canAdmin) {
       void loadStats();
     }
+
     return () => {
       ++statsRef.current;
     };
@@ -364,6 +377,7 @@ export default function TeamDashboard() {
     if (!canAdmin || !focusedAccount) {
       return;
     }
+
     manageDialogRef.current?.close();
 
     createDialogRef.current?.close();
@@ -391,9 +405,11 @@ export default function TeamDashboard() {
     if (!managed || !canAdmin || selectedRef.current !== String(managed.id)) {
       return;
     }
+
     if (!manageDialogRef.current?.open) {
       manageDialogRef.current?.showModal();
     }
+
     requestAnimationFrame(() => {
       const roleSelect =
         manageDialogRef.current?.querySelector<HTMLSelectElement>(
@@ -424,9 +440,11 @@ export default function TeamDashboard() {
     if (loading) {
       return "Loading accounts…";
     }
+
     if (total === 0) {
       return hasFilters ? "No matching accounts" : "No accounts yet";
     }
+
     const start = (page - 1) * PAGE_SIZE + 1;
 
     const end = Math.min(page * PAGE_SIZE, total);
@@ -450,6 +468,7 @@ export default function TeamDashboard() {
     if (mutationRef.current) {
       return;
     }
+
     setForm(EMPTY_FORM);
 
     setFieldErrors({});
@@ -469,12 +488,15 @@ export default function TeamDashboard() {
     if (name === "full_name" && value.trim().length < 2) {
       message = "Enter the person’s full name.";
     }
+
     if (name === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
       message = "Enter a valid email address.";
     }
+
     if (name === "password" && value.length < 12) {
       message = "Use at least 12 characters.";
     }
+
     if (
       name === "role" &&
       !ROLES.some(([role]) => {
@@ -483,6 +505,7 @@ export default function TeamDashboard() {
     ) {
       message = "Choose a staff role.";
     }
+
     setFieldErrors((current) => {
       return { ...current, [name]: message || undefined };
     });
@@ -496,6 +519,7 @@ export default function TeamDashboard() {
     if (mutationRef.current) {
       return;
     }
+
     const errors = (Object.keys(form) as CreateField[]).reduce<
       Partial<Record<CreateField, string>>
     >((result, name) => {
@@ -504,6 +528,7 @@ export default function TeamDashboard() {
       if (message) {
         result[name] = message;
       }
+
       return result;
     }, {});
 
@@ -518,6 +543,7 @@ export default function TeamDashboard() {
 
       return;
     }
+
     const privateVersion = privateVersionRef.current;
 
     mutationRef.current = true;
@@ -534,6 +560,7 @@ export default function TeamDashboard() {
       if (privateVersion !== privateVersionRef.current) {
         return;
       }
+
       createDialogRef.current?.close();
 
       setPage(1);
@@ -543,6 +570,7 @@ export default function TeamDashboard() {
       if (privateVersion !== privateVersionRef.current) {
         return;
       }
+
       showToast({
         tone: "success",
         title: "Staff account created",
@@ -552,9 +580,11 @@ export default function TeamDashboard() {
       if (privateVersion !== privateVersionRef.current) {
         return;
       }
+
       if (error instanceof ApiError && [401, 403].includes(error.status)) {
         clearPrivate();
       }
+
       showToast({
         tone: "error",
         title: "Could not create the account",
@@ -581,10 +611,12 @@ export default function TeamDashboard() {
 
     void loadManaged(String(account.id));
   }
+
   function closeManage() {
     if (mutationRef.current) {
       return;
     }
+
     ++detailRef.current;
 
     selectedRef.current = null;
@@ -601,10 +633,12 @@ export default function TeamDashboard() {
       window.history.replaceState(null, "", "/system/team");
     }
   }
+
   function editAccess(patch: Partial<AccessDraft>) {
     if (!managed) {
       return;
     }
+
     setDrafts((current) => {
       const previous = current[String(managed.id)] ?? {
         role: managed.role,
@@ -630,9 +664,11 @@ export default function TeamDashboard() {
 
         next.hrAccessReason = "";
       }
+
       return { ...current, [String(managed.id)]: next };
     });
   }
+
   function discardAccess(id: string) {
     setDrafts((current) => {
       const next = { ...current };
@@ -649,6 +685,7 @@ export default function TeamDashboard() {
     if (!managed || staleDraft || detailLoading || mutationRef.current) {
       return;
     }
+
     const nextStatus = managedActive ? "active" : "inactive";
 
     const roleChanged = managedRole !== managed.role;
@@ -660,6 +697,7 @@ export default function TeamDashboard() {
 
       return;
     }
+
     const account = managed;
 
     const privateVersion = privateVersionRef.current;
@@ -684,6 +722,7 @@ export default function TeamDashboard() {
       if (privateVersion !== privateVersionRef.current) {
         return;
       }
+
       discardAccess(String(account.id));
 
       if (selectedRef.current === String(account.id)) {
@@ -699,11 +738,13 @@ export default function TeamDashboard() {
           window.history.replaceState(null, "", "/system/team");
         }
       }
+
       await Promise.all([loadDirectory(), loadStats()]);
 
       if (privateVersion !== privateVersionRef.current) {
         return;
       }
+
       showToast({
         tone: "success",
         title: "Account updated",
@@ -713,12 +754,14 @@ export default function TeamDashboard() {
       if (privateVersion !== privateVersionRef.current) {
         return;
       }
+
       const accessDenied =
         error instanceof ApiError && [401, 403].includes(error.status);
 
       if (accessDenied) {
         clearPrivate();
       }
+
       showToast({
         tone: "error",
         title: "Could not update the account",
@@ -731,11 +774,13 @@ export default function TeamDashboard() {
       if (accessDenied) {
         return;
       }
+
       await loadDirectory();
 
       if (privateVersion !== privateVersionRef.current) {
         return;
       }
+
       if (selectedRef.current === String(account.id)) {
         await loadManaged(String(account.id));
       }

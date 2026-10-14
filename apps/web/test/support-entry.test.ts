@@ -48,6 +48,7 @@ test("support entry preserves known customer destinations through sign-in and ex
 
     assert.equal(signInDestination(null, destination), destination);
   }
+
   assert.equal(
     supportSignInHref("/portal/support", "#unknown"),
     "/login?next=%2Fportal%2Fsupport",

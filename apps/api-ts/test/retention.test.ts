@@ -28,6 +28,7 @@ test("retention validation rejects invented approvals, unsafe periods and unboun
   ]) {
     assert.equal(retentionPolicySchema.safeParse(body).success, false);
   }
+
   assert.equal(
     retentionQuerySchema.safeParse({ page: "1junk" }).success,
     false,

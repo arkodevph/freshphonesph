@@ -59,6 +59,7 @@ export class SupportService {
     ) {
       throw new ConflictException("Invalid support status.");
     }
+
     const where: Prisma.SupportCaseWhereInput = {
       ...(user.role === "CUSTOMER"
         ? { clientId: user.clientId ?? "__unlinked__" }
@@ -85,6 +86,7 @@ export class SupportService {
     ) {
       throw new NotFoundException("Support cases not found.");
     }
+
     const [items, total] = await this.db.$transaction([
       this.db.supportCase.findMany({
         where,
@@ -120,6 +122,7 @@ export class SupportService {
     if (!allowed(user, "SUPPORT_MANAGE")) {
       throw new ForbiddenException("Support management access is required.");
     }
+
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -132,11 +135,13 @@ export class SupportService {
       ) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       const client = await tx.client.findUnique({ where: { id: clientId } });
 
       if (!client) {
         throw new NotFoundException("Client not found.");
       }
+
       const result = await tx.supportCase.create({
         data: {
           clientId,
@@ -186,6 +191,7 @@ export class SupportService {
       if (!current?.active || !allowed(current, "SUPPORT_MANAGE")) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       const before = await tx.supportCase.findUnique({
         where: { id },
         include,
@@ -194,6 +200,7 @@ export class SupportService {
       if (!before) {
         throw new NotFoundException("Support case not found.");
       }
+
       if (
         input.assignedStaffId &&
         !(await tx.user.findFirst({
@@ -206,6 +213,7 @@ export class SupportService {
       ) {
         throw new NotFoundException("Active staff assignee not found.");
       }
+
       const closes = input.status === "RESOLVED" || input.status === "CLOSED";
 
       const reopens =
@@ -232,6 +240,7 @@ export class SupportService {
           "This support case changed. Refresh and try again.",
         );
       }
+
       const after = await tx.supportCase.findUniqueOrThrow({
         where: { id },
         include,
@@ -264,6 +273,7 @@ export class SupportService {
           link: "/portal",
         });
       }
+
       return this.view(after);
     });
   }

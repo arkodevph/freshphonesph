@@ -22,12 +22,14 @@ export class CustomerWorkService {
     if (!Number.isInteger(page) || page < 1 || page > 10000) {
       throw new BadRequestException("Invalid page number.");
     }
+
     const skip = (page - 1) * pageSize;
 
     if (kind === "support") {
       if (!allowed(user, "SUPPORT_MANAGE")) {
         throw new ForbiddenException("Support access required.");
       }
+
       const where: Prisma.SupportCaseWhereInput = {
         status: { in: ["OPEN", "IN_PROGRESS"] },
       };
@@ -77,10 +79,12 @@ export class CustomerWorkService {
         }),
       };
     }
+
     if (kind === "documents") {
       if (user.role !== "OWNER" && user.role !== "RECORDS") {
         throw new ForbiddenException("Records access required.");
       }
+
       const [rows, count] = await this.db.$transaction([
         this.db.customerDocument.findMany({
           where: { status: "SUBMITTED" },
@@ -115,10 +119,12 @@ export class CustomerWorkService {
         }),
       };
     }
+
     if (kind === "payments") {
       if (!allowed(user, "PAYMENT_VERIFY")) {
         throw new ForbiddenException("Finance verification access required.");
       }
+
       const [rows, count] = await this.db.$transaction([
         this.db.payment.findMany({
           where: { status: "PENDING" },
@@ -152,6 +158,7 @@ export class CustomerWorkService {
         }),
       };
     }
+
     throw new BadRequestException("Invalid work queue.");
   }
 }

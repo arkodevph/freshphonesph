@@ -12,6 +12,7 @@ export function amountInCents(value: string): bigint {
 
   return BigInt(whole) * 100n + BigInt(fraction.padEnd(2, "0"));
 }
+
 export function centsAsAmount(cents: bigint): string {
   return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
 }
@@ -32,6 +33,7 @@ export function generateSchedule(plan: {
       "Each installment must be at least one centavo.",
     );
   }
+
   const quotient = total / count;
 
   const remainder = total % count;
@@ -55,6 +57,7 @@ export function generateSchedule(plan: {
         "Schedule exceeds the supported date range.",
       );
     }
+
     return {
       sequenceNo: i + 1,
       dueDate,

@@ -54,6 +54,7 @@ export function CustomerSecuritySettings({
     if (!match) {
       return;
     }
+
     setResetCode(match[1]);
 
     window.history.replaceState(
@@ -77,6 +78,7 @@ export function CustomerSecuritySettings({
     if (changeBusy) {
       return;
     }
+
     setChangeError(null);
 
     setChangeSuccess(false);
@@ -86,11 +88,13 @@ export function CustomerSecuritySettings({
 
       return;
     }
+
     if (currentPassword === newPassword) {
       setChangeError("Choose a different new password.");
 
       return;
     }
+
     setChangeBusy(true);
 
     try {
@@ -123,6 +127,7 @@ export function CustomerSecuritySettings({
     if (!email || requestState !== "idle") {
       return;
     }
+
     setRequestState("sending");
 
     setRequestError(null);
@@ -151,6 +156,7 @@ export function CustomerSecuritySettings({
     if (resetBusy || resetSuccess) {
       return;
     }
+
     setResetError(null);
 
     if (resetPassword !== resetConfirm) {
@@ -158,6 +164,7 @@ export function CustomerSecuritySettings({
 
       return;
     }
+
     setResetBusy(true);
 
     try {
@@ -183,6 +190,7 @@ export function CustomerSecuritySettings({
             : (body.message ?? "Could not reset your password."),
         );
       }
+
       setResetCode("");
 
       setResetPassword("");

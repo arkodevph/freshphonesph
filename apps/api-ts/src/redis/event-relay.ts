@@ -28,6 +28,7 @@ export async function relayChanges(db: Database, redis: Redis, config: Config) {
           data: { publishedAt: new Date() },
         });
       }
+
       return events.length;
     },
     { timeout: 15_000 },

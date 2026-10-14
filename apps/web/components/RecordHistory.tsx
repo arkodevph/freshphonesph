@@ -51,6 +51,7 @@ export function RecordHistory({
       if (request !== sequence.current) {
         return;
       }
+
       setItems(result.items);
 
       setTotal(result.total);

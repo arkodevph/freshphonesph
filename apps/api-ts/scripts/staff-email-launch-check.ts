@@ -24,6 +24,7 @@ async function main() {
 
     return;
   }
+
   const readiness = inspectStaffEmailLaunch(process.env);
 
   for (const [label, passed] of [
@@ -33,6 +34,7 @@ async function main() {
   ] as const) {
     console.log(`[${passed ? "PASS" : "ACTION"}] ${label}`);
   }
+
   console.log(`[PASS] ${staffEmailKinds.length} staff email types available.`);
 
   console.log(`[ACTION] ${readiness.domainVerification}`);
@@ -58,6 +60,7 @@ async function main() {
       process.exitCode = 1;
     }
   }
+
   console.log(`[ACTION] ${readiness.inboxDelivery}`);
 
   console.log(

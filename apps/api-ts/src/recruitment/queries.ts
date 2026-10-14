@@ -60,6 +60,7 @@ export function jobs(
     { isolationLevel: "RepeatableRead" },
   );
 }
+
 export function applicants(
   db: Database,
   query: z.infer<typeof applicantListQuerySchema>,
@@ -97,6 +98,7 @@ export function applicants(
     { isolationLevel: "RepeatableRead" },
   );
 }
+
 export async function applicant(db: Prisma.TransactionClient, id: string) {
   const row = await db.applicant.findUnique({
     where: { id },
@@ -106,8 +108,10 @@ export async function applicant(db: Prisma.TransactionClient, id: string) {
   if (!row || row.retentionErasedAt) {
     throw new NotFoundException("Applicant not found.");
   }
+
   return row;
 }
+
 export async function job(db: Prisma.TransactionClient, id: string) {
   const row = await db.jobOpening.findUnique({
     where: { id },
@@ -117,8 +121,10 @@ export async function job(db: Prisma.TransactionClient, id: string) {
   if (!row) {
     throw new NotFoundException("Job opening not found.");
   }
+
   return row;
 }
+
 export function summary(db: Database): Promise<RecruitmentSummary> {
   return db.$transaction(
     async (tx) => {

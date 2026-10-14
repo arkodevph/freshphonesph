@@ -45,6 +45,7 @@ export default function ScrollPhoneStory() {
       if (!context) {
         return;
       }
+
       let image = frames[index];
 
       if (!image?.complete || !image.naturalWidth) {
@@ -58,9 +59,11 @@ export default function ScrollPhoneStory() {
           }
         }
       }
+
       if (!image?.complete || !image.naturalWidth) {
         return;
       }
+
       context.clearRect(0, 0, canvas.width, canvas.height);
 
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
@@ -127,6 +130,7 @@ export default function ScrollPhoneStory() {
       } else {
         current += diff * 0.2;
       }
+
       drawFrame(Math.round(current));
 
       if (current !== target) {

@@ -45,14 +45,17 @@ export function catalogDraft(item: CatalogItem): CatalogInput {
     installmentPlan: installmentPlan ? { ...installmentPlan } : null,
   };
 }
+
 export function catalogPhoto(item: PublicCatalogItem, staff = false) {
   if (item.hasImage) {
     return `${API_URL}/api/catalog/${staff ? "items/" : ""}${item.id}/image?v=${item.version}`;
   }
+
   return item.imageAsset
     ? `/products/${item.imageAsset}-overlap-transparent.png`
     : null;
 }
+
 export function catalogPrice(amount: string | null) {
   return amount === null
     ? "Ask for pricing"

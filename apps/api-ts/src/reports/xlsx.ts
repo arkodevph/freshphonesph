@@ -18,14 +18,17 @@ function crc32(data: Buffer) {
       for (let bit = 0; bit < 8; bit++) {
         value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
       }
+
       crcTable[index] = value >>> 0;
     }
   }
+
   let crc = 0xffffffff;
 
   for (const byte of data) {
     crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
   }
+
   return (crc ^ 0xffffffff) >>> 0;
 }
 
@@ -79,6 +82,7 @@ function zip(files: { name: string; data: Buffer }[]) {
 
     offset += local.length + name.length + file.data.length;
   }
+
   const directorySize = central.reduce((size, part) => {
     return size + part.length;
   }, 0);
@@ -112,6 +116,7 @@ export function workbook(rows: unknown[][], sheetName = "Report") {
           ) {
             column = String.fromCharCode(65 + ((current - 1) % 26)) + column;
           }
+
           return `<c r="${column}${rowIndex + 1}" t="inlineStr"><is><t>${xml(value)}</t></is></c>`;
         })
         .join("")}</row>`;

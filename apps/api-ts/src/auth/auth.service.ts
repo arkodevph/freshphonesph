@@ -49,6 +49,7 @@ export function identityHeaders(request: Request) {
       headers.set(key, Array.isArray(value) ? value.join(", ") : value);
     }
   }
+
   // Express resolves req.ip through the explicit trusted proxy allowlist.
   headers.delete("x-forwarded-for");
 
@@ -61,6 +62,7 @@ export function identityHeaders(request: Request) {
 
   return headers;
 }
+
 function mergeCookies(headers: Headers, result: globalThis.Response) {
   const cookies = new Map(
     (headers.get("cookie") ?? "")
@@ -81,6 +83,7 @@ function mergeCookies(headers: Headers, result: globalThis.Response) {
 
     cookies.set(part.slice(0, index), part.slice(index + 1));
   }
+
   const next = new Headers(headers);
 
   next.set(
@@ -94,6 +97,7 @@ function mergeCookies(headers: Headers, result: globalThis.Response) {
 
   return next;
 }
+
 @Injectable()
 export class AuthService {
   private readonly identity: ReturnType<typeof createIdentity>;
@@ -170,6 +174,7 @@ export class AuthService {
     if ("error" in result) {
       throw result.error;
     }
+
     return result.value;
   }
   private async call(path: string, headers: Headers, body?: object) {
@@ -182,6 +187,7 @@ export class AuthService {
     if (body) {
       input.set("content-type", "application/json");
     }
+
     const result = await identity.handler(
       new globalThis.Request(url, {
         method: body ? "POST" : "GET",
@@ -200,12 +206,14 @@ export class AuthService {
         result.status,
       );
     }
+
     return result;
   }
   private forward(result: globalThis.Response, response: Response) {
     for (const cookie of result.headers.getSetCookie()) {
       response.append("Set-Cookie", cookie);
     }
+
     const attributes = {
       httpOnly: true,
       sameSite: "lax" as const,
@@ -232,6 +240,7 @@ export class AuthService {
         "Your session has expired. Please sign in again.",
       );
     }
+
     const current = await this.store.authSession.findUnique({
       where: { id: session.session.id },
       include: { user: true },
@@ -246,6 +255,7 @@ export class AuthService {
     ) {
       throw new UnauthorizedException("Your session is no longer active.");
     }
+
     return {
       user: safeUser(current.user),
       sessionId: current.id,
@@ -266,12 +276,14 @@ export class AuthService {
     if (!raw) {
       throw new UnauthorizedException("Please sign in again.");
     }
+
     if (verified) {
       await this.store.authSession.update({
         where: { id: raw.session.id },
         data: { mfaVerified: true },
       });
     }
+
     const current = await this.authenticate(next.get("cookie") ?? "");
 
     this.forward(result, response);
@@ -291,6 +303,7 @@ export class AuthService {
 
         throw new UnauthorizedException("Email or password is incorrect.");
       }
+
       const result = await this.call("/sign-in/email", identityHeaders(req), {
         email,
         password,
@@ -299,6 +312,7 @@ export class AuthService {
       if (!user?.active) {
         throw new UnauthorizedException("Email or password is incorrect.");
       }
+
       const data = (await result.clone().json()) as {
         twoFactorRedirect?: boolean;
       };
@@ -308,6 +322,7 @@ export class AuthService {
 
         return { twoFactorRedirect: true as const };
       }
+
       return this.completed(identityHeaders(req), result, res);
     });
   }
@@ -329,6 +344,7 @@ export class AuthService {
     if (currentPassword === newPassword) {
       throw new BadRequestException("Choose a different new password.");
     }
+
     await this.limit(`change-password:${userId}`, 10);
 
     return this.locked(async () => {
@@ -369,6 +385,7 @@ export class AuthService {
     if (!user?.active) {
       return;
     }
+
     const id = randomUUID();
 
     const text =
@@ -428,6 +445,7 @@ export class AuthService {
       if (user && !user.active) {
         return;
       }
+
       await this.call("/request-password-reset", identityHeaders(req), {
         email,
       });
@@ -447,6 +465,7 @@ export class AuthService {
           "This reset link is invalid or expired.",
         );
       }
+
       await this.call("/reset-password", identityHeaders(req), {
         token,
         newPassword: password,
@@ -531,12 +550,14 @@ export class AuthService {
             "Two-factor authentication is required for staff accounts.",
           );
         }
+
         if (action === "enable" && user.twoFactorEnabled) {
           throw new BadRequestException(
             "Two-factor authentication is already enabled.",
           );
         }
       }
+
       const path = {
         enable: "/two-factor/enable",
         verify: "/two-factor/verify-totp",
@@ -563,6 +584,7 @@ export class AuthService {
 
         return { totpURI: data.totpURI!, backupCodes: data.backupCodes! };
       }
+
       if (action === "regenerate") {
         this.forward(result, res);
 
@@ -570,6 +592,7 @@ export class AuthService {
 
         return { backupCodes: data.backupCodes! };
       }
+
       const user = await this.completed(headers, result, res, true);
 
       const current = await this.rawSession(mergeCookies(headers, result));
@@ -583,6 +606,7 @@ export class AuthService {
           where: { userId: user.id },
         });
       }
+
       await this.audit(
         user.id,
         action === "disable"
@@ -607,6 +631,7 @@ export class AuthService {
       if (sessionId === current.sessionId) {
         throw new BadRequestException("Use Sign out to end this session.");
       }
+
       const removed = await this.store.authSession.deleteMany({
         where: {
           userId: current.user.id,
@@ -617,6 +642,7 @@ export class AuthService {
       if (sessionId && !removed.count) {
         throw new NotFoundException("Session is unavailable.");
       }
+
       await this.audit(current.user.id, "session.revoked");
 
       return { ok: true };

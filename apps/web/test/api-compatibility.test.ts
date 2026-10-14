@@ -91,6 +91,7 @@ test("portal payment records preserve pagination, receipt fields, and verifier U
     if (url.pathname === "/api/auth/me") {
       return Response.json({ role: "CUSTOMER", clientId: "client-id" });
     }
+
     if (url.pathname === "/api/payments") {
       assert.equal(url.searchParams.get("page"), "2");
 
@@ -121,6 +122,7 @@ test("portal payment records preserve pagination, receipt fields, and verifier U
         ],
       });
     }
+
     return Response.json({});
   };
 

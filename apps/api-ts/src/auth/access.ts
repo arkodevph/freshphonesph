@@ -25,6 +25,7 @@ export interface AuthRequest extends Request {
   sessionId: string;
   accessToken: string;
 }
+
 export const Public = () => {
   return SetMetadata("public", true);
 };
@@ -53,6 +54,7 @@ export function allowed(
 ) {
   return effectivePermissions(user).includes(permission);
 }
+
 export async function requireCurrentUser(
   db: Database,
   user: User,
@@ -68,6 +70,7 @@ export async function requireCurrentUser(
   ) {
     throw new ForbiddenException("Your access has changed.");
   }
+
   return safeUser(current);
 }
 
@@ -87,6 +90,7 @@ export class AccessGuard implements CanActivate {
     if (publicRoute) {
       return true;
     }
+
     const request = context.switchToHttp().getRequest<AuthRequest>();
 
     const token = request.headers.cookie;
@@ -94,6 +98,7 @@ export class AccessGuard implements CanActivate {
     if (!token) {
       throw new UnauthorizedException("Sign in to continue.");
     }
+
     const session = await this.auth.authenticate(token);
 
     request.user = session.user;
@@ -113,6 +118,7 @@ export class AccessGuard implements CanActivate {
         412,
       );
     }
+
     const permissions = this.reflector.getAllAndOverride<Permission[]>(
       "permission",
       [context.getHandler(), context.getClass()],
@@ -128,6 +134,7 @@ export class AccessGuard implements CanActivate {
         "Your role does not have access to this action.",
       );
     }
+
     const legalExempt = this.reflector.getAllAndOverride<boolean>(
       "legalExempt",
       [context.getHandler(), context.getClass()],
@@ -139,6 +146,7 @@ export class AccessGuard implements CanActivate {
         428,
       );
     }
+
     return true;
   }
 }

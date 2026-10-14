@@ -185,6 +185,7 @@ export default function SystemLayout({
     if (!me || !can(me, "NOTIFICATION_READ")) {
       return;
     }
+
     const load = () => {
       return listNotifications()
         .then((page) => {
@@ -222,6 +223,7 @@ export default function SystemLayout({
         return Math.max(0, value - 1);
       });
     }
+
     setOpenPanel(null);
 
     if (item.link) {
@@ -247,16 +249,19 @@ export default function SystemLayout({
         setOpenPanel(null);
       }
     }
+
     function handleKeyboard(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setOpenPanel(null);
       }
+
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
 
         setOpenPanel("search");
       }
     }
+
     document.addEventListener("pointerdown", closeOnOutsideClick);
 
     document.addEventListener("keydown", handleKeyboard);
@@ -307,6 +312,7 @@ export default function SystemLayout({
 
       return;
     }
+
     const transition = (
       document as ViewTransitionDocument
     ).startViewTransition?.(applyTheme);
@@ -316,6 +322,7 @@ export default function SystemLayout({
 
       return;
     }
+
     root.classList.add("system-theme-iris-transition");
 
     void transition.finished.finally(() => {

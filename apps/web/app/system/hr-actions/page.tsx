@@ -71,6 +71,7 @@ export default function HrActionsPage() {
   if (!me) {
     return <p role="status">Checking HR access…</p>;
   }
+
   if (me.account_type !== "employee" || !can(me, "HR_CONFIDENTIAL")) {
     return (
       <main className={styles.page}>
@@ -81,6 +82,7 @@ export default function HrActionsPage() {
       </main>
     );
   }
+
   return (
     <HrActionsWorkspace
       key={`${me.id}:${me.role}:${me.permissions.join(",")}`}
@@ -139,6 +141,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
       if (sequence !== loadSequence.current) {
         return;
       }
+
       setActions(nextActions);
 
       setEligible(nextEligible);
@@ -167,6 +170,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
     if (!proposal || busy) {
       return;
     }
+
     setBusy(true);
 
     setError("");
@@ -201,6 +205,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
     if (!decision || busy) {
       return;
     }
+
     setBusy(true);
 
     setError("");
@@ -590,6 +595,7 @@ function Pagination<T>({
   if (data.count <= data.pageSize) {
     return null;
   }
+
   const last = Math.ceil(data.count / data.pageSize);
 
   return (

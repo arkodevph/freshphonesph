@@ -16,6 +16,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "TEST_DATABASE_URL must point to a migrated dedicated database ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const password = "Synthetic-HR-action-password-123!";
@@ -58,6 +59,7 @@ class Session {
         })
         .join("; ");
     }
+
     return response;
   }
   async login(person: { email: string }) {
@@ -71,6 +73,7 @@ class Session {
     return this;
   }
 }
+
 const post = (body: unknown) => {
   return { method: "POST", body: JSON.stringify(body) };
 };
@@ -155,6 +158,7 @@ before(async () => {
       },
     });
   }
+
   owner = await person("OWNER");
 
   hr = await person("HR_PAYROLL", true);
@@ -198,6 +202,7 @@ after(async () => {
   if (app) {
     await app.close();
   }
+
   if (second) {
     await second.close();
   }
@@ -238,6 +243,7 @@ test("only approved HR/COO may propose and only Owner may decide, with strict re
       );
     }
   }
+
   for (const body of [
     { ...proposal(), proposedById: hr.id },
     { ...proposal(), reviewId: "wrong" },
@@ -249,6 +255,7 @@ test("only approved HR/COO may propose and only Owner may decide, with strict re
       400,
     );
   }
+
   const noted = await db.kpiReview.create({
     data: {
       taskId: (
@@ -339,6 +346,7 @@ test("rejection permits a fresh request; Owner approval is final, reasoned, audi
       400,
     );
   }
+
   assert.equal(
     (
       await hrSession.request(

@@ -102,6 +102,7 @@ export default function StaffEmailSettings() {
     if (!(caught instanceof ApiError) || ![401, 403].includes(caught.status)) {
       return;
     }
+
     accessDenied.current = true;
 
     settingsSequence.current++;
@@ -118,10 +119,12 @@ export default function StaffEmailSettings() {
 
     setSettingsError(message(caught));
   }
+
   const loadSettings = useCallback(async () => {
     if (accessDenied.current) {
       return;
     }
+
     const sequence = ++settingsSequence.current;
 
     setLoadingSettings(true);
@@ -153,6 +156,7 @@ export default function StaffEmailSettings() {
     if (accessDenied.current) {
       return;
     }
+
     const sequence = ++deliverySequence.current;
 
     setLoadingDeliveries(true);
@@ -242,6 +246,7 @@ export default function StaffEmailSettings() {
         : current;
     });
   }
+
   async function saveTemplate(template: StaffEmailTemplate) {
     setSaving(template.kind);
 
@@ -255,6 +260,7 @@ export default function StaffEmailSettings() {
       if (!mounted.current) {
         return;
       }
+
       setSettings((current) => {
         return current
           ? {
@@ -289,12 +295,14 @@ export default function StaffEmailSettings() {
       }
     }
   }
+
   async function saveTiming(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!settings) {
       return;
     }
+
     setSaving("timing");
 
     setSettingsError("");
@@ -311,6 +319,7 @@ export default function StaffEmailSettings() {
       if (!mounted.current) {
         return;
       }
+
       setSettings((current) => {
         return current
           ? {
@@ -345,6 +354,7 @@ export default function StaffEmailSettings() {
       }
     }
   }
+
   async function retry(row: StaffEmailDelivery) {
     setRetrying(row.id);
 
@@ -374,6 +384,7 @@ export default function StaffEmailSettings() {
       }
     }
   }
+
   return (
     <section className={styles.panel} aria-label="Staff email settings">
       <div className={styles.heading}>

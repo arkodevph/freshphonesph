@@ -15,6 +15,7 @@ export function supportSignInHref(pathname: string, hash = "") {
   if (pathname !== customerSupportPath) {
     return "/login";
   }
+
   const target = safeSupportReturn(`${pathname}${hash}`) ?? customerSupportPath;
 
   return `/login?next=${encodeURIComponent(target)}`;
@@ -30,9 +31,11 @@ export function signInDestination(
     if (!me || me.account_type === "customer") {
       return support;
     }
+
     return me.permissions.includes("SUPPORT_MANAGE")
       ? "/system/support"
       : "/system";
   }
+
   return me?.account_type === "customer" ? "/portal" : "/system";
 }

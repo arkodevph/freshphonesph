@@ -65,6 +65,7 @@ export function RequirementsManager() {
     if (saving) {
       return;
     }
+
     setSaving(true);
 
     setError(null);
@@ -85,6 +86,7 @@ export function RequirementsManager() {
       if (!alive.current) {
         return;
       }
+
       setTypes((current) => {
         return [...current, created].sort((a, b) => {
           return a.label.localeCompare(b.label);
@@ -111,6 +113,7 @@ export function RequirementsManager() {
       }
     }
   }
+
   return (
     <section className="glass mb-4 rounded-3xl p-5">
       <h2 className="mb-2 flex items-center gap-2 font-display font-700 text-blue-ink">
@@ -274,6 +277,7 @@ export function ManagedClientRequirements({
     if (!file || busy || !canUpload) {
       return;
     }
+
     setBusy(item.type.id);
 
     try {
@@ -282,11 +286,13 @@ export function ManagedClientRequirements({
       if (!mounted.current) {
         return;
       }
+
       await load();
 
       if (!mounted.current) {
         return;
       }
+
       onNotice(`${item.type.label} submitted for review.`);
     } catch (e) {
       if (mounted.current) {
@@ -298,6 +304,7 @@ export function ManagedClientRequirements({
       }
     }
   }
+
   async function review(
     item: ClientRequirement,
     status: "APPROVED" | "NEEDS_CLARIFICATION",
@@ -305,6 +312,7 @@ export function ManagedClientRequirements({
     if (!item.id || busy || !canReview) {
       return;
     }
+
     const customerNote =
       notes[item.id]?.trim() ||
       (status === "APPROVED"
@@ -323,11 +331,13 @@ export function ManagedClientRequirements({
       if (!mounted.current) {
         return;
       }
+
       await load();
 
       if (!mounted.current) {
         return;
       }
+
       onNotice(
         status === "APPROVED"
           ? "Document approved."

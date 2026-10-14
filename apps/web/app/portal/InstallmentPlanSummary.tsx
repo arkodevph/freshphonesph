@@ -104,6 +104,7 @@ export default function InstallmentPlanSummary({
                 if (day) {
                   selectDay(day);
                 }
+
                 calendarRef.current?.scrollIntoView({ block: "start" });
               }}
             >

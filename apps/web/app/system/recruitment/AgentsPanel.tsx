@@ -94,6 +94,7 @@ export function AgentsPanel() {
           if (lock.current) {
             return;
           }
+
           lock.current = true;
 
           setSaving(true);

@@ -170,6 +170,7 @@ export function effectivePermissions(user: {
   if (user.role === "OWNER") {
     return [...rolePermissions.OWNER];
   }
+
   const result: Permission[] = rolePermissions[user.role].filter(
     (permission) => {
       return permission !== "KPI_REVIEW";
@@ -182,8 +183,10 @@ export function effectivePermissions(user: {
   ) {
     result.push("HR_CONFIDENTIAL", "KPI_REVIEW");
   }
+
   return result;
 }
+
 export const passwordSchema = z
   .string()
   .min(12, "Use at least 12 characters.")
@@ -255,6 +258,7 @@ export const accountUpdateSchema = z
         message: "Give a reason for the confidential HR access decision.",
       });
     }
+
     if (
       value.hrAccessReason !== undefined &&
       value.hrConfidentialAccess === undefined
@@ -334,6 +338,7 @@ export const batchSchema = z
         message: "Provide price, installment count and cadence together.",
       });
     }
+
     if (
       value.contractPrice &&
       value.installmentCount &&
@@ -438,10 +443,12 @@ export interface Agent extends AgentInput {
   createdAt: string;
   updatedAt: string;
 }
+
 export interface AssignmentOptions {
   handlers: { id: string; name: string; active: boolean }[];
   agents: { id: string; name: string; active: boolean }[];
 }
+
 const recordFilterFields = {
   q: z.string().trim().max(100).default(""),
   model: z.string().trim().max(100).optional(),
@@ -564,6 +571,7 @@ export interface PaymentAdjustment {
   reason?: string;
   actor?: { id: string; name: string };
 }
+
 export const paymentListQuerySchema = listQuerySchema
   .extend({
     id: z.string().uuid().optional(),
@@ -681,14 +689,17 @@ export interface ReconciliationMetrics {
   adjustmentAuditGapPayments?: number;
   adjustmentAuditGapAmount?: string;
 }
+
 export interface ReconciliationGroup extends ReconciliationMetrics {
   batchId: string;
   batchCode: string;
   method: string;
 }
+
 export interface ReconciliationReport extends Page<ReconciliationGroup> {
   totals: ReconciliationMetrics;
 }
+
 export interface ReconciliationSnapshot {
   totals: ReconciliationMetrics;
   groups: ReconciliationGroup[];
@@ -697,6 +708,7 @@ export interface ReconciliationSnapshot {
   externalStatementMatched: false;
   filters: { batchId?: string; batchCode?: string };
 }
+
 export interface ReconciliationException {
   id: string;
   batchCode: string;
@@ -707,6 +719,7 @@ export interface ReconciliationException {
   status: PaymentStatus;
   flags: ReconciliationFlag[];
 }
+
 export interface CollectionMetrics {
   clients: number;
   scheduledClients: number;
@@ -723,14 +736,17 @@ export interface CollectionMetrics {
   adjustmentAmount?: string;
   adjustmentsInPeriod?: string;
 }
+
 export interface CollectionBatchRow extends CollectionMetrics {
   id: string;
   code: string;
   status: string;
 }
+
 export interface CollectionReport extends Page<CollectionBatchRow> {
   totals: CollectionMetrics;
 }
+
 export interface CollectionSnapshot {
   totals: CollectionMetrics;
   batches: CollectionBatchRow[];
@@ -738,6 +754,7 @@ export interface CollectionSnapshot {
   paymentGrouping: "current_client_batch";
   filters: { batchId?: string; batchCode?: string };
 }
+
 export const reportBatchQuerySchema = z
   .object({
     q: z.string().trim().max(100).optional(),
@@ -749,6 +766,7 @@ export interface ReportBatchOption {
   id: string;
   code: string;
 }
+
 export interface PaymentReport {
   total: number;
   verifiedPayments: number;
@@ -760,6 +778,7 @@ export interface PaymentReport {
   originalVerifiedAmount?: string;
   adjustmentAmount?: string;
 }
+
 export interface TaskReport {
   total: number;
   byStatus: Record<string, number>;
@@ -768,6 +787,7 @@ export interface TaskReport {
   reviewed: number;
   disclaimer: string;
 }
+
 export interface SupportReport {
   total: number;
   open: number;
@@ -780,6 +800,7 @@ export interface SupportReport {
   }[];
   sources: { source: SupportSource; total: number }[];
 }
+
 export type BatchInput = z.infer<typeof batchSchema>;
 
 export type ClientInput = z.infer<typeof clientSchema>;
@@ -798,6 +819,7 @@ export interface User {
   clientId: string | null;
   hrConfidentialAccess?: boolean;
 }
+
 export interface Batch extends Omit<
   BatchInput,
   "contractPrice" | "installmentCount" | "cadence"
@@ -816,6 +838,7 @@ export interface Batch extends Omit<
   updatedAt: string;
   _count: { clients: number };
 }
+
 export interface Client extends Omit<ClientInput, "joinedAt"> {
   scheduleIssued?: boolean;
   joinedAt: string | null;
@@ -826,6 +849,7 @@ export interface Client extends Omit<ClientInput, "joinedAt"> {
   batch: Pick<Batch, "id" | "code" | "model" | "startDate" | "endDate">;
   account: { id: string } | null;
 }
+
 export interface ScheduleItem {
   id: string;
   sequenceNo: number;
@@ -834,11 +858,13 @@ export interface ScheduleItem {
   paidApplied?: string;
   status?: "PAID" | "PARTIAL" | "OVERDUE" | "UPCOMING";
 }
+
 export interface ClientSchedule {
   clientId: string;
   totalDue: string;
   items: ScheduleItem[];
 }
+
 export interface Payment extends Omit<
   PaymentInput,
   | "scheduleItemId"
@@ -872,6 +898,7 @@ export interface Payment extends Omit<
   adjustmentRevision?: number;
   adjustments?: PaymentAdjustment[];
 }
+
 export interface ClientBalance {
   clientId: string;
   totalDue: string;
@@ -880,6 +907,7 @@ export interface ClientBalance {
   overpaid: string;
   pendingAmount: string;
 }
+
 export interface ReceiptScan {
   template: ReceiptType;
   method: string;
@@ -892,6 +920,7 @@ export interface ReceiptScan {
   confidence: number;
   warnings: string[];
 }
+
 export interface PaymentDuplicateMatch {
   id: string;
   clientId: string;
@@ -902,6 +931,7 @@ export interface PaymentDuplicateMatch {
   referenceNumber: string;
   status: PaymentStatus;
 }
+
 export interface Account {
   id: string;
   name: string;
@@ -913,6 +943,7 @@ export interface Account {
   version: number;
   createdAt: string;
 }
+
 export interface HrAccessDecision {
   id: string;
   granted: boolean;
@@ -920,6 +951,7 @@ export interface HrAccessDecision {
   actorName: string;
   createdAt: string;
 }
+
 export interface Audit {
   id: string;
   action: string;
@@ -928,6 +960,7 @@ export interface Audit {
   createdAt: string;
   actor: { name: string };
 }
+
 export interface RecordHistoryEntry {
   id: string;
   action: string;
@@ -940,12 +973,14 @@ export interface RecordHistoryEntry {
     after: string | null;
   }[];
 }
+
 export interface Page<T> {
   items: T[];
   total: number;
   page: number;
   pageSize: number;
 }
+
 export const financeAlertQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).max(100000).default(1),
@@ -972,10 +1007,12 @@ export interface FinanceAlert {
   createdAt: string;
   updatedAt: string;
 }
+
 export interface FinanceAlertPage extends Page<FinanceAlert> {
   pendingCount: number;
   unreadCount: number;
 }
+
 export const taskAlertKinds = [
   "TASK_ASSIGNED",
   "TASK_DUE_SOON",
@@ -1093,6 +1130,7 @@ export interface StaffAlertPage extends Page<StaffAlert> {
   supportCount: number;
   accountCount: number;
 }
+
 export interface PaymentResultDetail {
   id: string;
   paymentId: string;
@@ -1107,6 +1145,7 @@ export interface PaymentResultDetail {
   currentStatus: PaymentStatus;
   currentVersion: number;
 }
+
 export const staffEmailKinds = [
   ...taskAlertKinds,
   "FINANCE_PENDING",
@@ -1189,6 +1228,7 @@ export interface StaffEmailTemplate {
   body: string;
   version: number;
 }
+
 export interface StaffEmailSettings {
   dueSoonHours: number;
   overdueHours: number;
@@ -1196,6 +1236,7 @@ export interface StaffEmailSettings {
   templates: StaffEmailTemplate[];
   deliveryMode: "local" | "provider";
 }
+
 export interface StaffEmailDelivery {
   id: string;
   kind: StaffEmailKind;
@@ -1210,12 +1251,14 @@ export interface StaffEmailDelivery {
   version: number;
   canRetry: boolean;
 }
+
 export interface Overview {
   activeBatches: number | null;
   clients: number | null;
   readyForRelease: number | null;
   employees: number | null;
 }
+
 export interface ChangeEvent {
   entity: "batch" | "client" | "account" | "payment";
   recordId: string;
@@ -1458,6 +1501,7 @@ export interface RecruitmentSummary {
   applicants: number;
   awaitingReview: number;
 }
+
 export const applicantSchema = z
   .object({
     jobId: z.string().uuid(),
