@@ -18,9 +18,9 @@ The target is a mobile-responsive operations platform with:
 - no direct website payment processing, official BIR invoice generation, or automatic wage
   decisions in Version 1.
 
-The repository currently contains a working Django API. That code is the behavioral baseline
-for the TypeScript migration, not the target backend. Do not remove it until the corresponding
-NestJS slice passes parity tests and its cutover gate.
+The repository uses a NestJS/Prisma API in `apps/api-ts/`, a Next.js interface in
+`apps/web/`, and shared contracts in `packages/contracts/`. Existing contract fixtures and
+integration tests preserve business behavior. Scope delivery and acceptance remain explicit.
 
 ## Source-of-truth order
 
@@ -108,8 +108,8 @@ Complete before changing backend behavior:
 2. Record unresolved client decisions as `Blocked - client`; do not invent legal, tax, HR, or
    privacy policy.
 3. Freeze stable public API paths where practical so the current frontend can move slice by
-   slice from Django to NestJS.
-4. Capture the current Django response contracts and the 80 discovered backend tests as
+   slice in NestJS.
+4. Capture the shared response contracts and current backend tests as
    migration evidence.
 5. Approve the TypeScript stack and this workflow.
 
@@ -118,7 +118,7 @@ unrecorded scope conflict.
 
 ### Gate 1 - Build the TypeScript foundation
 
-Create the NestJS service under `apps/api-ts/` while the Django API remains available for
+Maintain the NestJS service under `apps/api-ts/` with contract fixtures available for
 comparison.
 
 1. Add NestJS, Prisma, PostgreSQL configuration, structured environment validation, and health

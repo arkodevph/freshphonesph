@@ -1,28 +1,63 @@
-import type { CollectionReport } from '@freshphones/contracts';
-import { Prisma } from '../generated/prisma/client';
+import type { CollectionReport } from "@freshphones/contracts";
+import { Prisma } from "../generated/prisma/client";
 
-type Query = { dateFrom?: string; dateTo?: string; batchId?: string; page?: number };
-const counts = ['clients', 'scheduledClients', 'clientsWithoutSchedule', 'verifiedPaymentsInPeriod', 'pendingPaymentsInPeriod'];
-const money = ['agreedAmount', 'verifiedAmount', 'pendingAmount', 'remainingBalance', 'overpaidAmount', 'collectedInPeriod', 'pendingInPeriod', 'adjustmentAmount', 'adjustmentsInPeriod'];
+type Query = {
+  dateFrom?: string;
+  dateTo?: string;
+  batchId?: string;
+  page?: number;
+};
+
+const counts = [
+  "clients",
+  "scheduledClients",
+  "clientsWithoutSchedule",
+  "verifiedPaymentsInPeriod",
+  "pendingPaymentsInPeriod",
+];
+
+const money = [
+  "agreedAmount",
+  "verifiedAmount",
+  "pendingAmount",
+  "remainingBalance",
+  "overpaidAmount",
+  "collectedInPeriod",
+  "pendingInPeriod",
+  "adjustmentAmount",
+  "adjustmentsInPeriod",
+];
 
 // Identifiers come only from fixed lists. User filters remain bound parameters.
 function figures(total: boolean) {
-  return Prisma.join([...counts, ...money].map((field) => {
-    const column = Prisma.raw(`"${field}"`);
-    const value = total ? Prisma.sql`COALESCE(SUM(${column}), 0)` : column;
-    return Prisma.sql`${field}::text, ${counts.includes(field) ? Prisma.sql`${value}::int` : Prisma.sql`${value}::numeric(30,2)::text`}`;
-  }));
+  return Prisma.join(
+    [...counts, ...money].map((field) => {
+      const column = Prisma.raw(`"${field}"`);
+
+      const value = total ? Prisma.sql`COALESCE(SUM(${column}), 0)` : column;
+
+      return Prisma.sql`${field}::text, ${counts.includes(field) ? Prisma.sql`${value}::int` : Prisma.sql`${value}::numeric(30,2)::text`}`;
+    }),
+  );
 }
 
 /** A single statement keeps totals and page rows consistent without loading private client fields.
  * Current client membership groups schedules and payments, matching Finance's client balance.
  * Clamp each client's balance before summing so overpayments cannot cancel another client's debt.
  */
-export async function collections(db: Prisma.TransactionClient, query: Query, fullScope = false): Promise<CollectionReport> {
+export async function collections(
+  db: Prisma.TransactionClient,
+  query: Query,
+  fullScope = false,
+): Promise<CollectionReport> {
   const page = query.page ?? 1;
+
   const period = Prisma.sql`${query.dateFrom ? Prisma.sql`p."paymentDate" >= ${query.dateFrom}::date` : Prisma.sql`TRUE`}
     AND ${query.dateTo ? Prisma.sql`p."paymentDate" <= ${query.dateTo}::date` : Prisma.sql`TRUE`}`;
-  const [result] = await db.$queryRaw<{ report: CollectionReport }[]>(Prisma.sql`
+
+  const [result] = await db.$queryRaw<
+    { report: CollectionReport }[]
+  >(Prisma.sql`
     WITH scope AS (
       SELECT id, code, status FROM "Batch"
       WHERE ${query.batchId ? Prisma.sql`id = ${query.batchId}::uuid` : Prisma.sql`TRUE`}
@@ -32,7 +67,11 @@ export async function collections(db: Prisma.TransactionClient, query: Query, fu
       SELECT s."clientId", SUM(s."expectedAmount") AS due
       FROM "ScheduleItem" s JOIN clients c ON c.id = s."clientId" GROUP BY s."clientId"
     ), adjustments AS (
-      SELECT "paymentId", SUM(amount) AS amount FROM "PaymentAdjustment" GROUP BY "paymentId"
+      SELECT a."paymentId", SUM(a.amount) AS amount
+      FROM "PaymentAdjustment" a JOIN "Payment" p ON p.id = a."paymentId"
+        JOIN clients c ON c.id = p."clientId"
+      WHERE p.status = 'VERIFIED'
+      GROUP BY a."paymentId"
     ), payments AS (
       SELECT p."clientId",
         COALESCE(SUM(p.amount + COALESCE(a.amount, 0)) FILTER (WHERE p.status = 'VERIFIED'), 0) AS verified,
@@ -43,7 +82,9 @@ export async function collections(db: Prisma.TransactionClient, query: Query, fu
         COUNT(*) FILTER (WHERE p.status = 'VERIFIED' AND ${period}) AS verified_count,
         COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'PENDING' AND ${period}), 0) AS period_pending,
         COUNT(*) FILTER (WHERE p.status = 'PENDING' AND ${period}) AS pending_count
-      FROM "Payment" p JOIN clients c ON c.id = p."clientId" LEFT JOIN adjustments a ON a."paymentId" = p.id GROUP BY p."clientId"
+      FROM "Payment" p JOIN clients c ON c.id = p."clientId" LEFT JOIN adjustments a ON a."paymentId" = p.id
+      WHERE p.status IN ('VERIFIED', 'PENDING')
+      GROUP BY p."clientId"
     ), balances AS (
       SELECT c.id, c."batchId", s."clientId" IS NOT NULL AS scheduled,
         COALESCE(s.due, 0) AS due, COALESCE(p.verified, 0) AS verified,
@@ -77,5 +118,6 @@ export async function collections(db: Prisma.TransactionClient, query: Query, fu
       'total', (SELECT COUNT(*)::int FROM batches), 'page', ${page}::int, 'pageSize', 20
     ) AS report
   `);
+
   return result.report;
 }

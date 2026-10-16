@@ -68,7 +68,7 @@ From the repository root, with private local settings configured:
 ```bash
 pnpm typecheck
 pnpm test:api-ts
-NEXT_PUBLIC_API_BACKEND=typescript pnpm --filter @fresh/web test
+pnpm --filter @fresh/web test
 pnpm build
 ```
 

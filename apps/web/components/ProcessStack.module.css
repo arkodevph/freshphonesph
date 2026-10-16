@@ -1,0 +1,199 @@
+.section {
+  padding: 6rem 1.25rem 4rem;
+  scroll-margin-top: 6rem;
+  background: #edf3fd;
+  color: var(--color-blue-ink);
+}
+.heading {
+  max-width: 52rem;
+  margin: 0 auto 3rem;
+  text-align: center;
+}
+.heading > span {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+.heading h2 {
+  margin-top: 1rem;
+  font-size: clamp(2rem, 4.2vw, 4rem);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+}
+.heading em {
+  color: #5571b5;
+  font-style: normal;
+}
+.heading p {
+  margin-top: 1rem;
+  color: var(--color-ink-soft);
+  line-height: 1.6;
+}
+.track {
+  max-width: 62rem;
+  margin: auto;
+}
+.stage {
+  display: grid;
+  gap: 1.5rem;
+}
+.card {
+  --exit: 0;
+  --depth: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(20, 38, 107, 0.12);
+  border-radius: 1.25rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: #3154c9;
+  color: #fff;
+}
+.card:nth-child(2) {
+  background: #d5c4f4;
+  color: #14266b;
+}
+.card:nth-child(3) {
+  background: #f6bdda;
+  color: #14266b;
+}
+.card:nth-child(4) {
+  background: #14266b;
+}
+.topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+.main {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  align-items: center;
+  gap: 2rem;
+  margin: 1rem 0;
+}
+.main h3 {
+  max-width: 31rem;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+.main p {
+  max-width: 25rem;
+  margin-top: 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  opacity: 0.86;
+}
+.visual {
+  width: 100%;
+  height: 15rem;
+  object-fit: contain;
+}
+.steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin: 0;
+  border-top: 1px solid currentColor;
+  padding: 1.25rem 0 0;
+  list-style: none;
+}
+.steps li {
+  display: flex;
+  gap: 0.875rem;
+}
+.steps li > span {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  opacity: 0.65;
+  padding-top: 0.25rem;
+}
+.steps h4 {
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+.steps p {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  opacity: 0.8;
+}
+.track[data-animated="true"] {
+  height: calc(280svh + min(36rem, 100svh - 9rem));
+}
+.track[data-animated="true"] .stage {
+  position: sticky;
+  top: 6rem;
+  height: min(36rem, calc(100svh - 9rem));
+  perspective: 1200px;
+}
+.track[data-animated="true"] .card {
+  position: absolute;
+  inset: 0;
+  transform-origin: center top;
+  transform: translateY(calc(var(--depth) * 0.625rem - var(--exit) * 110%))
+    rotateX(calc(var(--exit) * 35deg)) scale(calc(1 - var(--depth) * 0.025));
+  opacity: calc(1 - var(--exit));
+  visibility: visible;
+}
+.next {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 1.5rem;
+  margin: 3rem auto 0;
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+.next:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 6px;
+}
+@media (max-width: 640px) {
+  .section {
+    padding-top: 4rem;
+  }
+  .heading {
+    margin-bottom: 2rem;
+  }
+  .heading p {
+    font-size: 0.875rem;
+  }
+  .main {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  .main h3 {
+    font-size: clamp(1.75rem, 7.5vw, 2.5rem);
+  }
+  .main p {
+    font-size: 0.8125rem;
+    margin-top: 0.75rem;
+  }
+  .visual {
+    height: clamp(6rem, 18svh, 9rem);
+  }
+  .steps {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding-top: 1rem;
+  }
+  .steps h4 {
+    font-size: 0.875rem;
+  }
+  .steps p {
+    font-size: 0.6875rem;
+    line-height: 1.4;
+  }
+  .track[data-animated="true"] .stage {
+    height: calc(100svh - 9rem);
+  }
+}

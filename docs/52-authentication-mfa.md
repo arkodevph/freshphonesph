@@ -117,7 +117,7 @@ load/two-replica recovery rehearsal remain open.
   Updated stale-session assertions expect immediate 401 revocation and reauthenticate
   before testing the changed role's permissions.
 - API unit tests **62/62** and web tests **61/61** passed; run web tests with
-  `NEXT_PUBLIC_API_BACKEND=typescript`. API typecheck/build and web production build
+  `NEXT_PUBLIC_API_URL`. API typecheck/build and web production build
   passed. The initial web run without this backend selection exercised the legacy
   adapter and failed; the configured TypeScript run passed.
 

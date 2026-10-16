@@ -3,8 +3,8 @@
 Derived from scope §6 (records), §7 (payments), and §A (recommended data fields). Exact fields
 are finalized in Discovery; **collect only what the business genuinely needs** (data
 minimization, §14). Target tables live in Neon PostgreSQL (production target) and are owned by **Prisma
-migrations**. Existing Django models remain migration input until each TypeScript slice cuts
-over; database policies are optional defense-in-depth (see [09-tech-stack.md](09-tech-stack.md)).
+migrations** in `apps/api-ts/prisma/`. Shared contracts validate inputs;
+database policies are optional defense-in-depth (see [09-tech-stack.md](09-tech-stack.md)).
 
 ## Entity overview
 

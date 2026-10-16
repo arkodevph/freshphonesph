@@ -9,7 +9,7 @@
 
 This reference maps every section of **Full Scope v6, Revision 1.5** to the repository's
 current implementation evidence and the evidence required for acceptance. Rows include
-TypeScript increments through 2026-10-08; the historical Django evidence is preserved below.
+TypeScript increments through 2026-10-08; current evidence is linked below.
 The v6 target architecture is recorded in
 [20-v6-architecture-decision.md](20-v6-architecture-decision.md).
 
@@ -43,7 +43,7 @@ The v6 target architecture is recorded in
 | §14 Privacy, Documents, Compliance | Notices, terms, employee/applicant notice, DPA, DPO, PIA, NPC assessment, retention, breach process | Draft customer, employee and applicant notices and portal terms now have public screens and entry links. A tested versioned acknowledgement mechanism is ready for approved publications, but all texts remain inactive drafts while the controller/contact, bases, recipients, retention and business rules are unknown; see [50-privacy-notices-terms.md](50-privacy-notices-terms.md). Owner-managed retention policy drafts/approval, expiry previews, legal holds, reasoned erasure approvals, durable private file removal and backup/provider follow up now exist locally; policies start inactive; see [51-retention-deletion.md](51-retention-deletion.md). DPA, DPO, PIA, NPC assessment and incident work remain open. | Partial — approval blocked | Approved text and publication, named UAT, retention policy activation and backup/provider disposition/restore rehearsal, DPA/DPO/PIA/NPC decisions and incident runbooks |
 | §15 Technical Architecture | VPS web, Railway API, Neon PostgreSQL, Better Auth, private storage, Resend and Redis Streams/BullMQ; production provisioning pending | Architecture is approved in [20-v6-architecture-decision.md](20-v6-architecture-decision.md); Better Auth/MFA identity and Redis Streams/BullMQ are implemented locally; production provisioning is pending | Partial | Two API replicas, approved event/worker recovery, Neon/Better Auth parity, web/API/storage/email smoke tests and client-owned account record |
 | §16 Security Requirements | Auth, backend checks, private files, HTTPS, audit, validation/rate limits, backup/recovery, secrets, least privilege | Auth, server permissions, private signed files, audit, validation, and env-based secrets exist; rate-limit and recovery evidence is missing | Partial | Security checklist, all-route permission scan, rate-limit tests, backup/restore rehearsal, production HTTPS evidence |
-| §17 SDLC and Timeline | Discovery through UAT/handover with change-controlled scope | Planning docs exist and much of the Django baseline was built; formal gate evidence is incomplete | Partial | Gate records from the implementation workflow and accepted release plan |
+| §17 SDLC and Timeline | Discovery through UAT/handover with change-controlled scope | Planning docs exist and much of the previous backend baseline was built; formal gate evidence is incomplete | Partial | Gate records from the implementation workflow and accepted release plan |
 | §18 Scope Revisions | Enforce ten revisions covering payments, BIR wording, wages, AI, Redis, access, public agents, privacy, and budget | Most boundaries are documented and represented in code; older AI wording still conflicts with the stricter project rule | Partial | Conflict removed from active docs and regression tests cover every technical revision |
 | §19 Out of Scope | Exclude checkout, official BIR invoicing, auto wage action, native apps, payroll, paid messaging, large migration, BI warehouse, unlimited revisions, 24/7 support | No excluded technical feature is present in the baseline | Built | Release review confirms no excluded capability or misleading product copy |
 | §20 Commercial and Subscription Boundaries | Separate one-time development, recurring services, maintenance, and client-owned production accounts | Commercial details and ownership guidance are documented; accounts are not provisioned | Blocked - client | Signed commercial terms and production account ownership checklist |
@@ -66,38 +66,22 @@ The v6 target architecture is recorded in
 | v6 draft §15.1–15.2 | Existing screens refetch on live events/reconnect and retain unsaved drafts. Cross-instance and customer-isolation SSE tests remain green. | Partial |
 
 Runbook and detailed limits: [19-records-typescript-preview.md](19-records-typescript-preview.md).
-The table below remains evidence for the Django baseline.
-
-| Area | Evidence |
-|---|---|
-| Authentication and roles | `apps/api/auth_app`, `auth_app/permissions_map.py`, `auth_app/tests/` |
-| Batches, clients, schedules, portal | `apps/api/batches_app`, `apps/api/clients_app`, `clients_app/tests/` |
-| Payment invariants | `apps/api/payments_app/services.py`, `payments_app/tests/` |
-| Audit | `apps/api/audit_app`, audit assertions in payment and role tests |
-| Private files | `apps/api/storage_app`, payment-proof API tests |
-| Tasks and human KPI review | `apps/api/tasks_app`, `apps/api/kpi_app`, `tasks_app/tests/` |
-| Reports | `apps/api/reports_app`, `reports_app/tests/` |
-| Support | `apps/api/support_app`, `support_app/tests/` |
-| Recruitment and public agent privacy | `apps/api/recruitment_app`, `apps/api/agents_app`, recruitment tests |
-| Notifications | `apps/api/notifications_app/services.py`, notification tests |
-| Web surfaces | `apps/web/app`, typed requests in `apps/web/lib/api.ts` |
-
-The Django test runner discovers **80 tests**. A verification attempt on 2026-09-01 could not
-execute them because the configured PostgreSQL service at `127.0.0.1:5433` was not running.
-Treat the passing claim in older status documents as historical until the suite is rerun in a
-working local or CI environment.
+Current backend evidence lives in `apps/api-ts/src/` and its unit/PostgreSQL integration tests.
+Records, Finance, reports, support, recruitment, identity, private storage and workers all use
+NestJS and Prisma. Web behavior and adapter evidence live in `apps/web/app/`, `apps/web/lib/`
+and `apps/web/test/`. The removed backend's test counts are historical evidence only.
 
 ## Known documentation conflicts to resolve during migration
 
-1. `docs/09-tech-stack.md` and several design drafts describe Django. The target is now a
-   TypeScript NestJS API; older Django material remains useful only for behavioral parity.
+1. The active stack and setup instructions are `docs/09-tech-stack.md` and
+   `docs/02-foundation-setup.md`; Prisma migrations own the database schema.
 2. Full Scope v6 contains optional AI deduction-suggestion wording in §13/§18.4, while §8 and
    the project's approved safeguard prohibit system-computed wage recommendations. The stricter
    no-computation rule wins.
 3. Some old docs describe all M1-M11 acceptance criteria as developer responsibility even when
    client policies or content are missing. Those rows stay `Blocked - client` until supplied.
-4. `BUILD_STATUS.md` records the Django baseline, not the completion state of the TypeScript
-   migration.
+4. `BUILD_STATUS.md` includes historical delivery evidence; use its current acceptance
+   sections and the handoff document for release decisions.
 
 ## Release-level acceptance checklist
 

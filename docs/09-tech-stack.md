@@ -5,9 +5,7 @@ baseline uses Next.js on a Fresh Phones PH-controlled VPS and a separate NestJS 
 The settled architecture and pending VPS choices are recorded in
 [20-v6-architecture-decision.md](20-v6-architecture-decision.md).
 
-The current Django API remains a behavioral baseline during migration. New backend features
-belong in the TypeScript service unless a short-lived Django change is required to keep the
-baseline usable and is explicitly approved.
+`apps/api-ts/` is the sole backend. The frontend always uses its Better Auth session and REST API.
 
 ## Frontend - `apps/web` (VPS)
 
@@ -24,7 +22,7 @@ baseline usable and is explicitly approved.
 Before changing Next.js configuration or framework conventions, read the installed guides in
 `node_modules/next/dist/docs/`; this repository uses Next.js 16.
 
-## Backend - `apps/api-ts` during migration (Railway)
+## Backend - `apps/api-ts` (Railway)
 
 | Concern | Target | Notes |
 |---|---|---|
@@ -45,7 +43,7 @@ Before changing Next.js configuration or framework conventions, read the install
 
 Controllers parse requests and call services. Services own writes, transactions, state
 transitions, and audit events. Query functions/selectors own role-scoped reads. Prisma is the
-only schema and migration owner after cutover.
+schema and migration owner.
 
 ## Domain layout
 
@@ -122,7 +120,7 @@ region are not yet selected and must be decided before provisioning.
 | Authorization | Endpoint-by-role allow/deny matrix |
 | Web | Component tests for role states and error paths |
 | End to end | Browser journeys for staff, Finance, customer, HR/KPI, CS, recruitment, and public users |
-| Migration parity | Equivalent Django and NestJS contract fixtures until each slice cuts over |
+| Contract regression | Shared-contract, authorization-matrix and PostgreSQL integration tests |
 
 Payment tests must include pending, verified, rejected, needs-clarification, repeated decision,
 concurrent decision, partial payment, overpayment, proof access, statement, confirmation,
@@ -130,10 +128,6 @@ notification, and audit behavior.
 
 ## Migration rule
 
-Build NestJS beside Django under `apps/api-ts/`. Port one complete vertical slice at a time,
-keep stable REST paths where practical, and switch traffic only after parity and reconciliation
-tests pass. Do not dual-write money records. Remove Django only after every required scope row
-has a TypeScript owner and accepted evidence.
-
-See [17-full-scope-workflow.md](17-full-scope-workflow.md) for gates and
-[18-scope-traceability-matrix.md](18-scope-traceability-matrix.md) for coverage.
+Use the committed Prisma migrations in `apps/api-ts/prisma/migrations/` for schema changes.
+Run `pnpm db:migrate` against the intended database and verify the health endpoint and
+role-scoped workflows. Fixed-day schedule fixtures preserve the agreed installment policy.

@@ -1,3 +1,5 @@
 import { PasswordRecovery } from "@/components/PasswordRecovery";
 
-export default function ResetPasswordPage() { return <PasswordRecovery mode="reset" />; }
+export default function ResetPasswordPage() {
+  return <PasswordRecovery mode="reset" />;
+}

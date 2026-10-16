@@ -11,14 +11,12 @@ Planning documentation for the system defined in **Full Scope v5 (Revision 1.4, 
 This repository (`freshphonesph`) is the **main repository** for the whole system. The
 existing landing page becomes the public-website surface (§4) of a larger product.
 
-> **Status:** The repository has a working Django baseline originating on `foundation`. Current work
-> follows the [feature/fix → staging → main branch flow](24-branch-flow.md). The approved target
-> now uses **TypeScript for both web and API**. Follow
-> **[17-full-scope-workflow.md](17-full-scope-workflow.md)** for the migration and delivery gates,
-> and use **[18-scope-traceability-matrix.md](18-scope-traceability-matrix.md)** for scope status.
-> For the existing baseline see **[BUILD_STATUS.md](BUILD_STATUS.md)**, and for its merge write-up see
-> **[PULL_REQUEST.md](PULL_REQUEST.md)**. New here (human or AI)? Start with
-> **[../AGENTS.md](../AGENTS.md)**.
+> **Status:** Next.js and NestJS are the active TypeScript deployables. Work follows the
+> [feature/fix → staging → main branch flow](24-branch-flow.md). Follow
+> [17-full-scope-workflow.md](17-full-scope-workflow.md) for delivery gates and
+> [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md) for scope coverage.
+> Current implementation and acceptance work are in [BUILD_STATUS.md](BUILD_STATUS.md).
+> Setup and contributor guidance are in [../AGENTS.md](../AGENTS.md).
 
 ## What this system is (and is not)
 
@@ -38,6 +36,13 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 [03-data-model.md](03-data-model.md) and the Payment module in [05-modules.md](05-modules.md).
 
 ## Documents
+
+For the sequential task queue aligned with the Basic Website Workflow and Organizational
+Structure V4, start with [the workflow implementation checklist](58-workflow-v4-implementation-checklist.md).
+For a focused list of what is missing or needs revision, use
+[missing features and required revisions](59-missing-features-and-required-revisions.md).
+Begin implementation with [Sprint 1 V4 roles and access](60-sprint-1-v4-roles-and-access.md).
+Its first task is specified in [the V4 role and permission matrix](61-v4-role-and-permission-matrix.md).
 
 | Doc | Covers | Scope refs |
 |---|---|---|
@@ -92,6 +97,7 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 | [52-authentication-mfa.md](52-authentication-mfa.md) | Better Auth credential/session migration, TOTP/recovery codes, required staff enrollment, revocation, local evidence and production cutover/recovery | §3, §16 |
 | [53-redis-events-workers.md](53-redis-events-workers.md) | Redis Streams, committed event relay, separate BullMQ workers, recovery, operations and local setup | §12, §15, §18 |
 | [54-abuse-rate-limits.md](54-abuse-rate-limits.md) | Shared Redis/PostgreSQL abuse limits, public applications and lookup, upload/report protection, live caps, proxy setup and tests | §16, §18 |
+| [55-sql-execution-index-design.md](55-sql-execution-index-design.md) | SQL logical execution order, Finance query scope, composite index migrations and measured EXPLAIN plans | §7, §9, §15 |
 
 ## Legend (from the scope)
 

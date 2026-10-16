@@ -10,7 +10,8 @@ Enter the total credit the payment should contribute, explain the checked eviden
 in a reason of 10–1,000 characters, review the displayed change and explicitly confirm.
 Use **0** for a full reversal. A later correction can restore credit with another entry.
 
-Only existing `PAYMENT_VERIFY` grants (Owner and Finance Officer) can submit adjustments.
+Only the Finance Officer's `PAYMENT_VERIFY` grant can submit adjustments. The V4 update
+on 2026-10-16 removes Owner's implicit verification and adjustment authority.
 The API rechecks the active actor and current grants inside the Finance transaction.
 Recording/read/report access does not grant adjustment authority. Pending, rejected and
 clarification records use their existing review workflow and cannot receive adjustments.
@@ -98,8 +99,8 @@ pnpm db:migrate
 pnpm typecheck
 pnpm test:api-ts
 pnpm test:api-ts:integration
-NEXT_PUBLIC_API_BACKEND=typescript pnpm --filter @fresh/web test
-NEXT_PUBLIC_API_BACKEND=typescript pnpm build
+pnpm --filter @fresh/web test
+pnpm build
 ```
 
 The forward migration is `20261007030000_payment_adjustments`; historical migrations are

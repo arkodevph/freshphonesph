@@ -110,8 +110,8 @@ DATABASE_URL="$TEST_DATABASE_URL" pnpm db:migrate
 pnpm typecheck
 pnpm test:api-ts
 pnpm test:api-ts:integration
-NEXT_PUBLIC_API_BACKEND=typescript pnpm --filter @fresh/web test
-NEXT_PUBLIC_API_BACKEND=typescript pnpm build
+pnpm --filter @fresh/web test
+pnpm build
 ```
 
 Before production acceptance, record named Owner/HR/COO UAT for:

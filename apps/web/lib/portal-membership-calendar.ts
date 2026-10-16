@@ -15,56 +15,146 @@ export type MembershipCalendarEvent = {
 };
 
 export function calendarDate(value: string | null | undefined): string | null {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
+
   const day = value.slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    return null;
+  }
+
   const parsed = new Date(`${day}T00:00:00Z`);
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === day ? day : null;
+
+  return Number.isFinite(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === day
+    ? day
+    : null;
 }
 
-export function membershipMilestones(summary: Pick<PortalSummary, "joined_at" | "batch_start_date" | "batch_end_date">): MembershipMilestone[] {
+export function membershipMilestones(
+  summary: Pick<
+    PortalSummary,
+    "joined_at" | "batch_start_date" | "batch_end_date"
+  >,
+): MembershipMilestone[] {
   return [
     { key: "joined", label: "Joined", date: calendarDate(summary.joined_at) },
-    { key: "batch-start", label: "Batch start", date: calendarDate(summary.batch_start_date) },
-    { key: "batch-end", label: "Planned batch end", date: calendarDate(summary.batch_end_date) },
+    {
+      key: "batch-start",
+      label: "Batch start",
+      date: calendarDate(summary.batch_start_date),
+    },
+    {
+      key: "batch-end",
+      label: "Planned batch end",
+      date: calendarDate(summary.batch_end_date),
+    },
   ];
 }
 
-export function membershipCalendarEvents(milestones: MembershipMilestone[], schedule: PortalScheduleItem[]): MembershipCalendarEvent[] {
-  const events: MembershipCalendarEvent[] = milestones.flatMap(item => item.date ? [{ id: item.key, date: item.date, label: item.label, kind: "membership" as const }] : []);
+export function membershipCalendarEvents(
+  milestones: MembershipMilestone[],
+  schedule: PortalScheduleItem[],
+): MembershipCalendarEvent[] {
+  const events: MembershipCalendarEvent[] = milestones.flatMap((item) => {
+    return item.date
+      ? [
+          {
+            id: item.key,
+            date: item.date,
+            label: item.label,
+            kind: "membership" as const,
+          },
+        ]
+      : [];
+  });
+
   for (const item of schedule) {
     const day = calendarDate(item.due_date);
-    if (day) events.push({ id: `installment-${item.sequence_no}`, date: day, label: `Installment ${item.sequence_no} due`, kind: "installment", href: `/portal/schedule#installment-${item.sequence_no}` });
+
+    if (day) {
+      events.push({
+        id: `installment-${item.sequence_no}`,
+        date: day,
+        label: `Installment ${item.sequence_no} due`,
+        kind: "installment",
+        href: `/portal/schedule#installment-${item.sequence_no}`,
+      });
+    }
   }
-  return events.sort((a, b) => a.date.localeCompare(b.date));
+
+  return events.sort((a, b) => {
+    return a.date.localeCompare(b.date);
+  });
 }
 
 export function calendarMonthDays(month: string): string[] {
   const first = calendarDate(`${month}-01`);
-  if (!first) return [];
+
+  if (!first) {
+    return [];
+  }
+
   const date = new Date(`${first}T00:00:00Z`);
+
   date.setUTCDate(1 - date.getUTCDay());
+
   return Array.from({ length: 42 }, () => {
     const day = date.toISOString().slice(0, 10);
+
     date.setUTCDate(date.getUTCDate() + 1);
+
     return day;
   });
 }
 
+export function calendarKeyboardDate(day: string, key: string): string | null {
+  if (key === "PageUp" || key === "PageDown") {
+    return moveCalendarMonth(day, key === "PageUp" ? -1 : 1);
+  }
+
+  const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
+
+  const offsets: Record<string, number> = {
+    ArrowLeft: -1,
+    ArrowRight: 1,
+    ArrowUp: -7,
+    ArrowDown: 7,
+    Home: -weekday,
+    End: 6 - weekday,
+  };
+
+  return Object.hasOwn(offsets, key)
+    ? moveCalendarDate(day, offsets[key])
+    : null;
+}
+
 export function moveCalendarDate(day: string, days: number): string {
   const date = new Date(`${day}T00:00:00Z`);
+
   date.setUTCDate(date.getUTCDate() + days);
+
   return date.toISOString().slice(0, 10);
 }
 
 export function moveCalendarMonth(day: string, direction: number): string {
   const date = new Date(`${day}T00:00:00Z`);
+
   const dayOfMonth = date.getUTCDate();
+
   date.setUTCDate(1);
+
   date.setUTCMonth(date.getUTCMonth() + direction);
+
   const end = new Date(date);
+
   end.setUTCMonth(end.getUTCMonth() + 1);
+
   end.setUTCDate(0);
+
   date.setUTCDate(Math.min(dayOfMonth, end.getUTCDate()));
+
   return date.toISOString().slice(0, 10);
 }

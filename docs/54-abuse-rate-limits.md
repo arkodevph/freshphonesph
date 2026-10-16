@@ -150,7 +150,7 @@ pnpm --filter @fresh/api-ts test:abuse
 # Set TEST_ABUSE_REDIS_CONTAINER=fresh-redis-test only for the disposable local container.
 pnpm --filter @fresh/api-ts test
 pnpm --filter @fresh/api-ts test:integration
-NEXT_PUBLIC_API_BACKEND=typescript pnpm --filter @fresh/web test
+pnpm --filter @fresh/web test
 pnpm --filter @fresh/api-ts typecheck
 pnpm --filter @fresh/api-ts build
 pnpm --filter @fresh/web exec tsc --noEmit

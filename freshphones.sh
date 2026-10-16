@@ -40,7 +40,7 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-echo "==> Starting TypeScript API (http://localhost:4101)"
+echo "==> Starting TypeScript API (default http://localhost:4100; configured by apps/api-ts/.env)"
 pnpm --filter @fresh/api-ts dev &
 api_pid=$!
 

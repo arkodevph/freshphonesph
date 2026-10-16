@@ -25,7 +25,7 @@ security are designed in from the start — not added after launch.
 
 | Control | What it means |
 |---|---|
-| Secure authentication | JWT auth, secure sessions, password reset (DRF SimpleJWT) |
+| Secure authentication | Better Auth HTTP-only sessions, MFA, password reset and session revocation |
 | **Backend role checks** | Permissions checked on the **server/DB**, not only by hiding buttons |
 | Private file storage | Sensitive files private; access authenticated, authorized, temporary where possible |
 | HTTPS | Encrypt traffic between user and system |
@@ -47,7 +47,7 @@ security are designed in from the start — not added after launch.
 | Wage deductions | PH labor rules restrict wage deductions → software must not auto-compute/enforce salary deductions | Labor Code / PD 442 |
 
 ## How these map into the build
-- **Privacy-by-design:** private storage, DRF permissions (optional RLS), least-privilege,
+- **Privacy-by-design:** private storage, NestJS permission guards (optional RLS), least-privilege,
   data minimization (collect only
   needed fields — [03-data-model.md](03-data-model.md)).
 - **No automated consequential decisions:** late flag is a fact; deductions and employment

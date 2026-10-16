@@ -14,9 +14,7 @@ export default function SectionHeading({
   center = true,
 }: Props) {
   return (
-    <Reveal
-      className={`max-w-2xl ${center ? "mx-auto text-center" : ""}`}
-    >
+    <Reveal className={`max-w-2xl ${center ? "mx-auto text-center" : ""}`}>
       {eyebrow && (
         <span className="pill mb-3 inline-block rounded-full px-3.5 py-1 text-xs font-700 uppercase tracking-wider text-blue">
           {eyebrow}

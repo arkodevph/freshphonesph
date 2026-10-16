@@ -13,7 +13,7 @@ Extend the existing Fresh Phones PH application and NestJS migration. This sprin
 
 - [Full Scope v6, Revision 1.5](source/Full-Scope-v6.pdf), especially §§5–7 and Appendix A: customer documents, requirements checklist, private storage, history, search and Finance verification.
 - [Delivery gates](17-full-scope-workflow.md): close the identified Gate 2 workflow gaps while protecting existing Gate 3 behavior.
-- [Traceability matrix](18-scope-traceability-matrix.md): distinguish Django baseline coverage from TypeScript delivery.
+- [Traceability matrix](18-scope-traceability-matrix.md): distinguish previous backend baseline coverage from TypeScript delivery.
 - [Architecture decision](20-v6-architecture-decision.md): Neon/Better Auth are the revised production target. Better Auth/MFA and Redis Streams/BullMQ are implemented locally; production provisioning and private storage selection remain open.
 - [TypeScript preview](19-records-typescript-preview.md) and [build status](BUILD_STATUS.md): existing enrollment/schedules, claims/decisions, private payment proofs, OCR and reporting are starting assets, not work to recreate.
 

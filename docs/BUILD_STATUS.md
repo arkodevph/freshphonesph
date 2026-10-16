@@ -7,16 +7,13 @@
 > object storage selection remain open. See [the decision record](20-v6-architecture-decision.md)
 > and [Redis runbook](53-redis-events-workers.md).
 
-Implementation status, including the Django baseline originally built on `foundation` and the
-TypeScript work now moving through `staging`. The planning docs (00–16) describe the
-*intended* system; this file describes what was built in the Django baseline. The suite contains
-**80 tests** and was historically green; rerun it against a working local PostgreSQL service
-before treating that result as current.
+Implementation status for the NestJS/Prisma API and Next.js interface. Earlier entries record
+historical delivery evidence; use the current acceptance and handoff sections for release decisions.
+The former backend has been removed, and its historical test count is not a current check.
 
-> **TypeScript migration:** This page records the existing Django baseline. The active target is
-> a NestJS TypeScript API. Track migration gates in
-> [17-full-scope-workflow.md](17-full-scope-workflow.md) and row-level coverage in
-> [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md).
+NestJS is the sole backend. Prisma owns database schema and migrations. Delivery gates are in
+[17-full-scope-workflow.md](17-full-scope-workflow.md); row-level coverage is in
+[18-scope-traceability-matrix.md](18-scope-traceability-matrix.md).
 
 ## TypeScript foundation
 
@@ -105,7 +102,7 @@ The integration suite exercises both client search and payment pagination with 1
 Owner user management adds server-side name/email search, role/status filters, bounded pagination,
 audited role and activation changes, session revocation, and self-lockout protection.
 See [19-records-typescript-preview.md](19-records-typescript-preview.md) for setup, evidence,
-the fixed-day cadence policy, and remaining Gate 2 work. Django is still the default backend.
+the fixed-day cadence policy, and remaining Gate 2 work. NestJS is the sole backend.
 
 The 2026-09-25 TypeScript customer increment adds a responsive portal with release status,
 customer document submission and Records review, support case tracking, and in-app notifications.
@@ -391,11 +388,11 @@ builds and three browser groups. See [47-consequential-hr-action-approvals.md](4
 
 | Module | Status | Key endpoints | UI |
 |---|---|---|---|
-| **M2 Auth / Users & Roles** | ✅ Built | Django `/api/employees/`; NestJS `/api/auth/*`, `/api/accounts` (list/create/detail/update, ACCOUNT_MANAGE) | `/login`, Owner-only `/system/team` |
+| **M2 Auth / Users & Roles** | ✅ Built | `/api/auth/*`, `/api/accounts` (list/create/detail/update, ACCOUNT_MANAGE) | `/login`, Owner-only `/system/team` |
 | **M3 Paluwagan Records & Clients** | ✅ Built | `/api/batches/`, `/api/clients/` (+ auto-schedule), `/api/clients/{id}/schedule` | `/system/records`, `/system/clients` |
 | **M4 Payments & Finance** | ✅ Built | `/api/payments/` (record/list/verify), `/api/payments/{id}/adjustments`, `/api/clients/{id}/balance|statement`, `/api/payments/{id}/proof|confirmation` | `/system/payments` with audited credit corrections |
-| **M5 Customer Portal** | ✅ Built | `/api/portal/summary|schedule|payments|support`, `/api/clients/{id}/portal-account` | `/portal` |
-| **M6 Employee Tasks & KPI** | ✅ Built | `/api/tasks/` (+ submit → late flag), `/api/kpi/queue`, `/api/kpi/reviews` | `/system/tasks` |
+| **M5 Customer Portal** | ✅ Built | `/api/clients/:id`, schedules, balances, payments, `/api/portal/support`, `/api/accounts` | `/portal` |
+| **M6 Employee Tasks & KPI** | ✅ Built | `/api/work/tasks` (+ submit → late flag), `/api/work/kpi/queue`, `/api/work/kpi/reviews` | `/system/tasks` |
 | **M7 Reporting & Analytics** | 🟡 Partial | `/api/reports/` dashboard, payments, collections, reconciliation, authorized reconciliation exceptions, tasks, support, export, snapshots and batches; business field/format acceptance and external matching open | dashboard cards and `/system/reports` |
 | **M8 Customer Service** | ✅ Built | `/api/support/cases/`, `/api/portal/support/` | `/system/support`, portal |
 | **M9 Recruitment & Agents** | 🟡 Partial — implemented, acceptance open | public `/api/careers`, `/api/careers/apply`, `/api/agents/verify`; guarded recruitment search/paging/summary/detail/review and `/api/agents/` | `/careers`, `/verify`, `/system/recruitment` with retained review drafts; privacy/retention/import and named UAT open |
@@ -403,20 +400,21 @@ builds and three browser groups. See [47-consequential-hr-action-approvals.md](4
 | **M1 Public Website** | 🟡 Partial | maintained published catalog, photos and per-offer sample payments; guarded catalog management; Careers + Verify | `/`, `/system/catalog`, `/careers`, `/verify`; remaining public-service scope and content acceptance open |
 | **M11 AI Assistant** | Deferred — paid AI API funding unavailable (user request, 2026-10-08) | — | — |
 
-## What's real vs. contract-skeleton
-Every module has **working, tested code**. A few models started as minimal **contract skeletons**
-(owned by another teammate) and were fleshed out as needed:
-- `auth_app` (Tambong/M2), `batches_app`/`clients_app` (Tambong/M3) — now have full CRUD + auth.
-- `notifications_app` (Dela Rosa/M10) — model + the verify hook; no full delivery UI yet.
-- `tasks_app`/`kpi_app`, `support_app`, `recruitment_app`, `agents_app` (Dela Rosa) — built out here.
-- Teammates should review/extend their owned apps; field & permission names are the agreed contract.
+## Active implementation
 
-## Cross-cutting, done
-- **RBAC:** `auth_app/permissions_map.py` — 12 permission keys, per-role sets, server-enforced.
-- **Role-aware UI:** sidebar + page guards via `/api/auth/me` (`lib/useMe`).
-- **Audit trail:** `audit_app` — money verification, role changes, record edits.
-- **Private files:** `storage_app` — Supabase Storage/MinIO, presigned GET, private bucket.
-- **Email:** MailHog locally, Resend/SMTP in prod.
+NestJS domain services in `apps/api-ts/src/` implement identity, records, Finance, reports,
+work/KPI, support, recruitment and notifications. Shared contracts and committed Prisma
+migrations define the current interface and database structure. Team members should review
+their owned domains against the accepted business requirements.
+
+## Cross-cutting implementation
+
+- **Authorization:** shared permission keys and NestJS guards enforce role and record scope.
+- **Role-aware UI:** sidebar and page guards use `/api/auth/me` through `lib/useMe`.
+- **Audit:** sensitive financial, account and record changes retain actor and decision evidence.
+- **Private files:** authorized API reads use local development storage or configured private S3.
+- **Identity:** Better Auth owns HTTP-only sessions, recovery and MFA.
+- **Events/email:** durable outboxes, configured Redis/BullMQ workers and Resend delivery.
 
 ## Known follow-ups
 - Customer, employee and applicant privacy notices plus portal terms have linked review-draft
@@ -453,5 +451,6 @@ Every module has **working, tested code**. A few models started as minimal **con
 - Production provisioning (Neon/Railway/VPS/Cloudflare/Resend plus selected private storage and event/job infrastructure) — client-owned accounts (§20).
 
 ## Test & run
-`cd apps/api && source .venv/bin/activate && python manage.py test` → discovers 80 tests.
+`pnpm test:api-ts` runs the API unit suite; PostgreSQL integration checks use `pnpm test:api-ts:integration`.
+Run web checks with `pnpm --filter @fresh/web test` and static checks with `pnpm typecheck`.
 Run instructions: see [../AGENTS.md](../AGENTS.md). Dev accounts: [DEV_ACCOUNTS.md](DEV_ACCOUNTS.md).

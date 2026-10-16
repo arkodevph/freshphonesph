@@ -42,12 +42,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# python / django
-.venv/
+# receipt OCR Python caches
 __pycache__/
 *.py[cod]
-staticfiles/
-*.sqlite3
 
 # turbo
 .turbo
@@ -56,3 +53,12 @@ staticfiles/
 # generated Prisma client and local service output
 apps/api-ts/src/generated/
 apps/api-ts/.local/
+
+# Local seeded-account preview; keep credentials and preview data out of Git.
+/.pgdata/
+/.local/
+/apps/api-ts/scripts/seed-demo.ts
+/apps/web/app/api/demo-login/
+/apps/api-ts/.env.preview
+/apps/web/.env.preview
+/scripts/run-local-preview.sh

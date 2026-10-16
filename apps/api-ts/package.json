@@ -2,7 +2,13 @@
   "name": "@fresh/api-ts",
   "version": "0.1.0",
   "private": true,
+  "files": [
+    "dist",
+    "scripts/receipt_ocr.py",
+    "scripts/receipt_templates.json"
+  ],
   "scripts": {
+    "seed:demo": "tsx scripts/seed-demo.ts",
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",

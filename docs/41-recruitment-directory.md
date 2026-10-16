@@ -68,9 +68,8 @@ automated hiring decisions, payroll behavior or schema migration.
 Attachment responses expose file ID/name/type/size, never storage keys. Bytes remain behind
 the authenticated attachment endpoint. Applicant notes/messages/phone are not search fields.
 Public careers still return only approved open-job fields; application and masked agent
-verification behavior remain unchanged. The TypeScript workspace is selected by
-`NEXT_PUBLIC_API_BACKEND=typescript`; Django remains a migration reference and its existing
-frontend fallback is preserved.
+verification behavior remain unchanged. The frontend uses the NestJS recruitment workspace
+and API directly.
 
 ## Verification and coworker acceptance
 
@@ -96,8 +95,8 @@ DATABASE_URL="$TEST_DATABASE_URL" pnpm db:migrate
 pnpm typecheck
 pnpm test:api-ts
 pnpm test:api-ts:integration
-NEXT_PUBLIC_API_BACKEND=typescript pnpm --filter @fresh/web test
-NEXT_PUBLIC_API_BACKEND=typescript pnpm build
+pnpm --filter @fresh/web test
+pnpm build
 ```
 
 For named Owner/HR UAT, use realistic staging backlogs over 20 jobs/applicants. Confirm

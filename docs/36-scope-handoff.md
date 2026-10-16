@@ -250,7 +250,7 @@ recruitment, requirements, Records/Clients filters, drafts/links, explicit write
 revoked access and mobile layouts. Real staging UAT remains separate.
 
 Work in `apps/api-ts/` (NestJS/Prisma), `apps/web/` (Next.js) and
-`packages/contracts/`. Django under `apps/api/` is migration/parity reference.
+`packages/contracts/`. NestJS is the sole backend; Prisma owns migrations.
 
 From the repository root, after private local environment setup:
 
@@ -270,7 +270,7 @@ pnpm --filter @fresh/web dev --hostname 127.0.0.1 --port 3000
 ```
 
 The current local settings pair API `PORT=4101`, `HOST=127.0.0.1` and
-`WEB_ORIGIN=http://localhost:3000` with web `NEXT_PUBLIC_API_BACKEND=typescript`
+`WEB_ORIGIN=http://localhost:3000`
 and `NEXT_PUBLIC_API_URL=http://localhost:4101`. Recreate ignored environment files
 privately; use [the preview runbook](19-records-typescript-preview.md) for setup.
 
@@ -279,7 +279,7 @@ Validation commands:
 ```bash
 pnpm typecheck
 pnpm test:api-ts
-NEXT_PUBLIC_API_BACKEND=typescript pnpm --filter @fresh/web test
+pnpm --filter @fresh/web test
 pnpm build
 ```
 

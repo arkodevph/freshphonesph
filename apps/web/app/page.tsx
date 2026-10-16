@@ -4,7 +4,11 @@ import Models from "@/components/Models";
 import Faq from "@/components/Faq";
 import CtaJoin from "@/components/CtaJoin";
 import Footer from "@/components/Footer";
-import { Process, RequirementsAndPayments, Trust } from "@/components/RecentLandingSections";
+import {
+  Process,
+  RequirementsAndPayments,
+  Trust,
+} from "@/components/RecentLandingSections";
 import ScrollPhoneStory from "@/components/ScrollPhoneStory";
 import LandingLoader from "@/components/LandingLoader";
 import "./landing.css";

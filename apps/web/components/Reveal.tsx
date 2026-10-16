@@ -16,27 +16,38 @@ export default function Reveal({
   as = "div",
 }: RevealProps) {
   const ref = useRef<HTMLElement | null>(null);
+
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
     const node = ref.current;
-    if (!node) return;
+
+    if (!node) {
+      return;
+    }
+
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             setShown(true);
+
             io.unobserve(e.target);
           }
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" },
     );
+
     io.observe(node);
-    return () => io.disconnect();
+
+    return () => {
+      return io.disconnect();
+    };
   }, []);
 
   const Tag = as as React.ElementType;
+
   return (
     <Tag
       ref={ref}

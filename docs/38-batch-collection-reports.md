@@ -98,7 +98,7 @@ The shared validation workspace excludes local seeded accounts and optional demo
 sign-in code. The implementation is packaged on `feature/reports-page` for review;
 staging and production deployment remain separate release tasks.
 Validation commands are in [37-reports-page.md](37-reports-page.md); web tests need
-`NEXT_PUBLIC_API_BACKEND=typescript` when run directly outside Next.js.
+the configured NestJS API origin when run directly outside Next.js.
 
 ## Remaining scope
 

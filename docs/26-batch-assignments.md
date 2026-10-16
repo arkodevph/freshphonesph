@@ -56,7 +56,7 @@ Directory outages show a retry message rather than a false no-match result.
 The additive Prisma migration `20261006120000_batch_assignments_agents` creates `Agent` and
 nullable indexed handler/agent foreign keys on `Batch`. Existing batches start unassigned;
 no assignment is inferred. Apply it with `pnpm db:migrate` before using this increment.
-Existing Django agent data is not automatically copied into the TypeScript database.
+Historical agent data is not automatically copied into the TypeScript database.
 
 Automated evidence lives in the assignment, directory and SSE tests in
 `apps/api-ts/test/integration.test.ts`, history projection tests in

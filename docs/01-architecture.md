@@ -64,16 +64,15 @@ database policies are optional defense-in-depth, not the primary gate.
 ## Backend framework (DECIDED - see [09-tech-stack.md](09-tech-stack.md))
 
 **NestJS + Prisma + PostgreSQL**, written in TypeScript and deployed as a separate Railway
-service. The frontend is a Next.js TypeScript app that calls the REST API over HTTPS. During
-migration, the current Django API remains the behavioral baseline until each NestJS slice passes
-parity and cutover checks. Full details are in [09-tech-stack.md](09-tech-stack.md).
+service. The frontend is a Next.js TypeScript app that calls this sole REST API over HTTPS.
+Shared contracts and integration tests preserve domain behavior. Full details are in [09-tech-stack.md](09-tech-stack.md).
 
 ## Repository shape
 
 This repo is the single source. It is a **monorepo** (see
 [02-foundation-setup.md](02-foundation-setup.md)) with the current landing page moved under
 the web app. The target has two TypeScript deployables: VPS web (Next.js) and Railway API
-(NestJS). The existing Django API stays in place only during the controlled migration.
+(NestJS). Prisma owns the API schema and committed database migrations.
 
 ## Environments
 
