@@ -15,6 +15,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Use a migrated dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const password = "Synthetic-legal-password-123!";
@@ -52,6 +53,7 @@ function publish(key: LegalDocumentKey, version = firstVersion) {
     reviewItems: [],
   };
 }
+
 async function request(
   path: string,
   role?: "owner" | "customer",
@@ -69,6 +71,7 @@ async function request(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }
+
 async function acknowledge(
   role: "owner" | "customer",
   key: LegalDocumentKey,
@@ -191,9 +194,11 @@ after(async () => {
   for (const key of Object.keys(originals) as LegalDocumentKey[]) {
     legalDocuments[key] = originals[key];
   }
+
   if (app) {
     await app.close();
   }
+
   if (second) {
     await second.close();
   }

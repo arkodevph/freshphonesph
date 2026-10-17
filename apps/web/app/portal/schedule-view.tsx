@@ -1,14 +1,9 @@
 "use client";
 
+import { pesoFormat as moneyFormat } from "@/lib/currency";
 import { calendarDate } from "@/lib/portal-membership-calendar";
 import styles from "./payment-schedule.module.css";
 import bannerStyles from "./portal-banner.module.css";
-
-export const moneyFormat = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-});
 
 export const shortDate = new Intl.DateTimeFormat("en-PH", {
   month: "short",
@@ -94,3 +89,5 @@ export function PaymentScheduleSkeleton() {
     </div>
   );
 }
+
+export { pesoFormat as moneyFormat } from "@/lib/currency";

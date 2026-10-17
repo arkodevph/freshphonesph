@@ -163,6 +163,7 @@ export class CatalogService {
     if (!row) {
       throw new NotFoundException("Listing not found.");
     }
+
     return view(row);
   }
   private async write<T>(
@@ -177,6 +178,7 @@ export class CatalogService {
       if (!current?.active || !allowed(current, "CATALOG_MANAGE")) {
         throw new ForbiddenException("Your catalog access has changed.");
       }
+
       return run(tx);
     });
   }
@@ -221,11 +223,13 @@ export class CatalogService {
     if (!before) {
       throw new NotFoundException("Listing not found.");
     }
+
     if (before.version !== version) {
       throw new ConflictException(
         "This listing changed. Review the latest version before saving.",
       );
     }
+
     return before;
   }
   create(user: User, input: CatalogInput) {
@@ -310,6 +314,7 @@ export class CatalogService {
     if (user) {
       await requireCurrentUser(this.db, user, "CATALOG_MANAGE");
     }
+
     const row = await this.db.catalogItem.findFirst({
       where: { id, ...(!user ? { published: true } : {}) },
       include: { imageFile: true },
@@ -318,6 +323,7 @@ export class CatalogService {
     if (!row?.imageFile) {
       throw new NotFoundException("Product photo not found.");
     }
+
     return {
       data: await this.storage.read(row.imageFile.storageKey),
       mimeType: row.imageFile.mimeType,

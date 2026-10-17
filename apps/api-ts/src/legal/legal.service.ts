@@ -23,6 +23,7 @@ function publishedDocument(key: LegalDocumentKey): LegalDocument | null {
   if (document.status === "DRAFT") {
     return null;
   }
+
   if (
     !document.publishedAt ||
     !Number.isFinite(Date.parse(document.publishedAt)) ||
@@ -34,6 +35,7 @@ function publishedDocument(key: LegalDocumentKey): LegalDocument | null {
       `Legal document ${key} is marked published without a complete approved version.`,
     );
   }
+
   return document;
 }
 
@@ -73,6 +75,7 @@ async function ensureVersion(
       "This legal document version has different saved text. Publish a new version.",
     );
   }
+
   return version;
 }
 
@@ -131,6 +134,7 @@ export class LegalService {
     if (!required.length) {
       return false;
     }
+
     const records = await this.db.legalAcknowledgement.findMany({
       where: {
         userId: user.id,
@@ -169,9 +173,11 @@ export class LegalService {
         "Choose the current published document and its required action.",
       );
     }
+
     if (!requiredLegalKeys(user.role).includes(input.key)) {
       throw new ForbiddenException("This document is not for your account.");
     }
+
     return this.db.$transaction(async (tx) => {
       const current = await tx.user.findUnique({
         where: { id: user.id },
@@ -184,6 +190,7 @@ export class LegalService {
       ) {
         throw new ForbiddenException("Your account access has changed.");
       }
+
       const version = await ensureVersion(tx, document);
 
       const rowId = randomUUID();
@@ -215,6 +222,7 @@ export class LegalService {
           },
         });
       }
+
       return {
         key: document.key,
         version: document.version,
@@ -241,6 +249,7 @@ export class LegalService {
     if (!document) {
       return;
     }
+
     if (
       input.privacyNoticeVersion !== document.version ||
       input.privacyNoticeAcknowledged !== true
@@ -249,6 +258,7 @@ export class LegalService {
         "Read and acknowledge the current Applicant Privacy Notice before applying.",
       );
     }
+
     const version = await ensureVersion(tx, document);
 
     await tx.legalAcknowledgement.create({

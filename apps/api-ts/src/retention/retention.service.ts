@@ -88,6 +88,7 @@ export class RetentionService {
         if (!current?.active || !allowed(current, "RETENTION_MANAGE")) {
           throw new ForbiddenException("Your retention access has changed.");
         }
+
         return run(tx);
       },
       { timeout: 30_000 },
@@ -219,9 +220,11 @@ export class RetentionService {
       if (!draft) {
         throw new NotFoundException("Retention policy not found.");
       }
+
       if (draft.status !== "DRAFT") {
         throw new ConflictException("Only a draft policy can be approved.");
       }
+
       await tx.retentionPolicy.updateMany({
         where: { scope: draft.scope, status: "ACTIVE" },
         data: { status: "RETIRED" },
@@ -296,6 +299,7 @@ export class RetentionService {
     } else if (eligibleAt! > new Date()) {
       blockers.push("The approved retention period has not elapsed.");
     }
+
     const previewHash = fingerprint({
       target,
       policyId: policy?.id,
@@ -446,6 +450,7 @@ export class RetentionService {
 
           total = await tx.storedFile.count({ where });
         }
+
         const items: RetentionPreview[] = [];
 
         let mailIndex: Promise<LocalMailCopy[]> | undefined;
@@ -464,6 +469,7 @@ export class RetentionService {
             ).preview,
           );
         }
+
         return { items, total, page: query.page, pageSize: 20 };
       },
       { isolationLevel: "RepeatableRead", timeout: 30_000 },
@@ -499,11 +505,13 @@ export class RetentionService {
       if (preview.blockers.length) {
         throw new ConflictException(preview.blockers.join(" "));
       }
+
       if (preview.previewHash !== input.previewHash) {
         throw new ConflictException(
           "This record changed. Review a fresh preview before requesting deletion.",
         );
       }
+
       const existing = await tx.retentionRequest.findFirst({
         where: {
           scope: input.scope,
@@ -517,6 +525,7 @@ export class RetentionService {
           "An open deletion request already exists for this record.",
         );
       }
+
       const row = await tx.retentionRequest.create({
         data: {
           scope: input.scope,
@@ -554,11 +563,13 @@ export class RetentionService {
     if (!row) {
       throw new NotFoundException("Deletion request not found.");
     }
+
     if (row.version !== version) {
       throw new ConflictException(
         "This request changed. Refresh and review it again.",
       );
     }
+
     return row;
   }
   private async checkApproval(
@@ -571,6 +582,7 @@ export class RetentionService {
     if (preview.blockers.length) {
       throw new ConflictException(preview.blockers.join(" "));
     }
+
     if (
       preview.policy!.id !== row.policyId ||
       preview.previewHash !== row.previewHash
@@ -579,6 +591,7 @@ export class RetentionService {
         "The record or policy changed. Reject this request and request deletion from a fresh preview.",
       );
     }
+
     return manifest;
   }
   decide(
@@ -598,9 +611,11 @@ export class RetentionService {
           "This request is no longer awaiting a decision.",
         );
       }
+
       if (input.approved) {
         await this.checkApproval(tx, row, user);
       }
+
       const changed = await tx.retentionRequest.update({
         where: { id },
         data: {
@@ -634,6 +649,7 @@ export class RetentionService {
           "An approved request and matching record ID are required.",
         );
       }
+
       const manifest = await this.checkApproval(tx, row, user);
 
       await this.eraseRecords(tx, manifest);
@@ -652,6 +668,7 @@ export class RetentionService {
           data: { requestId: id, fileId: file.id, storageKey: file.storageKey },
         });
       }
+
       for (const mailId of manifest.mailIds) {
         await tx.retentionFileJob.create({
           data: {
@@ -662,6 +679,7 @@ export class RetentionService {
           },
         });
       }
+
       const hasJobs = manifest.files.length + manifest.mailIds.length > 0;
 
       await tx.retentionRequest.update({
@@ -741,6 +759,7 @@ export class RetentionService {
         },
       });
     }
+
     if (m.target.scope === "CUSTOMER") {
       await tx.clientRequirement.deleteMany({
         where: { clientId: m.target.subjectId },
@@ -776,6 +795,7 @@ export class RetentionService {
         data: { note: "" },
       });
     }
+
     if (m.target.scope === "EMPLOYEE") {
       await tx.kpiReview.updateMany({
         where: { taskId: { in: m.taskIds } },
@@ -806,6 +826,7 @@ export class RetentionService {
         data: { note: "" },
       });
     }
+
     for (const id of m.userIds) {
       await tx.session.deleteMany({ where: { userId: id } });
 
@@ -837,6 +858,7 @@ export class RetentionService {
         },
       });
     }
+
     if (m.target.scope === "CUSTOMER") {
       await tx.client.update({
         where: { id: m.target.subjectId },
@@ -850,6 +872,7 @@ export class RetentionService {
         },
       });
     }
+
     await tx.staffEmail.deleteMany({ where: { id: { in: m.mailIds } } });
 
     await tx.notification.deleteMany({
@@ -893,6 +916,7 @@ export class RetentionService {
         },
       });
     }
+
     const entity = {
       APPLICANT: "applicant",
       CUSTOMER: "client",
@@ -915,11 +939,13 @@ export class RetentionService {
     if (!request) {
       throw new NotFoundException("Deletion request not found.");
     }
+
     if (!["FILES_PENDING", "COMPLETED"].includes(request.status)) {
       throw new ConflictException(
         "Execute the approved deletion before retrying file removal.",
       );
     }
+
     if (this.config.REDIS_URL) {
       return this.write(user, async (tx) => {
         const retried = await tx.retentionFileJob.updateMany({
@@ -939,6 +965,7 @@ export class RetentionService {
             jobs: retried.count,
           });
         }
+
         return this.requestView(
           tx,
           await tx.retentionRequest.findUniqueOrThrow({
@@ -948,6 +975,7 @@ export class RetentionService {
         );
       });
     }
+
     const jobs = await this.db.retentionFileJob.findMany({
       where: { requestId: id, status: { not: "DELETED" } },
       select: { id: true },
@@ -967,6 +995,7 @@ export class RetentionService {
         ) {
           return null;
         }
+
         return tx.retentionFileJob.update({
           where: { id: current.id },
           data: {
@@ -982,6 +1011,7 @@ export class RetentionService {
       if (!job) {
         continue;
       }
+
       let succeeded = false;
 
       try {
@@ -990,10 +1020,12 @@ export class RetentionService {
         } else {
           await this.storage.erase(job.storageKey!);
         }
+
         succeeded = true;
       } catch {
         /* Provider error details may contain credentials, keys or personal filenames. */
       }
+
       await this.db.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -1004,11 +1036,13 @@ export class RetentionService {
         if (current.leaseId !== job.leaseId || current.status !== "RUNNING") {
           return;
         }
+
         if (succeeded && job.kind === "PRIVATE_FILE") {
           await tx.storedFile.deleteMany({
             where: { id: job.fileId, purgePending: true },
           });
         }
+
         await tx.retentionFileJob.update({
           where: { id: job.id },
           data: {
@@ -1024,6 +1058,7 @@ export class RetentionService {
         });
       });
     }
+
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -1055,6 +1090,7 @@ export class RetentionService {
 
         return this.requestView(tx, completed);
       }
+
       return this.requestView(tx, row);
     });
   }
@@ -1079,6 +1115,7 @@ export class RetentionService {
       ) {
         return null;
       }
+
       const execution = await tx.auditEntry.findFirst({
         where: {
           entity: "retention",
@@ -1091,6 +1128,7 @@ export class RetentionService {
       if (!execution) {
         return null;
       }
+
       if (row.attempts >= 5) {
         await tx.retentionFileJob.update({
           where: { id },
@@ -1105,6 +1143,7 @@ export class RetentionService {
 
         return null;
       }
+
       const claimed = await tx.retentionFileJob.update({
         where: { id },
         data: {
@@ -1122,6 +1161,7 @@ export class RetentionService {
     if (!job) {
       return;
     }
+
     let succeeded = false;
 
     try {
@@ -1130,10 +1170,12 @@ export class RetentionService {
       } else {
         await this.storage.erase(job.storageKey!);
       }
+
       succeeded = true;
     } catch {
       /* Keep provider errors and personal filenames out of Redis and logs. */
     }
+
     await this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
@@ -1146,11 +1188,13 @@ export class RetentionService {
       ) {
         return;
       }
+
       if (succeeded && job.kind === "PRIVATE_FILE") {
         await tx.storedFile.deleteMany({
           where: { id: job.fileId, purgePending: true },
         });
       }
+
       await tx.retentionFileJob.update({
         where: { id },
         data: {
@@ -1283,9 +1327,11 @@ export class RetentionService {
       if (!row) {
         throw new NotFoundException("Hold not found.");
       }
+
       if (row.releasedAt) {
         throw new ConflictException("This hold has already been released.");
       }
+
       await tx.retentionHold.update({
         where: { id },
         data: {
@@ -1317,6 +1363,7 @@ export class RetentionService {
           "Complete application erasure before recording the backup and external copy follow up.",
         );
       }
+
       const changed = await tx.retentionRequest.update({
         where: { id },
         data: {

@@ -15,6 +15,7 @@ test("recruitment directories trim text and use bounded complete page numbers", 
     for (const page of ["0", "-1", "1junk", "1.5", "100001", "Infinity"]) {
       assert.equal(schema.safeParse({ page }).success, false, page);
     }
+
     assert.equal(schema.safeParse({ q: "x".repeat(101) }).success, false);
   }
 });
@@ -40,6 +41,7 @@ test("job and applicant facets reject irrelevant fields and invalid status value
       assert.equal(schema.safeParse(query).success, false);
     }
   }
+
   assert.equal(
     jobOpeningListQuerySchema.safeParse({
       jobId: "7e091b36-b584-4b09-a8ca-f2a8eb30cb9a",

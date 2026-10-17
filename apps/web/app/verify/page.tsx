@@ -28,6 +28,7 @@ export default function VerifyAgentPage() {
     if (!q.trim() || loading) {
       return;
     }
+
     setLoading(true);
 
     setError(null);

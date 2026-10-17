@@ -17,6 +17,7 @@ export class Validate implements PipeTransform {
     return this.schema.parse(value);
   }
 }
+
 @Catch()
 export class Errors implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost) {
@@ -27,6 +28,7 @@ export class Errors implements ExceptionFilter {
 
       return;
     }
+
     if (error instanceof ZodError) {
       response.status(400).json({
         message: error.issues
@@ -38,11 +40,13 @@ export class Errors implements ExceptionFilter {
 
       return;
     }
+
     if (error instanceof HttpException) {
       response.status(error.getStatus()).json({ message: error.message });
 
       return;
     }
+
     // Express/Nest parser errors may originate from the CommonJS build while this
     // service uses ESM. Keep their HTTP status without echoing submitted body text.
     if (
@@ -72,6 +76,7 @@ export class Errors implements ExceptionFilter {
         return;
       }
     }
+
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2002") {
         response
@@ -80,11 +85,13 @@ export class Errors implements ExceptionFilter {
 
         return;
       }
+
       if (error.code === "P2025") {
         response.status(404).json({ message: "Record not found." });
 
         return;
       }
+
       if (error.code === "P2003") {
         response
           .status(400)
@@ -92,6 +99,7 @@ export class Errors implements ExceptionFilter {
 
         return;
       }
+
       if (error.code === "P2004") {
         response.status(409).json({
           message:
@@ -101,6 +109,7 @@ export class Errors implements ExceptionFilter {
         return;
       }
     }
+
     console.error(
       error instanceof Error ? error.name : "Unhandled server error",
     );

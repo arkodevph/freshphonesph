@@ -111,6 +111,7 @@ export function RecruitmentDesk({
       if (!mounted.current || request !== countsSequence.current) {
         return;
       }
+
       if (error instanceof ApiError && [401, 403].includes(error.status)) {
         onDenied();
       } else {
@@ -155,6 +156,7 @@ export function RecruitmentDesk({
     if (!rows?.length) {
       return;
     }
+
     if (!selected) {
       const first = rows[0];
 
@@ -168,6 +170,7 @@ export function RecruitmentDesk({
 
       return;
     }
+
     const latest = rows.find((row) => {
       return String(row.id) === selected;
     });
@@ -199,6 +202,7 @@ export function RecruitmentDesk({
       };
     });
   }
+
   function editReview(change: Partial<Pick<ReviewDraft, "notes" | "status">>) {
     if (selected) {
       setDrafts((value) => {
@@ -209,10 +213,12 @@ export function RecruitmentDesk({
       });
     }
   }
+
   async function loadLatest() {
     if (!draft || reviewLoading || writeLock.current) {
       return;
     }
+
     const id = String(draft.base.id);
 
     const request = ++reviewSequence.current;
@@ -227,6 +233,7 @@ export function RecruitmentDesk({
       if (!mounted.current || request !== reviewSequence.current) {
         return;
       }
+
       setDrafts((value) => {
         return {
           ...value,
@@ -248,6 +255,7 @@ export function RecruitmentDesk({
       }
     }
   }
+
   function handleError(error: unknown) {
     if (error instanceof ApiError && [401, 403].includes(error.status)) {
       onDenied();
@@ -255,10 +263,12 @@ export function RecruitmentDesk({
       setFeedback({ error: true, text: errorText(error) });
     }
   }
+
   async function write(label: string, run: () => Promise<void>) {
     if (writeLock.current) {
       return;
     }
+
     writeLock.current = true;
 
     setBusy(label);
@@ -279,6 +289,7 @@ export function RecruitmentDesk({
       }
     }
   }
+
   async function addJob() {
     const input = { ...jobForm };
 
@@ -288,6 +299,7 @@ export function RecruitmentDesk({
       if (!mounted.current) {
         return;
       }
+
       setJobForm({
         title: "",
         employment_type: "",
@@ -303,6 +315,7 @@ export function RecruitmentDesk({
       refresh();
     });
   }
+
   async function toggleJob(row: JobOpening) {
     await write(`job-${row.id}`, async () => {
       await updateJob(row.id, {
@@ -314,6 +327,7 @@ export function RecruitmentDesk({
       if (!mounted.current) {
         return;
       }
+
       setFeedback({
         error: false,
         text: row.is_open
@@ -324,10 +338,12 @@ export function RecruitmentDesk({
       refresh();
     });
   }
+
   async function saveReview() {
     if (!draft || draft.conflict || reviewLoading || !reviewDirty(draft)) {
       return;
     }
+
     const captured = draft;
 
     const id = String(captured.base.id);
@@ -343,6 +359,7 @@ export function RecruitmentDesk({
         if (!mounted.current) {
           return;
         }
+
         setDrafts((value) => {
           return { ...value, [id]: reviewDraft(saved) };
         });
@@ -366,10 +383,12 @@ export function RecruitmentDesk({
             };
           });
         }
+
         throw error;
       }
     });
   }
+
   const disabled = Boolean(busy);
 
   const offPage = Boolean(

@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import type { PortalScheduleItem } from "@/lib/api";
-import { manilaToday } from "@/lib/portal-attention";
+import { today as manilaToday } from "@/lib/date";
 import { installmentState, scheduleDueNow } from "@/lib/portal-schedule";
 import {
   calendarDate,
@@ -103,11 +103,13 @@ export default function PaymentScheduleWorkspace({
     if (status !== "ready" || initialDateRef.current || !featured) {
       return;
     }
+
     const day = calendarDate(featured.due_date);
 
     if (day) {
       setSelectedDate(day);
     }
+
     initialDateRef.current = true;
   }, [status, featured]);
 
@@ -118,6 +120,7 @@ export default function PaymentScheduleWorkspace({
       if (status !== "ready" || appliedHashRef.current === hash) {
         return;
       }
+
       const item = schedule.find((item) => {
         return `installment-${item.sequence_no}` === hash;
       });
@@ -125,6 +128,7 @@ export default function PaymentScheduleWorkspace({
       if (!item) {
         return;
       }
+
       appliedHashRef.current = hash;
 
       initialDateRef.current = true;
@@ -134,6 +138,7 @@ export default function PaymentScheduleWorkspace({
       if (day) {
         setSelectedDate(day);
       }
+
       hashTargetRef.current = item.sequence_no;
 
       setExpanded(true);
@@ -146,6 +151,7 @@ export default function PaymentScheduleWorkspace({
         });
       }
     }
+
     openHash();
 
     window.addEventListener("hashchange", openHash);
@@ -159,6 +165,7 @@ export default function PaymentScheduleWorkspace({
     if (!expanded) {
       return;
     }
+
     const target =
       hashTargetRef.current != null
         ? document.getElementById(`installment-${hashTargetRef.current}`)
@@ -175,6 +182,7 @@ export default function PaymentScheduleWorkspace({
     if (!focusDayRef.current) {
       return;
     }
+
     calendarRef.current
       ?.querySelector<HTMLButtonElement>(
         `[data-schedule-date="${selectedDate}"]`,
@@ -188,14 +196,17 @@ export default function PaymentScheduleWorkspace({
     if (!detailsOpen) {
       return;
     }
+
     const dialog = dialogRef.current;
 
     if (!dialog) {
       return;
     }
+
     if (!dialog.open) {
       dialog.showModal();
     }
+
     const previousOverflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -204,6 +215,7 @@ export default function PaymentScheduleWorkspace({
       if (dialog.open) {
         dialog.close();
       }
+
       document.body.style.overflow = previousOverflow;
     };
   }, [detailsOpen]);
@@ -220,6 +232,7 @@ export default function PaymentScheduleWorkspace({
 
       focusDayRef.current = false;
     }
+
     setSelectedDate(day);
   }
 
@@ -229,6 +242,7 @@ export default function PaymentScheduleWorkspace({
     if (!next) {
       return;
     }
+
     event.preventDefault();
 
     selectDay(next, true);
@@ -250,6 +264,7 @@ export default function PaymentScheduleWorkspace({
     if (event.key !== "Tab") {
       return;
     }
+
     const controls = Array.from(
       event.currentTarget.querySelectorAll<HTMLElement>(
         "button:not(:disabled), a[href], [tabindex]",

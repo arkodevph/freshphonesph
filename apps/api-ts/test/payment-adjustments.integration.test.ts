@@ -23,6 +23,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Adjustment tests require a dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const suffix = randomUUID().slice(0, 8);
@@ -89,6 +90,7 @@ async function verified(amount = "10.00", clientId = linkedClientId) {
 
   return db.payment.findUniqueOrThrow({ where: { id: row.id } });
 }
+
 async function newClient(due = "100.00") {
   const client = await db.client.create({
     data: {
@@ -110,6 +112,7 @@ async function newClient(due = "100.00") {
 
   return client.id;
 }
+
 async function balance(clientId: string) {
   const response = await request("OWNER", `/clients/${clientId}/balance`);
 
@@ -220,6 +223,7 @@ test("only current PAYMENT_VERIFY grants permit an adjustment, with authenticati
       revision++;
     }
   }
+
   assert.equal(
     await db.paymentAdjustment.count({ where: { paymentId: payment.id } }),
     2,
@@ -372,6 +376,7 @@ test("strict input rejects negative, oversized, fractional, missing and no-op re
       JSON.stringify(facet),
     );
   }
+
   assert.equal(
     (await request("OWNER", path, { correctedAmount: "9.99" })).status,
     400,
@@ -542,6 +547,7 @@ test("balance, summary, statement, confirmation and customer history use net cre
   ]) {
     assert.equal(text.includes(body.reason), false);
   }
+
   const other = await verified("10.00", await newClient());
 
   assert.equal(
@@ -650,6 +656,7 @@ test("all live report/export totals reconcile to net credit; original claims and
 
     saved.push(await response.json());
   }
+
   assert.equal(
     (
       await request(
@@ -741,6 +748,7 @@ test("all live report/export totals reconcile to net credit; original claims and
       }
     }
   }
+
   for (const snapshot of saved) {
     assert.deepEqual(
       (
@@ -751,6 +759,7 @@ test("all live report/export totals reconcile to net credit; original claims and
       snapshot.payload,
     );
   }
+
   assert.equal(saved[0].payload.verifiedAmount, "125.50");
 
   assert.equal(saved[1].payload.totals.verifiedAmount, "125.50");
@@ -896,6 +905,7 @@ test("database constraints preserve append-only credit chains and reject invalid
       db.paymentAdjustment.create({ data: { ...data, ...facet } }),
     );
   }
+
   assert.equal(
     await db.paymentAdjustment.count({ where: { paymentId: payment.id } }),
     1,

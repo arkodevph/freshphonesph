@@ -25,6 +25,7 @@ export default function Reveal({
     if (!node) {
       return;
     }
+
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {

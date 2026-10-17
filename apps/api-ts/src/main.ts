@@ -8,6 +8,7 @@ async function main() {
 
   await app.listen(config.PORT, config.HOST);
 }
+
 void main().catch(() => {
   console.error(
     "API startup failed. Check environment configuration and database connectivity.",

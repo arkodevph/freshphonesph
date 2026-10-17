@@ -38,6 +38,7 @@ function appearance(href: string) {
       illustration: "payments" as const,
     };
   }
+
   if (href.startsWith("/portal/documents")) {
     return {
       label: "Documents",
@@ -48,6 +49,7 @@ function appearance(href: string) {
         : ("agreement" as const),
     };
   }
+
   return {
     label: "Support",
     icon: ChatCircleText,
@@ -155,6 +157,7 @@ export default function DashboardNextSteps({
     if (!list) {
       return;
     }
+
     const update = () => {
       return setCanScroll({
         previous: list.scrollLeft > 2,
@@ -183,6 +186,7 @@ export default function DashboardNextSteps({
     if (!list) {
       return;
     }
+
     const gap = parseFloat(getComputedStyle(list).columnGap) || 0;
 
     const distance =

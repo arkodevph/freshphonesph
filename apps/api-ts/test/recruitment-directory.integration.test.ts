@@ -23,6 +23,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Recruitment tests require a dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const suffix = randomUUID().slice(0, 8);
@@ -146,6 +147,7 @@ before(async () => {
         .join("; "),
     });
   }
+
   const createdAt = new Date("2049-07-01T00:00:00Z");
 
   const openings = [];
@@ -164,6 +166,7 @@ before(async () => {
       }),
     );
   }
+
   jobId = openings[0].id;
 
   const needleJob = await db.jobOpening.findFirstOrThrow({
@@ -194,6 +197,7 @@ before(async () => {
       },
     });
   }
+
   const needleApplicant = await db.applicant.findFirstOrThrow({
     where: { email: { contains: suffix } },
     orderBy: [{ createdAt: "desc" }, { id: "asc" }],
@@ -218,6 +222,7 @@ after(async () => {
     for (const key of privateKeys) {
       await app.get(PrivateStorageService).remove(key);
     }
+
     await app.close();
   }
 });
@@ -271,6 +276,7 @@ test("both full backlogs paginate without overlap at equal timestamps, with comp
         }),
       );
     }
+
     assert.equal(new Set(ids).size, count);
 
     assert.deepEqual(ids, [...ids].sort().reverse());
@@ -281,6 +287,7 @@ test("both full backlogs paginate without overlap at equal timestamps, with comp
 
     assert.deepEqual(past.items, []);
   }
+
   assert.deepEqual(await read("/recruitment/summary"), {
     jobs: await db.jobOpening.count(),
     openJobs: await db.jobOpening.count({ where: { isOpen: true } }),
@@ -377,6 +384,7 @@ test("combined server-side search, status and job filters find records beyond pa
       0,
     );
   }
+
   assert.equal(
     (await read(`/recruitment/applicants?jobId=${randomUUID()}`)).total,
     0,
@@ -410,6 +418,7 @@ test("strict query/UUID validation rejects invalid or irrelevant facets and exac
       );
     }
   }
+
   assert.equal(
     (await request("OWNER", "/recruitment/applicants?jobId=bad")).status,
     400,
@@ -497,6 +506,7 @@ test("private attachment metadata and bytes require recruitment access while pub
       );
     }
   }
+
   const careers = await (await request(null, "/careers")).json();
 
   assert.ok(
@@ -514,6 +524,7 @@ test("private attachment metadata and bytes require recruitment access while pub
       "title",
     ]);
   }
+
   assert.equal(
     JSON.stringify(careers).includes("Private attachment candidate"),
     false,
@@ -545,6 +556,7 @@ test("reviews preserve captured versions and complete detail responses, reject c
       role,
     );
   }
+
   const results = await Promise.all([
     request("OWNER", paths[0], {
       status: "SHORTLISTED",
@@ -668,6 +680,7 @@ test("revoked recruitment access immediately blocks details, pages, counts, file
   ]) {
     assert.equal((await request("HR_PAYROLL", path)).status, 401);
   }
+
   const row = await db.applicant.findUniqueOrThrow({
     where: { id: applicantId },
   });

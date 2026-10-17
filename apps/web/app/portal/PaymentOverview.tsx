@@ -1,5 +1,6 @@
 "use client";
 
+import { pesoFormat as currency } from "@/lib/currency";
 import type { Payment, PortalScheduleItem, PortalSummary } from "@/lib/api";
 import {
   ArrowRight,
@@ -13,12 +14,6 @@ import {
   verifiedPaymentPercent,
 } from "@/lib/portal-payment-overview";
 import styles from "./payment-overview.module.css";
-
-const currency = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-});
 
 const compact = new Intl.NumberFormat("en-PH", {
   style: "currency",

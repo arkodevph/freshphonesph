@@ -15,6 +15,7 @@ if (!url || !new URL(url).pathname.endsWith("_test")) {
     "Use a migrated dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100",
   password = "Auth-migration-test-password123!";
 
@@ -55,6 +56,7 @@ function totp(uri: string) {
     (digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000,
   ).padStart(6, "0");
 }
+
 class Browser {
   cookies = new Map<string, string>();
   async call(
@@ -84,6 +86,7 @@ class Browser {
 
       this.cookies.set(first.slice(0, i), first.slice(i + 1));
     }
+
     return res;
   }
   async login(user = identity, target = base, secret = password) {
@@ -98,6 +101,7 @@ class Browser {
     return res.json();
   }
 }
+
 async function person(role: "OWNER" | "RECORDS" = "OWNER") {
   return db.user.create({
     data: {
@@ -108,6 +112,7 @@ async function person(role: "OWNER" | "RECORDS" = "OWNER") {
     },
   });
 }
+
 before(async () => {
   const config = {
     NODE_ENV: "test" as const,
@@ -151,6 +156,7 @@ after(async () => {
   if (app) {
     await app.close();
   }
+
   if (enforced) {
     await enforced.close();
   }
@@ -370,6 +376,7 @@ test("password sign-in gives an expiring MFA challenge and grants no access unti
       401,
     );
   }
+
   assert.ok(
     (await limited.call("/auth/mfa/verify", { code: totp(enrollment.totpURI) }))
       .status >= 400,
@@ -460,6 +467,7 @@ test("password recovery uses hashed single-use tokens, revokes sessions, and ret
       token = text.match(/reset-password#([A-Za-z0-9_-]+)/)?.[1] ?? "";
     }
   }
+
   assert.ok(token);
 
   const stored = await db.authVerification.findUniqueOrThrow({

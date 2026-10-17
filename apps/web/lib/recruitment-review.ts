@@ -32,16 +32,19 @@ export function observeReview(
   if (String(draft.base.id) !== String(latest.id)) {
     throw new Error("Cannot mix applicant reviews.");
   }
+
   if (
     (latest.version ?? 0) < (draft.latest?.version ?? draft.base.version ?? 0)
   ) {
     return draft;
   }
+
   // A read never replaces the version or notes the reviewer started with.
   return latest.version !== draft.base.version
     ? { ...draft, latest, conflict: true }
     : draft;
 }
+
 export function resolveReview(
   draft: ReviewDraft,
   choice: "latest" | "draft",
@@ -49,6 +52,7 @@ export function resolveReview(
   if (!draft.latest) {
     throw new Error("Load the latest review before resolving a conflict.");
   }
+
   const next = reviewDraft(draft.latest);
 
   return choice === "draft"

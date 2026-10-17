@@ -108,6 +108,7 @@ export function readConfig() {
           } catch {
             /* Report configuration errors without echoing input. */
           }
+
           context.addIssue({
             code: z.ZodIssueCode.custom,
             message:
@@ -130,17 +131,20 @@ export function readConfig() {
   if (new URL(config.WEB_ORIGIN).origin !== config.WEB_ORIGIN) {
     throw new Error("WEB_ORIGIN must be an origin without a path.");
   }
+
   if (
     config.REDIS_URL &&
     !["redis:", "rediss:"].includes(new URL(config.REDIS_URL).protocol)
   ) {
     throw new Error("REDIS_URL must use redis:// or rediss://.");
   }
+
   if (!config.BETTER_AUTH_SECRET && !config.JWT_SECRET) {
     throw new Error(
       "Set a generated BETTER_AUTH_SECRET (at least 32 characters).",
     );
   }
+
   if (
     config.BETTER_AUTH_URL &&
     !["/", "/api/auth", "/api/auth/"].includes(
@@ -149,6 +153,7 @@ export function readConfig() {
   ) {
     throw new Error("BETTER_AUTH_URL must be an origin or end with /api/auth.");
   }
+
   if (
     config.NODE_ENV === "production" &&
     (!config.BETTER_AUTH_SECRET ||
@@ -160,6 +165,7 @@ export function readConfig() {
       "Production requires a generated Better Auth secret, HTTPS auth URL, and staff MFA.",
     );
   }
+
   if (
     config.NODE_ENV === "production" &&
     (!config.REDIS_URL ||
@@ -170,6 +176,7 @@ export function readConfig() {
       "Production requires authenticated Redis and an explicit environment namespace.",
     );
   }
+
   if (config.NODE_ENV === "production" && config.REDIS_URL) {
     const url = new URL(config.REDIS_URL),
       host = url.hostname;
@@ -185,6 +192,7 @@ export function readConfig() {
       throw new Error("Remote production Redis requires TLS (rediss://).");
     }
   }
+
   if (
     config.NODE_ENV === "production" &&
     new URL(config.BETTER_AUTH_URL!).origin !== config.WEB_ORIGIN
@@ -193,6 +201,7 @@ export function readConfig() {
       "Production authentication must use the web origin through the /api reverse proxy.",
     );
   }
+
   if (
     config.NODE_ENV === "production" &&
     (!config.WEB_ORIGIN.startsWith("https://") ||
@@ -203,6 +212,7 @@ export function readConfig() {
       "Production requires HTTPS, Resend email and private S3 storage.",
     );
   }
+
   if (
     config.NODE_ENV === "production" &&
     !hasProductionSender(process.env.EMAIL_FROM)
@@ -211,6 +221,7 @@ export function readConfig() {
       "Production requires an explicit EMAIL_FROM address; verify its sending domain with the email provider.",
     );
   }
+
   if (
     config.PRIVATE_STORAGE_PROVIDER === "s3" &&
     (!config.PRIVATE_STORAGE_S3_ENDPOINT ||
@@ -224,6 +235,7 @@ export function readConfig() {
       "Private S3 storage requires endpoint, bucket, credentials, and HTTPS in production.",
     );
   }
+
   if (
     config.NODE_ENV === "production" &&
     Object.values(legalDocuments).some((document) => {
@@ -240,8 +252,10 @@ export function readConfig() {
       "Production requires approved customer, employee and applicant privacy notices and portal terms.",
     );
   }
+
   return config;
 }
+
 export const CONFIG = Symbol("CONFIG");
 
 export type Config = ReturnType<typeof readConfig>;

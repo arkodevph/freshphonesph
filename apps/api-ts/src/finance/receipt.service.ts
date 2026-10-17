@@ -21,15 +21,19 @@ export class ReceiptService {
     if (!parsed.success) {
       throw new BadRequestException("Choose a supported receipt type.");
     }
+
     if (!file) {
       throw new BadRequestException("Choose a receipt image.");
     }
+
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
       throw new BadRequestException("Use a JPG, PNG or WebP receipt image.");
     }
+
     if (file.size > 5 * 1024 * 1024) {
       throw new BadRequestException("Receipt image must be 5 MB or smaller.");
     }
+
     return this.run(parsed.data, file.buffer);
   }
 

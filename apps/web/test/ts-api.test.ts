@@ -36,6 +36,7 @@ test("concurrent expired requests share one cookie refresh and retry the origina
     if (path.endsWith("/auth/me")) {
       return json({}, fresh ? 200 : 401);
     }
+
     if (path.endsWith("/auth/refresh")) {
       rotations++;
 
@@ -47,6 +48,7 @@ test("concurrent expired requests share one cookie refresh and retry the origina
 
       return json({});
     }
+
     attempts.set(path, (attempts.get(path) ?? 0) + 1);
 
     return json({ path }, fresh ? 200 : 401);
@@ -219,4 +221,123 @@ test("rate limiting during session recovery keeps the actual wait message and st
   );
 
   assert.deepEqual(paths, ["/api/tasks", "/api/auth/me"]);
+});
+
+test("uploads and downloads refresh once and retain their body and response type", async () => {
+  for (const kind of ["upload", "download"]) {
+    const body = new FormData();
+
+    body.set("receipt", "test-receipt");
+
+    let attempts = 0;
+
+    const paths: string[] = [];
+
+    globalThis.fetch = async (input, options) => {
+      const path = new URL(String(input)).pathname;
+
+      paths.push(path);
+
+      if (path.endsWith("/auth/me")) {
+        return json({}, 401);
+      }
+
+      if (path.endsWith("/auth/refresh")) {
+        return json({});
+      }
+
+      assert.equal(options?.credentials, "include");
+
+      assert.equal(options?.cache, "no-store");
+
+      if (kind === "upload") {
+        assert.equal(options?.method, "POST");
+
+        assert.equal(options?.body, body);
+
+        assert.equal(new Headers(options?.headers).has("Content-Type"), false);
+      }
+
+      attempts++;
+
+      return attempts === 1
+        ? json({}, 401)
+        : kind === "upload"
+          ? json({ id: "saved-receipt" })
+          : new Response("downloaded-document");
+    };
+
+    if (kind === "upload") {
+      assert.deepEqual(await tsUpload("/receipts", body), {
+        id: "saved-receipt",
+      });
+    } else {
+      assert.equal(
+        await (await tsDownload("/documents")).text(),
+        "downloaded-document",
+      );
+    }
+
+    const path = kind === "upload" ? "/api/receipts" : "/api/documents";
+
+    assert.deepEqual(paths, [path, "/api/auth/me", "/api/auth/refresh", path]);
+  }
+});
+
+test("requests, uploads and downloads signal required gates without retrying", async () => {
+  const events: string[] = [];
+
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      dispatchEvent: (event: Event) => {
+        events.push(event.type);
+      },
+    },
+  });
+
+  try {
+    for (const [status, event] of [
+      [412, "fp-mfa-required"],
+      [428, "fp-legal-required"],
+    ] as const) {
+      for (const operation of [
+        () => {
+          return tsRequest("/clients");
+        },
+        () => {
+          return tsUpload("/receipts", new FormData());
+        },
+        () => {
+          return tsDownload("/documents");
+        },
+      ]) {
+        let attempts = 0;
+
+        events.length = 0;
+
+        globalThis.fetch = async () => {
+          attempts++;
+
+          return json({ message: "Complete the required step" }, status);
+        };
+
+        await assert.rejects(operation(), (error: unknown) => {
+          return error instanceof ApiError && error.status === status;
+        });
+
+        assert.equal(attempts, 1);
+
+        assert.deepEqual(events, [event]);
+      }
+    }
+  } finally {
+    if (previousWindow) {
+      Object.defineProperty(globalThis, "window", previousWindow);
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+  }
 });

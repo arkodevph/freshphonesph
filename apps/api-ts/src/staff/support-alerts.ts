@@ -23,6 +23,7 @@ export async function notifySupport(
   if (["RESOLVED", "CLOSED"].includes(supportCase.status)) {
     return;
   }
+
   let recipients: { id: string }[];
 
   if (supportCase.assignedStaffId) {
@@ -42,9 +43,11 @@ export async function notifySupport(
   } else {
     recipients = await triageRecipients(tx);
   }
+
   if (!recipients.length) {
     return;
   }
+
   const alerts = await tx.supportAlert.createManyAndReturn({
     skipDuplicates: true,
     data: recipients.map((user) => {
@@ -61,6 +64,7 @@ export async function notifySupport(
   if (!alerts.length) {
     return;
   }
+
   await tx.changeEvent.createMany({
     data: alerts.map((alert) => {
       return { entity: "support-alert", recordId: alert.id };
@@ -69,6 +73,7 @@ export async function notifySupport(
 
   await queueSupportEmails(tx, alerts);
 }
+
 async function triageRecipients(tx: Prisma.TransactionClient) {
   const heads = await tx.user.findMany({
     where: { active: true, role: "CS_HEAD" },
@@ -82,6 +87,7 @@ async function triageRecipients(tx: Prisma.TransactionClient) {
         select: { id: true },
       });
 }
+
 // Treat an inactive/no-longer-authorized assignee as a triage case without changing its record.
 export function supportAlertVisibleSql(userId: string) {
   return Prisma.sql`r."userId" = ${userId}::uuid AND u.active AND u.role IN ('OWNER', 'CS_HEAD', 'CS_TEAM')
@@ -92,6 +98,7 @@ export function supportAlertVisibleSql(userId: string) {
       )
     )`;
 }
+
 export function supportAlertRows(userId: string) {
   return Prisma.sql`SELECT r.id, NULL::uuid AS "paymentId", r."caseId", NULL::uuid AS "accountId", r."caseVersion" AS version, 'support'::text AS entity,
     r.kind::text AS kind, NULL::text AS amount, NULL::text AS "clientName", NULL::text AS "batchCode",
@@ -99,6 +106,7 @@ export function supportAlertRows(userId: string) {
     FROM "SupportAlert" r JOIN "SupportCase" c ON c.id = r."caseId" JOIN "User" u ON u.id = r."userId"
     WHERE ${supportAlertVisibleSql(userId)}`;
 }
+
 export async function supportAlertIsVisible(
   tx: Prisma.TransactionClient,
   userId: string,

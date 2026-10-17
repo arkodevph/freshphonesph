@@ -90,6 +90,7 @@ test("payment CSV/XLSX and operation exports send exact filters with cookie auth
       format,
     });
   }
+
   assert.ok(
     requests.every((row) => {
       return (
@@ -144,6 +145,7 @@ test("reconciliation reads and exceptions share scoped cookie requests while exp
   for (const format of ["csv", "xlsx"] as const) {
     await downloadReportExport("reconciliation", format, scope);
   }
+
   await createReportSnapshot({
     kind: "RECONCILIATION",
     periodStart: scope.dateFrom,
@@ -169,6 +171,7 @@ test("reconciliation reads and exceptions share scoped cookie requests while exp
   for (const index of [2, 3]) {
     assert.equal(requests[index].url.searchParams.has("page"), false);
   }
+
   assert.deepEqual(JSON.parse(String(requests[4].options?.body)), {
     kind: "RECONCILIATION",
     periodStart: scope.dateFrom,
@@ -341,6 +344,7 @@ test("collection page reads paginate while downloads and saves capture the whole
   for (const format of ["csv", "xlsx"] as const) {
     await downloadReportExport("collections", format, scope);
   }
+
   await createReportSnapshot({
     kind: "COLLECTIONS",
     periodStart: scope.dateFrom,
@@ -363,6 +367,7 @@ test("collection page reads paginate while downloads and saves capture the whole
       format: index === 1 ? "csv" : "xlsx",
     });
   }
+
   assert.equal(JSON.parse(String(requests[3].options?.body)).page, undefined);
 
   assert.equal(requests[4].url.searchParams.get("kind"), "COLLECTIONS");

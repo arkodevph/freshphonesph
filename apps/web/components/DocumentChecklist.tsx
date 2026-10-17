@@ -93,6 +93,7 @@ export function DocumentChecklist({
     if (!target.startsWith("document-") || scrolledHash.current === target) {
       return;
     }
+
     const element = document.getElementById(target);
 
     if (element) {
@@ -115,6 +116,7 @@ export function DocumentChecklist({
 
       return;
     }
+
     setWorking(key);
 
     setError(null);
@@ -127,9 +129,11 @@ export function DocumentChecklist({
       if (input) {
         input.value = "";
       }
+
       if (previewUrls.current[key]) {
         URL.revokeObjectURL(previewUrls.current[key]);
       }
+
       delete previewUrls.current[key];
 
       setPreviews((current) => {
@@ -158,6 +162,7 @@ export function DocumentChecklist({
     if (previewUrls.current[key]) {
       URL.revokeObjectURL(previewUrls.current[key]);
     }
+
     delete previewUrls.current[key];
 
     setPreviews((current) => {
@@ -173,6 +178,7 @@ export function DocumentChecklist({
     if (!file) {
       return;
     }
+
     if (
       /\.(heic|heif)$/i.test(file.name) ||
       /image\/hei[cf]/i.test(file.type)
@@ -185,6 +191,7 @@ export function DocumentChecklist({
 
       return;
     }
+
     if (
       !["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(
         file.type,
@@ -197,6 +204,7 @@ export function DocumentChecklist({
 
       return;
     }
+
     const url = URL.createObjectURL(file);
 
     previewUrls.current[key] = url;
@@ -213,6 +221,7 @@ export function DocumentChecklist({
     if (!item.latest) {
       return;
     }
+
     const reason = reasons[item.key]?.trim() ?? "";
 
     if (status === "NEEDS_CLARIFICATION" && !reason) {
@@ -220,6 +229,7 @@ export function DocumentChecklist({
 
       return;
     }
+
     setWorking(item.key);
 
     setError(null);

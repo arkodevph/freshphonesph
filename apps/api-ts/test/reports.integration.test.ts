@@ -17,6 +17,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith("_test")) {
     "Reports integration requires a dedicated TEST_DATABASE_URL ending in _test.",
   );
 }
+
 const origin = "http://localhost:3100";
 
 const suffix = randomUUID().slice(0, 8);
@@ -132,6 +133,7 @@ before(async () => {
         .join("; "),
     });
   }
+
   for (const [status, amount] of [
     ["VERIFIED", "125.50"],
     ["PENDING", "70.25"],
@@ -158,6 +160,7 @@ before(async () => {
       },
     });
   }
+
   await db.payment.create({
     data: {
       clientId,
@@ -238,6 +241,7 @@ test("every Reports endpoint enforces REPORT_VIEW for every role and rejects ano
       );
     }
   }
+
   for (const kind of ["TASKS", "COLLECTIONS"]) {
     const input = { kind, periodStart: "2045-02-28", periodEnd: "2045-02-28" };
 
@@ -254,6 +258,7 @@ test("every Reports endpoint enforces REPORT_VIEW for every role and rejects ano
       );
     }
   }
+
   const missingAnalysisPath = `/reports/snapshots/${randomUUID()}/analysis`;
 
   const analysis = {
@@ -348,6 +353,7 @@ test("payment figures and CSV/XLSX use identical date, status and batch scopes w
     ]) {
       assert.equal(text.includes(privateValue), false);
     }
+
     if (format === "xlsx") {
       assert.equal(bytes.subarray(0, 2).toString(), "PK");
 
@@ -359,6 +365,7 @@ test("payment figures and CSV/XLSX use identical date, status and batch scopes w
       );
     }
   }
+
   const tasks = await (
     await request("ANALYTICS", `/reports/tasks?${range}`)
   ).json();
@@ -410,6 +417,7 @@ test("report-only batch choices expose id/code, search every page and work witho
       },
     });
   }
+
   const query = `q=REPORT-${suffix}`;
 
   const first = await (
@@ -435,6 +443,7 @@ test("report-only batch choices expose id/code, search every page and work witho
   for (const row of [...first.items, ...second.items]) {
     assert.deepEqual(Object.keys(row).sort(), ["code", "id"]);
   }
+
   const found = await (
     await request("ANALYTICS", `/reports/batches?q=REPORT-${suffix}-22`)
   ).json();
@@ -513,6 +522,7 @@ test("saved payment periods retain all filters and immutable figures, write an a
       },
     });
   }
+
   const one = await (
     await request("ANALYTICS", "/reports/snapshots?kind=PAYMENTS&page=1")
   ).json();
@@ -589,6 +599,7 @@ test("collections derive decimal balances per client, retain overall totals acro
       });
     }
   }
+
   const entries = [
     [0, "VERIFIED", "10.10", "2046-01-31"],
     [0, "VERIFIED", "20.00", "2046-02-01"],
@@ -623,6 +634,7 @@ test("collections derive decimal balances per client, retain overall totals acro
       },
     });
   }
+
   const query = `batchId=${batch.id}&dateFrom=2046-02-01&dateTo=2046-02-28`;
 
   const response = await request("ANALYTICS", `/reports/collections?${query}`);
@@ -670,6 +682,7 @@ test("collections derive decimal balances per client, retain overall totals acro
   ]) {
     assert.equal(JSON.stringify(report).includes(privateValue), false);
   }
+
   const manila = await db.$transaction(async (tx) => {
     await tx.$executeRaw`SET LOCAL TIME ZONE 'Asia/Manila'`;
 
@@ -713,6 +726,7 @@ test("collections derive decimal balances per client, retain overall totals acro
       report.totals[field],
     );
   }
+
   for (const dates of [
     "",
     "&dateTo=2046-01-31",
@@ -737,6 +751,7 @@ test("collections derive decimal balances per client, retain overall totals acro
       assert.equal(other.totals[field], report.totals[field]);
     }
   }
+
   const future = await (
     await request(
       "ANALYTICS",
@@ -771,6 +786,7 @@ test("collections derive decimal balances per client, retain overall totals acro
     ]) {
       assert.ok(text.includes(value), value);
     }
+
     for (const value of [
       "Sensitive",
       "99999.00",
@@ -780,6 +796,7 @@ test("collections derive decimal balances per client, retain overall totals acro
       assert.equal(text.includes(value), false, value);
     }
   }
+
   const savedResponse = await request("ANALYTICS", "/reports/snapshots", {
     kind: "COLLECTIONS",
     periodStart: "2046-02-01",
@@ -947,6 +964,7 @@ test("collection pagination preserves full-scope totals, exports and snapshots, 
 
     rows.push(...next.items);
   }
+
   assert.equal(
     new Set(
       rows.map((row) => {
@@ -977,6 +995,7 @@ test("collection pagination preserves full-scope totals, exports and snapshots, 
   for (const [key, value] of Object.entries(empty.totals)) {
     assert.equal(value, typeof value === "number" ? 0 : "0.00", key);
   }
+
   const pastLast = await (
     await request("ANALYTICS", "/reports/collections?page=100000")
   ).json();
@@ -998,6 +1017,7 @@ test("collection pagination preserves full-scope totals, exports and snapshots, 
     for (const row of rows) {
       assert.ok(text.includes(row.code), `${format} includes ${row.code}`);
     }
+
     if (format === "csv") {
       assert.ok(text.includes(`"'${formulaCode}"`));
     } else {
@@ -1006,6 +1026,7 @@ test("collection pagination preserves full-scope totals, exports and snapshots, 
       assert.equal(text.includes("<f>"), false);
     }
   }
+
   const savedResponse = await request("ANALYTICS", "/reports/snapshots", {
     kind: "COLLECTIONS",
     periodStart: "2046-02-01",
@@ -1049,6 +1070,7 @@ test("invalid or irrelevant filters and unsafe history pages are rejected; remov
       query,
     );
   }
+
   for (const path of [
     "/reports/tasks?batchId=" + batchId,
     "/reports/support?status=VERIFIED",
@@ -1072,6 +1094,7 @@ test("invalid or irrelevant filters and unsafe history pages are rejected; remov
   ]) {
     assert.equal((await request("OWNER", path)).status, 400, path);
   }
+
   for (const input of [
     {
       kind: "TASKS",
@@ -1110,6 +1133,7 @@ test("invalid or irrelevant filters and unsafe history pages are rejected; remov
       400,
     );
   }
+
   const missing = await request("OWNER", "/reports/snapshots", {
     kind: "PAYMENTS",
     periodStart: "2045-02-28",

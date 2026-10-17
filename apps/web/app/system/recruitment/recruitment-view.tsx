@@ -48,6 +48,7 @@ export function DirectoryState<T>({
       </p>
     );
   }
+
   if (directory.error) {
     return (
       <p className={styles.error} role="alert">
@@ -58,6 +59,7 @@ export function DirectoryState<T>({
       </p>
     );
   }
+
   return !directory.data?.results.length ? (
     <p className={styles.emptyCell}>
       No matching {name}. Try clearing the filters.

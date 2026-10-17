@@ -80,6 +80,7 @@ export class FinanceService {
       if (!current?.active || !allowed(current, permission)) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       return run(tx);
     });
   }
@@ -117,6 +118,7 @@ export class FinanceService {
     if (!referenceNumber) {
       return false;
     }
+
     return Boolean(
       await tx.payment.findFirst({
         where: {
@@ -138,11 +140,13 @@ export class FinanceService {
     if (!allowed(user, "PAYMENT_RECORD")) {
       throw new ForbiddenException("You cannot record payments.");
     }
+
     const normalized = referenceNumber.replace(/[^a-z0-9]/gi, "").toUpperCase();
 
     if (!normalized) {
       return [];
     }
+
     return this.db.$queryRaw<PaymentDuplicateMatch[]>`
       SELECT p.id, p."clientId", c.name AS "clientName", p.amount::text AS amount,
         p."paymentDate"::text AS "paymentDate", p.method, p."referenceNumber", p.status
@@ -193,8 +197,10 @@ export class FinanceService {
       if (!user.clientId) {
         throw new ForbiddenException("Customer account is not linked.");
       }
+
       return { clientId: user.clientId, status: "VERIFIED" };
     }
+
     return {};
   }
 
@@ -202,6 +208,7 @@ export class FinanceService {
     if (user.role !== "CUSTOMER" || !user.clientId) {
       throw new ForbiddenException("A linked customer account is required.");
     }
+
     const rows = await this.db.payment.findMany({
       where: { clientId: user.clientId, status: "PENDING" },
       select: {
@@ -249,25 +256,31 @@ export class FinanceService {
       ) {
         throw new BadRequestException("Invalid payment status.");
       }
+
       if (user.role !== "CUSTOMER") {
         where.status = query.status as PaymentStatus;
       }
     }
+
     if (query.batchId) {
       where.batchId = query.batchId;
     }
+
     if (query.clientId) {
       if (user.role === "CUSTOMER" && query.clientId !== user.clientId) {
         throw new NotFoundException("Client not found.");
       }
+
       where.clientId = query.clientId;
     }
+
     if (query.dateFrom || query.dateTo) {
       where.paymentDate = {
         ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
         ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
       };
     }
+
     const [items, total] = await this.db.$transaction([
       this.db.payment.findMany({
         where,
@@ -300,6 +313,7 @@ export class FinanceService {
       if (!client) {
         throw new NotFoundException("Client not found.");
       }
+
       if (input.scheduleItemId) {
         const item = await tx.scheduleItem.findFirst({
           where: { id: input.scheduleItemId, clientId: input.clientId },
@@ -311,6 +325,7 @@ export class FinanceService {
           );
         }
       }
+
       const payment = await tx.payment.create({
         data: {
           clientId: input.clientId,
@@ -351,11 +366,13 @@ export class FinanceService {
       if (!before) {
         throw new NotFoundException("Payment not found.");
       }
+
       if (!["PENDING", "NEEDS_CLARIFICATION"].includes(before.status)) {
         throw new ConflictException(
           "Verified or rejected payments are immutable. Record an audited adjustment instead.",
         );
       }
+
       const client = await tx.client.findUnique({
         where: { id: input.clientId },
       });
@@ -363,6 +380,7 @@ export class FinanceService {
       if (!client) {
         throw new NotFoundException("Client not found.");
       }
+
       if (
         input.scheduleItemId &&
         !(await tx.scheduleItem.findFirst({
@@ -374,6 +392,7 @@ export class FinanceService {
           "Installment does not belong to this client.",
         );
       }
+
       const changed = await tx.payment.updateMany({
         where: {
           id,
@@ -404,6 +423,7 @@ export class FinanceService {
           "This payment changed while you were editing. Refresh and review it.",
         );
       }
+
       const after = await tx.payment.findUniqueOrThrow({
         where: { id },
         include: paymentInclude,
@@ -430,11 +450,13 @@ export class FinanceService {
       if (!before) {
         throw new NotFoundException("Payment not found.");
       }
+
       if (before.status !== "PENDING") {
         throw new ConflictException(
           "Only pending payments can receive a Finance decision.",
         );
       }
+
       const changed = await tx.payment.updateMany({
         where: { id, version, status: "PENDING" },
         data: {
@@ -451,6 +473,7 @@ export class FinanceService {
           "This payment was already reviewed. Refresh the queue.",
         );
       }
+
       const after = await tx.payment.findUniqueOrThrow({
         where: { id },
         include: paymentInclude,
@@ -477,6 +500,7 @@ export class FinanceService {
           `/portal/financial-document?payment=${after.id}`,
         );
       }
+
       return this.view(tx, after);
     });
   }
@@ -493,14 +517,17 @@ export class FinanceService {
         if (!before) {
           throw new NotFoundException("Payment not found.");
         }
+
         if (!["PENDING", "NEEDS_CLARIFICATION"].includes(before.status)) {
           throw new ConflictException(
             "Proof cannot be changed after the Finance decision.",
           );
         }
+
         if (before.proofFileId) {
           throw new ConflictException("This payment already has a proof file.");
         }
+
         const stored = await tx.storedFile.create({
           data: {
             storageKey,
@@ -549,6 +576,7 @@ export class FinanceService {
     ) {
       throw new NotFoundException("Receipt proof not found.");
     }
+
     return {
       data: await this.storage.read(payment.proofFile.storageKey),
       mimeType: payment.proofFile.mimeType,
@@ -575,6 +603,7 @@ export class FinanceService {
             "This request ID was already used for a different adjustment.",
           );
         }
+
         return this.view(
           tx,
           await tx.payment.findUniqueOrThrow({
@@ -583,6 +612,7 @@ export class FinanceService {
           }),
         );
       }
+
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
         include: paymentInclude,
@@ -591,9 +621,11 @@ export class FinanceService {
       if (!payment) {
         throw new NotFoundException("Payment not found.");
       }
+
       if (payment.status !== "VERIFIED") {
         throw new ConflictException("Only verified payments can be adjusted.");
       }
+
       const revision = payment.adjustments.at(-1)?.sequence ?? 0;
 
       if (
@@ -604,6 +636,7 @@ export class FinanceService {
           "This payment has a newer adjustment. Refresh and review its current credit.",
         );
       }
+
       const beforeAmount = effectiveAmount(payment);
 
       const afterAmount = new Prisma.Decimal(input.correctedAmount);
@@ -615,6 +648,7 @@ export class FinanceService {
           "The corrected credit must differ from the current credit.",
         );
       }
+
       const adjustment = await tx.paymentAdjustment.create({
         data: {
           paymentId,
@@ -671,6 +705,7 @@ export class FinanceService {
     if (user.role === "CUSTOMER" && user.clientId !== clientId) {
       throw new NotFoundException("Client not found.");
     }
+
     const client = await this.db.client.findUnique({
       where: { id: clientId },
       select: { id: true },
@@ -679,6 +714,7 @@ export class FinanceService {
     if (!client) {
       throw new NotFoundException("Client not found.");
     }
+
     return this.db.$transaction(
       (tx) => {
         return this.readBalance(tx, clientId);
@@ -759,9 +795,11 @@ export class FinanceService {
     if (user.role === "CUSTOMER" && user.clientId !== clientId) {
       throw new NotFoundException("Client not found.");
     }
+
     if (!(await this.db.client.count({ where: { id: clientId } }))) {
       throw new NotFoundException("Client not found.");
     }
+
     return this.db.$transaction(
       async (tx) => {
         const balance = await this.readBalance(tx, clientId);
@@ -822,6 +860,7 @@ export class FinanceService {
     if (!payment) {
       throw new NotFoundException("Verified payment not found.");
     }
+
     return {
       documentType: "PAYMENT_CONFIRMATION",
       title: "Payment Confirmation",

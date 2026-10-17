@@ -129,6 +129,7 @@ export default function SupportDashboard() {
     if (!canManage) {
       return;
     }
+
     const version = ++loadVersion.current;
 
     setLoading(true);
@@ -147,6 +148,7 @@ export default function SupportDashboard() {
       if (version !== loadVersion.current) {
         return;
       }
+
       setCases(result.results);
 
       setCount(result.count);
@@ -158,9 +160,11 @@ export default function SupportDashboard() {
       if (version !== loadVersion.current) {
         return;
       }
+
       if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
         clearPrivate();
       }
+
       setCases([]);
 
       setCount(0);
@@ -180,6 +184,7 @@ export default function SupportDashboard() {
       if (!canManage || activeCase.current !== id) {
         return;
       }
+
       const version = ++detailVersion.current;
 
       setCaseLoading(true);
@@ -196,6 +201,7 @@ export default function SupportDashboard() {
         if (version !== detailVersion.current || activeCase.current !== id) {
           return;
         }
+
         if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
           clearPrivate();
 
@@ -203,6 +209,7 @@ export default function SupportDashboard() {
 
           return;
         }
+
         setCaseDetail(null);
 
         setDetailError(
@@ -231,6 +238,7 @@ export default function SupportDashboard() {
     if (!canManage) {
       return;
     }
+
     ++detailVersion.current;
 
     activeCase.current = focusedCase;
@@ -254,6 +262,7 @@ export default function SupportDashboard() {
     if (activeCaseId) {
       void loadDetail(activeCaseId);
     }
+
     return () => {
       ++detailVersion.current;
     };
@@ -263,6 +272,7 @@ export default function SupportDashboard() {
     if (canManage) {
       return;
     }
+
     clearPrivate();
   }, [canManage, clearPrivate]);
 
@@ -291,12 +301,14 @@ export default function SupportDashboard() {
       window.history.replaceState(null, "", "/system/support");
     }
   }
+
   function openCase(id: string) {
     if (activeCase.current === id) {
       closeThread();
 
       return;
     }
+
     ++detailVersion.current;
 
     activeCase.current = id;
@@ -307,6 +319,7 @@ export default function SupportDashboard() {
 
     setDetailError(null);
   }
+
   function editCase(c: SupportCase, patch: Partial<ResolutionDraft>) {
     setDrafts((current) => {
       return {
@@ -322,6 +335,7 @@ export default function SupportDashboard() {
       };
     });
   }
+
   function discardDraft(id: string) {
     setDrafts((current) => {
       const next = { ...current };
@@ -331,6 +345,7 @@ export default function SupportDashboard() {
       return next;
     });
   }
+
   async function sendReply(event: React.FormEvent) {
     event.preventDefault();
 
@@ -341,6 +356,7 @@ export default function SupportDashboard() {
     if (!id || !draft?.text.trim() || mutation.current) {
       return;
     }
+
     mutation.current = true;
 
     setPending("reply");
@@ -363,6 +379,7 @@ export default function SupportDashboard() {
       if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
         clearPrivate();
       }
+
       setError(
         caught instanceof Error ? caught.message : "Could not send reply.",
       );
@@ -372,12 +389,14 @@ export default function SupportDashboard() {
       setPending(null);
     }
   }
+
   async function saveCase(c: SupportCase) {
     const draft = drafts[String(c.id)];
 
     if (!draft || draft.version !== c.version || mutation.current) {
       return;
     }
+
     mutation.current = true;
 
     setPending(`save:${c.id}`);
@@ -394,6 +413,7 @@ export default function SupportDashboard() {
       if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
         clearPrivate();
       }
+
       setError(
         caught instanceof Error
           ? caught.message
@@ -405,10 +425,12 @@ export default function SupportDashboard() {
       setPending(null);
     }
   }
+
   async function assignToMe(c: SupportCase) {
     if (!me?.id || mutation.current) {
       return;
     }
+
     mutation.current = true;
 
     setPending(`assign:${c.id}`);
@@ -426,6 +448,7 @@ export default function SupportDashboard() {
       if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
         clearPrivate();
       }
+
       setError(caught instanceof Error ? caught.message : "Assignment failed.");
     } finally {
       mutation.current = false;
@@ -440,6 +463,7 @@ export default function SupportDashboard() {
     if (clientQuery.trim().length < 2) {
       return;
     }
+
     const version = ++lookupVersion.current;
 
     setLookupError(null);
@@ -462,20 +486,24 @@ export default function SupportDashboard() {
       if (version !== lookupVersion.current) {
         return;
       }
+
       if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
         clearPrivate();
       }
+
       setLookupError(
         caught instanceof Error ? caught.message : "Customer search failed.",
       );
     }
   }
+
   async function createCase(event: React.FormEvent) {
     event.preventDefault();
 
     if (!selectedClient || !newSource || mutation.current) {
       return;
     }
+
     mutation.current = true;
 
     setPending("create");
@@ -517,6 +545,7 @@ export default function SupportDashboard() {
       if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
         clearPrivate();
       }
+
       setError(
         caught instanceof Error ? caught.message : "Could not create case.",
       );
@@ -539,6 +568,7 @@ export default function SupportDashboard() {
       </section>
     );
   }
+
   const reply = activeCaseId
     ? (replies[activeCaseId] ?? emptyReply)
     : emptyReply;

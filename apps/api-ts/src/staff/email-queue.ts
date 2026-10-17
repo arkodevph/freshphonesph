@@ -52,11 +52,14 @@ export function taskEmailStage(
   if (remaining < -overdueHours * 3_600_000) {
     return "TASK_OVERDUE";
   }
+
   if (remaining >= 0 && remaining <= dueSoonHours * 3_600_000) {
     return "TASK_DUE_SOON";
   }
+
   return null;
 }
+
 export async function staffTemplate(
   tx: Prisma.TransactionClient,
   kind: StaffEmailKind,
@@ -69,6 +72,7 @@ export async function staffTemplate(
     body: stored?.body ?? defaultStaffBody,
   };
 }
+
 type QueueInput = Pick<
   Prisma.StaffEmailCreateManyInput,
   "userId" | "kind" | "recipientEmail" | "message" | "targetPath" | "dedupeKey"
@@ -90,11 +94,13 @@ async function queue(tx: Prisma.TransactionClient, rows: QueueInput[]) {
   if (!rows.length) {
     return;
   }
+
   const template = await staffTemplate(tx, rows[0]!.kind);
 
   if (!template.enabled) {
     return;
   }
+
   await tx.staffEmail.createMany({
     skipDuplicates: true,
     data: rows.map((row) => {
@@ -107,6 +113,7 @@ async function queue(tx: Prisma.TransactionClient, rows: QueueInput[]) {
     }),
   });
 }
+
 export async function queueTaskEmail(
   tx: Prisma.TransactionClient,
   task: {
@@ -123,6 +130,7 @@ export async function queueTaskEmail(
   if (!assignee?.active || assignee.role === "CUSTOMER") {
     return;
   }
+
   const deadline = new Intl.DateTimeFormat("en-PH", {
     timeZone: "Asia/Manila",
     dateStyle: "medium",
@@ -142,6 +150,7 @@ export async function queueTaskEmail(
     },
   ]);
 }
+
 export async function queuePendingEmails(
   tx: Prisma.TransactionClient,
   payment: { id: string; version: number; status: string },
@@ -149,6 +158,7 @@ export async function queuePendingEmails(
   if (payment.status !== "PENDING") {
     return;
   }
+
   const reviewers = (Object.keys(rolePermissions) as User["role"][]).filter(
     (role) => {
       return role !== "CUSTOMER" && allowed({ role }, "PAYMENT_VERIFY");
@@ -177,6 +187,7 @@ export async function queuePendingEmails(
     }),
   );
 }
+
 export async function queueResultEmails(
   tx: Prisma.TransactionClient,
   results: {
@@ -190,6 +201,7 @@ export async function queueResultEmails(
   if (!results.length) {
     return;
   }
+
   const kind: StaffEmailKind =
     results[0]!.decision === "VERIFIED"
       ? "PAYMENT_VERIFIED"
@@ -230,6 +242,7 @@ export async function queueResultEmails(
     }),
   );
 }
+
 export async function queueSupportEmails(
   tx: Prisma.TransactionClient,
   alerts: {
@@ -242,6 +255,7 @@ export async function queueSupportEmails(
   if (!alerts.length) {
     return;
   }
+
   const users = await tx.user.findMany({
     where: {
       id: {
@@ -275,6 +289,7 @@ export async function queueSupportEmails(
     }),
   );
 }
+
 export async function queueAccountEmails(
   tx: Prisma.TransactionClient,
   alerts: {
@@ -287,6 +302,7 @@ export async function queueAccountEmails(
   if (!alerts.length) {
     return;
   }
+
   const users = await tx.user.findMany({
     where: {
       id: {

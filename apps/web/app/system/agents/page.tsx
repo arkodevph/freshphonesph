@@ -55,6 +55,7 @@ export default function AgentsPage() {
     if (!access) {
       return;
     }
+
     const request = ++sequence.current;
 
     setLoading(true);
@@ -102,6 +103,7 @@ export default function AgentsPage() {
     if (saving) {
       return;
     }
+
     const parsed = agentSchema.safeParse(draft);
 
     if (!parsed.success) {
@@ -115,6 +117,7 @@ export default function AgentsPage() {
 
       return;
     }
+
     setSaving(true);
 
     setError(null);
@@ -137,6 +140,7 @@ export default function AgentsPage() {
       setSaving(false);
     }
   }
+
   if (me && !access) {
     return (
       <section className="glass rounded-3xl p-10 text-center">
@@ -149,6 +153,7 @@ export default function AgentsPage() {
       </section>
     );
   }
+
   return (
     <>
       <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
@@ -467,12 +472,14 @@ function AgentEditor({
       setSaving(false);
     }
   }
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
 
     if (saving || outdated) {
       return;
     }
+
     const parsed = agentSchema.safeParse(draft);
 
     if (!parsed.success) {
@@ -486,6 +493,7 @@ function AgentEditor({
 
       return;
     }
+
     setSaving(true);
 
     setError(null);
@@ -500,6 +508,7 @@ function AgentEditor({
       if (error instanceof ApiError && error.status === 409) {
         setOutdated(true);
       }
+
       setError(
         error instanceof Error ? error.message : "Could not save agent.",
       );
@@ -507,6 +516,7 @@ function AgentEditor({
       setSaving(false);
     }
   }
+
   return (
     <dialog
       ref={dialog}

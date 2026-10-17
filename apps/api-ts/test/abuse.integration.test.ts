@@ -37,6 +37,7 @@ if (
     "Use a migrated dedicated TEST_DATABASE_URL ending in _test and TEST_REDIS_URL.",
   );
 }
+
 const origin = "http://localhost:3100",
   suffix = randomUUID(),
   password = "Synthetic-abuse-password123!";
@@ -84,10 +85,13 @@ async function until(check: () => boolean | Promise<boolean>, timeout = 8000) {
     if (await check()) {
       return;
     }
+
     await delay(40);
   }
+
   assert.fail("Timed out waiting for synthetic abuse test state.");
 }
+
 async function clearRedis() {
   let cursor = "0";
 
@@ -107,6 +111,7 @@ async function clearRedis() {
     }
   } while (cursor !== "0");
 }
+
 async function request(
   path: string,
   options: {
@@ -133,6 +138,7 @@ async function request(
       : { body: options.raw ?? JSON.stringify(options.body) }),
   });
 }
+
 async function signIn(email: string) {
   const response = await request("/auth/login", {
     method: "POST",
@@ -148,6 +154,7 @@ async function signIn(email: string) {
     })
     .join("; ");
 }
+
 function fakeResponse() {
   const headers = new Map<string, string>();
 
@@ -160,6 +167,7 @@ function fakeResponse() {
     } as unknown as Response,
   };
 }
+
 async function consume(
   replica: number,
   policy: AbusePolicyName,
@@ -179,6 +187,7 @@ async function consume(
     return { status: error.getStatus(), ...response };
   }
 }
+
 before(async () => {
   directory = await mkdtemp(join(tmpdir(), "fresh-abuse-private-"));
 
@@ -221,6 +230,7 @@ before(async () => {
 
     bases.push(await app.getUrl());
   }
+
   db = apps[0].get(Database);
 
   const hash = await hashPassword(password);
@@ -256,6 +266,7 @@ beforeEach(async () => {
   for (const stream of streams.splice(0)) {
     stream.abort();
   }
+
   await until(async () => {
     return (await db.abuseStreamLease.count()) === 0;
   });
@@ -275,13 +286,16 @@ after(async () => {
   for (const stream of streams) {
     stream.abort();
   }
+
   // Test outages affect only an explicitly named disposable container.
   if (process.env.TEST_ABUSE_REDIS_CONTAINER === "fresh-redis-test") {
     execFileSync("docker", ["start", "fresh-redis-test"], { stdio: "ignore" });
   }
+
   for (const app of apps) {
     await app.close();
   }
+
   if (redis) {
     let cursor = "0";
 
@@ -303,6 +317,7 @@ after(async () => {
 
     redis.disconnect();
   }
+
   if (directory) {
     await rm(directory, { recursive: true, force: true });
   }
@@ -635,6 +650,7 @@ test("upload quotas stop receipt scanning and malformed multipart processing bef
         400,
       );
     }
+
     const denied = await request(`/payments/${randomUUID()}/proof`, {
       cookie: ownerCookie,
       method: "POST",
@@ -789,6 +805,7 @@ for (const [name, first, second] of [
         reset!.getTime(),
       );
     }
+
     await delay(Math.max(remaining, 0) + 150);
 
     assert.equal((await consume(second, "agentLookup", subject)).status, 200);
@@ -878,6 +895,7 @@ test("trusted proxy addresses resolve clients safely; identity headers use the r
           200,
         );
       }
+
       assert.equal(
         (
           await fetch(`${base}/api/agents/verify?q=TEST`, {
@@ -889,6 +907,7 @@ test("trusted proxy addresses resolve clients safely; identity headers use the r
         429,
       );
     }
+
     const headers = identityHeaders({
       headers: { "x-forwarded-for": "forged", "x-real-ip": "forged" },
       ip: "192.0.2.1",
@@ -924,6 +943,7 @@ test("shared SSE leases cap simultaneous sessions across replicas and release on
 
     void response.text().catch(() => {});
   }
+
   assert.equal(await db.abuseStreamLease.count(), 8);
 
   const denied = await request("/events", { cookie: ownerCookie });
@@ -980,6 +1000,7 @@ test("default application quotas stop the sixth attempt and retain both hour/day
   for (let i = 0; i < 5; i++) {
     assert.equal((await consume(i % 2, "application", subject)).status, 200);
   }
+
   assert.equal((await consume(1, "application", subject)).status, 429);
 
   const ttls = await Promise.all(
@@ -1069,6 +1090,7 @@ test(
         stdio: "ignore",
       });
     }
+
     await delay(2200);
 
     assert.equal(await redis.ping(), "PONG");
@@ -1113,6 +1135,7 @@ test(
         stdio: "ignore",
       });
     }
+
     await until(() => {
       return redis.status === "ready";
     });

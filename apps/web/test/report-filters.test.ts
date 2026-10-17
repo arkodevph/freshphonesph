@@ -31,6 +31,7 @@ test("reports share date filters and retain payment-only facets without leaking 
       dateTo: filters.dateTo,
     });
   }
+
   assert.deepEqual(
     reportFilterQuery("payments", {
       dateFrom: "",
@@ -82,6 +83,7 @@ test("reconciliation preserves date/batch scope and rejects status/search/page f
       false,
     );
   }
+
   for (const facet of [{ status: "PENDING" }, { q: "" }, { page: 2 }]) {
     assert.equal(
       reportExportQuerySchema.safeParse({
@@ -92,6 +94,7 @@ test("reconciliation preserves date/batch scope and rejects status/search/page f
       false,
     );
   }
+
   assert.equal(
     reportSnapshotSchema.safeParse({
       kind: "RECONCILIATION",
@@ -121,6 +124,7 @@ test("bad dates, reversed periods and invalid payment filters never produce repo
       null,
     );
   }
+
   for (const kind of ["payments", "tasks", "support"] as const) {
     assert.equal(snapshotInput(kind, { ...filters, dateFrom: "" }).input, null);
 
@@ -198,6 +202,7 @@ test("collections retain date and batch scope while excluding payment status and
   ]) {
     assert.equal(collectionReportQuerySchema.safeParse(input).success, false);
   }
+
   assert.equal(collectionReportQuerySchema.parse({}).page, 1);
 
   assert.equal(
@@ -219,6 +224,7 @@ test("collections retain date and batch scope while excluding payment status and
       false,
     );
   }
+
   assert.equal(
     reportSnapshotSchema.safeParse({
       kind: "COLLECTIONS",

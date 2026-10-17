@@ -1,5 +1,6 @@
 "use client";
 
+import { pesoFormat as currency } from "@/lib/currency";
 import {
   Bell,
   CalendarBlank,
@@ -14,12 +15,6 @@ import {
 import Image from "next/image";
 import { useState } from "react";
 import styles from "./portal.module.css";
-
-export const currency = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-});
 
 export const date = new Intl.DateTimeFormat("en-PH", {
   month: "short",
@@ -140,6 +135,7 @@ export function formatMoney(value: string | number | null | undefined) {
   if (value == null || value === "") {
     return "—";
   }
+
   const amount = Number(String(value).replaceAll(",", ""));
 
   return Number.isFinite(amount) ? currency.format(amount) : "—";
@@ -163,6 +159,7 @@ export function orderDeviceImage(model: string): string | null {
   if (/\bipad\b.*\ba16\b/.test(name)) {
     return "/products/ipad-a16-overlap-transparent.png";
   }
+
   if (/\bipad\s*10th\s*gen(?:eration)?\b/.test(name)) {
     return "/products/ipad-10th-gen-overlap-transparent.png";
   }
@@ -174,11 +171,13 @@ export function orderDeviceImage(model: string): string | null {
   if (!phone) {
     return null;
   }
+
   const variant = phone[2]?.replace(/\s+/g, "-") ?? "";
 
   if (variant && variant !== "pro" && variant !== "pro-max") {
     return null;
   }
+
   return `/products/iphone-${phone[1]}${variant ? `-${variant}` : ""}-overlap-transparent.png`;
 }
 
@@ -212,3 +211,5 @@ export function ProfileAvatar({
     </span>
   );
 }
+
+export { pesoFormat as currency } from "@/lib/currency";

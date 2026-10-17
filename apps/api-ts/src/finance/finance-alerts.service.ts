@@ -103,6 +103,7 @@ export class FinanceAlertsService {
       if (!current?.active || !allowed(current, "PAYMENT_VERIFY")) {
         throw new ForbiddenException("Your access has changed.");
       }
+
       return run(tx);
     });
   }
@@ -123,11 +124,13 @@ export class FinanceAlertsService {
       if (!payment || payment.status !== "PENDING") {
         throw new NotFoundException("Pending payment alert not found.");
       }
+
       if (payment.version !== version) {
         throw new ConflictException(
           "This payment changed. Refresh the alerts and open the latest record.",
         );
       }
+
       const key = { userId_paymentId: { userId: user.id, paymentId: id } };
 
       const previous = await tx.financeAlertRead.findUnique({ where: key });
@@ -135,6 +138,7 @@ export class FinanceAlertsService {
       if (previous?.seenVersion === version) {
         return { id, version, readAt: previous.readAt.toISOString() };
       }
+
       const read = await tx.financeAlertRead.upsert({
         where: key,
         create: { userId: user.id, paymentId: id, seenVersion: version },
@@ -154,6 +158,7 @@ export class FinanceAlertsService {
       if (updated) {
         await this.changed(tx, user.id);
       }
+
       return { updated };
     });
   }

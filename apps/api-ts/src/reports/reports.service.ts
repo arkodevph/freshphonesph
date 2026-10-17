@@ -148,6 +148,7 @@ export class ReportsService {
         { isolationLevel: "RepeatableRead" },
       );
     }
+
     const groups = await db.payment.groupBy({
       by: ["status"],
       where: this.where(query),
@@ -221,6 +222,7 @@ export class ReportsService {
         "Payment-read access is required to review individual exceptions.",
       );
     }
+
     return reconciliationExceptions(this.db, query);
   }
 
@@ -342,8 +344,10 @@ export class ReportsService {
           (item.closedAt.getTime() - item.createdAt.getTime()) / 3_600_000,
         );
       }
+
       categories.set(item.category, group);
     }
+
     return {
       total: cases.length,
       open: cases.filter((item) => {
@@ -392,6 +396,7 @@ export class ReportsService {
     if (!query.dateFrom && !query.dateTo) {
       return undefined;
     }
+
     return {
       ...(query.dateFrom
         ? { gte: new Date(`${query.dateFrom}T00:00:00.000Z`) }
@@ -547,6 +552,7 @@ export class ReportsService {
         }),
       ];
     }
+
     return format === "xlsx"
       ? workbook(rows, kind)
       : rows
@@ -573,6 +579,7 @@ export class ReportsService {
         if (!current?.active || !allowed(current, "REPORT_VIEW")) {
           throw new ForbiddenException("Your report access has changed.");
         }
+
         const batch = input.batchId
           ? await tx.batch.findUnique({
               where: { id: input.batchId },
@@ -583,6 +590,7 @@ export class ReportsService {
         if (input.batchId && !batch) {
           throw new NotFoundException("This batch is no longer available.");
         }
+
         const payload =
           input.kind === "PAYMENTS"
             ? {
@@ -658,6 +666,7 @@ export class ReportsService {
             },
           });
         }
+
         const snapshot = await tx.reportSnapshot.findUniqueOrThrow({
           where: { id: created.id },
           include: snapshotInclude,
@@ -692,6 +701,7 @@ export class ReportsService {
       if (!current?.active || !allowed(current, "REPORT_VIEW")) {
         throw new ForbiddenException("Your report access has changed.");
       }
+
       const snapshot = await tx.reportSnapshot.findUnique({
         where: { id: snapshotId },
         include: { analysis: { select: { id: true } } },
@@ -700,11 +710,13 @@ export class ReportsService {
       if (!snapshot) {
         throw new NotFoundException("Saved report not found.");
       }
+
       if (snapshot.analysis) {
         throw new ConflictException(
           "This saved report already has submitted analysis. It cannot be replaced.",
         );
       }
+
       const submission = await tx.reportAnalysis.create({
         data: { snapshotId, body, submittedById: user.id },
         include: { submittedBy: { select: { id: true, name: true } } },

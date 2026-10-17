@@ -55,9 +55,11 @@ export default function DashboardCards() {
 
       return;
     }
+
     if (!reportAccess) {
       return;
     }
+
     getDashboard()
       .then(setCards)
       .then(() => {

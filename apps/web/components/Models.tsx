@@ -151,6 +151,7 @@ export default function Models() {
 
       setItems([]);
     }
+
     const timer = setTimeout(() => {
       void getPublicCatalog(
         { page, q: q.trim(), availability },
@@ -160,11 +161,13 @@ export default function Models() {
           if (controller.signal.aborted) {
             return;
           }
+
           if (page > 1 && result.items.length === 0) {
             setPage(1);
 
             return;
           }
+
           loadedQuery.current = queryKey;
 
           setItems(result.items);

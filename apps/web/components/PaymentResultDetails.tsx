@@ -52,6 +52,7 @@ export function PaymentResultDetails({ enabled }: { enabled: boolean }) {
     if (!enabled || !id) {
       return;
     }
+
     const request = ++sequence.current;
 
     setLoading(true);
@@ -62,9 +63,11 @@ export function PaymentResultDetails({ enabled }: { enabled: boolean }) {
       if (request !== sequence.current) {
         return;
       }
+
       if (latest.paymentId !== paymentId) {
         throw new Error("This Finance result belongs to a different payment.");
       }
+
       setResult(latest);
 
       setError(null);
@@ -72,6 +75,7 @@ export function PaymentResultDetails({ enabled }: { enabled: boolean }) {
       if (request !== sequence.current) {
         return;
       }
+
       setResult(null);
 
       setError(
@@ -95,10 +99,12 @@ export function PaymentResultDetails({ enabled }: { enabled: boolean }) {
       if (!dialog.current?.open) {
         dialog.current?.showModal();
       }
+
       void load();
     } else if (dialog.current?.open) {
       dialog.current.close();
     }
+
     return () => {
       sequence.current++;
     };
@@ -117,6 +123,7 @@ export function PaymentResultDetails({ enabled }: { enabled: boolean }) {
 
     window.history.replaceState(null, "", url.pathname + url.search);
   }
+
   return (
     <dialog
       ref={dialog}

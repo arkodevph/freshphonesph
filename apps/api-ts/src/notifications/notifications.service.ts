@@ -186,6 +186,7 @@ export class NotificationsService {
     if (!changed.count) {
       throw new NotFoundException("Notification not found.");
     }
+
     return this.db.staffNotification.findUniqueOrThrow({ where: { id } });
   }
 
@@ -249,6 +250,7 @@ export class NotificationsService {
       if (!before) {
         throw new NotFoundException("Notification template not found.");
       }
+
       const changed = await tx.notificationTemplate.updateMany({
         where: { id, version },
         data: {
@@ -262,6 +264,7 @@ export class NotificationsService {
           "This template changed. Refresh and try again.",
         );
       }
+
       const after = await tx.notificationTemplate.findUniqueOrThrow({
         where: { id },
       });
@@ -311,6 +314,7 @@ export class NotificationsService {
         if (!task) {
           continue;
         }
+
         const overdue = task.deadline < now;
 
         await this.enqueue(tx, {
@@ -341,6 +345,7 @@ export class NotificationsService {
     if (this.config.NODE_ENV === "production" && !this.config.RESEND_API_KEY) {
       return { processed: 0, queued, providerConfigured: false };
     }
+
     const deliveries = await this.db.notificationDelivery.findMany({
       where: {
         ...(onlyId ? { id: onlyId } : {}),
@@ -374,6 +379,7 @@ export class NotificationsService {
           ) {
             return;
           }
+
           if (
             !(await this.deliveryEligible(
               tx,
@@ -393,6 +399,7 @@ export class NotificationsService {
 
             return;
           }
+
           try {
             if (this.config.NODE_ENV !== "production") {
               const directory = join(process.cwd(), ".local/mail");
@@ -425,6 +432,7 @@ export class NotificationsService {
                 throw new Error(`Email provider returned ${response.status}.`);
               }
             }
+
             await tx.notificationDelivery.update({
               where: { id: delivery.id },
               data: {
@@ -454,6 +462,7 @@ export class NotificationsService {
         { timeout: 20_000 },
       );
     }
+
     return { processed: deliveries.length, queued, providerConfigured: true };
   }
   private async deliveryEligible(
@@ -464,15 +473,18 @@ export class NotificationsService {
     if (!user.active || user.retentionErasedAt) {
       return false;
     }
+
     const id = notice.dedupeKey.match(/^[a-z_]+:([a-f0-9-]{36}):/i)?.[1];
 
     if (!id) {
       return false;
     }
+
     if (notice.eventKey.startsWith("task.")) {
       if (user.role === "CUSTOMER" || !allowed(user, "TASK_READ")) {
         return false;
       }
+
       const task = await tx.task.findFirst({
         where: {
           id,
@@ -487,6 +499,7 @@ export class NotificationsService {
           notice.dedupeKey.endsWith(task.deadline.toISOString())),
       );
     }
+
     if (notice.eventKey === "document.submitted") {
       return (
         allowed(user, "DOCUMENT_REVIEW") &&
@@ -498,6 +511,7 @@ export class NotificationsService {
         )
       );
     }
+
     if (notice.eventKey === "payment.submitted") {
       return (
         allowed(user, "PAYMENT_VERIFY") &&
@@ -509,9 +523,11 @@ export class NotificationsService {
         )
       );
     }
+
     if (user.role !== "CUSTOMER" || !user.clientId) {
       return false;
     }
+
     if (notice.eventKey.startsWith("document.")) {
       return Boolean(
         await tx.clientRequirement.findFirst({
@@ -520,6 +536,7 @@ export class NotificationsService {
         }),
       );
     }
+
     if (notice.eventKey.startsWith("support.")) {
       return Boolean(
         await tx.supportCase.findFirst({
@@ -528,6 +545,7 @@ export class NotificationsService {
         }),
       );
     }
+
     if (notice.eventKey.startsWith("payment.")) {
       return Boolean(
         await tx.payment.findFirst({
@@ -536,9 +554,11 @@ export class NotificationsService {
         }),
       );
     }
+
     if (notice.eventKey === "client.release") {
       return user.clientId === id;
     }
+
     return false;
   }
 }

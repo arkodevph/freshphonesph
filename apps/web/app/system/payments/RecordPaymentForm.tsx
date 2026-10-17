@@ -187,6 +187,7 @@ export default function RecordPaymentForm({
                 if (pasted) {
                   event.preventDefault();
                 }
+
                 selectReceipt(pasted);
               }}
               className={`receipt-dropzone rounded-2xl border-2 border-dashed px-4 py-3 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue/40 ${receiptDragging ? "is-dragging" : ""}`}

@@ -18,11 +18,13 @@ export function calendarDate(value: string | null | undefined): string | null {
   if (!value) {
     return null;
   }
+
   const day = value.slice(0, 10);
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
     return null;
   }
+
   const parsed = new Date(`${day}T00:00:00Z`);
 
   return Number.isFinite(parsed.getTime()) &&
@@ -82,6 +84,7 @@ export function membershipCalendarEvents(
       });
     }
   }
+
   return events.sort((a, b) => {
     return a.date.localeCompare(b.date);
   });
@@ -93,6 +96,7 @@ export function calendarMonthDays(month: string): string[] {
   if (!first) {
     return [];
   }
+
   const date = new Date(`${first}T00:00:00Z`);
 
   date.setUTCDate(1 - date.getUTCDay());
@@ -110,6 +114,7 @@ export function calendarKeyboardDate(day: string, key: string): string | null {
   if (key === "PageUp" || key === "PageDown") {
     return moveCalendarMonth(day, key === "PageUp" ? -1 : 1);
   }
+
   const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
 
   const offsets: Record<string, number> = {

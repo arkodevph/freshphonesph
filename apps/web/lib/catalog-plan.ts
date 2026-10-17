@@ -11,6 +11,7 @@ export function catalogSampleDate(
   ) {
     return null;
   }
+
   const date = new Date(`${start}T00:00:00.000Z`);
 
   if (
@@ -19,13 +20,16 @@ export function catalogSampleDate(
   ) {
     return null;
   }
+
   if (date.getUTCFullYear() < 1900 || date.getUTCFullYear() > 2100) {
     return null;
   }
+
   date.setUTCDate(date.getUTCDate() + dayOffset);
 
   return date.toISOString().slice(0, 10);
 }
+
 export function catalogSampleDateLabel(date: string): string {
   return new Intl.DateTimeFormat("en-PH", {
     day: "numeric",

@@ -31,6 +31,7 @@ export function PasswordRecovery({ mode }: { mode: "request" | "reset" }) {
     if (mode !== "reset") {
       return;
     }
+
     const value = window.location.hash.slice(1);
 
     setToken(value);
@@ -50,11 +51,13 @@ export function PasswordRecovery({ mode }: { mode: "request" | "reset" }) {
 
       return;
     }
+
     if (mode === "reset" && !token) {
       setError("This reset link is missing its token. Request a new link.");
 
       return;
     }
+
     setLoading(true);
 
     try {
@@ -80,6 +83,7 @@ export function PasswordRecovery({ mode }: { mode: "request" | "reset" }) {
             : (body.message ?? "Could not complete this request."),
         );
       }
+
       setSuccess(true);
 
       setToken("");

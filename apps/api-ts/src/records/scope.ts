@@ -5,6 +5,7 @@ import type { Prisma } from "../generated/prisma/client";
 export function batchScope(user: User): Prisma.BatchWhereInput {
   return user.role === "CORE_HANDLER" ? { handlerId: user.id } : {};
 }
+
 export function clientScope(user: User): Prisma.ClientWhereInput {
   return user.role === "CORE_HANDLER" ? { batch: batchScope(user) } : {};
 }

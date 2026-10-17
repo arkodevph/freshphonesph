@@ -83,10 +83,12 @@ export function filterFaqs(
   if (query.trim() && words.length === 0) {
     return [];
   }
+
   return faqs.filter((entry) => {
     if (topic !== "all" && entry.topic !== topic) {
       return false;
     }
+
     const label = faqTopics.find((candidate) => {
       return candidate.id === entry.topic;
     })!.label;

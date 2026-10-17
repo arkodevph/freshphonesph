@@ -17,7 +17,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import type { PortalScheduleItem, PortalSummary } from "@/lib/api";
-import { manilaToday } from "@/lib/portal-attention";
+import { today as manilaToday } from "@/lib/date";
 import {
   calendarMonthDays,
   membershipCalendarEvents,
@@ -80,14 +80,17 @@ export default function MembershipDatesCalendar({
     if (!isOpen) {
       return;
     }
+
     const dialog = dialogRef.current;
 
     if (!dialog) {
       return;
     }
+
     if (!dialog.open) {
       dialog.showModal();
     }
+
     const previousOverflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -96,6 +99,7 @@ export default function MembershipDatesCalendar({
       if (dialog.open) {
         dialog.close();
       }
+
       document.body.style.overflow = previousOverflow;
     };
   }, [isOpen]);
@@ -104,6 +108,7 @@ export default function MembershipDatesCalendar({
     if (!isOpen || !focusDayRef.current) {
       return;
     }
+
     dialogRef.current
       ?.querySelector<HTMLButtonElement>(
         `[data-calendar-date="${selectedDate}"]`,
@@ -123,6 +128,7 @@ export default function MembershipDatesCalendar({
 
       focusDayRef.current = false;
     }
+
     setSelectedDate(day);
   }
 
@@ -132,6 +138,7 @@ export default function MembershipDatesCalendar({
     if (!next) {
       return;
     }
+
     event.preventDefault();
 
     selectDay(next, true);
@@ -141,6 +148,7 @@ export default function MembershipDatesCalendar({
     if (event.key !== "Tab") {
       return;
     }
+
     const controls = Array.from(
       event.currentTarget.querySelectorAll<HTMLElement>(
         "button:not(:disabled), a[href], [tabindex]",
@@ -197,6 +205,7 @@ export default function MembershipDatesCalendar({
                 if (!item.date) {
                   return;
                 }
+
                 triggerRef.current = event.currentTarget;
 
                 setSelectedDate(item.date);

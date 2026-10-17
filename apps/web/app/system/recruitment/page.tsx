@@ -9,6 +9,7 @@ export default function RecruitmentPage() {
   if (!me) {
     return <p role="status">Loading recruitment access…</p>;
   }
+
   const canRecruit = can(me, "RECRUITMENT_MANAGE");
 
   const canAgents = can(me, "AGENT_MANAGE");

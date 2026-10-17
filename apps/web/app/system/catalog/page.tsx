@@ -10,6 +10,7 @@ export default function CatalogPage() {
   if (!me) {
     return <p role="status">Loading catalog access…</p>;
   }
+
   if (!can(me, "CATALOG_MANAGE")) {
     return (
       <section className={styles.page}>
@@ -18,5 +19,6 @@ export default function CatalogPage() {
       </section>
     );
   }
+
   return <CatalogWorkspace key={me.id} />;
 }

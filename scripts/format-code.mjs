@@ -137,15 +137,6 @@ function separateStatements(file, source) {
           continue;
         }
 
-        if (
-          !source
-            .slice(statement.getStart(tree), statement.end)
-            .trimEnd()
-            .endsWith(";")
-        ) {
-          continue;
-        }
-
         const gap = source.slice(statement.end, next.getStart(tree));
 
         // Keep trailing comments beside the statement they describe.

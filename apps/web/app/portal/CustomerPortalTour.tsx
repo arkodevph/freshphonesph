@@ -184,6 +184,7 @@ function measureStep(
   if (!target || !target.getClientRects().length) {
     return CENTER;
   }
+
   const rect = target.getBoundingClientRect();
 
   const padding = 16;
@@ -242,6 +243,7 @@ function measureStep(
           : Math.max(padding, rect.top - height - gap);
     }
   }
+
   return {
     spotlight,
     tooltip: { left: tooltipLeft, top: tooltipTop, width },
@@ -302,6 +304,7 @@ export function useCustomerPortalTour({
       if (storageKey) {
         writeStatus(storageKey, status);
       }
+
       setOpen(false);
 
       window.requestAnimationFrame(() => {
@@ -340,6 +343,7 @@ export function useCustomerPortalTour({
 
         setStepIndex(0);
       }
+
       setViewportReady(true);
     };
 
@@ -361,6 +365,7 @@ export function useCustomerPortalTour({
     ) {
       return;
     }
+
     autoStartedKey.current = storageKey;
 
     if (!readStatus(storageKey)) {
@@ -382,6 +387,7 @@ export function useCustomerPortalTour({
     if (!open) {
       return;
     }
+
     const target = document.querySelector<HTMLElement>(
       `[data-customer-tour-${mode}="${step.target}"]`,
     );
@@ -402,6 +408,7 @@ export function useCustomerPortalTour({
         });
       }
     }
+
     updatePosition();
 
     const observer =
@@ -412,9 +419,11 @@ export function useCustomerPortalTour({
     if (target) {
       observer?.observe(target);
     }
+
     if (dialogRef.current) {
       observer?.observe(dialogRef.current);
     }
+
     window.addEventListener("resize", updatePosition);
 
     window.addEventListener("scroll", updatePosition, true);
@@ -432,6 +441,7 @@ export function useCustomerPortalTour({
     if (!open) {
       return;
     }
+
     const shell = document.querySelector<HTMLElement>(".portal-shell");
 
     shell?.setAttribute("inert", "");
@@ -455,9 +465,11 @@ export function useCustomerPortalTour({
 
       return;
     }
+
     if (event.key !== "Tab") {
       return;
     }
+
     const controls = [
       ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
         "button:not([disabled])",

@@ -150,6 +150,7 @@ export function usePaymentsWorkspace() {
       if (!canRead) {
         return;
       }
+
       const requestVersion = ++paymentLoadVersion.current;
 
       setLoading(true);
@@ -157,6 +158,7 @@ export function usePaymentsWorkspace() {
       if (!preserveError) {
         setError(null);
       }
+
       try {
         const data = await listPayments({
           ...(focusedPayment ? { id: focusedPayment } : {}),
@@ -170,6 +172,7 @@ export function usePaymentsWorkspace() {
         if (requestVersion !== paymentLoadVersion.current) {
           return;
         }
+
         setPayments(data.results);
 
         setPaymentCount(data.count);
@@ -181,6 +184,7 @@ export function usePaymentsWorkspace() {
         if (requestVersion !== paymentLoadVersion.current) {
           return;
         }
+
         setError(e instanceof Error ? e.message : "Failed to load payments.");
       } finally {
         if (requestVersion === paymentLoadVersion.current) {
@@ -249,6 +253,7 @@ export function usePaymentsWorkspace() {
 
       return;
     }
+
     const url = URL.createObjectURL(receiptImage);
 
     setReceiptPreview(url);
@@ -262,9 +267,11 @@ export function usePaymentsWorkspace() {
     if (!reviewPayment || !financeDialog.current) {
       return;
     }
+
     if (!financeDialog.current.open) {
       financeDialog.current.showModal();
     }
+
     financeNoteInput.current?.focus();
   }, [reviewPayment]);
 
@@ -292,6 +299,7 @@ export function usePaymentsWorkspace() {
 
       return;
     }
+
     let current = true;
 
     setDuplicateChecking(true);
@@ -333,6 +341,7 @@ export function usePaymentsWorkspace() {
     if (noticeTimer.current) {
       clearTimeout(noticeTimer.current);
     }
+
     setNotice(msg);
 
     noticeTimer.current = setTimeout(() => {
@@ -380,22 +389,27 @@ export function usePaymentsWorkspace() {
     if (!file) {
       return;
     }
+
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       setError("Use a JPG, PNG, or WebP receipt image.");
 
       if (receiptInput.current) {
         receiptInput.current.value = "";
       }
+
       return;
     }
+
     if (file.size > 5 * 1024 * 1024) {
       setError("Receipt image must be 5 MB or smaller.");
 
       if (receiptInput.current) {
         receiptInput.current.value = "";
       }
+
       return;
     }
+
     scanVersion.current += 1;
 
     setScanning(false);
@@ -419,6 +433,7 @@ export function usePaymentsWorkspace() {
 
       return;
     }
+
     setSaving(true);
 
     setError(null);
@@ -447,6 +462,7 @@ export function usePaymentsWorkspace() {
           return;
         }
       }
+
       const record = {
         client: form.client,
         batch: recordClient?.batch,
@@ -480,6 +496,7 @@ export function usePaymentsWorkspace() {
           );
         }
       }
+
       if (!proofToUpload || proofAttached) {
         flash(
           editing
@@ -489,6 +506,7 @@ export function usePaymentsWorkspace() {
               : "Payment recorded (pending verification).",
         );
       }
+
       setForm((f) => {
         return {
           ...f,
@@ -511,6 +529,7 @@ export function usePaymentsWorkspace() {
       if (receiptInput.current) {
         receiptInput.current.value = "";
       }
+
       setScanResult(null);
 
       setDuplicateMatches([]);
@@ -556,6 +575,7 @@ export function usePaymentsWorkspace() {
 
       return;
     }
+
     const requestVersion = ++scanVersion.current;
 
     const image = receiptImage;
@@ -574,6 +594,7 @@ export function usePaymentsWorkspace() {
       if (requestVersion !== scanVersion.current) {
         return;
       }
+
       setScanResult(result);
 
       setForm((current) => {
@@ -592,6 +613,7 @@ export function usePaymentsWorkspace() {
       if (requestVersion !== scanVersion.current) {
         return;
       }
+
       setError(
         e instanceof Error ? e.message : "Receipt could not be scanned.",
       );
@@ -631,6 +653,7 @@ export function usePaymentsWorkspace() {
     if (!reviewPayment || !reviewDecision || reviewSaving) {
       return;
     }
+
     const paymentId = String(reviewPayment.id);
 
     const reviewNote = reviewNotes[paymentId]?.trim() ?? "";
@@ -642,6 +665,7 @@ export function usePaymentsWorkspace() {
 
       return;
     }
+
     setReviewError(null);
 
     setReviewSaving(true);
@@ -680,6 +704,7 @@ export function usePaymentsWorkspace() {
 
       return;
     }
+
     setError(null);
 
     setBalance(null);

@@ -163,9 +163,11 @@ export class PortalController {
     if (!Number.isInteger(page) || page < 1 || page > 10000) {
       throw new BadRequestException("Invalid page number.");
     }
+
     if (caseId && !z.string().uuid().safeParse(caseId).success) {
       throw new BadRequestException("Invalid case ID.");
     }
+
     return this.support.list(
       user,
       status?.toUpperCase(),
@@ -235,6 +237,7 @@ export class PortalController {
     ) {
       throw new BadRequestException("Unknown customer email template.");
     }
+
     return this.notificationSettings.updateTemplate(
       user,
       kind as (typeof customerEmailKinds)[number],
