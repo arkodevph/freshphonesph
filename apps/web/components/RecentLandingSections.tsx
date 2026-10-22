@@ -5,57 +5,11 @@ import {
   IdentificationCard,
   Receipt,
   ShieldCheck,
-  UserCheck,
   Wallet,
 } from "@phosphor-icons/react/dist/ssr";
 import SectionHeading from "./SectionHeading";
 import AgentVerification from "./AgentVerification";
 import ProcessStack from "./ProcessStack";
-
-const trust = [
-  [
-    UserCheck,
-    "Verified agents",
-    "Confirm who is officially registered before you transact.",
-  ],
-  [
-    CalendarCheck,
-    "Clear schedules",
-    "Understand each payment amount and expected duration.",
-  ],
-  [
-    ShieldCheck,
-    "Organized records",
-    "A secure foundation for account tracking.",
-  ],
-  [
-    ChatCircleDots,
-    "Human support",
-    "Talk to the Fresh Phones PH team when you need help.",
-  ],
-] as const;
-
-export function Trust() {
-  return (
-    <section aria-label="Why customers trust us" className="px-4 py-8">
-      <div className="mx-auto grid max-w-6xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {trust.map(([Icon, title, body]) => {
-          return (
-            <article key={title} className="glass rounded-3xl p-5">
-              <Icon weight="duotone" className="h-7 w-7 text-blue" />
-              <h2 className="mt-3 font-display text-lg font-700 text-blue-ink">
-                {title}
-              </h2>
-              <p className="mt-1 text-sm font-500 leading-relaxed text-ink-soft">
-                {body}
-              </p>
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
 
 export function Process() {
   return <ProcessStack />;

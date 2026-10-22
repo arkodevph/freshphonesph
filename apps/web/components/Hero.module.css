@@ -6,6 +6,15 @@
   padding: 7rem clamp(1.5rem, 6vw, 7rem) 9rem;
 }
 
+.frame::after {
+  content: "";
+  position: absolute;
+  inset: 58% 0 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, #c1e4f4 94%);
+}
+
 .frame :global(.landing-hero-media) {
   inset: -6% 0;
   overflow: hidden;

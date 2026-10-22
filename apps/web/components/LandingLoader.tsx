@@ -1,22 +1,22 @@
 export default function LandingLoader() {
   return (
     <div className="landing-loader" aria-hidden="true">
-      <div className="landing-loader-brand">
-        <div className="landing-loader-heading">
-          <p className="landing-loader-wordmark">
-            <span>Fresh</span>
-            <span>
-              Phones<span className="landing-loader-period">.</span>
-            </span>
-          </p>
-          <span className="landing-loader-country">PH</span>
-        </div>
-        <div className="landing-loader-caption">
-          <span>Gadget center</span>
-          <span className="landing-loader-line" />
-        </div>
+      <div className="landing-loader-panels">
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
       </div>
-      <span className="landing-loader-footer">A fresh start.</span>
+      <div className="landing-loader-content">
+        <div className="landing-loader-wordmark-mask">
+          <span className="landing-loader-brand">
+            Fresh Phones <span>PH.</span>
+          </span>
+        </div>
+        <span className="landing-loader-caption">Gadget Center</span>
+        <span className="landing-loader-line" />
+      </div>
     </div>
   );
 }

@@ -7,9 +7,9 @@ import Footer from "@/components/Footer";
 import {
   Process,
   RequirementsAndPayments,
-  Trust,
 } from "@/components/RecentLandingSections";
 import ScrollPhoneStory from "@/components/ScrollPhoneStory";
+import CloudDivider from "@/components/CloudDivider";
 import LandingLoader from "@/components/LandingLoader";
 import "../app/landing.css";
 
@@ -20,7 +20,7 @@ export default function Home() {
       <Navbar immersive />
       <main>
         <Hero />
-        <Trust />
+        <CloudDivider />
         <ScrollPhoneStory />
         <Models />
         <Process />
