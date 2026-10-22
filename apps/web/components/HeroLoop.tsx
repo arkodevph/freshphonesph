@@ -39,6 +39,69 @@ export default function HeroLoop() {
     };
   }, []);
 
+  useEffect(() => {
+    const video = videoRef.current;
+
+    const hero = video?.closest<HTMLElement>(".landing-hero-frame");
+
+    const media = video?.parentElement;
+
+    if (!video || !hero || !media) {
+      return;
+    }
+
+    const motionPreference = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    );
+
+    let raf = 0;
+
+    const updateParallax = () => {
+      raf = 0;
+
+      if (motionPreference.matches) {
+        video.style.removeProperty("--hero-parallax-y");
+
+        return;
+      }
+
+      const rect = hero.getBoundingClientRect();
+
+      const offset = Math.min(
+        media.clientHeight * 0.05,
+        Math.max(0, -rect.top) * 0.24,
+      );
+
+      video.style.setProperty("--hero-parallax-y", `${offset}px`);
+    };
+
+    const scheduleParallax = () => {
+      if (!raf) {
+        raf = requestAnimationFrame(updateParallax);
+      }
+    };
+
+    updateParallax();
+
+    window.addEventListener("scroll", scheduleParallax, { passive: true });
+
+    window.addEventListener("resize", scheduleParallax);
+
+    motionPreference.addEventListener("change", scheduleParallax);
+
+    return () => {
+      window.removeEventListener("scroll", scheduleParallax);
+
+      window.removeEventListener("resize", scheduleParallax);
+
+      motionPreference.removeEventListener("change", scheduleParallax);
+
+      cancelAnimationFrame(raf);
+
+      video.style.removeProperty("--hero-parallax-y");
+    };
+  }, []);
+
   return (
     <div className="landing-hero-media" aria-hidden="true">
       <video
@@ -48,13 +111,10 @@ export default function HeroLoop() {
         muted
         playsInline
         preload="metadata"
-        poster="/video/hero/woman-floating-cloud-poster.webp?v=20261006124456"
+        poster="/video/hero/cloud-boy-poster-v2.webp"
         tabIndex={-1}
       >
-        <source
-          src="/video/hero/woman-floating-cloud-loop.mp4?v=20261006124456"
-          type="video/mp4"
-        />
+        <source src="/video/hero/cloud-boy-loop-v1.mp4" type="video/mp4" />
       </video>
     </div>
   );

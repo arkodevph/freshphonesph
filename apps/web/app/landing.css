@@ -1,49 +1,30 @@
-@property --cloud-edge {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 100vw;
-}
-@keyframes cloud-loader-wipe {
+@keyframes landing-loader-dismiss {
   0%,
-  46% {
-    --cloud-edge: 100vw;
+  60% {
     opacity: 1;
     visibility: visible;
   }
-  92% {
-    opacity: 1;
-  }
   100% {
-    --cloud-edge: 0vw;
     opacity: 0;
     visibility: hidden;
   }
 }
-@keyframes cloud-loader-mark {
-  0% {
+@keyframes landing-loader-arrive {
+  from {
     opacity: 0;
-    transform: translateX(8px);
+    transform: translateY(8px);
   }
-  12%,
-  42% {
+  to {
     opacity: 1;
-    transform: translateX(0);
-  }
-  64%,
-  100% {
-    opacity: 0;
-    transform: translateX(-18px);
+    transform: translateY(0);
   }
 }
-@keyframes cloud-loader-drift {
-  0% {
-    transform: translate3d(0, 8px, 0);
+@keyframes landing-loader-sweep {
+  from {
+    transform: translateX(-100%);
   }
-  48% {
-    transform: translate3d(var(--cloud-shift), 0, 0);
-  }
-  100% {
-    transform: translate3d(-12vw, 0, 0);
+  to {
+    transform: translateX(100%);
   }
 }
 @keyframes hero-doodle-float {
@@ -336,7 +317,6 @@
 }
 
 .landing-loader {
-  --cloud-edge: 100vw;
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -344,125 +324,75 @@
   place-items: center;
   pointer-events: none;
   overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 50% 72%,
-      rgba(255, 194, 226, 0.5),
-      transparent 35%
-    ),
-    linear-gradient(180deg, #a9d8ef 0%, #d8ecf9 62%, #fae2ef 100%);
-  -webkit-mask:
-    linear-gradient(#000 0 0) left / var(--cloud-edge) 100% no-repeat,
-    radial-gradient(ellipse at 0 50%, #000 67%, transparent 69%)
-      var(--cloud-edge) 0 / 5.5rem 9rem repeat-y,
-    radial-gradient(ellipse at 0 50%, #000 67%, transparent 69%)
-      calc(var(--cloud-edge) - 1.8rem) 4.5rem / 7rem 13rem repeat-y;
-  mask:
-    linear-gradient(#000 0 0) left / var(--cloud-edge) 100% no-repeat,
-    radial-gradient(ellipse at 0 50%, #000 67%, transparent 69%)
-      var(--cloud-edge) 0 / 5.5rem 9rem repeat-y,
-    radial-gradient(ellipse at 0 50%, #000 67%, transparent 69%)
-      calc(var(--cloud-edge) - 1.8rem) 4.5rem / 7rem 13rem repeat-y;
-  animation: cloud-loader-wipe 1.45s cubic-bezier(0.76, 0, 0.24, 1) both;
+  background: #fafbf9;
+  color: #172b47;
+  font-family: var(--font-body), ui-sans-serif, sans-serif;
+  animation: landing-loader-dismiss 1s ease-in-out both;
 }
-.landing-loader-clouds {
-  position: absolute;
-  inset: 0;
+.landing-loader-brand {
+  width: clamp(15rem, 36vw, 21rem);
+  animation: landing-loader-arrive 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.landing-loader-clouds span {
-  --cloud-shift: 3vw;
-  position: absolute;
-  width: clamp(11rem, 24vw, 22rem);
-  height: clamp(3.8rem, 7vw, 6.5rem);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 24px 55px rgba(71, 130, 181, 0.12);
-  animation: cloud-loader-drift 1.45s ease-out both;
-  will-change: transform;
-}
-.landing-loader-clouds span::before,
-.landing-loader-clouds span::after {
-  position: absolute;
-  bottom: 18%;
-  border-radius: 50%;
-  background: inherit;
-  content: "";
-}
-.landing-loader-clouds span::before {
-  left: 12%;
-  width: 44%;
-  aspect-ratio: 1;
-}
-.landing-loader-clouds span::after {
-  right: 13%;
-  width: 36%;
-  aspect-ratio: 1;
-}
-.landing-loader-clouds span:nth-child(1) {
-  top: 12%;
-  left: -7%;
-  opacity: 0.72;
-}
-.landing-loader-clouds span:nth-child(2) {
-  --cloud-shift: -4vw;
-  top: 17%;
-  right: -8%;
-  scale: 0.72;
-  opacity: 0.62;
-}
-.landing-loader-clouds span:nth-child(3) {
-  --cloud-shift: 5vw;
-  bottom: 7%;
-  left: 2%;
-  scale: 1.16;
-  opacity: 0.88;
-}
-.landing-loader-clouds span:nth-child(4) {
-  --cloud-shift: -3vw;
-  right: 3%;
-  bottom: 12%;
-  scale: 0.9;
-  opacity: 0.78;
-}
-.landing-loader-clouds span:nth-child(5) {
-  --cloud-shift: -2vw;
-  top: 47%;
-  right: 12%;
-  scale: 0.42;
-  opacity: 0.48;
-}
-.landing-loader-clouds span:nth-child(2),
-.landing-loader-clouds span:nth-child(5) {
-  animation-delay: -0.08s;
-}
-.landing-loader-clouds span:nth-child(4) {
-  animation-delay: -0.04s;
-}
-.landing-loader-mark {
+.landing-loader-heading {
   position: relative;
-  z-index: 1;
-  color: var(--color-blue-ink);
-  font-family: var(--font-display), ui-sans-serif, sans-serif;
-  font-size: clamp(1.7rem, 4vw, 2.35rem);
-  font-weight: 400;
-  letter-spacing: -0.035em;
-  text-align: center;
-  animation: cloud-loader-mark 1.45s ease both;
-  white-space: nowrap;
 }
-.landing-loader-mark strong {
-  margin-left: 0.2em;
-  color: var(--color-bubblegum);
-}
-.landing-loader-mark small {
-  display: block;
-  margin-top: 0.45rem;
-  color: rgba(20, 38, 107, 0.62);
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.66rem;
+.landing-loader-wordmark {
+  margin: 0;
+  font-size: clamp(4.5rem, 10vw, 6.25rem);
   font-weight: 800;
-  letter-spacing: 0.16em;
+  line-height: 0.9;
+  letter-spacing: -0.075em;
+}
+.landing-loader-wordmark > span {
+  display: block;
+}
+.landing-loader-period {
+  color: #3268e8;
+}
+.landing-loader-country {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  padding: 5px 7px;
+  border: 1px solid #172b4733;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+.landing-loader-caption {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 28px;
+  color: #586576;
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+}
+.landing-loader-line {
+  flex: 1;
+  height: 1px;
+  overflow: hidden;
+  background: #172b471a;
+}
+.landing-loader-line::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #3268e8;
+  animation: landing-loader-sweep 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.landing-loader-footer {
+  position: absolute;
+  bottom: max(32px, env(safe-area-inset-bottom));
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  color: #586576;
 }
 
 .scroll-phone-story {
@@ -627,6 +557,10 @@
 @media (prefers-reduced-motion: reduce) {
   .landing-loader {
     display: none;
+  }
+  .landing-loader-brand,
+  .landing-loader-line::after {
+    animation: none;
   }
   .landing-hero-doodle {
     animation: none;

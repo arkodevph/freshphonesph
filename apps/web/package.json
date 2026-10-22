@@ -3,12 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
+    "dev:safe": "bash ../../scripts/dev-web-safe.sh",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test test/*.test.ts",
-    "deploy": "vercel deploy",
-    "deploy:prod": "vercel deploy --prod"
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@freshphones/contracts": "workspace:*",

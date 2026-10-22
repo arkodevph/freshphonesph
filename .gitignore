@@ -62,3 +62,6 @@ apps/api-ts/.local/
 /apps/api-ts/.env.preview
 /apps/web/.env.preview
 /scripts/run-local-preview.sh
+
+# Landing assets are copied from the shared public source before dev/build.
+/apps/landing/public/

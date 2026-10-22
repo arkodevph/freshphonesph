@@ -1,3 +1,4 @@
+import { systemHref } from "@/lib/site-links";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -19,6 +20,8 @@ export const metadata: Metadata = {
 };
 
 export default function PublicSupportPage() {
+  const portalHref = systemHref("/portal/support");
+
   return (
     <>
       <Navbar />
@@ -33,58 +36,61 @@ export default function PublicSupportPage() {
             like to start.
           </p>
         </header>
-        <section
-          className={styles.portal}
-          aria-labelledby="customer-support-title"
-        >
-          <div className={styles.sectionHeading}>
-            <h2 id="customer-support-title">Already a customer?</h2>
-            <p>
-              Use the account provided by Fresh Phones PH. If you’re signed out,
-              we’ll ask you to sign in and bring you back to Support.
-            </p>
-          </div>
-          <div className={styles.cards}>
-            <article className={`glass ${styles.card}`}>
-              <ChatCircleText
-                className={styles.icon}
-                weight="duotone"
-                aria-hidden="true"
-              />
-              <h3>Start a request</h3>
+        {portalHref && (
+          <section
+            className={styles.portal}
+            aria-labelledby="customer-support-title"
+          >
+            <div className={styles.sectionHeading}>
+              <h2 id="customer-support-title">Already a customer?</h2>
               <p>
-                Tell Customer Service about a payment, device or account
-                concern. Your request and replies stay together in your portal.
+                Use the account provided by Fresh Phones PH. If you’re signed
+                out, we’ll ask you to sign in and bring you back to Support.
               </p>
-              <Link
-                className={styles.primary}
-                href="/portal/support#new-request"
-                prefetch={false}
-              >
-                Start a support request <ArrowRight aria-hidden="true" />
-              </Link>
-            </article>
-            <article className={`glass ${styles.card}`}>
-              <ClockCounterClockwise
-                className={styles.icon}
-                weight="duotone"
-                aria-hidden="true"
-              />
-              <h3>Follow an existing request</h3>
-              <p>
-                Check your request’s status, read the team’s response and send
-                more details in the same conversation.
-              </p>
-              <Link
-                className={styles.secondary}
-                href="/portal/support#request-history"
-                prefetch={false}
-              >
-                View my requests <ArrowRight aria-hidden="true" />
-              </Link>
-            </article>
-          </div>
-        </section>
+            </div>
+            <div className={styles.cards}>
+              <article className={`glass ${styles.card}`}>
+                <ChatCircleText
+                  className={styles.icon}
+                  weight="duotone"
+                  aria-hidden="true"
+                />
+                <h3>Start a request</h3>
+                <p>
+                  Tell Customer Service about a payment, device or account
+                  concern. Your request and replies stay together in your
+                  portal.
+                </p>
+                <Link
+                  className={styles.primary}
+                  href={`${portalHref}#new-request`}
+                  prefetch={false}
+                >
+                  Start a support request <ArrowRight aria-hidden="true" />
+                </Link>
+              </article>
+              <article className={`glass ${styles.card}`}>
+                <ClockCounterClockwise
+                  className={styles.icon}
+                  weight="duotone"
+                  aria-hidden="true"
+                />
+                <h3>Follow an existing request</h3>
+                <p>
+                  Check your request’s status, read the team’s response and send
+                  more details in the same conversation.
+                </p>
+                <Link
+                  className={styles.secondary}
+                  href={`${portalHref}#request-history`}
+                  prefetch={false}
+                >
+                  View my requests <ArrowRight aria-hidden="true" />
+                </Link>
+              </article>
+            </div>
+          </section>
+        )}
         <section
           id="contact"
           className={styles.contact}

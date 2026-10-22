@@ -1,5 +1,6 @@
 "use client";
 
+import { landingHref } from "@/lib/site-links";
 import { fetchMe, login, MfaChallenge } from "@/lib/api";
 import { roleLabels, roles, type Role } from "@freshphones/contracts";
 import {
@@ -199,7 +200,7 @@ export default function LoginPage() {
       <div className={styles.card}>
         <section className={styles.story} aria-label="Fresh Phones PH">
           <Link
-            href="/"
+            href={landingHref}
             className={styles.brand}
             aria-label="Fresh Phones PH home"
           >
@@ -221,7 +222,7 @@ export default function LoginPage() {
 
         <section className={styles.panel} aria-labelledby="login-title">
           <Link
-            href="/"
+            href={landingHref}
             className={styles.backLink}
             aria-label="Back to website"
           >

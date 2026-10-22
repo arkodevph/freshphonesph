@@ -8,7 +8,7 @@
     "web": "pnpm --filter @fresh/web",
     "api": "pnpm --filter @fresh/api-ts",
     "api:ts": "pnpm --filter @fresh/api-ts",
-    "typecheck": "pnpm --filter @freshphones/contracts build && pnpm --filter @fresh/api-ts typecheck && pnpm --filter @fresh/web exec tsc --noEmit",
+    "typecheck": "pnpm --filter @freshphones/contracts build && pnpm --filter @fresh/api-ts typecheck && pnpm --filter @fresh/web exec tsc --noEmit && pnpm --filter @fresh/landing exec tsc --noEmit",
     "test:api-ts": "pnpm --filter @fresh/api-ts test",
     "test:api-ts:integration": "pnpm --filter @fresh/api-ts test:integration",
     "db:generate": "pnpm --filter @fresh/api-ts db:generate",
@@ -16,7 +16,8 @@
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "format": "node scripts/format-code.mjs --write",
-    "format:check": "node scripts/format-code.mjs"
+    "format:check": "node scripts/format-code.mjs",
+    "landing": "pnpm --filter @fresh/landing"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

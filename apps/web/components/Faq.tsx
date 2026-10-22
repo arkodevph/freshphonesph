@@ -148,10 +148,14 @@ export default function Faq() {
                   id={answerId}
                   role="region"
                   aria-labelledby={questionId}
-                  hidden={!isOpen}
+                  aria-hidden={!isOpen}
+                  inert={!isOpen}
+                  data-open={isOpen}
                   className={styles.answer}
                 >
-                  <p>{entry.answer}</p>
+                  <div className={styles.answerContent}>
+                    <p>{entry.answer}</p>
+                  </div>
                 </div>
               </article>
             );
