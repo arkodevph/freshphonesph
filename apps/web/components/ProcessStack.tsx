@@ -24,7 +24,7 @@ const panels = [
     title: "Real people. Clear answers.",
     description:
       "Get guidance from the Fresh Phones PH team before joining a batch.",
-    image: "/portal/illustrations/identity.png",
+    image: "/brand/mascot/cloud-boy-guidance-v1.png",
     steps: [
       [
         "Contact Fresh Phones PH",
