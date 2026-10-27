@@ -86,25 +86,27 @@ export default function Footer() {
               </div>
             </div>
 
-            {groups.map((group) => (
-              <nav
-                key={group.title}
-                aria-label={`Footer ${group.title.toLowerCase()}`}
-              >
-                <h3 className={styles.columnHeading}>{group.title}</h3>
-                <ul className={styles.links}>
-                  {group.links.map((l) => {
-                    return (
-                      <li key={l.href}>
-                        <a href={l.href} className={styles.navLink}>
-                          {l.label}
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </nav>
-            ))}
+            {groups.map((group) => {
+              return (
+                <nav
+                  key={group.title}
+                  aria-label={`Footer ${group.title.toLowerCase()}`}
+                >
+                  <h3 className={styles.columnHeading}>{group.title}</h3>
+                  <ul className={styles.links}>
+                    {group.links.map((l) => {
+                      return (
+                        <li key={l.href}>
+                          <a href={l.href} className={styles.navLink}>
+                            {l.label}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </nav>
+              );
+            })}
 
             <div className={styles.contact}>
               <h3 className={styles.columnHeading}>Let&apos;s talk</h3>
