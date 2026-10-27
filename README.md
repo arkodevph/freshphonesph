@@ -80,20 +80,27 @@ unconfirmed; do not retry it without process-tree resource limits.
 
 ## Landing site and system deployments
 
-The system, API and worker target Render; the public landing site stays on Vercel.
+For the combined Vercel presentation, deploy **`apps/web`** with the Next.js preset
+and its checked-in `vercel.json` commands. Enable access to source files outside
+the root directory. This includes the landing page at `/`, login at `/login`, staff
+workspaces at `/system/*` and the customer portal at `/portal/*` on one domain.
+See [the Vercel presentation guide](docs/57-vercel-presentation.md). Login and
+website links stay on this origin without separate landing/system URL settings.
+
+For a real backend deployment, the system, API and worker can target Render.
 See [the Render deployment guide](docs/56-render-deployment.md) for service settings,
 environment variables and the remaining production blockers.
 
-Deploy **`apps/landing`** as the Vercel project root, with the Next.js preset and
-`pnpm build` as the build command. Enable access to files outside the root directory:
+For an optional standalone public site, deploy **`apps/landing`** as the Vercel
+project root, with the Next.js preset and `pnpm build` as the build command.
+Enable access to files outside the root directory:
 this workspace reuses public presentation components from `apps/web` and the shared
-contracts package. Install dependencies from the monorepo workspace. Do not deploy
-`apps/web` to the landing Vercel project.
+contracts package. Install dependencies from the monorepo workspace.
 
 The landing app has its own route tree: `/`, `/about`, `/careers`, `/careers/apply`,
 `/verify`, `/inquire`, `/support`, `/privacy` and its notices, and `/terms`. Login, password recovery,
 MFA, demo login, `/system/*` and `/portal/*` are absent and return 404. The system app
-stays in `apps/web`; its root redirects to `/login`.
+stays in `apps/web`, which also serves the landing page at its root.
 
 Set `NEXT_PUBLIC_API_URL` on the landing deployment to the separately hosted API for
 careers, applications and public agent verification. Allow the landing origin in the
@@ -102,9 +109,10 @@ API's existing CORS configuration. The home page itself needs no API.
 When the system has a URL, set `NEXT_PUBLIC_SYSTEM_URL` on the landing project (origin
 only, without `/login`) and rebuild. This connects the Login Portal button and
 customer support links to that host. The login button stays visible while the URL is
-pending, with navigation disabled; customer portal support links remain hidden. Set
-`NEXT_PUBLIC_LANDING_URL` on the system deployment for the login page's website links.
-Local defaults are landing on port 3001 and system on port 3000.
+pending, with navigation disabled; customer portal support links remain hidden. The
+system deployment's root serves the landing page for the login page's website
+links. Local defaults are the optional standalone landing on port 3001 and the
+integrated site on port 3000.
 
 For a protected local landing preview:
 

@@ -1,7 +1,9 @@
 # Vercel presentation demo
 
-Deploy `apps/web` for the staff system and customer portal presentation. The public
-landing site remains a separate Vercel project rooted at `apps/landing`.
+Deploy `apps/web` as one Vercel project for the public landing page, staff system
+and customer portal presentation. The homepage is `/`, the role selector is
+`/login`, and the workspaces remain at `/system/*` and `/portal/*` on the same
+domain. A separate landing deployment is not required.
 
 This demo uses fictional fixtures, requires no database or API server, and offers
 all 11 roles from `/login`. It is read only: changes, uploads, password recovery,
@@ -13,7 +15,8 @@ page retains the chosen role. Sign out clears it; Switch role returns to the sel
 
 1. Push the project files to your Git repository, including the new presentation
    files and `apps/web/vercel.json`. Keep private `.env` files out of Git.
-2. Import the repository as a **new Vercel project** for the system demo.
+2. Use the existing Fresh Phones Vercel project, or import the repository if one
+   does not exist yet.
    Choose a deployment branch that contains the presentation changes; an existing
    `main` deployment will not include unmerged work from another branch.
 3. Choose **Next.js** and set **Root Directory** to **`apps/web`**.
@@ -22,19 +25,21 @@ page retains the chosen role. Sign out clears it; Switch role returns to the sel
 5. Keep the install/build commands from `apps/web/vercel.json`. They install the
    workspace dependencies, build the contracts, and build the presentation using
    Webpack. Keep the framework's default Output Directory.
-6. Deploy, open `/login`, and select Owner, Finance officer, Records, or Customer
-   to present the corresponding workspace. Other staff roles are also available.
+6. Deploy and open `/` to view the landing page. Its Login Portal button opens
+   `/login`; select Owner, Finance officer, Records, or Customer to present the
+   corresponding workspace. Other staff roles are also available. The login
+   page's Back button and brand link return to `/`.
 
 No environment credentials are needed. The Vercel configuration enables
 `NEXT_PUBLIC_PRESENTATION_MODE=true` for the demo build and deployment. Remove any
 existing dashboard override setting that flag to false. No API proxy is used in
 presentation mode, and API calls stay on the deployed Vercel origin.
 
-Optional: set `NEXT_PUBLIC_LANDING_URL` to the public landing site's HTTPS origin
-before building. Without it, the login page's website links return to `/login`
-instead of pointing at a local development server. After the demo has a URL, set
-the landing project's `NEXT_PUBLIC_SYSTEM_URL` to that origin and rebuild the
-landing site to connect its Login Portal button.
+The integrated app uses relative links for the landing page, login and portal.
+`NEXT_PUBLIC_LANDING_URL` and `NEXT_PUBLIC_SYSTEM_URL` are not needed for this
+deployment; old host settings do not redirect integrated navigation elsewhere.
+`apps/landing` remains an optional standalone public-site build, not the target
+for this combined deployment.
 
 ## What to present
 
