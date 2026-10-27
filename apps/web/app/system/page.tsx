@@ -2,6 +2,7 @@
 
 import { availableRoute } from "@/lib/backend";
 import { can, useMe } from "@/lib/useMe";
+import { PRESENTATION_MODE } from "@/lib/presentation";
 import {
   ArrowUpRight,
   Briefcase,
@@ -74,7 +75,7 @@ export default function DashboardPage() {
           <span>Here&apos;s the latest view of your operations.</span>
         </div>
         <div className="system-live-status">
-          <span /> Live data
+          <span /> {PRESENTATION_MODE ? "Sample data" : "Live data"}
         </div>
       </div>
 
@@ -115,8 +116,16 @@ export default function DashboardPage() {
             <li>
               <span className="status-dot is-green" />
               <div>
-                <strong>Database connected</strong>
-                <small>Local development environment</small>
+                <strong>
+                  {PRESENTATION_MODE
+                    ? "Presentation workspace"
+                    : "Database connected"}
+                </strong>
+                <small>
+                  {PRESENTATION_MODE
+                    ? "Fictional records · no database"
+                    : "Local development environment"}
+                </small>
               </div>
             </li>
             <li>
@@ -130,7 +139,11 @@ export default function DashboardPage() {
               <span className="status-dot is-blue" />
               <div>
                 <strong>Role access enabled</strong>
-                <small>Module permissions enforced by API</small>
+                <small>
+                  {PRESENTATION_MODE
+                    ? "Explore each role from the demo selector"
+                    : "Module permissions enforced by API"}
+                </small>
               </div>
             </li>
           </ul>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
+import StoryDepth from "./StoryDepth";
 
 const TOTAL_FRAMES = 115;
 
@@ -30,7 +31,7 @@ export default function ScrollPhoneStory() {
     const frames: HTMLImageElement[] = [];
 
     const framePath = (index: number) => {
-      return `/video/iphone-scroll-frames/frame-${String(index + 1).padStart(3, "0")}.webp`;
+      return `/video/cloud-phone-scroll-v2/frame-${String(index + 1).padStart(3, "0")}.webp`;
     };
 
     let raf = 0;
@@ -87,6 +88,8 @@ export default function ScrollPhoneStory() {
       frames[index] = image;
     }
 
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
     const readProgress = () => {
       const rect = section.getBoundingClientRect();
 
@@ -96,7 +99,7 @@ export default function ScrollPhoneStory() {
 
       const progress = clamp(-rect.top / distance);
 
-      target = progress * LAST_FRAME;
+      target = motion.matches ? LAST_FRAME : progress * LAST_FRAME;
 
       section.style.setProperty("--story-progress", String(progress));
 
@@ -125,7 +128,7 @@ export default function ScrollPhoneStory() {
 
       const diff = target - current;
 
-      if (Math.abs(diff) < 0.35) {
+      if (motion.matches || Math.abs(diff) < 0.35) {
         current = target;
       } else {
         current += diff * 0.2;
@@ -154,6 +157,8 @@ export default function ScrollPhoneStory() {
 
     drawFrame(0);
 
+    motion.addEventListener("change", onScroll);
+
     addEventListener("scroll", onScroll, { passive: true });
 
     addEventListener("resize", onScroll);
@@ -163,6 +168,8 @@ export default function ScrollPhoneStory() {
     window.visualViewport?.addEventListener("resize", onScroll);
 
     return () => {
+      motion.removeEventListener("change", onScroll);
+
       removeEventListener("scroll", onScroll);
 
       removeEventListener("resize", onScroll);
@@ -179,32 +186,31 @@ export default function ScrollPhoneStory() {
 
   return (
     <section ref={sectionRef} className="scroll-phone-story relative h-[380vh]">
-      <div className="sticky top-0 h-screen overflow-hidden bg-gradient-to-br from-blue-ink via-blue-600 to-[#5948bd] px-4 pt-24">
-        <div className="absolute -left-32 top-1/3 h-80 w-80 rounded-full bg-bubblegum/30 blur-3xl" />
-        <div className="absolute -right-32 bottom-1/4 h-96 w-96 rounded-full bg-cyan/25 blur-3xl" />
+      <div className="sticky top-0 h-screen overflow-hidden bg-[#c1e4f4] px-4 pt-24">
+        <StoryDepth />
         <div className="relative mx-auto h-full w-full max-w-7xl">
           <canvas
             ref={canvasRef}
-            width={1280}
-            height={720}
+            width={1600}
+            height={900}
             role="img"
-            aria-label="Character floating toward an iPhone"
-            className="story-frame-canvas pointer-events-none absolute left-1/2 top-[39%] z-10 h-auto w-[1280px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_30px_40px_rgba(0,0,0,.22)]"
+            aria-label="Cloud mascot floating toward an iPhone"
+            className="story-frame-canvas pointer-events-none absolute left-1/2 top-[39%] z-10 h-auto w-[1280px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_16px_22px_rgba(20,38,107,.12)]"
           />
-          <div className="story-beat story-beat-one absolute left-0 top-10 z-20 max-w-xs text-white sm:top-14">
-            <p className="text-xs font-800 uppercase tracking-[.2em] text-cyan">
+          <div className="story-beat story-beat-one absolute left-0 top-10 z-20 max-w-xs text-blue-ink sm:top-14">
+            <p className="text-xs font-800 uppercase tracking-[.2em] text-[#3155a6]">
               01 · Choose your unit
             </p>
             <h2 className="mt-3 font-display text-3xl font-700 leading-tight sm:text-4xl">
               The iPhone you&apos;ve been reaching for.
             </h2>
-            <p className="mt-3 max-w-64 font-600 leading-relaxed text-white/70">
+            <p className="mt-3 max-w-64 font-600 leading-relaxed text-blue-ink/75">
               Quality options with the important details made clear before you
               commit.
             </p>
           </div>
-          <div className="story-beat story-beat-two absolute right-0 top-10 z-20 max-w-sm text-right text-white sm:top-14">
-            <p className="text-xs font-800 uppercase tracking-[.2em] text-cyan">
+          <div className="story-beat story-beat-two absolute right-0 top-10 z-20 max-w-sm text-right text-blue-ink sm:top-14">
+            <p className="text-xs font-800 uppercase tracking-[.2em] text-[#3155a6]">
               02 · Pick your rhythm
             </p>
             <h2 className="mt-3 font-display text-3xl font-700 leading-tight sm:text-4xl">
@@ -215,7 +221,7 @@ export default function ScrollPhoneStory() {
                 return (
                   <span
                     key={label}
-                    className="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-800 backdrop-blur-sm"
+                    className="rounded-full border border-blue-ink/20 bg-white/40 px-4 py-2 text-sm font-800 backdrop-blur-sm"
                   >
                     {label}
                   </span>
@@ -223,14 +229,14 @@ export default function ScrollPhoneStory() {
               })}
             </div>
           </div>
-          <div className="story-finale absolute inset-x-0 bottom-7 z-20 mx-auto max-w-3xl text-center text-white sm:bottom-10">
-            <p className="text-xs font-800 uppercase tracking-[.22em] text-cyan">
+          <div className="story-finale absolute inset-x-0 bottom-7 z-20 mx-auto max-w-3xl text-center text-blue-ink sm:bottom-10">
+            <p className="text-xs font-800 uppercase tracking-[.22em] text-[#3155a6]">
               Closer with every scroll
             </p>
             <h2 className="mt-3 font-display text-4xl font-700 leading-tight sm:text-6xl">
               Reach for your next iPhone.
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base font-600 leading-relaxed text-white/75 sm:text-lg">
+            <p className="mx-auto mt-4 max-w-2xl text-base font-600 leading-relaxed text-blue-ink/75 sm:text-lg">
               A clear plan turns the phone you want into a goal you can work
               toward—one manageable payment at a time.
             </p>
@@ -241,12 +247,12 @@ export default function ScrollPhoneStory() {
               View Available Units <ArrowRight weight="bold" />
             </a>
           </div>
-          <div className="absolute right-0 top-1/2 z-30 hidden h-52 -translate-y-1/2 items-center gap-3 text-white/55 lg:flex">
+          <div className="absolute right-0 top-1/2 z-30 hidden h-52 -translate-y-1/2 items-center gap-3 text-blue-ink/60 lg:flex">
             <span className="text-[10px] font-800 tracking-[.2em] [writing-mode:vertical-rl]">
               SCROLL STORY
             </span>
-            <span className="h-full w-px overflow-hidden bg-white/20">
-              <span className="story-progress block h-full origin-top bg-cyan" />
+            <span className="h-full w-px overflow-hidden bg-blue-ink/20">
+              <span className="story-progress block h-full origin-top bg-[#3155a6]" />
             </span>
           </div>
         </div>

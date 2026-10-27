@@ -14,5 +14,6 @@ See [BUILD_STATUS.md](BUILD_STATUS.md) for implemented scope and remaining accep
   support conversations, reports/exports and public agent verification.
 - Confirm verified-only money, BIR boundaries and human-only HR decisions.
 
-Account and MFA provisioning remain explicit. Deployment, client policy approval and named UAT must
+Local one-click role previews are available on `/login` after `seed:demo`; production account
+and MFA provisioning remain explicit. Deployment, client policy approval and named UAT must
 have their own evidence before release.

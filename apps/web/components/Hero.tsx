@@ -4,127 +4,73 @@ import {
   ChatCircleDots,
   ShieldCheck,
 } from "@phosphor-icons/react/dist/ssr";
-import Image from "next/image";
 import HeroLoop from "./HeroLoop";
+import HeroDeviceWord from "./HeroDeviceWord";
 import styles from "./Hero.module.css";
 
 export default function Hero() {
   return (
-    <section id="top" className="landing-hero" aria-labelledby="hero-title">
+    <section
+      id="top"
+      className={`landing-hero ${styles.section}`}
+      aria-labelledby="hero-title"
+    >
       <div className={`landing-hero-frame ${styles.frame}`}>
         <HeroLoop />
-        <div className="landing-hero-shade" aria-hidden="true" />
-        <div className="landing-hero-doodles" aria-hidden="true">
-          <Image
-            className="landing-hero-doodle bird-one"
-            src="/brand/doodles/bird-flight.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="76px"
-          />
-          <Image
-            className="landing-hero-doodle bird-two"
-            src="/brand/doodles/bird-happy.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="76px"
-          />
-          <Image
-            className="landing-hero-doodle cloud-one"
-            src="/brand/doodles/cloud-soft.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="76px"
-          />
-          <Image
-            className="landing-hero-doodle cloud-two"
-            src="/brand/doodles/cloud-round.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="76px"
-          />
-          <Image
-            className="landing-hero-doodle sparkle-one"
-            src="/brand/doodles/sparkle.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="76px"
-          />
-          <Image
-            className="landing-hero-doodle heart-one"
-            src="/brand/doodles/winged-heart.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="76px"
-          />
-          <Image
-            className="landing-hero-doodle bubble-one"
-            src="/brand/doodles/bubble.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="76px"
-          />
-        </div>
+        <div className={styles.shade} aria-hidden="true" />
 
-        <div className={`${styles.copy} landing-hero-intro`}>
-          <span className="landing-hero-eyebrow">
+        <div className={styles.copy}>
+          <span className={styles.eyebrow}>
             <ShieldCheck weight="fill" aria-hidden="true" />
             DTI registered iPhone &amp; iPad paluwagan
           </span>
-          <h1 id="hero-title">
-            <span>Your next phone</span>
-            <span>made manageable</span>
+          <h1
+            id="hero-title"
+            className={styles.title}
+            aria-label="Your next iPhone or iPad, made manageable."
+          >
+            <span>
+              Your next <HeroDeviceWord />
+            </span>
+            <span>made manageable.</span>
           </h1>
+          <p className={styles.description}>
+            Find your iPhone or iPad. Follow a clear paluwagan schedule, with
+            real people to guide you from application to release.
+          </p>
+          <a href="#units" className={styles.cta}>
+            View available units
+            <ArrowRight weight="bold" aria-hidden="true" />
+          </a>
         </div>
-
-        <div
-          className="landing-hero-facts"
-          aria-label="Fresh Phones service highlights"
-        >
-          <article>
+      </div>
+      <aside
+        className={styles.highlights}
+        aria-label="Fresh Phones service highlights"
+      >
+        <ul className={styles.facts}>
+          <li className={`${styles.glassCard} ${styles.interest}`}>
+            <strong>
+              0% <span>interest</span>
+            </strong>
+            <p>On approved paluwagan batches</p>
+          </li>
+          <li className={`${styles.glassCard} ${styles.schedule}`}>
             <CalendarCheck weight="duotone" aria-hidden="true" />
             <div>
               <strong>Clear schedules</strong>
-              <span>Know each expected due date.</span>
+              <p>Know each expected due date</p>
             </div>
-          </article>
-          <article>
+          </li>
+          <li className={`${styles.glassCard} ${styles.support}`}>
             <ChatCircleDots weight="duotone" aria-hidden="true" />
             <div>
               <strong>Human support</strong>
-              <span>Help from application to release.</span>
+              <p>From application to release</p>
             </div>
-          </article>
-        </div>
-
-        <article className="landing-hero-plan">
-          <div>
-            <span>Paluwagan plan</span>
-            <strong>0% interest</strong>
-          </div>
-          <p>Approved batches with a clear payment schedule.</p>
-        </article>
-
-        <a href="#units" className={`landing-hero-cta ${styles.cta}`}>
-          View available units
-          <span>
-            <ArrowRight weight="bold" aria-hidden="true" />
-          </span>
-        </a>
-
-        <div className="landing-hero-mobile-facts" aria-hidden="true">
-          <span>0% interest</span>
-          <span>Clear schedules</span>
-          <span>Human support</span>
-        </div>
-      </div>
+          </li>
+        </ul>
+      </aside>
     </section>
   );
 }

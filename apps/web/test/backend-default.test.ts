@@ -74,3 +74,32 @@ test("default login and identity requests use cookie sessions", async () => {
     { path: "/api/auth/me", credentials: "include", body: undefined },
   ]);
 });
+
+test("simultaneous identity reads share a request without caching later session checks", async () => {
+  let calls = 0;
+
+  globalThis.fetch = async () => {
+    calls++;
+
+    await new Promise((resolve) => {
+      return setTimeout(resolve, 10);
+    });
+
+    return Response.json({
+      id: "owner-id",
+      name: "Demo Owner",
+      role: "OWNER",
+      permissions: [],
+    });
+  };
+
+  const { fetchMe } = await import("../lib/api");
+
+  await Promise.all([fetchMe(), fetchMe(), fetchMe(), fetchMe()]);
+
+  assert.equal(calls, 1);
+
+  await fetchMe();
+
+  assert.equal(calls, 2);
+});

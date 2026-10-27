@@ -10,6 +10,7 @@ import {
 import { catalogPrice } from "@/lib/catalog";
 import { catalogSampleDate, catalogSampleDateLabel } from "@/lib/catalog-plan";
 import styles from "./CatalogBreakdown.module.css";
+import Link from "next/link";
 
 export default function CatalogBreakdown({
   item,
@@ -81,150 +82,182 @@ export default function CatalogBreakdown({
         Explore this offer before joining. Your confirmed agreement sets the
         actual amounts and dates; this preview does not reserve a unit.
       </p>
-      <dl className={styles.summary}>
-        <div>
-          <dt>Total payable</dt>
-          <dd>{catalogPrice(breakdown.totalAmount)}</dd>
-        </div>
-        <div>
-          <dt>Payment schedule</dt>
-          <dd>{catalogPlanLabels[plan.cadence]}</dd>
-        </div>
-        <div>
-          <dt>
-            {plan.installmentCount === 1
-              ? "Single installment"
-              : `First ${plan.installmentCount - 1} installment${plan.installmentCount === 2 ? "" : "s"}`}
-          </dt>
-          <dd>
-            {catalogPrice(breakdown.regularAmount)}
-            {plan.installmentCount > 2 ? " each" : ""}
-          </dd>
-        </div>
-        {plan.installmentCount > 1 && (
-          <div>
-            <dt>Final installment</dt>
-            <dd>{catalogPrice(breakdown.finalAmount)}</dd>
+      <div className={styles.cards}>
+        <section className={styles.card} aria-labelledby="catalog-plan-heading">
+          <h3 id="catalog-plan-heading">Plan at a glance</h3>
+          <dl className={styles.summary}>
+            <div>
+              <dt>Total payable</dt>
+              <dd>{catalogPrice(breakdown.totalAmount)}</dd>
+            </div>
+            <div>
+              <dt>Payment schedule</dt>
+              <dd>{catalogPlanLabels[plan.cadence]}</dd>
+            </div>
+            <div>
+              <dt>
+                {plan.installmentCount === 1
+                  ? "Single installment"
+                  : `First ${plan.installmentCount - 1} installment${plan.installmentCount === 2 ? "" : "s"}`}
+              </dt>
+              <dd>
+                {catalogPrice(breakdown.regularAmount)}
+                {plan.installmentCount > 2 ? " each" : ""}
+              </dd>
+            </div>
+            {plan.installmentCount > 1 && (
+              <div>
+                <dt>Final installment</dt>
+                <dd>{catalogPrice(breakdown.finalAmount)}</dd>
+              </div>
+            )}
+          </dl>
+          <p className={styles.note}>
+            {plan.installmentCount} payment
+            {plan.installmentCount === 1 ? "" : "s"} over{" "}
+            {breakdown.durationDays} days. The first payment is due{" "}
+            {breakdown.installments[0].dayOffset} days after the example start.
+            {breakdown.regularAmount !== breakdown.finalAmount &&
+              " The final installment includes the rounding difference so payments add up exactly to the total."}
+          </p>
+          <Link
+            href={`/inquire?device=${encodeURIComponent(item.name)}`}
+            className={styles.contact}
+          >
+            Ask about this offer
+          </Link>
+        </section>
+        <section
+          className={styles.card}
+          aria-labelledby="catalog-schedule-heading"
+        >
+          <div className={styles.scheduleHeading}>
+            <h3 id="catalog-schedule-heading">Payment schedule</h3>
+            <span>
+              {plan.installmentCount} payment
+              {plan.installmentCount === 1 ? "" : "s"}
+            </span>
           </div>
-        )}
-      </dl>
-      <p className={styles.note}>
-        {plan.installmentCount} payment{plan.installmentCount === 1 ? "" : "s"}{" "}
-        over {breakdown.durationDays} days. The first payment is due{" "}
-        {breakdown.installments[0].dayOffset} days after the example start.
-        {breakdown.regularAmount !== breakdown.finalAmount &&
-          " The final installment includes the rounding difference so payments add up exactly to the total."}
-      </p>
-      <label className={styles.date}>
-        Example start date <span>(optional)</span>
-        <input
-          type="date"
-          min="1900-01-01"
-          max="2100-12-31"
-          value={start}
-          aria-invalid={!validDate}
-          aria-describedby={!validDate ? "catalog-date-error" : undefined}
-          onChange={(event) => {
-            setStart(event.target.value);
+          <label className={styles.date}>
+            Example start date <span>(optional)</span>
+            <input
+              type="date"
+              min="1900-01-01"
+              max="2100-12-31"
+              value={start}
+              aria-invalid={!validDate}
+              aria-describedby={
+                !validDate ? "catalog-date-error" : "catalog-date-help"
+              }
+              onChange={(event) => {
+                setStart(event.target.value);
 
-            setPage(1);
-          }}
-        />
-      </label>
-      {plan.cadence !== "WEEKLY" && (
-        <p className={styles.note}>
-          These are fixed {plan.cadence === "SEMIMONTHLY" ? "15" : "30"}-day
-          intervals. Calendar due dates are confirmed when you join.
-        </p>
-      )}
-      {!validDate ? (
-        <p id="catalog-date-error" role="alert" className={styles.error}>
-          Choose a valid date between 1900 and 2100.
-        </p>
-      ) : (
-        <>
-          <div className={styles.tableWrap}>
-            <table>
-              <caption>
-                {start
-                  ? "Illustrative dates and amounts"
-                  : "Illustrative timing and amounts"}
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Payment</th>
-                  <th scope="col">
-                    {start ? "Example due date" : "After start"}
-                  </th>
-                  <th scope="col">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {breakdown.installments
-                  .slice((page - 1) * 20, page * 20)
-                  .map((payment) => {
-                    return (
-                      <tr key={payment.sequenceNo}>
-                        <th scope="row">{payment.sequenceNo}</th>
-                        <td>
-                          {start
-                            ? catalogSampleDateLabel(
-                                catalogSampleDate(start, payment.dayOffset)!,
-                              )
-                            : `Day ${payment.dayOffset}`}
-                        </td>
-                        <td>{catalogPrice(payment.amount)}</td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row" colSpan={2}>
-                    Total for all {plan.installmentCount} payments
-                  </th>
-                  <td>{catalogPrice(breakdown.totalAmount)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          {plan.installmentCount > 20 && (
-            <nav
-              className={styles.pagination}
-              aria-label="Sample payment pages"
-            >
-              <button
-                type="button"
-                disabled={page === 1}
-                onClick={() => {
-                  return setPage((value) => {
-                    return value - 1;
-                  });
-                }}
-              >
-                Previous payments
-              </button>
-              <span aria-live="polite">
-                Page {page} of {Math.ceil(plan.installmentCount / 20)}
-              </span>
-              <button
-                type="button"
-                disabled={page * 20 >= plan.installmentCount}
-                onClick={() => {
-                  return setPage((value) => {
-                    return value + 1;
-                  });
-                }}
-              >
-                Next payments
-              </button>
-            </nav>
+                setPage(1);
+              }}
+            />
+          </label>
+          <p id="catalog-date-help" className={styles.dateHelp}>
+            {start
+              ? "Dates below use your example start."
+              : "Choose a start to preview payment dates."}{" "}
+            Fixed{" "}
+            {plan.cadence === "WEEKLY"
+              ? "7"
+              : plan.cadence === "SEMIMONTHLY"
+                ? "15"
+                : "30"}
+            -day intervals; actual dates are confirmed when you join.
+          </p>
+          {!validDate ? (
+            <p id="catalog-date-error" role="alert" className={styles.error}>
+              Choose a valid date between 1900 and 2100.
+            </p>
+          ) : (
+            <>
+              <div className={styles.tableWrap}>
+                <table>
+                  <caption>
+                    {start
+                      ? "Illustrative dates and amounts"
+                      : "Illustrative timing and amounts"}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Payment</th>
+                      <th scope="col">
+                        {start ? "Example due date" : "After start"}
+                      </th>
+                      <th scope="col">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {breakdown.installments
+                      .slice((page - 1) * 20, page * 20)
+                      .map((payment) => {
+                        return (
+                          <tr key={payment.sequenceNo}>
+                            <th scope="row">{payment.sequenceNo}</th>
+                            <td>
+                              {start
+                                ? catalogSampleDateLabel(
+                                    catalogSampleDate(
+                                      start,
+                                      payment.dayOffset,
+                                    )!,
+                                  )
+                                : `Day ${payment.dayOffset}`}
+                            </td>
+                            <td>{catalogPrice(payment.amount)}</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th scope="row" colSpan={2}>
+                        Total for all {plan.installmentCount} payments
+                      </th>
+                      <td>{catalogPrice(breakdown.totalAmount)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              {plan.installmentCount > 20 && (
+                <nav
+                  className={styles.pagination}
+                  aria-label="Sample payment pages"
+                >
+                  <button
+                    type="button"
+                    disabled={page === 1}
+                    onClick={() => {
+                      return setPage((value) => {
+                        return value - 1;
+                      });
+                    }}
+                  >
+                    Previous payments
+                  </button>
+                  <span aria-live="polite">
+                    Page {page} of {Math.ceil(plan.installmentCount / 20)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={page * 20 >= plan.installmentCount}
+                    onClick={() => {
+                      return setPage((value) => {
+                        return value + 1;
+                      });
+                    }}
+                  >
+                    Next payments
+                  </button>
+                </nav>
+              )}
+            </>
           )}
-        </>
-      )}
-      <a href="#join" className={styles.contact} onClick={onClose}>
-        Ask about this offer
-      </a>
+        </section>
+      </div>
     </dialog>
   );
 }

@@ -9,6 +9,18 @@ import {
 import { allowed } from "../src/auth/access";
 import { safeUser } from "../src/auth/auth.service";
 
+test("financial verification ignores forged permission claims and remains Finance-only", () => {
+  for (const role of roles) {
+    const user = { role, permissions: ["PAYMENT_VERIFY"] };
+
+    assert.equal(
+      allowed(user, "PAYMENT_VERIFY"),
+      role === "FINANCE_OFFICER",
+      role,
+    );
+  }
+});
+
 test("confidential access requires an Owner or an explicit grant for an eligible role, even with forged permission claims", () => {
   for (const role of roles) {
     for (const hrConfidentialAccess of [false, true]) {

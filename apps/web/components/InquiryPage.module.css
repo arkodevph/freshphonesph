@@ -1,0 +1,224 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+  min-height: 100svh;
+  background: #fff;
+  color: #17265d;
+}
+.intro {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(32px, 4vw, 64px);
+  background: #172b68;
+  color: #fff;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.brand img {
+  object-fit: contain;
+  border-radius: 50%;
+}
+.brand b {
+  color: #a5d8ff;
+}
+.introBody {
+  margin: auto 0;
+  padding: 72px 0;
+}
+.eyebrow,
+.formEyebrow {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+.eyebrow {
+  color: #b7ceff;
+}
+.intro h2 {
+  margin-top: 24px;
+  font-size: clamp(2.6rem, 4vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+}
+.introBody > p {
+  max-width: 35ch;
+  margin-top: 24px;
+  color: #d3def8;
+  font-size: 1.0625rem;
+  line-height: 1.8;
+}
+.contacts {
+  display: grid;
+  gap: 24px;
+  margin-top: 48px;
+}
+.contacts a {
+  display: flex;
+  align-items: start;
+  gap: 16px;
+  max-width: 380px;
+}
+.contacts a > svg:first-child {
+  margin-top: 3px;
+  color: #b7ceff;
+}
+.contacts a > svg:last-child {
+  margin: 4px 0 0 auto;
+}
+.contacts strong,
+.contacts small {
+  display: block;
+}
+.contacts strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.contacts small {
+  margin-top: 5px;
+  color: #d3def8;
+  font-size: 0.875rem;
+}
+.introFooter {
+  display: grid;
+  gap: 6px;
+  font-size: 0.8125rem;
+}
+.introFooter > span {
+  color: #b7ceff;
+}
+.introFooter a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  padding: 36px clamp(24px, 5vw, 88px) 24px;
+}
+.back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: #536086;
+}
+.formArea {
+  width: 100%;
+  max-width: 600px;
+  margin: auto;
+  padding: 40px 0;
+}
+.formEyebrow {
+  color: #3a5fae;
+}
+.formArea h1 {
+  margin-top: 14px;
+  font-size: clamp(2.25rem, 3.6vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.05em;
+}
+.subtitle {
+  margin: 16px 0 28px;
+  max-width: 44ch;
+  font-size: 1rem;
+  color: #536086;
+  line-height: 1.7;
+}
+.footer {
+  text-align: center;
+  color: #536086;
+  font-size: 0.75rem;
+}
+.footer span {
+  margin: 0 8px;
+}
+.page a:focus-visible {
+  outline: 3px solid #73a6ff;
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+.page a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+@media (min-width: 1600px) {
+  .intro {
+    padding-left: max(64px, calc((100vw - 1480px) / 2));
+  }
+}
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  }
+  .intro {
+    padding: 28px;
+  }
+  .intro h2 {
+    font-size: 2.75rem;
+  }
+  .content {
+    padding: 28px 32px;
+  }
+  .brand {
+    font-size: 1rem;
+    gap: 8px;
+  }
+  .brand img {
+    width: 36px;
+    height: 36px;
+  }
+  .contacts {
+    gap: 24px;
+  }
+  .contacts a {
+    gap: 10px;
+  }
+}
+@media (max-width: 680px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .intro {
+    padding: 24px;
+  }
+  .introBody {
+    padding: 36px 0 0;
+  }
+  .intro h2 {
+    font-size: 2.5rem;
+    margin-top: 16px;
+  }
+  .introBody > p {
+    margin-top: 16px;
+    font-size: 1rem;
+  }
+  .contacts,
+  .introFooter {
+    display: none;
+  }
+  .content {
+    padding: 24px;
+  }
+  .formArea {
+    padding: 32px 0;
+  }
+  .formArea h1 {
+    font-size: 2.25rem;
+  }
+  .desktopBreak {
+    display: none;
+  }
+}

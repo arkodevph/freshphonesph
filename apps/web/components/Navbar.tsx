@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { systemHref } from "@/lib/site-links";
 import { List, X, SignIn } from "@phosphor-icons/react";
 
 const links = [
@@ -10,10 +11,13 @@ const links = [
   { href: "/#units", label: "Units" },
   { href: "/#how", label: "How it Works" },
   { href: "/careers", label: "Careers" },
+  { href: "/inquire", label: "Inquire" },
   { href: "/support", label: "Support" },
 ];
 
 export default function Navbar({ immersive = false }: { immersive?: boolean }) {
+  const loginHref = systemHref("/login");
+
   const [scrolled, setScrolled] = useState(false);
 
   const [open, setOpen] = useState(false);
@@ -60,8 +64,8 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
                 : "bg-white/30 backdrop-blur-sm"
           }`}
         >
-          <a href="/#top" className="flex items-center gap-2.5 pl-1">
-            <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-2xl chrome">
+          <a href="/#top" className="flex min-w-0 items-center gap-2.5 pl-1">
+            <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-2xl chrome">
               <Image
                 src="/brand/fresh-phones-logo.png"
                 alt="Fresh Phones PH logo"
@@ -70,7 +74,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
                 className="h-9 w-9 scale-150 object-cover"
               />
             </span>
-            <span className="font-body text-base font-800 leading-none tracking-tight text-blue-ink sm:text-lg">
+            <span className="min-w-0 break-words font-body text-base font-800 leading-none tracking-tight text-blue-ink sm:text-lg">
               Fresh Phones <span className="holo-text">PH</span>
             </span>
           </a>
@@ -90,9 +94,13 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
             })}
           </ul>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <a
-              href="/login"
+              href={loginHref ?? undefined}
+              role="link"
+              tabIndex={0}
+              aria-disabled={!loginHref}
+              title={loginHref ? undefined : "Login will be available soon"}
               className="btn-candy hidden items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-700 sm:inline-flex"
             >
               <SignIn weight="bold" className="h-4 w-4" />
@@ -133,7 +141,11 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
               })}
               <li className="mt-1 px-1">
                 <a
-                  href="/login"
+                  href={loginHref ?? undefined}
+                  role="link"
+                  tabIndex={0}
+                  aria-disabled={!loginHref}
+                  title={loginHref ? undefined : "Login will be available soon"}
                   onClick={() => {
                     return setOpen(false);
                   }}

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import { PresentationNotice } from "@/components/PresentationNotice";
+import { PRESENTATION_MODE } from "@/lib/presentation";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -8,6 +10,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
+  ...(PRESENTATION_MODE ? { robots: { index: false, follow: false } } : {}),
   title: "Fresh Phones PH · iPhone & iPad Paluwagan",
   description:
     "Quality pre-owned and brand-new iPhones and iPad through paluwagan and installment. Flexible weekly, 15 & 30, or monthly payments as low as ₱59 a day. DTI registered as FP Gadget Center.",
@@ -51,7 +54,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full overflow-x-hidden">{children}</body>
+      <body className="min-h-full overflow-x-hidden">
+        {children}
+        <PresentationNotice />
+      </body>
     </html>
   );
 }

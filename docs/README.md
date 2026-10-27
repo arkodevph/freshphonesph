@@ -37,6 +37,13 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 
 ## Documents
 
+For the sequential task queue aligned with the Basic Website Workflow and Organizational
+Structure V4, start with [the workflow implementation checklist](58-workflow-v4-implementation-checklist.md).
+For a focused list of what is missing or needs revision, use
+[missing features and required revisions](59-missing-features-and-required-revisions.md).
+Begin implementation with [Sprint 1 V4 roles and access](60-sprint-1-v4-roles-and-access.md).
+Its first task is specified in [the V4 role and permission matrix](61-v4-role-and-permission-matrix.md).
+
 | Doc | Covers | Scope refs |
 |---|---|---|
 | [00-roadmap.md](00-roadmap.md) | SDLC phases, milestones, payment schedule | §17, §20, §21 |

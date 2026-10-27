@@ -35,7 +35,17 @@ Verify API connectivity with `GET /api/health` and Redis/worker readiness with
 
 ## Development accounts
 
-Provision regular employee and linked customer accounts through `POST /api/accounts`.
+For one-click access to all 11 roles, configure a local preview database with a name ending
+in `_preview`. Set the same generated, server-only `LOCAL_DEMO_PASSWORD` in the API and web
+environment files. Apply migrations to that database, then run:
+
+```bash
+pnpm --filter @fresh/api-ts seed:demo
+```
+
+The seed is repeatable and includes a linked customer and assigned handler. Open `/login`
+and choose a workspace. The shortcut creates normal Better Auth sessions and is disabled
+in production. Regular account provisioning uses `POST /api/accounts`.
 
 ## Verification
 

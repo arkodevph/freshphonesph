@@ -18,7 +18,8 @@ and scope before services read or mutate records. Hidden sidebar items are only 
 convenience. Confidential HR access is separately granted and audited; a staff role alone
 does not expose private applicant or employee records.
 
-Provision accounts through `POST /api/accounts`.
+Provision accounts through `POST /api/accounts`. Development previews can seed all 11 roles
+with `seed:demo`; the one-click preview route is disabled in production.
 
 See [04-roles-access.md](04-roles-access.md), [42-confidential-hr-access.md](42-confidential-hr-access.md)
 and [52-authentication-mfa.md](52-authentication-mfa.md).
