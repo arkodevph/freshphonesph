@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
+import StoryDepth from "./StoryDepth";
 
 const TOTAL_FRAMES = 115;
 
@@ -87,6 +88,8 @@ export default function ScrollPhoneStory() {
       frames[index] = image;
     }
 
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
     const readProgress = () => {
       const rect = section.getBoundingClientRect();
 
@@ -96,7 +99,7 @@ export default function ScrollPhoneStory() {
 
       const progress = clamp(-rect.top / distance);
 
-      target = progress * LAST_FRAME;
+      target = motion.matches ? LAST_FRAME : progress * LAST_FRAME;
 
       section.style.setProperty("--story-progress", String(progress));
 
@@ -125,7 +128,7 @@ export default function ScrollPhoneStory() {
 
       const diff = target - current;
 
-      if (Math.abs(diff) < 0.35) {
+      if (motion.matches || Math.abs(diff) < 0.35) {
         current = target;
       } else {
         current += diff * 0.2;
@@ -154,6 +157,8 @@ export default function ScrollPhoneStory() {
 
     drawFrame(0);
 
+    motion.addEventListener("change", onScroll);
+
     addEventListener("scroll", onScroll, { passive: true });
 
     addEventListener("resize", onScroll);
@@ -163,6 +168,8 @@ export default function ScrollPhoneStory() {
     window.visualViewport?.addEventListener("resize", onScroll);
 
     return () => {
+      motion.removeEventListener("change", onScroll);
+
       removeEventListener("scroll", onScroll);
 
       removeEventListener("resize", onScroll);
@@ -180,6 +187,7 @@ export default function ScrollPhoneStory() {
   return (
     <section ref={sectionRef} className="scroll-phone-story relative h-[380vh]">
       <div className="sticky top-0 h-screen overflow-hidden bg-[#c1e4f4] px-4 pt-24">
+        <StoryDepth />
         <div className="relative mx-auto h-full w-full max-w-7xl">
           <canvas
             ref={canvasRef}

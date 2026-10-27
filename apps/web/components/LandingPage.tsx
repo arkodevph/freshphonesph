@@ -18,7 +18,7 @@ export default function Home() {
     <>
       <LandingLoader />
       <Navbar immersive />
-      <main>
+      <main className="landing-page">
         <Hero />
         <CloudDivider />
         <ScrollPhoneStory />

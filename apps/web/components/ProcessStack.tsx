@@ -1,14 +1,21 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useProcessStack } from "@/lib/useProcessStack";
 import styles from "./ProcessStack.module.css";
+import type { ReactNode } from "react";
 
 const panels = [
   {
+    label: "Choose & prepare",
     title: "Find your next favourite.",
-    description: "A little planning brings your next iPhone or iPad closer.",
-    image: "/products/iphone-15-overlap-transparent.png",
+    description:
+      "Find the iPhone or iPad that fits you. Then get ready for your application, with a little help from our team.",
+    image: "/brand/mascot/cloud-boy-choose-prepare-v1.png",
+    imageAlt:
+      "Cloud-boy comparing an iPhone and iPad beside a requirements checklist",
+    note: "The team confirms current unit availability and application requirements.",
     steps: [
       [
         "Choose your unit",
@@ -21,10 +28,14 @@ const panels = [
     ],
   },
   {
+    label: "Meet your team",
     title: "Real people. Clear answers.",
     description:
       "Get guidance from the Fresh Phones PH team before joining a batch.",
-    image: "/brand/mascot/cloud-boy-guidance-v1.png",
+    image: "/brand/mascot/cloud-boy-meet-team-v1.png",
+    imageAlt:
+      "Cloud-boy answering questions beside a conversation bubble and application checklist",
+    note: "Ask about the batch terms before deciding to join.",
     steps: [
       [
         "Contact Fresh Phones PH",
@@ -32,15 +43,19 @@ const panels = [
       ],
       [
         "Application review",
-        "The team reviews your application and requirements.",
+        "Submit your requirements for the team to review. Joining is subject to approval.",
       ],
     ],
   },
   {
+    label: "Plan & track",
     title: "A plan you can follow.",
     description:
-      "Know your agreed amounts, expected due dates and payment progress.",
-    image: "/portal/illustrations/payments.png",
+      "Know what to pay and when it is due. Follow your agreed schedule and see your verified payment progress.",
+    image: "/brand/mascot/cloud-boy-plan-track-v1.png",
+    imageAlt:
+      "Cloud-boy pointing to checked calendar dates and showing payment progress on a phone",
+    note: "Only Finance-verified payments reduce your remaining balance.",
     steps: [
       [
         "Join an approved batch",
@@ -48,15 +63,19 @@ const panels = [
       ],
       [
         "Follow your schedule",
-        "Pay through authorized channels and track verified records.",
+        "Pay through the agreed external channels. Check verified payments in your portal.",
       ],
     ],
   },
   {
+    label: "Complete & collect",
     title: "Your next phone. Finally yours.",
     description:
-      "From the first conversation to release, you know what comes next.",
-    image: "/products/iphone-16-overlap-transparent.png",
+      "Finish your agreed payments, confirm your release requirements, and let the team guide you through the handover.",
+    image: "/brand/mascot/cloud-boy-complete-collect-v1.png",
+    imageAlt:
+      "Cloud-boy happily unboxing a phone beside its packaging and completed checklist",
+    note: "Your release schedule follows your approved batch terms.",
     steps: [
       [
         "Complete payments",
@@ -70,98 +89,10 @@ const panels = [
   },
 ] as const;
 
-export default function ProcessStack() {
+export default function ProcessStack({ children }: { children?: ReactNode }) {
   const trackRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const track = trackRef.current;
-
-    if (!track) {
-      return;
-    }
-
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    const cards = Array.from(track.querySelectorAll<HTMLElement>("article"));
-
-    const stage = track.firstElementChild as HTMLElement;
-
-    let frame = 0;
-
-    let visible = false;
-
-    const draw = () => {
-      frame = 0;
-
-      if (!visible || motion.matches || innerHeight < 620) {
-        return;
-      }
-
-      const top = Number.parseFloat(getComputedStyle(stage).top);
-
-      const travel = Math.max(1, track.offsetHeight - stage.offsetHeight);
-
-      const progress = Math.max(
-        0,
-        Math.min(1, (top - track.getBoundingClientRect().top) / travel),
-      );
-
-      const position = progress * (panels.length - 0.2);
-
-      cards.forEach((card, index) => {
-        const exit =
-          index === panels.length - 1
-            ? 0
-            : Math.max(0, Math.min(1, (position - index - 0.55) / 0.45));
-
-        const depth = Math.max(0, index - position);
-
-        card.style.setProperty("--exit", String(exit));
-
-        card.style.setProperty("--depth", String(Math.min(3, depth)));
-      });
-    };
-
-    const schedule = () => {
-      if (!frame && visible) {
-        frame = requestAnimationFrame(draw);
-      }
-    };
-
-    const sync = () => {
-      track.dataset.animated = String(!motion.matches && innerHeight >= 620);
-
-      schedule();
-    };
-
-    const observer = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-
-      schedule();
-    });
-
-    observer.observe(track);
-
-    sync();
-
-    window.addEventListener("scroll", schedule, { passive: true });
-
-    window.addEventListener("resize", sync);
-
-    motion.addEventListener("change", sync);
-
-    return () => {
-      cancelAnimationFrame(frame);
-
-      observer.disconnect();
-
-      window.removeEventListener("scroll", schedule);
-
-      window.removeEventListener("resize", sync);
-
-      motion.removeEventListener("change", sync);
-    };
-  }, []);
+  useProcessStack(trackRef, panels.length);
 
   return (
     <section
@@ -185,25 +116,38 @@ export default function ProcessStack() {
               <article
                 key={panel.title}
                 className={styles.card}
+                data-panel={index}
+                aria-labelledby={`process-card-${index}`}
                 style={{ zIndex: panels.length - index }}
               >
                 <div className={styles.topline}>
-                  <span>FRESH PHONES PH</span>
-                  <span>({String(index + 1).padStart(2, "0")} / 04)</span>
+                  <span>{panel.label}</span>
+                  <span className={styles.counter}>
+                    {String(index + 1).padStart(2, "0")} <span>/ 04</span>
+                  </span>
+                </div>
+                <div className={styles.progress} aria-hidden="true">
+                  {panels.map((item, marker) => {
+                    return (
+                      <span key={item.label} data-reached={marker <= index} />
+                    );
+                  })}
                 </div>
                 <div className={styles.main}>
                   <div>
-                    <h3>{panel.title}</h3>
+                    <h3 id={`process-card-${index}`}>{panel.title}</h3>
                     <p>{panel.description}</p>
                   </div>
-                  <Image
-                    src={panel.image}
-                    alt=""
-                    width={520}
-                    height={520}
-                    sizes="(max-width: 640px) 140px, 320px"
-                    className={styles.visual}
-                  />
+                  <div className={styles.scene}>
+                    <Image
+                      src={panel.image}
+                      alt={panel.imageAlt}
+                      width={1254}
+                      height={1254}
+                      sizes="(max-width: 640px) calc(100vw - 80px), (max-width: 1024px) 40vw, 420px"
+                      className={styles.visual}
+                    />
+                  </div>
                 </div>
                 <ol start={index * 2 + 1} className={styles.steps}>
                   {panel.steps.map(([title, description], step) => {
@@ -220,14 +164,13 @@ export default function ProcessStack() {
                     );
                   })}
                 </ol>
+                <p className={styles.note}>{panel.note}</p>
               </article>
             );
           })}
+          <div className={styles.reviews}>{children}</div>
         </div>
       </div>
-      <a href="#requirements" className={styles.next}>
-        See what you need to prepare <span aria-hidden="true">↗</span>
-      </a>
     </section>
   );
 }

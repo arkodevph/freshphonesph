@@ -1,0 +1,159 @@
+.requirements {
+  scroll-margin-top: 6rem;
+  background: #edf3fd;
+}
+.preparation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  max-width: 72rem;
+  margin: 2.5rem auto 0;
+}
+.panel {
+  min-width: 0;
+  border: 1px solid #dce2ed;
+  border-radius: 1.5rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  background: #fff;
+  color: #14266b;
+}
+.icon {
+  width: 2rem;
+  height: 2rem;
+  color: #3154c9;
+}
+.panel h3 {
+  margin-top: 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.panel p {
+  margin-top: 0.75rem;
+  color: #53617e;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.checklist {
+  display: grid;
+  gap: 0.875rem;
+  margin: 1.5rem 0;
+}
+.checklist li {
+  display: flex;
+  align-items: start;
+  gap: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.checklist svg {
+  flex: 0 0 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.1875rem;
+  color: #3154c9;
+}
+.panel .note {
+  border-top: 1px solid #dce2ed;
+  padding-top: 1rem;
+  font-size: 0.8125rem;
+}
+.record {
+  margin-top: 1.5rem;
+  border-top: 1px solid #dce2ed;
+  padding-top: 1.25rem;
+}
+.record h4 {
+  font-size: 1rem;
+  font-weight: 800;
+}
+.record p {
+  font-size: 0.875rem;
+}
+.join {
+  padding: clamp(3rem, 6vw, 5rem) 1.25rem;
+  background: #f7f9fa;
+  scroll-margin-top: 6rem;
+}
+.joinCard {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  overflow: hidden;
+  max-width: 64rem;
+  min-height: 29rem;
+  margin-inline: auto;
+  padding: 4rem 1.5rem;
+  border: 1px solid #3152a1;
+  border-radius: 1.5rem;
+  background: #14266b;
+  color: #fff;
+  text-align: center;
+}
+.joinArt {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  opacity: 0.65;
+  pointer-events: none;
+}
+.joinInner {
+  max-width: 38rem;
+  margin: auto;
+}
+.join h2 {
+  font-size: clamp(2rem, 3.75vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.join p {
+  max-width: 34rem;
+  margin: 1.5rem auto 0;
+  color: #f2f5ff;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.875rem;
+  min-height: 3rem;
+  margin-top: 2rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #14266b;
+  font-weight: 800;
+  font-size: 0.875rem;
+  transition: background 150ms;
+}
+.primary:hover {
+  background: #e4eafa;
+}
+.primary svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.join :is(a, button):focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+}
+@media (max-width: 767px) {
+  .joinCard {
+    min-height: 25rem;
+    padding: 3rem 1.25rem;
+  }
+  .preparation {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.checklist span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

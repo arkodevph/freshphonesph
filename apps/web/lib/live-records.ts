@@ -1,4 +1,5 @@
 import { API_URL } from "./backend";
+import { PRESENTATION_MODE } from "./presentation";
 import { ApiError, tsRequest } from "./ts-api";
 
 const listeners = new Set<() => void>();
@@ -92,6 +93,10 @@ function connect() {
 
 /** Share the browser connection; each consumer still reloads its authorized snapshot. */
 export function subscribeLiveRecords(listener: () => void) {
+  if (PRESENTATION_MODE) {
+    return () => {};
+  }
+
   listeners.add(listener);
 
   if (listeners.size === 1) {

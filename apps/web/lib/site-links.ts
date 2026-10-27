@@ -1,3 +1,5 @@
+import { PRESENTATION_MODE } from "./presentation";
+
 export function systemHref(path: string): string | null {
   const origin = process.env.NEXT_PUBLIC_SYSTEM_URL?.replace(/\/$/, "");
 
@@ -9,4 +11,5 @@ export function systemHref(path: string): string | null {
 }
 
 export const landingHref =
-  process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:3001";
+  process.env.NEXT_PUBLIC_LANDING_URL ||
+  (PRESENTATION_MODE ? "/login" : "http://localhost:3001");

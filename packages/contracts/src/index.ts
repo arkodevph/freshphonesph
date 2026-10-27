@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export * from "./catalog";
 
+export * from "./inquiries";
+
 export * from "./legal";
 
 export * from "./retention";

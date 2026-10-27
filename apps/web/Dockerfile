@@ -18,6 +18,8 @@ COPY packages/contracts ./packages/contracts
 COPY apps/web ./apps/web
 
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_LANDING_URL
+ARG API_PROXY_URL
 
 RUN pnpm --filter @freshphones/contracts build \
     && pnpm --filter @fresh/web build

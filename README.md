@@ -8,8 +8,8 @@ notifications.
 The stack uses TypeScript across these deployables:
 
 - `apps/landing`: public Next.js 16 and React 19 site dedicated to Vercel
-- `apps/web`: login, staff system and customer portal hosted separately
-- NestJS REST API on Railway
+- `apps/web`: login, staff system and customer portal on Render
+- NestJS REST API and background worker on Render
 - Prisma migrations with Neon PostgreSQL; local PostgreSQL for development
 - Better Auth sessions and MFA
 - private S3-compatible storage; production provider selection pending
@@ -20,6 +20,10 @@ The stack uses TypeScript across these deployables:
 database structure; `packages/contracts/` supplies shared API validation and types.
 
 ## Start here
+
+**Current presentation deployment:** use Vercel with **Root Directory `apps/web`**.
+The included configuration enables a read-only demo with fictional sample data and
+role selection, without a database or API. Follow [the Vercel presentation guide](docs/57-vercel-presentation.md).
 
 - [Project documentation](docs/README.md)
 - [Full Scope v5 implementation workflow](docs/17-full-scope-workflow.md)
@@ -75,6 +79,10 @@ uses `next build`. The exact internal cause of Turbopack's worker growth remains
 unconfirmed; do not retry it without process-tree resource limits.
 
 ## Landing site and system deployments
+
+The system, API and worker target Render; the public landing site stays on Vercel.
+See [the Render deployment guide](docs/56-render-deployment.md) for service settings,
+environment variables and the remaining production blockers.
 
 Deploy **`apps/landing`** as the Vercel project root, with the Next.js preset and
 `pnpm build` as the build command. Enable access to files outside the root directory:

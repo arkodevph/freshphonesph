@@ -30,8 +30,9 @@ export default function Faq() {
   }
 
   return (
-    <section id="faq" className="relative scroll-mt-24 px-4 py-20">
+    <section id="faq" className="landing-content-section relative scroll-mt-24">
       <SectionHeading
+        eyebrow="Good to know"
         title={
           <>
             Frequently asked <span className="holo-text">questions</span>

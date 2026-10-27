@@ -87,6 +87,12 @@ const NAV = [
   },
   {
     icon: Headset,
+    label: "Device inquiries",
+    href: "/system/inquiries",
+    perms: ["SUPPORT_MANAGE"],
+  },
+  {
+    icon: Headset,
     label: "Customer Service",
     href: "/system/support",
     perms: ["SUPPORT_MANAGE"],

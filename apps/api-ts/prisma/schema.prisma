@@ -1090,3 +1090,27 @@ model RetentionFileJob {
   @@index([requestId, status])
   @@index([status, nextAt])
 }
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+model DeviceInquiry {
+  id String @id @default(uuid()) @db.Uuid
+  submissionId String @unique @db.Uuid
+  name String @db.VarChar(100)
+  phone String @db.VarChar(30)
+  email String @default("") @db.VarChar(254)
+  deviceName String @db.VarChar(160)
+  message String @default("") @db.VarChar(2000)
+  contactAcknowledgedAt DateTime @default(now())
+  status InquiryStatus @default(NEW)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt, id])
+  @@index([createdAt, id])
+}

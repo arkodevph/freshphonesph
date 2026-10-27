@@ -5,6 +5,21 @@ const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.resolve(__dirname, "../.."),
   devIndicators: false,
+  async rewrites() {
+    if (process.env.NEXT_PUBLIC_PRESENTATION_MODE === "true") {
+      return [];
+    }
+
+    const apiOrigin = process.env.API_PROXY_URL?.replace(/\/$/, "");
+
+    return apiOrigin
+      ? {
+          beforeFiles: [
+            { source: "/api/:path*", destination: `${apiOrigin}/api/:path*` },
+          ],
+        }
+      : [];
+  },
   experimental: {
     optimizePackageImports: [
       "@phosphor-icons/react",

@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { safeSupportReturn, signInDestination } from "@/lib/support-entry";
 import { tsRequest } from "@/lib/ts-api";
+import { PRESENTATION_MODE } from "@/lib/presentation";
 import LoginCharacters, { type CharacterMood } from "./LoginCharacters";
 import styles from "./login.module.css";
 
@@ -169,11 +170,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/demo-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
+      const response = await fetch(
+        PRESENTATION_MODE ? "/api/presentation-login" : "/api/demo-login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role }),
+        },
+      );
 
       const result = await response.json();
 
@@ -240,31 +244,37 @@ export default function LoginPage() {
             <p className={styles.intro}>
               {supportEntry
                 ? "Use your Fresh Phones PH account to start a request or follow an existing concern. We’ll bring you back to Support after sign-in."
-                : "Your Fresh Phones workspace is waiting."}
+                : PRESENTATION_MODE
+                  ? "Choose a role to explore the system with fictional sample records. No account or password needed."
+                  : "Your Fresh Phones workspace is waiting."}
             </p>
 
-            {process.env.NODE_ENV === "development" && !challenge && (
-              <details className={styles.demo}>
-                <summary>Preview a workspace</summary>
-                <p>One-click preview. No password needed.</p>
-                <div className={styles.demoRoles}>
-                  {roles.map((role) => {
-                    return (
-                      <button
-                        key={role}
-                        type="button"
-                        disabled={loading}
-                        onClick={() => {
-                          return openDemo(role);
-                        }}
-                      >
-                        {roleLabels[role]} <ArrowRight aria-hidden="true" />
-                      </button>
-                    );
-                  })}
-                </div>
-              </details>
-            )}
+            {(PRESENTATION_MODE || process.env.NODE_ENV === "development") &&
+              !challenge && (
+                <details
+                  className={styles.demo}
+                  open={PRESENTATION_MODE || undefined}
+                >
+                  <summary>Preview a workspace</summary>
+                  <p>One-click preview. No password needed.</p>
+                  <div className={styles.demoRoles}>
+                    {roles.map((role) => {
+                      return (
+                        <button
+                          key={role}
+                          type="button"
+                          disabled={loading}
+                          onClick={() => {
+                            return openDemo(role);
+                          }}
+                        >
+                          {roleLabels[role]} <ArrowRight aria-hidden="true" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </details>
+              )}
 
             {challenge ? (
               <form
@@ -335,6 +345,12 @@ export default function LoginPage() {
                   Back to sign in
                 </button>
               </form>
+            ) : PRESENTATION_MODE ? (
+              error && (
+                <p role="alert" className={styles.error}>
+                  {error}
+                </p>
+              )
             ) : (
               <>
                 <form

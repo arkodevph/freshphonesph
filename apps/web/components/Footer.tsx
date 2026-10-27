@@ -1,15 +1,32 @@
 import Image from "next/image";
-import { FacebookLogo, MessengerLogo } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowRight,
+  FacebookLogo,
+  MessengerLogo,
+} from "@phosphor-icons/react/dist/ssr";
+import styles from "./Footer.module.css";
 
-const nav = [
-  { href: "/#how", label: "How it Works" },
-  { href: "/#units", label: "Units & payment offers" },
-  { href: "/#faq", label: "FAQ" },
-  { href: "/careers", label: "Careers" },
-  { href: "/verify", label: "Verify an agent" },
-  { href: "/support", label: "Support" },
-  { href: "/privacy", label: "Privacy notices" },
-  { href: "/terms", label: "Portal terms" },
+const groups = [
+  {
+    title: "Company",
+    links: [
+      { href: "/", label: "Home" },
+      { href: "/about", label: "About us" },
+      { href: "/careers", label: "Careers" },
+      { href: "/privacy", label: "Privacy notices" },
+      { href: "/terms", label: "Portal terms" },
+    ],
+  },
+  {
+    title: "Explore",
+    links: [
+      { href: "/#units", label: "Available units" },
+      { href: "/#how", label: "How it works" },
+      { href: "/about#verify", label: "Verify an agent" },
+      { href: "/#faq", label: "FAQs" },
+      { href: "/support", label: "Customer support" },
+    ],
+  },
 ];
 
 const socials = [
@@ -27,34 +44,31 @@ const socials = [
 
 export default function Footer() {
   return (
-    <footer className="px-4 pb-10 pt-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="glass rounded-[2.5rem] p-8 sm:p-10">
-          <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
+    <footer className={`landing-footer ${styles.footer}`}>
+      <div className={styles.inner}>
+        <div>
+          <div className={styles.grid}>
             {/* brand */}
             <div>
-              <div className="flex items-center gap-3">
-                <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl chrome">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full">
                   <Image
                     src="/brand/fresh-phones-logo.png"
                     alt="Fresh Phones PH"
-                    width={48}
-                    height={48}
-                    className="h-11 w-11 scale-150 object-cover"
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 scale-150 object-cover"
                   />
                 </span>
-                <div className="font-display text-xl font-700 leading-tight text-blue-ink">
+                <div className="min-w-0 break-words font-display text-base font-700 leading-tight text-blue-ink">
                   Fresh Phones <span className="holo-text">PH</span>
-                  <span className="block text-xs font-600 tracking-[0.3em] text-ink-soft">
-                    GADGET CENTER
-                  </span>
                 </div>
               </div>
-              <p className="mt-4 max-w-xs text-sm font-500 leading-relaxed text-ink-soft">
-                The friendly, trusted way to own an iPhone or iPad through
-                paluwagan. DTI registered under FP Gadget Center.
+              <p className={styles.description}>
+                Your next iPhone or iPad, with a clear plan and real people to
+                guide you.
               </p>
-              <div className="mt-5 flex gap-2.5">
+              <div className={styles.socials}>
                 {socials.map((s) => {
                   return (
                     <a
@@ -63,7 +77,7 @@ export default function Footer() {
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={s.label}
-                      className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-blue-ink transition-colors hover:bg-blue hover:text-white"
+                      className={styles.social}
                     >
                       <s.icon weight="fill" className="h-5 w-5" />
                     </a>
@@ -72,54 +86,50 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* links */}
-            <div>
-              <h3 className="font-display text-sm font-700 uppercase tracking-wider text-blue-ink">
-                Explore
-              </h3>
-              <ul className="mt-4 space-y-2.5">
-                {nav.map((l) => {
-                  return (
-                    <li key={l.href}>
-                      <a
-                        href={l.href}
-                        className="text-sm font-600 text-ink-soft transition-colors hover:text-blue"
-                      >
-                        {l.label}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            {/* contact */}
-            <div>
-              <h3 className="font-display text-sm font-700 uppercase tracking-wider text-blue-ink">
-                Get in touch
-              </h3>
-              <ul className="mt-4 space-y-2.5 text-sm font-600 text-ink-soft">
-                <li>
-                  <a
-                    href="tel:+639624791649"
-                    className="transition-colors hover:text-blue"
-                  >
-                    0962 479 1649
-                  </a>
-                </li>
-                <li>Owner: Mr. Dale John Garcia Tambong</li>
-                <li>GCash, Maya, or bank transfer</li>
-              </ul>
-              <a
-                href="/#join"
-                className="btn-candy mt-5 inline-flex rounded-full px-5 py-2.5 text-sm font-700"
+            {groups.map((group) => (
+              <nav
+                key={group.title}
+                aria-label={`Footer ${group.title.toLowerCase()}`}
               >
-                Reserve a Slot
+                <h3 className={styles.columnHeading}>{group.title}</h3>
+                <ul className={styles.links}>
+                  {group.links.map((l) => {
+                    return (
+                      <li key={l.href}>
+                        <a href={l.href} className={styles.navLink}>
+                          {l.label}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </nav>
+            ))}
+
+            <div className={styles.contact}>
+              <h3 className={styles.columnHeading}>Let&apos;s talk</h3>
+              <p className={styles.description}>
+                Questions about a device or your plan? Get a little guidance
+                from our team.
+              </p>
+              <a
+                href="https://m.me/FreshPhonesPh"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.contactButton}
+              >
+                Message our team
+                <span>
+                  <ArrowRight weight="bold" aria-hidden="true" />
+                </span>
+              </a>
+              <a className={styles.phone} href="tel:+639624791649">
+                0962 479 1649
               </a>
             </div>
           </div>
 
-          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-blue/10 pt-6 text-center sm:flex-row sm:text-left">
+          <div className={styles.bottom}>
             <p className="text-xs font-600 text-ink-soft">
               © {new Date().getFullYear()} Fresh Phones PH. DTI registered as FP
               Gadget Center.
@@ -128,7 +138,7 @@ export default function Footer() {
               Not affiliated with Apple Inc. iPhone is a trademark of Apple Inc.
             </p>
           </div>
-          <p className="mt-3 text-center text-xs text-ink-soft/80">
+          <p className={styles.credits}>
             iPhone mockup adapted from{" "}
             <a
               className="underline"
@@ -143,7 +153,14 @@ export default function Footer() {
             >
               CC BY 4.0
             </a>
-            .
+            . Star icons by{" "}
+            <a
+              className="underline"
+              href="https://www.figma.com/community/file/1166831539721848736"
+            >
+              480 Design (Solar)
+            </a>
+            , CC BY 4.0.
           </p>
         </div>
       </div>

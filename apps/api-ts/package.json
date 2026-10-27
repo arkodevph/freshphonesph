@@ -19,7 +19,7 @@
     "launch:check": "tsx scripts/customer-launch-check.ts",
     "staff-email:check": "tsx scripts/staff-email-launch-check.ts",
     "test": "tsx --test test/unit.test.ts test/records-history.test.ts test/staff-email-launch.test.ts test/ledger.test.ts test/recruitment-query.test.ts test/confidential-hr.test.ts test/catalog.test.ts test/retention.test.ts",
-    "test:integration": "tsx --test --test-concurrency=1 test/integration.test.ts test/reports.integration.test.ts test/reconciliation.integration.test.ts test/payment-adjustments.integration.test.ts test/recruitment-directory.integration.test.ts test/confidential-hr.integration.test.ts test/hr-actions.integration.test.ts test/catalog.integration.test.ts test/support-source.integration.test.ts test/report-analysis.integration.test.ts test/legal.integration.test.ts test/retention.integration.test.ts test/auth-mfa.integration.test.ts",
+    "test:integration": "tsx --test --test-concurrency=1 test/integration.test.ts test/reports.integration.test.ts test/reconciliation.integration.test.ts test/payment-adjustments.integration.test.ts test/recruitment-directory.integration.test.ts test/confidential-hr.integration.test.ts test/hr-actions.integration.test.ts test/catalog.integration.test.ts test/support-source.integration.test.ts test/report-analysis.integration.test.ts test/legal.integration.test.ts test/retention.integration.test.ts test/auth-mfa.integration.test.ts test/inquiries.integration.test.ts",
     "worker:dev": "tsx watch src/worker.ts",
     "worker:start": "node dist/worker.js",
     "test:redis": "tsx --test --test-concurrency=1 test/redis.integration.test.ts",

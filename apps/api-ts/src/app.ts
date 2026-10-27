@@ -15,6 +15,8 @@ import { CONFIG, readConfig, type Config } from "./config";
 import { Database } from "./database";
 import { CatalogController } from "./catalog/catalog.controller";
 import { CatalogService } from "./catalog/catalog.service";
+import { InquiriesController } from "./inquiries/inquiries.controller";
+import { InquiriesService } from "./inquiries/inquiries.service";
 import { RetentionController } from "./retention/retention.controller";
 import { RetentionService } from "./retention/retention.service";
 import { Errors } from "./http";
@@ -112,6 +114,7 @@ export async function createApp(config: Config = readConfig()) {
         OperationsController,
         RetentionController,
         CatalogController,
+        InquiriesController,
         HealthController,
         AuthController,
         LegalController,
@@ -138,6 +141,7 @@ export async function createApp(config: Config = readConfig()) {
         RedisEventsService,
         WorkQueueService,
         CatalogService,
+        InquiriesService,
         RetentionService,
         { provide: CONFIG, useValue: config },
         Database,
@@ -187,7 +191,10 @@ export async function createApp(config: Config = readConfig()) {
   app.use(helmet());
 
   app.enableCors({
-    origin: config.WEB_ORIGIN,
+    origin: [
+      config.WEB_ORIGIN,
+      ...(config.PUBLIC_SITE_ORIGIN ? [config.PUBLIC_SITE_ORIGIN] : []),
+    ],
     credentials: true,
     methods: ["GET", "POST", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
@@ -240,7 +247,13 @@ export async function createApp(config: Config = readConfig()) {
       const origin = req.headers.origin;
 
       if (
-        (origin && origin !== config.WEB_ORIGIN) ||
+        (origin &&
+          origin !== config.WEB_ORIGIN &&
+          !(
+            origin === config.PUBLIC_SITE_ORIGIN &&
+            req.method === "POST" &&
+            /^\/api\/inquiries\/?$/.test(req.path)
+          )) ||
         (!origin && req.headers.cookie)
       ) {
         res.status(403).json({ message: "Request origin is not allowed." });

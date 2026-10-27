@@ -609,3 +609,94 @@
     transition: none;
   }
 }
+
+/* Shared rhythm for the public landing, with scenes keeping their full bleed. */
+.landing-page {
+  --landing-gutter: max(1.25rem, calc((100vw - 72rem) / 2));
+  --landing-section-space: clamp(4rem, 7vw, 6rem);
+  background: #f8faff;
+  overflow-wrap: anywhere;
+}
+.landing-page .landing-content-section {
+  padding: var(--landing-section-space) var(--landing-gutter);
+}
+.landing-page .landing-section-title {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.landing-page .landing-section-title .holo-text {
+  background: none;
+  color: #5571b5;
+  -webkit-text-fill-color: currentColor;
+}
+.landing-page :is(a, button, input, select):focus-visible {
+  outline: 3px solid #3154c9;
+  outline-offset: 4px;
+}
+@media (max-width: 640px) {
+  .landing-page {
+    --landing-gutter: 1.25rem;
+  }
+}
+
+/* A static, readable story for visitors who request reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .scroll-phone-story {
+    height: auto;
+  }
+  .landing-page .scroll-phone-story > div {
+    position: relative;
+    height: auto;
+    padding: 3rem var(--landing-gutter);
+  }
+  .landing-page .scroll-phone-story > div > .relative {
+    display: grid;
+    gap: 2rem;
+    height: auto;
+    max-width: 72rem;
+  }
+  .landing-page .scroll-phone-story .story-frame-canvas {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: min(100%, 44rem);
+    max-width: 100%;
+    margin: auto;
+    transform: none;
+  }
+  .landing-page .scroll-phone-story :is(.story-beat, .story-finale) {
+    position: static;
+    max-width: 38rem;
+    margin-inline: auto;
+    opacity: 1;
+    transform: none;
+    transition: none;
+    text-align: center;
+  }
+  .landing-page .scroll-phone-story .story-beat p {
+    max-width: none;
+  }
+  .landing-page .scroll-phone-story .story-beat-two > div {
+    justify-content: center;
+  }
+  .landing-page .scroll-phone-story .story-progress {
+    display: none;
+  }
+}
+
+.landing-page .reveal {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .scroll-phone-story > div > .relative > * {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .landing-page .scroll-phone-story > div > .relative {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

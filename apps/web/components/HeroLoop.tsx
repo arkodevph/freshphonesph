@@ -6,6 +6,66 @@ export default function HeroLoop() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    const hero = videoRef.current?.closest<HTMLElement>(".landing-hero-frame");
+
+    if (!hero) {
+      return;
+    }
+
+    const preference = window.matchMedia(
+      "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+    );
+
+    const reset = () => {
+      hero.style.removeProperty("--hero-hover-x");
+
+      hero.style.removeProperty("--hero-hover-y");
+    };
+
+    const move = (event: PointerEvent) => {
+      if (!preference.matches || event.pointerType !== "mouse") {
+        return;
+      }
+
+      const bounds = hero.getBoundingClientRect();
+
+      const x = Math.max(
+        -1,
+        Math.min(1, ((event.clientX - bounds.left) / bounds.width) * 2 - 1),
+      );
+
+      const y = Math.max(
+        -1,
+        Math.min(1, ((event.clientY - bounds.top) / bounds.height) * 2 - 1),
+      );
+
+      hero.style.setProperty("--hero-hover-x", `${x * 18}px`);
+
+      hero.style.setProperty("--hero-hover-y", `${y * 12}px`);
+    };
+
+    hero.addEventListener("pointermove", move);
+
+    hero.addEventListener("pointerleave", reset);
+
+    hero.addEventListener("pointercancel", reset);
+
+    preference.addEventListener("change", reset);
+
+    return () => {
+      hero.removeEventListener("pointermove", move);
+
+      hero.removeEventListener("pointerleave", reset);
+
+      hero.removeEventListener("pointercancel", reset);
+
+      preference.removeEventListener("change", reset);
+
+      reset();
+    };
+  }, []);
+
+  useEffect(() => {
     const video = videoRef.current;
 
     if (!video) {

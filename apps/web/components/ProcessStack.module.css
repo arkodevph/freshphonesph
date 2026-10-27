@@ -1,6 +1,8 @@
 .section {
-  padding: 6rem 1.25rem 4rem;
+  padding: var(--landing-section-space, 6rem) var(--landing-gutter, 1.25rem)
+    10rem;
   scroll-margin-top: 6rem;
+  overflow: clip;
   background: #edf3fd;
   color: var(--color-blue-ink);
 }
@@ -16,9 +18,9 @@
 }
 .heading h2 {
   margin-top: 1rem;
-  font-size: clamp(2rem, 4.2vw, 4rem);
-  font-weight: 900;
-  line-height: 1.08;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.12;
   letter-spacing: -0.055em;
 }
 .heading em {
@@ -31,7 +33,7 @@
   line-height: 1.6;
 }
 .track {
-  max-width: 62rem;
+  max-width: 72rem;
   margin: auto;
 }
 .stage {
@@ -39,73 +41,101 @@
   gap: 1.5rem;
 }
 .card {
-  --exit: 0;
+  --flip: 0;
+  --clear: 0;
   --depth: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  border: 1px solid rgba(20, 38, 107, 0.12);
-  border-radius: 1.25rem;
-  padding: clamp(1.5rem, 4vw, 3rem);
-  background: #3154c9;
-  color: #fff;
-}
-.card:nth-child(2) {
-  background: radial-gradient(ellipse at 80% 42%, #e9e9ff, #d5c4f4 70%);
+  border: 1px solid #dce2ed;
+  border-radius: 1.5rem;
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  background: #fcfcfd;
   color: #14266b;
+  box-shadow: 0 1rem 3rem rgb(20 38 107 / 5%);
 }
-.card:nth-child(3) {
-  background: #f6bdda;
-  color: #14266b;
+.card[data-panel="1"] {
+  background: #e4eafa;
 }
-.card:nth-child(4) {
-  background: #14266b;
+.card[data-panel="2"] {
+  background: #d3e4f8;
+}
+.card[data-panel="3"] {
+  background: #c1dcf0;
 }
 .topline {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.counter {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+.counter span {
+  margin-left: 0.375rem;
+  color: #68748d;
+}
+.progress {
+  display: flex;
+  gap: 0.375rem;
+  width: 7rem;
+  max-width: 100%;
+  margin-top: 0.875rem;
+}
+.progress span {
+  height: 0.1875rem;
+  flex: 1;
+  border-radius: 1rem;
+  background: #e2e6ed;
+}
+.progress span[data-reached="true"] {
+  background: #3154c9;
 }
 .main {
   display: grid;
-  grid-template-columns: 1.35fr 1fr;
+  grid-template-columns: 1.2fr 1fr;
   align-items: center;
-  gap: 2rem;
-  margin: 1rem 0;
+  flex: 1;
+  gap: 1.25rem;
+  margin: 0.5rem 0 1rem;
 }
 .main h3 {
   max-width: 31rem;
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
   font-weight: 900;
   line-height: 1.05;
   letter-spacing: -0.05em;
 }
 .main p {
   max-width: 25rem;
-  margin-top: 1rem;
-  font-size: 0.9375rem;
+  margin-top: 0.875rem;
+  font-size: 0.875rem;
   line-height: 1.6;
-  opacity: 0.86;
+  color: #53617e;
+}
+.scene {
+  position: relative;
+  width: 100%;
+  height: 14rem;
 }
 .visual {
+  display: block;
   width: 100%;
-  height: 15rem;
+  height: 100%;
   object-fit: contain;
-}
-.card:nth-child(2) .visual {
-  height: 20rem;
-  filter: drop-shadow(0 1rem 1.5rem rgb(72 87 160 / 12%));
 }
 .steps {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 1.5rem;
   margin: 0;
-  border-top: 1px solid currentColor;
-  padding: 1.25rem 0 0;
+  border-top: 1px solid #dce2ed;
+  padding: 1rem 0 0;
   list-style: none;
 }
 .steps li {
@@ -115,36 +145,108 @@
 .steps li > span {
   font-size: 0.6875rem;
   font-weight: 800;
-  opacity: 0.65;
-  padding-top: 0.25rem;
+  display: grid;
+  place-items: center;
+  flex: 0 0 1.75rem;
+  height: 1.75rem;
+  border: 1px solid #dce2ed;
+  border-radius: 50%;
+  font-variant-numeric: tabular-nums;
 }
 .steps h4 {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 800;
 }
 .steps p {
   margin-top: 0.375rem;
   font-size: 0.75rem;
   line-height: 1.6;
-  opacity: 0.8;
+  color: #53617e;
+}
+.note {
+  margin: 0.875rem 0 0;
+  color: #53617e;
+  font-size: 0.6875rem;
+  line-height: 1.5;
 }
 .track[data-animated="true"] {
-  height: calc(280svh + min(36rem, 100svh - 9rem));
+  height: calc(
+    520svh + var(--review-extra-travel, 0svh) + min(40rem, 100svh - 11rem)
+  );
 }
 .track[data-animated="true"] .stage {
   position: sticky;
   top: 6rem;
-  height: min(36rem, calc(100svh - 9rem));
-  perspective: 1200px;
+  height: min(40rem, calc(100svh - 11rem));
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+  isolation: isolate;
 }
 .track[data-animated="true"] .card {
   position: absolute;
-  inset: 0;
-  transform-origin: center top;
-  transform: translateY(calc(var(--depth) * 0.625rem - var(--exit) * 110%))
-    rotateX(calc(var(--exit) * 35deg)) scale(calc(1 - var(--depth) * 0.025));
-  opacity: calc(1 - var(--exit));
+  inset: 0 0 auto;
+  width: min(100%, 64rem);
+  height: min(30rem, 100%);
+  margin-inline: auto;
+  transform-origin: center center;
+  transform: translate3d(
+      0,
+      calc(var(--depth) * 2.25rem - var(--flip) * 66% - var(--clear) * 55%),
+      0
+    )
+    rotateX(calc(var(--flip) * 58deg)) scale(calc(1 - var(--depth) * 0.035));
+  opacity: 1;
+  backface-visibility: hidden;
   visibility: visible;
+}
+.reviews {
+  order: 1;
+  margin-top: 3rem;
+}
+.track[data-animated="true"] .reviews {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  opacity: 1;
+  pointer-events: none;
+}
+.track[data-animated="true"] .reviews:has(:focus-visible) {
+  opacity: 1;
+  transform: none;
+  z-index: 10;
+}
+.track[data-animated="true"] .reviews a {
+  pointer-events: auto;
+}
+.track[data-animated="true"] .main {
+  min-height: 0;
+}
+.track[data-animated="true"] .scene {
+  height: clamp(12rem, 25svh, 14rem);
+}
+@media (prefers-reduced-motion: reduce) {
+  .track[data-animated="true"] {
+    height: auto;
+  }
+  .track[data-animated="true"] .stage {
+    position: static;
+    height: auto;
+    perspective: none;
+  }
+  .track[data-animated="true"] .reviews {
+    position: static;
+    opacity: 1;
+    transform: none;
+    margin-top: 3rem;
+  }
+  .track[data-animated="true"] .card {
+    position: relative;
+    height: auto;
+    transform: none;
+    opacity: 1;
+    visibility: visible !important;
+  }
 }
 .next {
   display: flex;
@@ -162,7 +264,7 @@
 }
 @media (max-width: 640px) {
   .section {
-    padding-top: 4rem;
+    padding: 4rem 1rem 3rem;
   }
   .heading {
     margin-bottom: 2rem;
@@ -170,37 +272,56 @@
   .heading p {
     font-size: 0.875rem;
   }
+  .card {
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+  }
+  .topline {
+    font-size: 0.625rem;
+  }
   .main {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
-    margin: 1rem 0;
+    gap: 0.75rem;
+    margin: 1.25rem 0;
   }
   .main h3 {
-    font-size: clamp(1.75rem, 7.5vw, 2.5rem);
+    font-size: clamp(1.75rem, 7vw, 2.25rem);
   }
   .main p {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     margin-top: 0.75rem;
   }
-  .visual {
-    height: clamp(6rem, 18svh, 9rem);
-  }
-  .card:nth-child(2) .visual {
-    height: clamp(9rem, 23svh, 12rem);
+  .scene {
+    max-width: 16rem;
+    height: clamp(10rem, 46vw, 12rem);
+    margin: 0 auto;
   }
   .steps {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
-    padding-top: 1rem;
+    gap: 1rem;
+    padding-top: 1.25rem;
   }
   .steps h4 {
     font-size: 0.875rem;
   }
   .steps p {
-    font-size: 0.6875rem;
-    line-height: 1.4;
+    font-size: 0.75rem;
+    line-height: 1.5;
   }
-  .track[data-animated="true"] .stage {
-    height: calc(100svh - 9rem);
+}
+
+.card,
+.main > *,
+.steps li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.topline {
+  flex-wrap: wrap;
+}
+@media (max-width: 640px) {
+  .main,
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

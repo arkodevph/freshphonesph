@@ -3,16 +3,21 @@ import {
   ChatCircleDots,
   CheckCircle,
   IdentificationCard,
-  Receipt,
   ShieldCheck,
   Wallet,
 } from "@phosphor-icons/react/dist/ssr";
 import SectionHeading from "./SectionHeading";
 import AgentVerification from "./AgentVerification";
 import ProcessStack from "./ProcessStack";
+import Testimonials from "./Testimonials";
+import styles from "./LandingContent.module.css";
 
 export function Process() {
-  return <ProcessStack />;
+  return (
+    <ProcessStack>
+      <Testimonials staged />
+    </ProcessStack>
+  );
 }
 
 const requirements = [
@@ -26,73 +31,69 @@ const requirements = [
 
 export function RequirementsAndPayments() {
   return (
-    <>
-      <section id="requirements" className="scroll-mt-24 px-4 py-20">
-        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-2">
-          <div>
-            <SectionHeading
-              center={false}
-              title={
-                <>
-                  Simple, clear <span className="holo-text">requirements</span>
-                </>
-              }
-              subtitle="Prepare these common items before applying. Final requirements may vary after review."
-            />
-            <ul className="mt-7 grid gap-3 sm:grid-cols-2">
-              {requirements.map((item) => {
-                return (
-                  <li
-                    key={item}
-                    className="glass flex items-center gap-3 rounded-2xl p-4 font-700 text-blue-ink"
-                  >
-                    <CheckCircle weight="fill" className="shrink-0 text-blue" />
-                    {item}
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="mt-4 text-sm font-700 text-ink-soft">
-              Sensitive documents are never uploaded through the public website.
+    <section
+      id="requirements"
+      className={`landing-content-section ${styles.requirements}`}
+    >
+      <SectionHeading
+        eyebrow="Before you apply"
+        title={
+          <>
+            Know what to <span className="holo-text">prepare</span>
+          </>
+        }
+        subtitle="Review the requirements and payment process before deciding to join."
+      />
+      <div className={styles.preparation}>
+        <article className={styles.panel}>
+          <IdentificationCard
+            weight="duotone"
+            className={styles.icon}
+            aria-hidden="true"
+          />
+          <h3>Application requirements</h3>
+          <p>
+            Prepare these common items. Final requirements may vary after
+            review.
+          </p>
+          <ul className={styles.checklist}>
+            {requirements.map((item) => {
+              return (
+                <li key={item}>
+                  <CheckCircle weight="fill" aria-hidden="true" />
+                  <span>{item}</span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className={styles.note}>
+            Sensitive documents are never uploaded through the public website.
+          </p>
+        </article>
+        <article className={styles.panel}>
+          <Wallet weight="duotone" className={styles.icon} aria-hidden="true" />
+          <h3>Payments &amp; your records</h3>
+          <p>
+            Payments are coordinated through Fresh Phones PH&apos;s authorized
+            channels and official Messenger group chats.
+          </p>
+          <div className={styles.record}>
+            <h4>Your customer portal</h4>
+            <p>
+              Check payment records, verification status, remaining balance, due
+              dates, and paluwagan progress.
             </p>
           </div>
-          <div className="glass rounded-[2.5rem] p-7 sm:p-9">
-            <Wallet weight="duotone" className="h-10 w-10 text-blue" />
-            <h2 className="mt-4 font-display text-3xl font-700 text-blue-ink">
-              Payments happen through authorized channels.
-            </h2>
-            <p className="mt-3 font-500 leading-relaxed text-ink-soft">
-              Payments are coordinated through Fresh Phones PH&apos;s authorized
-              channels and official Messenger group chats.
-            </p>
-            <div className="mt-6 rounded-3xl bg-white/65 p-5">
-              <h3 className="font-display text-lg font-700 text-blue-ink">
-                Your portal helps you monitor
-              </h3>
-              <p className="mt-2 text-sm font-600 leading-7 text-ink-soft">
-                Payment records · verification status · remaining balance · due
-                dates · paluwagan progress
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="px-4 pb-20">
-        <div className="mx-auto flex max-w-6xl flex-col gap-5 rounded-[2.5rem] bg-blue-ink p-7 text-white sm:p-10 lg:flex-row lg:items-center">
-          <Receipt weight="duotone" className="h-12 w-12 shrink-0 text-cyan" />
-          <div>
-            <h2 className="font-display text-2xl font-700">
-              Statement of Account
-            </h2>
-            <p className="mt-2 max-w-4xl text-sm font-500 leading-relaxed text-white/75">
-              Review amounts due, schedules, verified payments, and remaining
-              balances. Statements are for account reference and are not
-              official BIR invoices.
+          <div className={styles.record}>
+            <h4>Statement of Account</h4>
+            <p>
+              Review amounts due and verified payments. Statements are for
+              account reference and are not official BIR invoices.
             </p>
           </div>
-        </div>
-      </section>
-    </>
+        </article>
+      </div>
+    </section>
   );
 }
 
