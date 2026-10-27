@@ -1,9 +1,13 @@
 # Finance pending-payment alerts
 
 Full Scope v6 §12 now has an in-app Finance queue in the staff notification bell. In
-TypeScript API mode, Owner and Finance accounts see current payments awaiting verification,
+TypeScript API mode, Finance Officer accounts see current payments awaiting verification,
 their unread count, an unread-only filter, pagination, refresh and mark-all-as-read. Opening
 an alert marks its captured version read and opens the exact payment for human review.
+
+V4 update, 2026-10-16: Owner no longer inherits financial verification or its receipt-review
+queue. Pending-review email recipients use the same Finance-only permission. Historical
+review receipts and financial records are retained.
 
 ## Queue and read state
 
@@ -74,14 +78,14 @@ walkthrough; actual cross-instance SSE behavior is exercised in the PostgreSQL s
 
 Named UAT should cover:
 
-1. Sign in as Finance and Owner; open the same pending payment from each bell and confirm
+1. Sign in as two Finance Officers; open the same pending payment from each bell and confirm
    each has independent unread state and the correct payment appears.
 2. Mark all read; confirm payments remain pending and balances stay unchanged.
 3. Correct a claim or attach proof from Records; confirm it becomes unread for both reviewers.
 4. Clarify and resubmit, then verify or reject; confirm the alert lifecycle and human review.
 5. Open two tabs while another reviewer changes the payment; confirm refresh, preserved
    review notes, stale decision rejection, keyboard dismissal and mobile/dark layouts.
-6. Try other staff/customer roles and direct API requests; confirm Finance alerts are denied.
+6. Try Owner and other staff/customer roles and direct API requests; confirm Finance alerts are denied.
 
 This increment delivers pending-payment in-app alerts. The bell is now shared with task
 assignment/deadline alerts in [28-staff-task-alerts.md](28-staff-task-alerts.md). Verification-result

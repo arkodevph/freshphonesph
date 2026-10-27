@@ -9,6 +9,8 @@ import {
   clientSchema,
   passwordSchema,
   rolePermissions,
+  effectivePermissions,
+  roles,
   paymentDecisionSchema,
   paymentSchema,
   financeAlertQuerySchema,
@@ -672,7 +674,15 @@ test("finance payment contracts preserve the human verification boundary", () =>
 
   assert.ok(rolePermissions.FINANCE_OFFICER.includes("PAYMENT_VERIFY"));
 
-  assert.ok(rolePermissions.OWNER.includes("PAYMENT_VERIFY"));
+  for (const role of roles) {
+    assert.equal(
+      effectivePermissions({ role, hrConfidentialAccess: true }).includes(
+        "PAYMENT_VERIFY",
+      ),
+      role === "FINANCE_OFFICER",
+      role,
+    );
+  }
 
   assert.equal(rolePermissions.RECORDS.includes("PAYMENT_VERIFY"), false);
 

@@ -878,8 +878,18 @@ export type Me = {
   permissions: string[];
 };
 
+let identityRequest: Promise<Me> | null = null;
+
 export function fetchMe() {
-  return tsRequest<User>("/auth/me").then(toMe);
+  if (!identityRequest) {
+    identityRequest = tsRequest<User>("/auth/me")
+      .then(toMe)
+      .finally(() => {
+        identityRequest = null;
+      });
+  }
+
+  return identityRequest;
 }
 
 // ── Customer portal (M5) ───────────────────────────────────────────────────

@@ -64,7 +64,9 @@ pnpm --filter @fresh/web dev              # http://localhost:3000
 ```
 Create local test accounts with a private seed script or through the application; keep
 account details outside Git. Provision employee and linked customer accounts through `POST /api/accounts`.
-
+Development role previews use `pnpm --filter @fresh/api-ts seed:demo` with a local database
+whose name ends in `_preview` and a server-only `LOCAL_DEMO_PASSWORD` in both service env files.
+The login page opens each seeded role with one click; this endpoint is disabled in production.
 
 For the active TypeScript preview, run `pnpm --filter @fresh/api-ts dev` and
 `pnpm --filter @fresh/api-ts worker:dev` in separate terminals with the same database,
@@ -86,6 +88,16 @@ Redis namespace and private storage configuration. See [docs/53-redis-events-wor
 - Migration workflow: [`docs/17-full-scope-workflow.md`](docs/17-full-scope-workflow.md).
 
 ## Frontend conventions (Next.js App Router)
+- Keep page components focused on routing, access states and arranging feature components.
+  Put state, effects and actions in feature hooks; keep forms, dialogs, tables and navigation
+  in separate components with typed props. Group related view props by feature.
+- Use procedural functions for transformations and calculations. Use NestJS classes for
+  services with dependencies and lifecycle responsibilities; prefer composition.
+- Format code with `pnpm format` and check it with `pnpm format:check`. Use two-space
+  indentation, expanded function bodies and braced control flow. Separate completed
+  semicolon-terminated executable statements with blank lines; keep imports together.
+  Keep generated output and historical
+  SQL migrations outside the formatting pass.
 - `apps/web/lib/api.ts` — all API calls (typed). `apps/web/lib/auth.ts` — HTTP-only sessions and cached display identity.
 - **Role-aware UI:** `lib/useMe.ts` (`useMe()` + `can(me, ...perms)`). The `/system` sidebar
   hides modules the role lacks; pages guard with a "No access" fallback. This is UX only —

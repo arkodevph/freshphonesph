@@ -10,60 +10,20 @@ import {
 } from "@freshphones/contracts";
 import { getPublicCatalog } from "@/lib/api";
 import { catalogPhoto, catalogPrice } from "@/lib/catalog";
+import { SAMPLE_CATALOG_MODE, sampleCatalog } from "@/lib/sample-catalog";
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import SectionHeading from "./SectionHeading";
 import Reveal from "./Reveal";
 import CatalogBreakdown from "./CatalogBreakdown";
-
-const cardTones = {
-  lilac: {
-    panel: "linear-gradient(135deg, #efe3ff, #e8edff)",
-    ink: "#342060",
-    muted: "#594b78",
-    accent: "#7140b3",
-  },
-  ocean: {
-    panel: "linear-gradient(135deg, #ddecff, #e4f6ff)",
-    ink: "#163a70",
-    muted: "#456385",
-    accent: "#1d5db8",
-  },
-  pink: {
-    panel: "linear-gradient(135deg, #ffe0f0, #ffeaf5)",
-    ink: "#66234f",
-    muted: "#80536f",
-    accent: "#ad246f",
-  },
-  aqua: {
-    panel: "linear-gradient(135deg, #dcf6ff, #e6edff)",
-    ink: "#184368",
-    muted: "#4b6880",
-    accent: "#17669c",
-  },
-  berry: {
-    panel: "linear-gradient(135deg, #ffddec, #f1e6ff)",
-    ink: "#68244e",
-    muted: "#80536c",
-    accent: "#af276c",
-  },
-  indigo: {
-    panel: "linear-gradient(135deg, #e5e7ff, #e8f1ff)",
-    ink: "#263064",
-    muted: "#535d83",
-    accent: "#5148a8",
-  },
-} as const;
+import styles from "./Models.module.css";
 
 type Model = {
   name: string;
   condition: "Pre-Owned" | "Brand New";
   daily: string;
-  tag?: string;
   gradient: string;
   image?: string;
   imageAlt?: string;
-  imageZoom?: "large";
-  tone: keyof typeof cardTones;
 };
 
 function FlatDevicePreview({
@@ -153,6 +113,25 @@ export default function Models() {
     }
 
     const timer = setTimeout(() => {
+      if (SAMPLE_CATALOG_MODE) {
+        const filtered = sampleCatalog.filter((item) => {
+          return (
+            item.name.toLowerCase().includes(q.trim().toLowerCase()) &&
+            (!availability || item.availability === availability)
+          );
+        });
+
+        loadedQuery.current = queryKey;
+
+        setItems(filtered.slice((page - 1) * 20, page * 20));
+
+        setTotal(filtered.length);
+
+        setState("ready");
+
+        return;
+      }
+
       void getPublicCatalog(
         { page, q: q.trim(), availability },
         controller.signal,
@@ -213,8 +192,9 @@ export default function Models() {
   }, []);
 
   return (
-    <section id="units" className="relative scroll-mt-24 px-4 py-20">
+    <section id="units" className={styles.section}>
       <SectionHeading
+        eyebrow="Find your device"
         title={
           <>
             Phones for your <span className="holo-text">next chapter</span>
@@ -222,6 +202,12 @@ export default function Models() {
         }
         subtitle="Browse our units, payment offers, and latest availability before you message us."
       />
+      {SAMPLE_CATALOG_MODE && (
+        <p className="mx-auto mt-4 max-w-6xl text-center text-sm text-ink-soft">
+          Sample catalog · Prices, payment plans, and availability are for
+          preview only.
+        </p>
+      )}
 
       <div className="mx-auto mt-8 grid max-w-6xl gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(210px,auto)]">
         <label className="grid min-w-0 gap-1 text-sm font-600 text-blue-ink">
@@ -300,10 +286,7 @@ export default function Models() {
             : "No units are listed right now. Contact our team for upcoming offers."}
         </p>
       )}
-      <div
-        aria-busy={state === "loading"}
-        className={`mx-auto ${items.length ? "mt-[12.5rem]" : "mt-0"} grid max-w-6xl gap-x-5 gap-y-64 sm:grid-cols-2 lg:grid-cols-3`}
-      >
+      <div aria-busy={state === "loading"} className={styles.grid}>
         {items.map((item, i) => {
           const image = catalogPhoto(item);
 
@@ -316,41 +299,13 @@ export default function Models() {
             gradient: "from-[#c9a7ff] to-[#8aa2f2]",
             image: image ?? undefined,
             imageAlt: item.name,
-            imageZoom:
-              !item.hasImage &&
-              (item.imageAsset === "iphone-11" ||
-                item.imageAsset === "iphone-12")
-                ? "large"
-                : undefined,
-            tone: (Object.keys(cardTones) as (keyof typeof cardTones)[])[i % 6],
           };
-
-          const tone = cardTones[m.tone];
 
           return (
             <Reveal key={item.id} delay={(i % 3) * 90}>
-              <article className="glass group relative flex h-full flex-col overflow-visible rounded-[1.75rem] p-5 transition-transform duration-300 hover:-translate-y-1.5">
-                {m.image && (
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-0 -top-44 z-0 h-56 rounded-[1.75rem] border border-white bg-white shadow-[0_16px_38px_rgba(80,64,160,0.08)]"
-                  />
-                )}
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 z-20 rounded-[1.75rem]"
-                  style={{ background: tone.panel }}
-                />
-                {m.tag && (
-                  <span className="absolute right-4 top-4 z-40 rounded-full bg-hotpink px-3 py-1 text-[11px] font-700 text-white shadow">
-                    {m.tag}
-                  </span>
-                )}
-
+              <article className={`group ${styles.card}`}>
                 {/* Real product renders are used when available; other models keep the illustrated fallback. */}
-                <div
-                  className={`h-64 ${m.image ? "absolute inset-x-5 -top-[10.25rem] z-10 overflow-visible" : "relative z-30 overflow-hidden rounded-2xl bg-white/50"}`}
-                >
+                <div className={styles.image}>
                   {m.image ? (
                     <Image
                       src={m.image}
@@ -358,33 +313,26 @@ export default function Models() {
                       fill
                       unoptimized={item.hasImage}
                       sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) 50vw, 33vw"
-                      className={`object-contain transition-transform duration-500 ${item.hasImage ? "scale-100 group-hover:scale-105" : m.imageZoom === "large" ? "scale-[1.4] group-hover:scale-[1.43]" : "scale-[1.3] group-hover:scale-[1.33]"}`}
+                      className="object-contain transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none"
                     />
                   ) : (
                     <FlatDevicePreview name={m.name} gradient={m.gradient} />
                   )}
                 </div>
 
-                <div
-                  className={`relative z-30 -mx-5 -mb-5 rounded-b-[1.75rem] px-5 pb-5 pt-5 ${m.image ? "-mt-5" : ""}`}
-                >
+                <div className={styles.details}>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3
                       className="min-w-0 break-words font-display text-xl font-700"
-                      style={{ color: tone.ink, overflowWrap: "anywhere" }}
+                      style={{ overflowWrap: "anywhere" }}
                     >
                       {m.name}
                     </h3>
-                    <span
-                      className="rounded-full border border-white/80 bg-white/70 px-2 py-0.5 text-[10px] font-700"
-                      style={{ color: tone.accent }}
-                    >
-                      {m.condition}
-                    </span>
+                    <span className={styles.condition}>{m.condition}</span>
                   </div>
                   <p
-                    className="mt-0.5 text-sm font-600"
-                    style={{ color: tone.muted, overflowWrap: "anywhere" }}
+                    className="mt-2 text-sm font-600 text-ink-soft"
+                    style={{ overflowWrap: "anywhere" }}
                   >
                     {item.description || "Contact us for model details."}
                   </p>
@@ -392,34 +340,24 @@ export default function Models() {
                   <div className="mt-4 flex items-end justify-between">
                     <div className="min-w-0">
                       <p
-                        className="break-words font-display text-2xl font-700"
-                        style={{ color: tone.accent, overflowWrap: "anywhere" }}
+                        className="break-words font-display text-2xl font-800"
+                        style={{ overflowWrap: "anywhere" }}
                       >
                         {m.daily}
                         {item.dailyAmount !== null && (
-                          <span className="text-sm" style={{ color: tone.ink }}>
-                            /day
-                          </span>
+                          <span className="text-sm">/day</span>
                         )}
                       </p>
                       {item.dailyAmount === null && item.installmentPlan && (
-                        <p
-                          className="text-xs font-600"
-                          style={{ color: tone.muted }}
-                        >
-                          Total payable
-                        </p>
+                        <p className="text-xs font-600">Total payable</p>
                       )}
-                      <p
-                        className="text-xs font-600"
-                        style={{ color: tone.muted }}
-                      >
+                      <p className="text-xs font-600">
                         {catalogAvailabilityLabels[item.availability]}
                       </p>
                     </div>
                     <a
-                      href="#join"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-full btn-candy"
+                      href={`/inquire?device=${encodeURIComponent(item.name)}`}
+                      className={styles.inquire}
                       aria-label={`Ask about ${m.name}`}
                     >
                       <ArrowUpRight weight="bold" className="h-5 w-5" />
@@ -428,8 +366,8 @@ export default function Models() {
                   {item.installmentPlan ? (
                     <button
                       type="button"
-                      className="mt-4 w-full rounded-xl border border-white/80 bg-white/80 px-3 py-3 text-sm font-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue"
-                      style={{ color: tone.ink }}
+                      className={styles.payments}
+
                       onClick={() => {
                         return setSelectedId(item.id);
                       }}
@@ -438,7 +376,7 @@ export default function Models() {
                       <span className="sr-only"> for {item.name}</span>
                     </button>
                   ) : (
-                    <p className="mt-4 text-xs" style={{ color: tone.muted }}>
+                    <p className="mt-4 text-xs">
                       Contact the team for a payment breakdown.
                     </p>
                   )}

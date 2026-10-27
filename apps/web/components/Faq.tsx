@@ -30,8 +30,9 @@ export default function Faq() {
   }
 
   return (
-    <section id="faq" className="relative scroll-mt-24 px-4 py-20">
+    <section id="faq" className="landing-content-section relative scroll-mt-24">
       <SectionHeading
+        eyebrow="Good to know"
         title={
           <>
             Frequently asked <span className="holo-text">questions</span>
@@ -148,10 +149,14 @@ export default function Faq() {
                   id={answerId}
                   role="region"
                   aria-labelledby={questionId}
-                  hidden={!isOpen}
+                  aria-hidden={!isOpen}
+                  inert={!isOpen}
+                  data-open={isOpen}
                   className={styles.answer}
                 >
-                  <p>{entry.answer}</p>
+                  <div className={styles.answerContent}>
+                    <p>{entry.answer}</p>
+                  </div>
                 </div>
               </article>
             );

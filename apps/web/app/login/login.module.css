@@ -25,7 +25,7 @@
   border: 1px solid #ffffff14;
   border-radius: 28px;
   background: var(--login-stage);
-  padding: 8px;
+  padding: 0;
 }
 .story {
   position: relative;
@@ -35,7 +35,7 @@
   justify-content: center;
   overflow: hidden;
   border-radius: 20px;
-  padding: 40px;
+  padding: 110px 32px 36px;
 }
 .brand {
   position: absolute;
@@ -105,6 +105,7 @@
   --mood-lean: 0deg;
   width: 100%;
   max-width: 480px;
+  position: relative;
   align-self: center;
 }
 .characters > svg {
@@ -114,7 +115,7 @@
 }
 .character {
   --hover-lift: 0px;
-  transform-origin: 240px 400px;
+  transform-origin: 0px 40px;
   transform: skewX(calc(var(--pointer-lean) + var(--mood-lean)))
     translateY(var(--hover-lift));
   transition:
@@ -135,7 +136,7 @@
   outline-offset: 6px;
 }
 .navyCharacter {
-  transform-origin: 302px 400px;
+  transform-origin: 0px 40px;
   transition-delay: 50ms;
 }
 .lilacCharacter {
@@ -244,6 +245,8 @@
   opacity: 1;
 }
 .arrival {
+  --enter-x: 0px;
+  --enter-y: 24px;
   animation: arrive 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .blueArrival {
@@ -273,7 +276,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 32px;
-  border-radius: 20px;
+  border-radius: 0 28px 28px 0;
   background: var(--login-white);
   padding: 44px clamp(28px, 4.3vw, 56px) 28px;
 }
@@ -494,6 +497,56 @@
 .spinner {
   animation: spin 0.8s linear infinite;
 }
+.demo {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #d6dce7;
+  border-radius: 16px;
+  background: var(--login-stage);
+}
+.demo > strong {
+  font-size: 14px;
+}
+.demo > p {
+  margin: 4px 0 12px;
+  color: var(--login-muted);
+  font-size: 12px;
+}
+.demoRoles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.demoRoles button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #d6dce7;
+  border-radius: 10px;
+  background: var(--login-white);
+  color: var(--login-ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.demoRoles button:hover:not(:disabled) {
+  border-color: var(--login-blue);
+  color: var(--login-blue);
+}
+.demoRoles button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.demoRoles svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
 .page :is(a, button):focus-visible {
   outline: 2px solid var(--login-blue);
   outline-offset: 4px;
@@ -535,7 +588,7 @@
     min-height: 620px;
   }
   .story {
-    padding: 24px 12px;
+    padding: 100px 20px 32px;
   }
   .brand {
     top: 24px;
@@ -556,8 +609,8 @@
     border-radius: 24px;
   }
   .story {
-    min-height: 228px;
-    padding: 56px 24px 0;
+    min-height: 0;
+    padding: 64px 24px 20px;
   }
   .brand {
     top: 12px;
@@ -572,7 +625,8 @@
     font-size: 13px;
   }
   .characters {
-    width: 180px;
+    width: min(100%, 220px);
+    position: static;
   }
   .characterCaption {
     display: none;
@@ -583,6 +637,7 @@
   }
   .panel {
     gap: 24px;
+    border-radius: 0 0 24px 24px;
     padding: 28px 28px 24px;
   }
   .symbol {
@@ -620,4 +675,13 @@
   .passwordField {
     transition: none;
   }
+}
+
+.demo summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+.demo[open] summary {
+  margin-bottom: 12px;
 }

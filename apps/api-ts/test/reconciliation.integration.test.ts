@@ -227,11 +227,15 @@ before(async () => {
     schedules[0].id,
   );
 
-  const verified = await request("OWNER", `/payments/${recorded.id}/verify`, {
-    decision: "VERIFIED",
-    notes: "Synthetic Finance review",
-    version: recorded.version,
-  });
+  const verified = await request(
+    "FINANCE_OFFICER",
+    `/payments/${recorded.id}/verify`,
+    {
+      decision: "VERIFIED",
+      notes: "Synthetic Finance review",
+      version: recorded.version,
+    },
+  );
 
   assert.equal(verified.status, 200);
 

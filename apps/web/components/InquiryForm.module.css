@@ -1,0 +1,153 @@
+.form,
+.success {
+  color: #17265d;
+  text-align: left;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.form h4,
+.success h4 {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.form p,
+.success p {
+  margin-top: 8px;
+  color: #536086;
+  font-size: 0.875rem;
+}
+.form fieldset {
+  display: grid;
+  gap: 14px;
+  border: 0;
+  margin: 20px 0 16px;
+  padding: 0;
+  min-width: 0;
+}
+.form fieldset:disabled {
+  opacity: 0.7;
+}
+.form label {
+  display: block;
+  font-weight: 600;
+}
+.form label > span {
+  font-weight: 400;
+}
+.form :is(input:not([type="checkbox"]), textarea) {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin-top: 6px;
+  border: 1px solid #a6b2d0;
+  border-radius: 10px;
+  background: #fff;
+  color: #17265d;
+  font: inherit;
+  padding: 10px 12px;
+}
+.form textarea {
+  resize: vertical;
+}
+.form .consent {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+.consent input {
+  flex: none;
+  margin-top: 4px;
+  width: 20px;
+  height: 20px;
+  accent-color: #285be7;
+}
+.form button {
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: #285be7;
+  padding: 12px;
+  color: white;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.form button:hover {
+  background: #204ac0;
+}
+.form button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.form :is(input, textarea, button):focus-visible {
+  outline: 3px solid #3565ed;
+  outline-offset: 3px;
+}
+.form .error {
+  color: #9c2339;
+  margin: 12px 0;
+}
+.form .help {
+  font-size: 0.8125rem;
+}
+.reference {
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.fullPage fieldset {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px 20px;
+  margin-top: 0;
+}
+.fullPage
+  fieldset
+  > :is(
+    p,
+    label:has([name="deviceName"]),
+    label:has([name="email"]),
+    label:has(textarea),
+    .consent
+  ) {
+  grid-column: 1 / -1;
+}
+.fullPage label {
+  font-size: 0.875rem;
+}
+.fullPage :is(input:not([type="checkbox"]), textarea) {
+  border-radius: 8px;
+  border-color: #c3cada;
+  min-height: 46px;
+}
+.fullPage textarea {
+  min-height: 100px;
+}
+.fullPage button {
+  border-radius: 8px;
+  min-height: 50px;
+  margin-top: 4px;
+}
+.fullPage .device {
+  margin: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e5f0;
+}
+.fullPage .consent {
+  line-height: 1.6;
+  font-size: 0.8125rem;
+}
+.fullPage .help {
+  margin-top: 12px;
+}
+.form ::placeholder {
+  color: #68748d;
+  opacity: 1;
+}
+@media (max-width: 420px) {
+  .fullPage fieldset {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "mode": "built-in image_gen",
+  "reference": "cloud-boy-guidance-v1.png",
+  "common_constraints": "Same blue cloud-haired boy, large blue eyes, white-and-blue hoodie, blue shorts, white socks, blue sneakers with white stars. Polished 3D studio rendering. Actual transparent background; no embedded text. Exactly two arms and two hands. Full body and props contained. Reference used for character/style only.",
+  "scenes": {
+    "cloud-boy-choose-prepare-v1.png": "Boy compares an iPhone in one hand and an iPad in the other, looking toward the iPad, beside a requirements checklist. Both hands occupied; no hand at chin.",
+    "cloud-boy-meet-team-v1.png": "Boy kneels on one knee, one hand open toward viewer, other on an application checklist; conversation bubble with three dots beside head.",
+    "cloud-boy-plan-track-v1.png": "Boy stands in three-quarter view, pointing to checked calendar cells while holding a phone toward viewer with partly filled circular progress indicator.",
+    "cloud-boy-complete-collect-v1.png": "Boy sits cross-legged happily unboxing phone, one hand lifting phone, other holding packaging lid, completed checklist beside him."
+  },
+  "rejected": "Initial selection variant contained a third arm; rejected, never integrated."
+}

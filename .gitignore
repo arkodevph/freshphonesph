@@ -53,3 +53,15 @@ __pycache__/
 # generated Prisma client and local service output
 apps/api-ts/src/generated/
 apps/api-ts/.local/
+
+# Local seeded-account preview; keep credentials and preview data out of Git.
+/.pgdata/
+/.local/
+/apps/api-ts/scripts/seed-demo.ts
+/apps/web/app/api/demo-login/
+/apps/api-ts/.env.preview
+/apps/web/.env.preview
+/scripts/run-local-preview.sh
+
+# Landing assets are copied from the shared public source before dev/build.
+/apps/landing/public/

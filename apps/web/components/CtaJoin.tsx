@@ -1,74 +1,49 @@
-import { Sparkle, ChatCircleDots, Phone } from "@phosphor-icons/react/dist/ssr";
-import {
-  GlossyStar,
-  PinkStar,
-  GlossyHeart,
-  Sparkle as SparkleDecor,
-  CloudBlob,
-} from "./decor";
-import Reveal from "./Reveal";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import styles from "./LandingContent.module.css";
 
 export default function CtaJoin() {
   return (
-    <section id="join" className="px-4 py-20">
-      <Reveal className="mx-auto max-w-5xl">
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#2f6bff] via-[#4f86ff] to-[#1f53e6] px-6 py-14 text-center shadow-[0_40px_80px_-30px_rgba(47,107,255,0.8)] sm:px-12 sm:py-16">
-          {/* decor */}
-          <div className="pointer-events-none absolute inset-0" aria-hidden>
-            <CloudBlob className="absolute -left-8 -top-6 w-40 opacity-40" />
-            <CloudBlob className="absolute -bottom-10 -right-6 w-44 opacity-40" />
-            <GlossyStar className="absolute left-[8%] top-[30%] h-9 w-9 animate-[twinkle_2.6s_ease-in-out_infinite]" />
-            <PinkStar className="absolute right-[10%] top-[24%] h-8 w-8 animate-[twinkle_3s_ease-in-out_infinite]" />
-            <GlossyHeart className="absolute right-[16%] bottom-[18%] h-9 w-9 animate-[bob_4s_ease-in-out_infinite]" />
-            <SparkleDecor className="absolute left-[18%] bottom-[20%] h-6 w-6 animate-twinkle" />
-          </div>
-
-          <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-sm font-700 text-white backdrop-blur">
-              <Sparkle weight="fill" className="h-4 w-4" /> Slots are open now
-            </span>
-            <h2 className="font-display mx-auto mt-5 max-w-2xl text-4xl font-700 leading-tight tracking-tight text-white sm:text-5xl">
-              Ready for your new device?
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg font-500 text-white/90">
-              Message our page and Mr. Dale John Tambong for more details.
-              We&apos;ll walk you through everything.
-            </p>
-
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <a
-                href="https://web.facebook.com/FreshPhonesPh"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-700 text-blue-ink shadow-lg transition-transform hover:-translate-y-0.5 sm:w-auto"
-              >
-                <ChatCircleDots weight="fill" className="h-5 w-5 text-blue" />
-                Message our page
-              </a>
-              <a
-                href="tel:+639624791649"
-                className="btn-bubblegum inline-flex w-full items-center justify-center gap-2 rounded-full px-7 py-3.5 text-base font-700 sm:w-auto"
-              >
-                <Phone weight="fill" className="h-5 w-5" />
-                0962 479 1649
-              </a>
-            </div>
-            <p className="mt-4 text-xs font-600 text-white/70">
-              Official and only page of Fresh Phones PH.
-            </p>
-            <p className="mt-6 text-sm text-white">
-              Already a customer?{" "}
-              <a
-                href="/support"
-                className="font-700 underline underline-offset-4"
-              >
-                Start or follow a support request
-              </a>
-              .
-            </p>
-          </div>
+    <section id="join" className={styles.join} aria-labelledby="join-heading">
+      <div className={styles.joinCard}>
+        <svg
+          className={styles.joinArt}
+          viewBox="0 0 1200 560"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <defs>
+            <linearGradient id="footer-wave" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#4474e0" stopOpacity="0.08" />
+              <stop offset="0.5" stopColor="#8cc7ff" stopOpacity="0.5" />
+              <stop offset="1" stopColor="#4474e0" stopOpacity="0.04" />
+            </linearGradient>
+          </defs>
+          <g fill="none" stroke="url(#footer-wave)">
+            <path d="M610-170C140 50 350 400 1300 110" strokeWidth="68" />
+            <path d="M610-170C140 50 350 400 1300 110" strokeWidth="2" />
+            <path d="M1320 30C680-30 430 290 690 660" strokeWidth="72" />
+            <path d="M1320 30C680-30 430 290 690 660" strokeWidth="2" />
+            <path d="M1340 270C880 160 690 420 1030 700" strokeWidth="82" />
+            <path d="M1340 270C880 160 690 420 1030 700" strokeWidth="2" />
+          </g>
+        </svg>
+        <div className={styles.joinInner}>
+          <h2 id="join-heading">
+            Check your agent
+            <br />
+            before you transact.
+          </h2>
+          <p>
+            Know who you&apos;re talking to. Search your agent&apos;s complete
+            name or code and check their status with Fresh Phones PH.
+          </p>
+          <Link href="/about#verify" className={styles.primary}>
+            Verify your agent <ArrowRight weight="bold" aria-hidden="true" />
+          </Link>
         </div>
-      </Reveal>
+      </div>
     </section>
   );
 }

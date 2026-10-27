@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @freshphones/contracts build && NEXT_PUBLIC_PRESENTATION_MODE=true pnpm --filter @fresh/web exec next build --webpack",
+  "env": {
+    "NEXT_PUBLIC_PRESENTATION_MODE": "true"
+  }
+}

@@ -3169,7 +3169,7 @@ test("staff work queues show only authorized, actionable records and open exact 
   assert.equal(
     (await owner.request("/operations/customer-work?kind=payments&page=2"))
       .status,
-    200,
+    403,
   );
 });
 
@@ -4064,6 +4064,8 @@ test("client edits reject stale concurrent drafts and preserve schedules and ver
 
   const records = await new Session().login("RECORDS");
 
+  const { session: finance } = await alertAccount("client-edit-finance");
+
   const input = {
     name: "Concurrent edit client",
     email: `${suffix}-edit@example.test`,
@@ -4091,7 +4093,7 @@ test("client edits reject stale concurrent drafts and preserve schedules and ver
 
   assert.equal(
     (
-      await owner.request(
+      await finance.request(
         `/payments/${claim.id}/verify`,
         post({
           version: claim.version,
@@ -7403,6 +7405,9 @@ test("Finance result delivery commits atomically and duplicate decisions cannot 
 
   const owner = await new Session().login("OWNER");
 
+  const otherFinance = (await alertAccount("result-atomic-second-finance"))
+    .session;
+
   const { payment } = await recordedResultPayment(
     recorder.session,
     customer.user.clientId!,
@@ -7464,10 +7469,12 @@ test("Finance result delivery commits atomically and duplicate decisions cannot 
 
   assert.equal((await decideResult(recorder.session, payment.id)).status, 403);
 
+  assert.equal((await decideResult(owner, payment.id)).status, 403);
+
   const responses = await Promise.all([
     decideResult(finance, payment.id),
     decideResult(
-      owner,
+      otherFinance,
       payment.id,
       "VERIFIED",
       1,
@@ -7906,7 +7913,7 @@ test("staff emails cover all seven kinds with correct recipients, private conten
   });
 
   const expectedReviewers = await db.user.findMany({
-    where: { active: true, role: { in: ["OWNER", "FINANCE_OFFICER"] } },
+    where: { active: true, role: "FINANCE_OFFICER" },
     select: { id: true },
   });
 

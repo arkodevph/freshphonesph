@@ -6,7 +6,6 @@ import type { INestApplication } from "@nestjs/common";
 import {
   paymentAdjustmentSchema,
   roles,
-  rolePermissions,
   type Role,
   type User,
 } from "@freshphones/contracts";
@@ -28,7 +27,9 @@ const origin = "http://localhost:3100";
 
 const suffix = randomUUID().slice(0, 8);
 
-const sessions = new Map<Role, { id: string; cookie: string }>();
+type SessionRole = Role | "SECOND_FINANCE";
+
+const sessions = new Map<SessionRole, { id: string; cookie: string }>();
 
 let app: INestApplication;
 
@@ -41,7 +42,7 @@ let batchId: string;
 let linkedClientId: string;
 
 const request = (
-  role: Role | null,
+  role: SessionRole | null,
   path: string,
   body?: unknown,
   method = body ? "POST" : "GET",
@@ -160,13 +161,13 @@ before(async () => {
 
   await db.loginAttempt.deleteMany();
 
-  for (const role of roles) {
+  for (const role of [...roles, "SECOND_FINANCE"] as const) {
     const person = await db.user.create({
       data: {
         name: `Adjustment ${role}`,
         email: `${role.toLowerCase()}-adjust-${suffix}@example.test`,
         passwordHash,
-        role,
+        role: role === "SECOND_FINANCE" ? "FINANCE_OFFICER" : role,
         ...(role === "CUSTOMER" ? { clientId: linkedClientId } : {}),
       },
     });
@@ -197,6 +198,46 @@ after(async () => {
   }
 });
 
+test("only Finance can verify payments or use the receipt review queue, including when an Owner is already signed in", async () => {
+  for (const role of roles) {
+    const pending = await db.payment.create({
+      data: {
+        clientId: linkedClientId,
+        batchId,
+        amount: "10.00",
+        method: "Cash",
+        paymentDate: new Date("2049-03-01"),
+        recordedById: sessions.get("OWNER")!.id,
+      },
+    });
+
+    const permitted = role === "FINANCE_OFFICER";
+
+    const response = await request(role, `/payments/${pending.id}/verify`, {
+      decision: "VERIFIED",
+      version: 1,
+      notes: "Checked by the permitted financial reviewer.",
+    });
+
+    assert.equal(response.status, permitted ? 200 : 403, role);
+
+    assert.equal(
+      (await db.payment.findUniqueOrThrow({ where: { id: pending.id } }))
+        .status,
+      permitted ? "VERIFIED" : "PENDING",
+      role,
+    );
+
+    assert.equal(
+      (await request(role, "/staff/finance-alerts")).status,
+      permitted ? 200 : 403,
+      role,
+    );
+  }
+
+  assert.equal((await request("OWNER", "/payments/summary")).status, 200);
+});
+
 test("only current PAYMENT_VERIFY grants permit an adjustment, with authentication and the full role matrix", async () => {
   const payment = await verified();
 
@@ -215,7 +256,7 @@ test("only current PAYMENT_VERIFY grants permit an adjustment, with authenticati
       input(revision ? "7.00" : "8.00", revision),
     );
 
-    const permitted = rolePermissions[role].includes("PAYMENT_VERIFY");
+    const permitted = role === "FINANCE_OFFICER";
 
     assert.equal(response.status, permitted ? 200 : 403, role);
 
@@ -226,7 +267,7 @@ test("only current PAYMENT_VERIFY grants permit an adjustment, with authenticati
 
   assert.equal(
     await db.paymentAdjustment.count({ where: { paymentId: payment.id } }),
-    2,
+    1,
   );
 });
 
@@ -263,13 +304,19 @@ test("signed decimal corrections, overpayment, reversal and restoration leave th
 
   assert.equal(schedule.items[0].status, "PARTIAL");
 
-  assert.equal((await request("OWNER", path, input("0.00", 1))).status, 200);
+  assert.equal(
+    (await request("FINANCE_OFFICER", path, input("0.00", 1))).status,
+    200,
+  );
 
   assert.equal((await balance(clientId)).verifiedPaid, "0.00");
 
   assert.equal((await balance(clientId)).remainingBalance, "100.00");
 
-  assert.equal((await request("OWNER", path, input("100.01", 2))).status, 200);
+  assert.equal(
+    (await request("FINANCE_OFFICER", path, input("100.01", 2))).status,
+    200,
+  );
 
   assert.equal((await balance(clientId)).overpaid, "0.01");
 
@@ -320,7 +367,7 @@ test("signed decimal corrections, overpayment, reversal and restoration leave th
 
   assert.equal(
     (
-      await request("OWNER", `/payments/${pending.id}/adjustments`, {
+      await request("FINANCE_OFFICER", `/payments/${pending.id}/adjustments`, {
         ...input("5"),
         paymentVersion: 1,
       })
@@ -371,28 +418,38 @@ test("strict input rejects negative, oversized, fractional, missing and no-op re
     { actorId: sessions.get("OWNER")!.id },
   ]) {
     assert.equal(
-      (await request("OWNER", path, { ...input("9.99"), ...facet })).status,
+      (await request("FINANCE_OFFICER", path, { ...input("9.99"), ...facet }))
+        .status,
       400,
       JSON.stringify(facet),
     );
   }
 
   assert.equal(
-    (await request("OWNER", path, { correctedAmount: "9.99" })).status,
+    (await request("FINANCE_OFFICER", path, { correctedAmount: "9.99" }))
+      .status,
     400,
   );
 
-  assert.equal((await request("OWNER", path, input("10.00"))).status, 400);
+  assert.equal(
+    (await request("FINANCE_OFFICER", path, input("10.00"))).status,
+    400,
+  );
 
   assert.equal(
-    (await request("OWNER", path, { ...input("9"), paymentVersion: 1 })).status,
+    (
+      await request("FINANCE_OFFICER", path, {
+        ...input("9"),
+        paymentVersion: 1,
+      })
+    ).status,
     409,
   );
 
   assert.equal(
     (
       await request(
-        "OWNER",
+        "FINANCE_OFFICER",
         `/payments/${randomUUID()}/adjustments`,
         input("9"),
       )
@@ -418,8 +475,8 @@ test("identical retries are idempotent, request IDs are bound to the actor and p
   const body = input("8.01");
 
   const responses = await Promise.all([
-    request("OWNER", path, body),
-    request("OWNER", path, body),
+    request("FINANCE_OFFICER", path, body),
+    request("FINANCE_OFFICER", path, body),
   ]);
 
   assert.deepEqual(
@@ -435,15 +492,20 @@ test("identical retries are idempotent, request IDs are bound to the actor and p
   );
 
   assert.equal(
-    (await request("OWNER", path, { ...body, correctedAmount: "8.02" })).status,
+    (
+      await request("FINANCE_OFFICER", path, {
+        ...body,
+        correctedAmount: "8.02",
+      })
+    ).status,
     409,
   );
 
-  assert.equal((await request("FINANCE_OFFICER", path, body)).status, 409);
+  assert.equal((await request("SECOND_FINANCE", path, body)).status, 409);
 
   const distinct = await Promise.all([
-    request("OWNER", path, input("7.01", 1)),
-    request("FINANCE_OFFICER", path, input("6.01", 1)),
+    request("FINANCE_OFFICER", path, input("7.01", 1)),
+    request("SECOND_FINANCE", path, input("6.01", 1)),
   ]);
 
   assert.deepEqual(
@@ -468,9 +530,12 @@ test("identical retries are idempotent, request IDs are bound to the actor and p
 
   assert.equal((await balance(clientId)).verifiedPaid, result.effectiveAmount);
 
-  assert.equal((await request("OWNER", path, input("5.01", 1))).status, 409);
+  assert.equal(
+    (await request("FINANCE_OFFICER", path, input("5.01", 1))).status,
+    409,
+  );
 
-  const retry = await request("OWNER", path, body);
+  const retry = await request("FINANCE_OFFICER", path, body);
 
   assert.equal(retry.status, 200);
 
@@ -486,8 +551,13 @@ test("balance, summary, statement, confirmation and customer history use net cre
   };
 
   assert.equal(
-    (await request("OWNER", `/payments/${payment.id}/adjustments`, body))
-      .status,
+    (
+      await request(
+        "FINANCE_OFFICER",
+        `/payments/${payment.id}/adjustments`,
+        body,
+      )
+    ).status,
     200,
   );
 
@@ -573,7 +643,7 @@ test("balance, summary, statement, confirmation and customer history use net cre
     },
   });
 
-  assert.equal(notifications.length, 3); // Two permission-matrix adjustments plus this one; retries never duplicate notices.
+  assert.equal(notifications.length, 2); // One Finance-only matrix adjustment plus this one; retries never duplicate notices.
 
   assert.ok(
     notifications.some((notice) => {
@@ -631,7 +701,7 @@ test("all live report/export totals reconcile to net credit; original claims and
 
   assert.equal(
     (
-      await request("OWNER", `/payments/${pending.id}/verify`, {
+      await request("FINANCE_OFFICER", `/payments/${pending.id}/verify`, {
         decision: "VERIFIED",
         notes: "Synthetic Finance review.",
         version: 1,
@@ -823,7 +893,7 @@ test("audit failures roll back credit, adjustment history, events and customer n
     assert.equal(
       (
         await request(
-          "OWNER",
+          "FINANCE_OFFICER",
           `/payments/${payment.id}/adjustments`,
           input("9.00"),
         )
@@ -859,7 +929,7 @@ test("database constraints preserve append-only credit chains and reject invalid
   assert.equal(
     (
       await request(
-        "OWNER",
+        "FINANCE_OFFICER",
         `/payments/${payment.id}/adjustments`,
         input("9.00"),
       )

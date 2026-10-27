@@ -56,7 +56,7 @@ export function allowed(
 }
 
 export async function requireCurrentUser(
-  db: Database,
+  db: Pick<Database, "user">,
   user: User,
   ...permissions: Permission[]
 ) {

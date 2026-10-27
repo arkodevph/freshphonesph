@@ -56,6 +56,7 @@ export function readConfig() {
       HOST: z.string().default("127.0.0.1"),
       DATABASE_URL: z.string().url(),
       WEB_ORIGIN: z.string().url(),
+      PUBLIC_SITE_ORIGIN: z.string().url().optional(),
       JWT_SECRET: z.string().min(32).optional(), // Local migration compatibility only.
       BETTER_AUTH_SECRET: z.string().min(32).optional(),
       BETTER_AUTH_URL: z.string().url().optional(),
@@ -130,6 +131,13 @@ export function readConfig() {
 
   if (new URL(config.WEB_ORIGIN).origin !== config.WEB_ORIGIN) {
     throw new Error("WEB_ORIGIN must be an origin without a path.");
+  }
+
+  if (
+    config.PUBLIC_SITE_ORIGIN &&
+    new URL(config.PUBLIC_SITE_ORIGIN).origin !== config.PUBLIC_SITE_ORIGIN
+  ) {
+    throw new Error("PUBLIC_SITE_ORIGIN must be an origin without a path.");
   }
 
   if (

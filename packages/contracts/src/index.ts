@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export * from "./catalog";
 
+export * from "./inquiries";
+
 export * from "./legal";
 
 export * from "./retention";
@@ -83,7 +85,9 @@ const records: Permission[] = [
 const ownWork: Permission[] = ["TASK_READ", "TASK_SUBMIT", "NOTIFICATION_READ"];
 
 export const rolePermissions: Record<Role, readonly Permission[]> = {
-  OWNER: permissions,
+  OWNER: permissions.filter((permission) => {
+    return permission !== "PAYMENT_VERIFY";
+  }),
   COO: [
     ...records,
     "PAYMENT_READ",
