@@ -28,8 +28,8 @@ these settings do not establish production sizing or replica acceptance.
 
 Follow the existing feature -> staging -> main release flow. Test this setup on
 staging first, and connect the production services to the reviewed `main` release.
-The current local work includes uncommitted changes and is not yet a deployable
-remote release. Keep automatic deployments disabled during initial provisioning.
+A feature-branch push does not establish a verified production release. Keep
+automatic deployments disabled during initial provisioning.
 
 ## System environment
 
@@ -59,6 +59,7 @@ share these values. Enter credentials in Render, outside Git.
 | `HOST` | `0.0.0.0` |
 | `DATABASE_URL` | Production Neon PostgreSQL connection string with the provider's TLS settings |
 | `WEB_ORIGIN` | Exactly the public HTTPS system origin; no trailing slash |
+| `PUBLIC_SITE_ORIGIN` | Public HTTPS Vercel landing origin; no trailing slash |
 | `BETTER_AUTH_URL` | The same system origin followed by `/api/auth` |
 | `BETTER_AUTH_SECRET` | Generated secret of at least 32 characters, shared by API and worker |
 | `AUTH_REQUIRE_STAFF_MFA` | `true` |
@@ -109,9 +110,11 @@ remains open. Do not use the preview demo-account seeder on production.
   approves and publishes those documents. Do not bypass that check.
 - Render access, service URLs, domain choice and production credentials have not
   been established in this session. Private storage selection remains open.
-- The API currently accepts only `WEB_ORIGIN` for CORS and state-changing Origin
-  checks. Public Careers/Verify calls from the separate Vercel landing origin need
-  a narrowly scoped public-origin integration before those features can go live.
+- Configure `PUBLIC_SITE_ORIGIN` for landing-site CORS. State-changing requests
+  from that origin are currently limited to `POST /api/inquiries`; Careers
+  application submissions still require a narrowly scoped origin integration
+  before they can go live. Verify public Careers/Verify reads and inquiry
+  submissions against the deployed API.
 - Verify `/api/health` through the system proxy, followed by
   `/api/health/redis` with the worker running. Test staff login/MFA, customer login,
   logout, account recovery, authenticated uploads/downloads, and streamed live

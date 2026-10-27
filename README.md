@@ -91,7 +91,7 @@ contracts package. Install dependencies from the monorepo workspace. Do not depl
 `apps/web` to the landing Vercel project.
 
 The landing app has its own route tree: `/`, `/about`, `/careers`, `/careers/apply`,
-`/verify`, `/support`, `/privacy` and its notices, and `/terms`. Login, password recovery,
+`/verify`, `/inquire`, `/support`, `/privacy` and its notices, and `/terms`. Login, password recovery,
 MFA, demo login, `/system/*` and `/portal/*` are absent and return 404. The system app
 stays in `apps/web`; its root redirects to `/login`.
 
