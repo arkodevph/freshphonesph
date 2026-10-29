@@ -22,27 +22,31 @@ export function verifiedPaymentPercent(
   return Math.min(100, (cents(summary.verified_paid) * 100) / total);
 }
 
-export function installmentChart(items: PortalScheduleItem[]) {
-  const sorted = [...items].sort((a, b) => {
-    return a.sequence_no - b.sequence_no;
-  });
+export function installmentProgress(items: PortalScheduleItem[]) {
+  const installments = [...items]
+    .sort((a, b) => a.sequence_no - b.sequence_no)
+    .map((item) => {
+      const expected = cents(item.expected_amount);
 
-  const next = sorted.findIndex((item) => {
-    return cents(item.expected_amount) > cents(item.paid_applied);
-  });
+      const verified = cents(item.paid_applied);
 
-  const start = Math.min(
-    Math.max(0, next === -1 ? sorted.length - 5 : next - 1),
-    Math.max(0, sorted.length - 5),
-  );
+      return {
+        sequence: item.sequence_no,
+        dueDate: item.due_date,
+        expected: expected / 100,
+        verified: verified / 100,
+        remaining: Math.max(0, expected - verified) / 100,
+        percentage:
+          expected > 0 ? Math.min(100, (verified / expected) * 100) : 100,
+        complete: verified >= expected,
+      };
+    });
 
-  return sorted.slice(start, start + 5).map((item) => {
-    return {
-      sequence: item.sequence_no,
-      expected: cents(item.expected_amount) / 100,
-      verified: cents(item.paid_applied) / 100,
-    };
-  });
+  return {
+    installments,
+    completed: installments.filter((item) => item.complete).length,
+    next: installments.find((item) => !item.complete),
+  };
 }
 
 export type PaymentStaff = {

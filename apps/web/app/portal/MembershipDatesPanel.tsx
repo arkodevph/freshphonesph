@@ -5,7 +5,10 @@ import {
   type PortalSummary,
   type SupportCase,
 } from "@/lib/api";
-import { CalendarBlank, Info } from "@phosphor-icons/react";
+import {
+  Calendar as CalendarBlank,
+  InfoCircle as Info,
+} from "@/components/SolarIcons";
 import Link from "next/link";
 import type * as React from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
@@ -54,30 +57,27 @@ export default function MembershipDatesPanel({
     >
       <div className={styles.sectionHeading}>
         <span className={`${styles.sectionIcon} ${styles.scheduleIcon}`}>
-          <CalendarBlank weight="duotone" aria-hidden="true" />
+          <CalendarBlank aria-hidden="true" />
         </span>
         <div>
-          <p className={styles.eyebrow}>Membership details</p>
-          <h2 id="membership-dates-title">Key dates</h2>
+          <p className={styles.eyebrow}>Your timeline</p>
+          <h2 id="membership-dates-title">Enrollment dates</h2>
         </div>
       </div>
       <MembershipDatesCalendar summary={summary} schedule={schedule} />
       <div className={styles.membershipGuidance}>
-        <Info weight="fill" aria-hidden="true" />
+        <Info aria-hidden="true" />
         <p>
-          <strong>About the planned batch end</strong> This is the batch’s
-          planned end date. It does not set a collection date for your unit.{" "}
-          <Link href="/portal/release">Check your release status</Link> for the
-          latest stage; Fresh Phones PH will coordinate collection when your
-          unit is ready.
+          The planned batch end is not a collection appointment. Your collection
+          details appear in <Link href="/portal/release">release updates</Link>.
         </p>
       </div>
       <div className={styles.correctionArea}>
         <div>
           <h3>Something incorrect?</h3>
           <p>
-            Tell Customer Service which membership detail needs to change. Your
-            current unit, batch, and dates will be included.
+            Describe the change you need. Your enrollment record will be
+            attached to the request for Customer Service.
           </p>
         </div>
         <button

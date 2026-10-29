@@ -2,7 +2,7 @@
 
 import type { PortalScheduleItem } from "@/lib/api";
 import { installmentState } from "@/lib/portal-schedule";
-import { ArrowRight, ArrowUp } from "@phosphor-icons/react";
+import { ArrowRight, ArrowUp } from "@/components/SolarIcons";
 import Link from "next/link";
 import type { RefObject } from "react";
 import styles from "./payment-schedule.module.css";
@@ -41,7 +41,7 @@ export default function PaymentScheduleLogs({
           <h2 id="full-payment-schedule-title">Full payment schedule</h2>
         </div>
         <button type="button" onClick={collapseSchedule}>
-          Collapse schedule
+          Back to calendar
           <ArrowUp aria-hidden="true" />
         </button>
       </header>
@@ -49,6 +49,50 @@ export default function PaymentScheduleLogs({
         <State error onRetry={onRetry} />
       ) : (
         <>
+          <ol className={styles.installmentList} aria-label="All installments">
+            {items.map((item) => {
+              const state = installmentState(item, today);
+              return (
+                <li
+                  key={item.sequence_no}
+                  data-schedule-installment={item.sequence_no}
+                  tabIndex={-1}
+                >
+                  <button
+                    type="button"
+                    aria-label={`Details for installment ${item.sequence_no}, ${dueDate(item.due_date)}, ${money(state.remaining)} remaining, ${state.payment}, ${state.timing}`}
+                    aria-haspopup="dialog"
+                    onClick={(event) => {
+                      showDetails(item, event.currentTarget);
+                    }}
+                  >
+                    <span>
+                      <strong>Installment {item.sequence_no}</strong>
+                      <small>{dueDate(item.due_date)}</small>
+                    </span>
+                    <span>
+                      <strong>{money(state.remaining)}</strong>
+                      <small>Remaining</small>
+                    </span>
+                    <span
+                      className={`${styles.badge} ${badgeClass(state.payment)}`}
+                    >
+                      {state.payment}
+                    </span>
+                    <small
+                      className={
+                        state.timing === "Overdue"
+                          ? styles.overdue
+                          : styles.muted
+                      }
+                    >
+                      {state.timing}
+                    </small>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
           <div
             className={styles.tableScroll}
             role="region"
@@ -80,6 +124,7 @@ export default function PaymentScheduleLogs({
                     <tr
                       key={item.sequence_no}
                       id={`installment-${item.sequence_no}`}
+                      data-schedule-installment={item.sequence_no}
                       tabIndex={-1}
                     >
                       <th scope="row">Installment {item.sequence_no}</th>

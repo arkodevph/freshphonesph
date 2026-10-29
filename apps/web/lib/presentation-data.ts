@@ -288,7 +288,7 @@ export const demoApplicants = [
 
 export const demoDocuments = [
   {
-    key: "identity",
+    key: "PHOTO_ID",
     label: "Proof of identity",
     description:
       "Sample requirement. File uploads are disabled in this presentation.",

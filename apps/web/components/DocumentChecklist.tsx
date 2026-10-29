@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
   CheckCircle,
-  FileArrowUp,
-  WarningCircle,
-} from "@phosphor-icons/react";
+  FileSend as FileArrowUp,
+  DangerCircle as WarningCircle,
+} from "@/components/SolarIcons";
 import {
   downloadCustomerDocument,
   getCustomerDocuments,
@@ -290,7 +290,7 @@ export function DocumentChecklist({
     <div className={styles.wrapper}>
       <div className={styles.heading}>
         <span className={styles.headingIcon}>
-          <FileArrowUp weight="duotone" aria-hidden="true" />
+          <FileArrowUp aria-hidden="true" />
         </span>
         <div>
           <p>Requirements</p>
@@ -371,7 +371,7 @@ export function DocumentChecklist({
                 {item.latest?.clarification &&
                   item.status === "NEEDS_CLARIFICATION" && (
                     <p className={styles.clarification}>
-                      <WarningCircle weight="fill" aria-hidden="true" />{" "}
+                      <WarningCircle aria-hidden="true" />{" "}
                       {item.latest.clarification}
                     </p>
                   )}
@@ -389,7 +389,7 @@ export function DocumentChecklist({
                         return download(item.latest!.id, item.latest!.fileName);
                       }}
                     >
-                      <ArrowDown weight="bold" aria-hidden="true" /> Download
+                      <ArrowDown aria-hidden="true" /> Download
                     </button>
                   </div>
                 )}
@@ -411,7 +411,7 @@ export function DocumentChecklist({
                       required
                     />
                     <button type="submit" disabled={working === item.key}>
-                      <FileArrowUp weight="bold" aria-hidden="true" />
+                      <FileArrowUp aria-hidden="true" />
                       {working === item.key
                         ? "Uploading…"
                         : item.status === "MISSING"
@@ -465,7 +465,7 @@ export function DocumentChecklist({
                           return review(item, "APPROVED");
                         }}
                       >
-                        <CheckCircle weight="bold" aria-hidden="true" /> Approve
+                        <CheckCircle aria-hidden="true" /> Approve
                       </button>
                       <button
                         type="button"

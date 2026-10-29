@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -18,6 +19,8 @@ import { useMe } from "@/lib/useMe";
 import styles from "./legal-gate.module.css";
 
 export function LegalGate({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
   const me = useMe();
 
   const [status, setStatus] = useState<LegalStatus | null>(null);
@@ -51,8 +54,8 @@ export function LegalGate({ children }: { children: ReactNode }) {
 
     setActionError(null);
 
-    setLoadedFor(null);
-
+    // Keep the current account's page mounted during background rechecks.
+    // Initial loads and account changes remain gated by loadedFor below.
     void getLegalStatus()
       .then((result) => {
         if (loadingFor.current !== userId) {
@@ -84,13 +87,9 @@ export function LegalGate({ children }: { children: ReactNode }) {
   }, [reload]);
 
   useEffect(() => {
-    window.addEventListener("focus", reload);
-
     window.addEventListener("fp-legal-required", reload);
 
     return () => {
-      window.removeEventListener("focus", reload);
-
       window.removeEventListener("fp-legal-required", reload);
     };
   }, [reload]);
@@ -150,7 +149,7 @@ export function LegalGate({ children }: { children: ReactNode }) {
       return undefined;
     });
 
-    window.location.assign("/login");
+    router.replace("/login");
   }
 
   return (

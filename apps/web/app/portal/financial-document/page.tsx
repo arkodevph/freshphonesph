@@ -4,7 +4,11 @@ import { formatPeso as money } from "@/lib/currency";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, DownloadSimple, Printer } from "@phosphor-icons/react";
+import {
+  ArrowLeft,
+  DownloadMinimalistic as DownloadSimple,
+  Printer,
+} from "@/components/SolarIcons";
 import type {
   Client,
   ClientBalance,
@@ -15,6 +19,7 @@ import { tsRequest } from "@/lib/ts-api";
 import { downloadAccountPdf } from "@/lib/account-pdf";
 import DocumentSheetSkeleton from "./DocumentSheetSkeleton";
 import styles from "./financial-document.module.css";
+import glass from "../portal-glass.module.css";
 
 type Statement = {
   title: string;
@@ -104,7 +109,7 @@ export default function FinancialDocumentPage() {
   }, [router]);
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${glass.interactions}`}>
       <header className={styles.documentHeader}>
         <div className={styles.documentHeading}>
           <p>Fresh Phones PH</p>

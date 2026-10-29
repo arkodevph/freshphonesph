@@ -1,0 +1,418 @@
+/* Material reference: archisvaze/liquid-glass (MIT). Original portal adaptation. */
+:global(html[data-system-theme]) .material[data-glass-portal] {
+  --portal-bg: #fff;
+  --portal-surface: rgb(255 255 255 / 88%);
+  --portal-surface-alt: rgb(30 55 80 / 4%);
+  --portal-border: rgb(30 55 80 / 14%);
+  --portal-text: #192c42;
+  --portal-muted: #4e6278;
+  --portal-accent: #205da9;
+  --portal-accent-soft: rgb(70 130 200 / 12%);
+  --portal-avatar: #192c42;
+  --glass-fill: rgb(244 247 250 / 78%);
+  --glass-chrome: rgb(255 255 255 / 86%);
+  --glass-edge: rgb(62 86 112 / 12%);
+  --glass-light: rgb(255 255 255 / 55%);
+  --glass-shadow: 0 12px 32px -22px rgb(40 60 85 / 25%);
+  background: var(--portal-bg);
+  color: var(--portal-text);
+  color-scheme: light;
+  isolation: isolate;
+}
+:global(html[data-system-theme="dark"]) .material[data-glass-portal] {
+  --portal-bg: #000;
+  background: #000;
+  isolation: isolate;
+  color-scheme: dark;
+  --portal-surface: rgb(28 28 30 / 82%);
+  --portal-surface-alt: rgb(162 191 222 / 9%);
+  --portal-border: rgb(204 226 248 / 15%);
+  --portal-text: #f0f5fc;
+  --portal-muted: #b9c9db;
+  --portal-accent: #b3d5ff;
+  --portal-accent-soft: rgb(111 174 242 / 16%);
+  --glass-fill: rgb(34 34 38 / 64%);
+  --glass-chrome: rgb(19 19 22 / 80%);
+  --glass-edge: rgb(210 233 255 / 11%);
+  --glass-light: rgb(234 246 255 / 10%);
+  --glass-shadow: 0 16px 36px -20px rgb(0 5 15 / 65%);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material] {
+  border: 1px solid var(--glass-edge);
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 3%), transparent 60%),
+    var(--glass-fill);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-light),
+    inset 0 -1px 0 rgb(10 30 52 / 8%);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="toolbar"],
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="sidebar"] {
+  background: var(--glass-chrome);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  backdrop-filter: blur(22px) saturate(140%);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="toolbar"] {
+  border-width: 0 0 1px;
+  box-shadow: inset 0 -1px 0 rgb(255 255 255 / 3%);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="sidebar"] {
+  margin: 18px 0 18px 14px;
+  height: calc(100% - 36px);
+  border-radius: 28px;
+  padding: 14px 10px;
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="sidebar"]
+  a {
+  border-radius: 999px;
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [aria-current="page"] {
+  color: var(--portal-text);
+  background: var(--portal-accent-soft);
+  box-shadow:
+    inset 0 1px 0 var(--glass-light),
+    0 2px 6px rgb(10 24 46 / 5%);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="membership"],
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="summary"] {
+  position: relative;
+  border-radius: 28px;
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="membership"] {
+  background: linear-gradient(115deg, var(--glass-chrome), var(--glass-fill));
+  color: var(--portal-text);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="membership"]::before,
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="summary"]::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  content: "";
+  background: linear-gradient(
+    135deg,
+    var(--glass-light),
+    transparent 34%,
+    transparent 70%,
+    var(--glass-edge)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="membership"]
+  h2 {
+  color: var(--portal-text);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="membership"]
+  p {
+  color: var(--portal-muted);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="membership"]
+  span:not(:has(img)) {
+  color: inherit;
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="tile"],
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="card"] {
+  border-radius: 20px;
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="tile"] {
+  border-radius: 16px;
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="illustration"] {
+  border: 0;
+  border-radius: 18px;
+  background: var(--portal-surface-alt);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 7%);
+}
+:global(html[data-system-theme])
+  .material[data-glass-portal]
+  [data-portal-material="navigation"] {
+  border-radius: 999px;
+  background: var(--glass-chrome);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+:global(html[data-system-theme]) .material[data-glass-portal] :focus-visible {
+  outline: 3px solid var(--portal-accent);
+  outline-offset: 3px;
+}
+@media (max-width: 900px) {
+  :global(html[data-system-theme])
+    .material[data-glass-portal]
+    [data-portal-material="sidebar"] {
+    margin: 0;
+    height: 100%;
+    border-radius: 0 28px 28px 0;
+    background: var(--portal-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  :global(html[data-system-theme])
+    .material[data-glass-portal]
+    [data-portal-material="navigation"] {
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+    padding: 8px;
+    gap: 2px;
+  }
+}
+@media (max-width: 700px) {
+  :global(html[data-system-theme])
+    .material[data-glass-portal]
+    [data-portal-material="membership"],
+  :global(html[data-system-theme])
+    .material[data-glass-portal]
+    [data-portal-material="summary"] {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :global(html[data-system-theme])
+    .material[data-glass-portal]
+    [data-portal-material] {
+    transition: none;
+    transform: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  :global(html[data-system-theme])
+    .material[data-glass-portal]
+    [data-portal-material] {
+    background: var(--portal-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+}
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  :global(html[data-system-theme])
+    .material[data-glass-portal]
+    [data-portal-material] {
+    background: var(--portal-bg);
+  }
+}
+
+/* Shared by the workspace and the portalled tour. Keep the shadow geometry
+   identical between states so only the light changes, never its spread. */
+.interactions {
+  --portal-hover-fill: rgb(34 55 78 / 3.5%);
+  --portal-pressed-fill: rgb(34 55 78 / 7%);
+  --portal-surface-light: rgb(255 255 255 / 65%);
+  --portal-edge-hover: rgb(62 86 112 / 20%);
+  --portal-shadow-hover: 0 14px 32px -22px rgb(40 60 85 / 34%);
+  --portal-interaction-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --portal-focus: var(--portal-accent, #205da9);
+}
+
+:global(html[data-system-theme="dark"]) .interactions {
+  --portal-hover-fill: rgb(255 255 255 / 4.5%);
+  --portal-pressed-fill: rgb(255 255 255 / 8%);
+  --portal-surface-light: rgb(255 255 255 / 8%);
+  --portal-edge-hover: rgb(210 233 255 / 19%);
+  --portal-shadow-hover: 0 18px 38px -20px rgb(0 5 15 / 72%);
+  --portal-focus: var(--portal-accent, #b3d5ff);
+}
+
+.interactions.interactions
+  :is(
+    a[href],
+    button,
+    summary,
+    [role="button"],
+    [role="option"],
+    input,
+    textarea,
+    select
+  ) {
+  transition:
+    background-color 280ms var(--portal-interaction-ease),
+    border-color 280ms var(--portal-interaction-ease),
+    color 220ms var(--portal-interaction-ease),
+    box-shadow 320ms var(--portal-interaction-ease);
+}
+
+.interactions.interactions
+  :is(a[href], button, summary, [role="button"], [role="option"]):not(
+    :disabled,
+    [aria-disabled="true"],
+    [aria-busy="true"]
+  ) {
+  box-shadow:
+    inset 0 0 0 100vmax transparent,
+    var(--portal-control-shadow, 0 0 0 transparent);
+}
+
+.material[data-glass-portal] :is(a, button)[data-portal-material] {
+  --portal-control-shadow:
+    var(--glass-shadow), inset 0 1px 0 var(--glass-light),
+    inset 0 -1px 0 rgb(10 30 52 / 8%);
+}
+
+.material.interactions[data-glass-portal]
+  :is(a, button):is(
+    [data-portal-material="tile"],
+    [data-portal-material="card"]
+  ) {
+  position: relative;
+  isolation: isolate;
+}
+
+.material.interactions[data-glass-portal]
+  :is(a, button):is(
+    [data-portal-material="tile"],
+    [data-portal-material="card"]
+  )::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--portal-surface-light),
+    transparent 65%
+  );
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 320ms var(--portal-interaction-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .interactions.interactions
+    :is(a[href], button, summary, [role="button"], [role="option"]):not(
+      :disabled,
+      [aria-disabled="true"],
+      [aria-busy="true"]
+    ):hover {
+    box-shadow:
+      inset 0 0 0 100vmax var(--portal-hover-fill),
+      var(--portal-control-shadow, 0 0 0 transparent);
+  }
+
+  .material.interactions[data-glass-portal]
+    :is(a, button):is(
+      [data-portal-material="tile"],
+      [data-portal-material="card"]
+    ):hover {
+    --portal-control-shadow:
+      var(--portal-shadow-hover), inset 0 1px 0 var(--glass-light),
+      inset 0 -1px 0 rgb(10 30 52 / 8%);
+    border-color: var(--portal-edge-hover);
+    box-shadow:
+      inset 0 0 0 100vmax transparent,
+      var(--portal-control-shadow);
+  }
+
+  .material.interactions[data-glass-portal]
+    :is(a, button):is(
+      [data-portal-material="tile"],
+      [data-portal-material="card"]
+    ):hover::after {
+    opacity: 0.45;
+  }
+
+  .interactions :is(input, textarea, select):not(:disabled, [readonly]):hover {
+    border-color: var(--portal-focus);
+  }
+}
+
+.interactions.interactions
+  :is(a[href], button, summary, [role="button"], [role="option"]):not(
+    :disabled,
+    [aria-disabled="true"],
+    [aria-busy="true"]
+  ):active {
+  box-shadow:
+    inset 0 0 0 100vmax var(--portal-pressed-fill),
+    var(--portal-control-shadow, 0 0 0 transparent);
+  transform: none;
+  transition-duration: 100ms;
+}
+
+.interactions :focus-visible {
+  outline: 3px solid var(--portal-focus);
+  outline-offset: 3px;
+}
+
+/* Feedback comes from the control surface rather than moving its icon. */
+.interactions [data-solar-icon] {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactions *,
+  .interactions *::before,
+  .interactions *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .interactions
+    :is(a[href], button, summary, [role="button"], [role="option"]):not(
+      :disabled,
+      [aria-disabled="true"],
+      [aria-busy="true"]
+    ):is(:hover, :active) {
+    outline: 1px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .interactions :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+}

@@ -3,7 +3,6 @@
 import { pesoFormat as moneyFormat } from "@/lib/currency";
 import { calendarDate } from "@/lib/portal-membership-calendar";
 import styles from "./payment-schedule.module.css";
-import bannerStyles from "./portal-banner.module.css";
 
 export const shortDate = new Intl.DateTimeFormat("en-PH", {
   month: "short",
@@ -77,13 +76,12 @@ export function PaymentScheduleSkeleton() {
       className={`${styles.workspace} ${styles.skeleton}`}
       aria-hidden="true"
     >
+      <div className={`${styles.plan} ${styles.skeletonPlan}`} />
+      <div className={styles.viewToolbar}>
+        <div className={styles.skeletonBar} />
+      </div>
       <div className={styles.layout}>
-        <div className={styles.main}>
-          <div
-            className={`${styles.plan} ${bannerStyles.banner} ${bannerStyles.night} ${styles.skeletonPlan}`}
-          />
-          <div className={`${styles.calendar} ${styles.skeletonCalendar}`} />
-        </div>
+        <div className={`${styles.calendar} ${styles.skeletonCalendar}`} />
         <div className={`${styles.preview} ${styles.skeletonPreview}`} />
       </div>
     </div>

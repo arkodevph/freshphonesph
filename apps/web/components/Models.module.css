@@ -93,3 +93,169 @@
     gap: 1.25rem;
   }
 }
+.results {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 72rem;
+  margin: 20px auto 0;
+  font-size: 0.875rem;
+}
+.results button {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid currentColor;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.portal {
+  padding: 0;
+  background: transparent;
+  color: var(--portal-text, #17254d);
+}
+.notice {
+  padding: 18px 20px;
+  border: 1px solid var(--portal-border, #dce2ed);
+  border-radius: 16px;
+  background: var(--portal-surface, #fff);
+  color: var(--portal-muted, #53617e);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.portal .card {
+  border-color: var(--portal-border, #dce2ed);
+  background: var(--portal-surface, #fff);
+}
+.portal .image {
+  background: var(--portal-surface-alt, #f2f6fc);
+}
+.portal :is(label, p, a) {
+  color: inherit;
+}
+.portal :is(input, select) {
+  background: var(--portal-surface, #fff);
+  border-color: var(--portal-border, #dce2ed);
+  color: inherit;
+}
+.portal .condition {
+  border-color: var(--portal-border, #dce2ed);
+  color: var(--portal-muted, #53617e);
+}
+.portal .payments {
+  border-color: var(--portal-border, #dce2ed);
+}
+.portal .inquire {
+  color: #fff;
+}
+.portal :is(input, select, button, a):focus-visible {
+  outline: 3px solid var(--portal-accent, #3154c9);
+  outline-offset: 3px;
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .portal .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mobileDetails {
+  display: none;
+}
+
+/* Compact two-column product browsing within the customer portal. */
+@media (max-width: 639px) {
+  .portal .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .portal .card {
+    border-radius: 14px;
+  }
+  .portal .image {
+    height: auto;
+    aspect-ratio: 4 / 3;
+    margin: 8px;
+    border-radius: 10px;
+  }
+  .portal .image img {
+    padding: 8px;
+  }
+  .portal .details {
+    min-width: 0;
+    padding: 4px 10px 12px;
+  }
+  .portal .titleRow {
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .portal .name {
+    width: 100%;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+  .portal .condition {
+    padding: 2px 5px;
+    font-size: 10px;
+    line-height: 1.4;
+  }
+  .portal .description,
+  .portal .paymentHint {
+    display: none;
+  }
+  .portal .priceRow {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0;
+    padding-top: 8px;
+  }
+  .portal .priceRow > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .portal .price {
+    font-size: 18px;
+    line-height: 1.3;
+  }
+  .portal .price span {
+    font-size: 11px;
+  }
+  .portal .inquire {
+    width: 36px;
+    height: 36px;
+  }
+  .portal .inquire svg {
+    width: 16px;
+    height: 16px;
+  }
+  .portal .payments {
+    margin-top: 12px;
+    padding: 8px 6px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .portal .mobileDetails {
+    display: block;
+    margin-top: 6px;
+    color: var(--portal-muted, #53617e);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .portal .mobileDetails summary {
+    display: list-item;
+    width: fit-content;
+    min-height: 28px;
+    padding: 5px 0;
+    cursor: pointer;
+  }
+  .portal .mobileDetails summary:focus-visible {
+    outline: 2px solid var(--portal-accent, #3154c9);
+    outline-offset: 2px;
+  }
+  .portal .mobileDetails p {
+    margin: 6px 0 0;
+    overflow-wrap: anywhere;
+  }
+}

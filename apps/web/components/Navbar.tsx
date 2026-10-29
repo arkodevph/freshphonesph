@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { systemHref } from "@/lib/site-links";
 import { List, X, SignIn } from "@phosphor-icons/react";
 
@@ -64,7 +65,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
                 : "bg-white/30 backdrop-blur-sm"
           }`}
         >
-          <a href="/#top" className="flex min-w-0 items-center gap-2.5 pl-1">
+          <Link href="/#top" className="flex min-w-0 items-center gap-2.5 pl-1">
             <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-2xl chrome">
               <Image
                 src="/brand/fresh-phones-logo.png"
@@ -77,26 +78,31 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
             <span className="min-w-0 break-words font-body text-base font-800 leading-none tracking-tight text-blue-ink sm:text-lg">
               Fresh Phones <span className="holo-text">PH</span>
             </span>
-          </a>
+          </Link>
 
           <ul className="hidden items-center gap-1 lg:flex">
             {links.map((l) => {
               return (
                 <li key={l.href}>
-                  <a
+                  <Link
                     href={l.href}
                     className="rounded-full px-3.5 py-2 text-sm font-700 text-ink-soft transition-colors hover:bg-white/60 hover:text-blue"
                   >
                     {l.label}
-                  </a>
+                  </Link>
                 </li>
               );
             })}
           </ul>
 
           <div className="flex shrink-0 items-center gap-2">
-            <a
-              href={loginHref ?? undefined}
+            <Link
+              href={loginHref ?? "#"}
+              onClick={(event) => {
+                if (!loginHref) {
+                  event.preventDefault();
+                }
+              }}
               role="link"
               tabIndex={0}
               aria-disabled={!loginHref}
@@ -105,7 +111,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
             >
               <SignIn weight="bold" className="h-4 w-4" />
               Login Portal
-            </a>
+            </Link>
             <button
               onClick={() => {
                 return setOpen((v) => {
@@ -127,7 +133,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
               {links.map((l) => {
                 return (
                   <li key={l.href}>
-                    <a
+                    <Link
                       href={l.href}
                       onClick={() => {
                         return setOpen(false);
@@ -135,25 +141,29 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
                       className="block rounded-2xl px-4 py-3 font-600 text-ink-soft hover:bg-white/70 hover:text-blue"
                     >
                       {l.label}
-                    </a>
+                    </Link>
                   </li>
                 );
               })}
               <li className="mt-1 px-1">
-                <a
-                  href={loginHref ?? undefined}
+                <Link
+                  href={loginHref ?? "#"}
                   role="link"
                   tabIndex={0}
                   aria-disabled={!loginHref}
                   title={loginHref ? undefined : "Login will be available soon"}
-                  onClick={() => {
+                  onClick={(event) => {
+                    if (!loginHref) {
+                      event.preventDefault();
+                    }
+
                     return setOpen(false);
                   }}
                   className="btn-candy flex items-center justify-center gap-1.5 rounded-2xl px-5 py-3 font-700"
                 >
                   <SignIn weight="bold" className="h-4 w-4" />
                   Login Portal
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

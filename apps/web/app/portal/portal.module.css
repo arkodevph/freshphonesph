@@ -112,12 +112,7 @@
   flex: 1;
   min-width: 0;
 }
-.navLink:hover {
-  background: #f3f5ff;
-  color: #3054a5;
-}
-.navActive,
-.navActive:hover {
+.navActive {
   background: #eeeaff;
   color: #4832aa;
   font-weight: 900;
@@ -228,10 +223,6 @@
 .logout svg {
   width: 17px;
   height: 17px;
-}
-.logout:hover {
-  border-color: #c8d5f8;
-  background: #f4f7ff;
 }
 .logout:focus-visible,
 .supportForm :focus-visible,
@@ -906,10 +897,6 @@
   width: 13px;
   height: 13px;
 }
-.scheduleDetailsButton:hover {
-  border-color: var(--portal-accent, #5548ff);
-  background: var(--portal-accent-soft, #eeecff);
-}
 .scheduleDetailsButton:focus-visible {
   outline: 2px solid var(--portal-accent, #5548ff);
   outline-offset: 2px;
@@ -1039,9 +1026,6 @@
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
-}
-.installmentDialogFooter a:hover {
-  text-decoration: underline;
 }
 .installmentDialogFooter a svg {
   width: 15px;
@@ -1326,10 +1310,6 @@
   font: inherit;
   cursor: pointer;
 }
-.schedulePagination button:hover:not(:disabled),
-.supportPagination button:hover:not(:disabled) {
-  border-color: var(--portal-accent, #5548ff);
-}
 .schedulePagination button:disabled,
 .supportPagination button:disabled {
   opacity: 0.45;
@@ -1449,7 +1429,7 @@
   display: flex;
   justify-content: flex-end;
 }
-.supportForm button {
+.supportForm button[type="submit"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1463,11 +1443,11 @@
   font-weight: 800;
   cursor: pointer;
 }
-.supportForm button:disabled {
+.supportForm button[type="submit"]:disabled {
   opacity: 0.65;
   cursor: wait;
 }
-.supportForm button svg {
+.supportForm button[type="submit"] svg {
   width: 16px;
   height: 16px;
 }
@@ -1632,10 +1612,6 @@
 .settingsActions button svg {
   width: 17px;
   height: 17px;
-}
-.settingsLink:hover,
-.settingsActions button:hover {
-  border-color: var(--portal-accent, #5548ff);
 }
 .settingsActions {
   display: flex;
@@ -2022,9 +1998,6 @@
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
-}
-.attentionToggle:hover {
-  background: #efe7ff;
 }
 .attentionToggle svg {
   width: 16px;
@@ -2708,8 +2681,7 @@
     width: 20px;
     height: 20px;
   }
-  .mobileNavActive,
-  .mobileNavActive:hover {
+  .mobileNavActive {
     background: #f0e9ff;
     color: #6632ce;
   }
@@ -2827,10 +2799,6 @@
     background: #fff;
     color: #202a4d;
     text-decoration: none;
-  }
-  .moreTool:hover {
-    border-color: #d3c6f8;
-    background: #faf7ff;
   }
   .moreToolIcon {
     display: grid;
@@ -3297,12 +3265,7 @@
   font-size: 12px;
   font-weight: 700;
 }
-.shell .navLink:hover {
-  background: var(--portal-surface-alt);
-  color: var(--portal-text);
-}
-.shell .navActive,
-.shell .navActive:hover {
+.shell .navActive {
   background: var(--portal-accent-soft);
   color: var(--portal-accent);
 }
@@ -3426,21 +3389,12 @@
   width: 19px;
   height: 19px;
 }
-.topbarIcon:hover,
-.searchTrigger:hover {
-  border-color: var(--portal-accent);
-  color: var(--portal-accent);
-}
 .themeToggle {
   overflow: hidden;
   transition:
     transform 0.18s ease,
     border-color 0.18s ease,
     background-color 0.18s ease;
-}
-.themeToggle:hover {
-  border-color: var(--portal-accent);
-  background: var(--portal-accent-soft);
 }
 .themeToggle:active {
   transform: scale(0.88);
@@ -3556,10 +3510,6 @@
   font-size: 12px;
   font-weight: 700;
 }
-.searchMenu a:hover {
-  background: var(--portal-accent-soft);
-  color: var(--portal-accent);
-}
 .searchMenu a svg {
   width: 17px;
   height: 17px;
@@ -3595,10 +3545,6 @@
 }
 .profileMenu button {
   color: #d06472;
-}
-.profileMenu a:hover,
-.profileMenu button:hover {
-  background: var(--portal-accent-soft);
 }
 .profileMenu a svg,
 .profileMenu button svg {
@@ -3696,7 +3642,6 @@
   color: var(--portal-text);
   text-decoration: none;
 }
-.notificationPreviewList li a:hover,
 .notificationPreviewList li a:focus-visible {
   background: var(--portal-accent-soft);
   outline: none;
@@ -3763,9 +3708,6 @@
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
-}
-.notificationPreviewMore:hover {
-  background: var(--portal-accent-soft);
 }
 .notificationPreviewMore svg {
   width: 15px;
@@ -3977,14 +3919,14 @@
 .shell .attentionAction,
 .shell .correctionTrigger,
 .shell .correctionForm button,
-.shell .supportForm button,
+.shell .supportForm button[type="submit"],
 .shell .replyForm button,
 .shell .attentionState button,
 .shell .balanceCta {
   background: var(--portal-accent);
   color: #fff;
 }
-.shell .supportForm button {
+.shell .supportForm button[type="submit"] {
   align-self: start;
 }
 .shell .attentionToggle,
@@ -4426,13 +4368,13 @@
 .shell .caseToggle,
 .shell .replyPrompt,
 .shell .replyForm button,
-.shell .supportForm button {
+.shell .supportForm button[type="submit"] {
   font-size: 14px;
   line-height: 1.4;
 }
 .shell .attentionAction,
 .shell .correctionTrigger,
-.shell .supportForm button,
+.shell .supportForm button[type="submit"],
 .shell .replyForm button,
 .shell .notificationList button,
 .shell .pageActions button {
@@ -4622,11 +4564,6 @@
   gap: 5px;
   min-height: 58px;
 }
-.shell .themeToggle:hover {
-  border-color: var(--portal-accent);
-  background: var(--portal-accent-soft);
-  color: var(--portal-accent);
-}
 @media (max-width: 700px) {
   .skeletonShell .intro {
     min-height: 34px;
@@ -4730,10 +4667,6 @@
     sans-serif;
   text-align: left;
   cursor: pointer;
-}
-.shell .tourReplay:hover,
-.shell .moreTourReplay:hover {
-  border-color: var(--portal-accent);
 }
 .shell .tourReplay svg,
 .shell .moreTourReplay svg {
@@ -4998,9 +4931,6 @@
     width: 15px;
     height: 15px;
   }
-  .membershipDetails:hover {
-    background: rgba(255, 255, 255, 0.22);
-  }
   .membershipDetails:focus-visible {
     outline: 3px solid #fff;
     outline-offset: 3px;
@@ -5056,9 +4986,6 @@
   border-color: #ffffffb3;
   background: #ffffff80;
   color: var(--color-blue-ink);
-}
-.membershipDashboard .membershipDetails:hover {
-  background: #ffffffc7;
 }
 .membershipDashboard .membershipDetails:focus-visible {
   outline-color: var(--color-blue);
@@ -5193,5 +5120,527 @@
 @media (prefers-reduced-motion: reduce) {
   .membershipCloud {
     animation: none;
+  }
+}
+
+/* Cloud dashboard: quiet macOS surfaces, grouped iOS actions. */
+.shell.macDashboard {
+  --portal-bg: #f3f3f7;
+  --portal-surface: #ffffff;
+  --portal-surface-alt: #f5f5f9;
+  --portal-border: #e6e5ee;
+  --portal-accent: #2867c7;
+  --portal-accent-soft: #e8f0fc;
+  --portal-muted: #666472;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: -0.012em;
+  background:
+    radial-gradient(ellipse at 95% 0%, #e5edf9 0%, transparent 55%),
+    var(--portal-bg);
+}
+:global(html[data-system-theme="dark"]) .shell.macDashboard {
+  --portal-bg: #16161c;
+  --portal-surface: #212128;
+  --portal-surface-alt: #292931;
+  --portal-border: #34333e;
+  --portal-text: #f5f4fa;
+  --portal-muted: #b8b5c5;
+  --portal-accent: #9dc3ff;
+  --portal-accent-soft: #26394f;
+  background:
+    radial-gradient(ellipse at 95% 0%, #202c3b 0%, transparent 55%),
+    var(--portal-bg);
+}
+.macDashboard .topbar,
+.macDashboard .sidebar {
+  background: color-mix(in srgb, var(--portal-bg) 82%, transparent);
+  backdrop-filter: blur(24px);
+}
+.macDashboard .topbar {
+  border-bottom-color: var(--portal-border);
+}
+.macDashboard .container {
+  padding-top: 28px;
+}
+.macDashboard .intro h1 {
+  font-family: inherit;
+  font-weight: 650;
+  letter-spacing: -0.045em;
+}
+.macDashboard .eyebrow,
+.macDashboard .navLabel {
+  color: var(--portal-muted);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.macDashboard .navLink {
+  min-height: 44px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+.macDashboard .navActive {
+  background: var(--portal-accent-soft);
+  color: var(--portal-accent);
+}
+.macDashboard .dashboardLayout {
+  gap: 24px;
+}
+.macDashboard .membership.membershipDashboard {
+  min-height: 222px;
+  border: 1px solid var(--portal-border);
+  border-radius: 24px;
+  background: linear-gradient(115deg, #edf4fc, #e1edf9);
+  color: #243b59;
+}
+:global(html[data-system-theme="dark"])
+  .macDashboard
+  .membership.membershipDashboard {
+  background: linear-gradient(115deg, #26384c, #2e4159);
+  border-color: #40556f;
+}
+.macDashboard .membershipDashboard .membershipCopy {
+  position: relative;
+  z-index: 2;
+  margin-top: 38px;
+  max-width: calc(100% - 220px);
+}
+.macDashboard .membershipDashboard .membershipCopy h2 {
+  color: #243b59;
+  font-family: inherit;
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.macDashboard .membershipDashboard .membershipCopy > p {
+  color: #51667f;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.macDashboard .membershipDashboard .batch {
+  margin-top: 12px;
+  background: #ffffff66;
+  color: #425c7d;
+  font-weight: 500;
+}
+.macDashboard .membershipDashboard .heroIcon {
+  background: #ffffff66;
+  border-color: #ffffff66;
+  color: #3674c3;
+}
+.macDashboard .membershipDashboard .membershipStatus {
+  background: #ffffff99;
+  border-color: #ffffff66;
+  color: #425c7d;
+}
+:global(html[data-system-theme="dark"])
+  .macDashboard
+  .membershipDashboard
+  .membershipCopy
+  h2 {
+  color: #eff6ff;
+}
+:global(html[data-system-theme="dark"])
+  .macDashboard
+  .membershipDashboard
+  .membershipCopy
+  > p {
+  color: #c7d9ed;
+}
+:global(html[data-system-theme="dark"])
+  .macDashboard
+  .membershipDashboard
+  .batch,
+:global(html[data-system-theme="dark"])
+  .macDashboard
+  .membershipDashboard
+  .membershipStatus,
+:global(html[data-system-theme="dark"])
+  .macDashboard
+  .membershipDashboard
+  .heroIcon {
+  background: #ffffff12;
+  border-color: #ffffff1f;
+  color: #dcecff;
+}
+.membershipMascot {
+  position: absolute;
+  z-index: 1;
+  top: 20px;
+  right: 15px;
+  width: 280px;
+  height: calc(100% - 30px);
+  object-fit: contain;
+  pointer-events: none;
+}
+@media (max-width: 700px) {
+  .macDashboard .container {
+    padding-top: 20px;
+  }
+  .macDashboard .membership.membershipDashboard {
+    min-height: 242px;
+    padding: 20px;
+  }
+  .macDashboard .membershipDashboard .membershipCopy {
+    max-width: calc(100% - 110px);
+    margin-top: 26px;
+    margin-bottom: 20px;
+  }
+  .macDashboard .membershipDashboard .membershipCopy h2 {
+    font-size: 1.25rem;
+  }
+  .macDashboard .membershipMobileSummary dt,
+  .macDashboard .membershipMobileBatch {
+    color: #51667f;
+  }
+  .macDashboard .membershipMobileSummary dd,
+  .macDashboard .membershipMobileBatch strong {
+    color: #243b59;
+  }
+  :global(html[data-system-theme="dark"])
+    .macDashboard
+    .membershipMobileSummary
+    dt,
+  :global(html[data-system-theme="dark"]) .macDashboard .membershipMobileBatch {
+    color: #c7d9ed;
+  }
+  :global(html[data-system-theme="dark"])
+    .macDashboard
+    .membershipMobileSummary
+    dd,
+  :global(html[data-system-theme="dark"])
+    .macDashboard
+    .membershipMobileBatch
+    strong {
+    color: #eff6ff;
+  }
+  .membershipMascot {
+    top: 68px;
+    right: 4px;
+    width: 142px;
+    height: 140px;
+  }
+  .macDashboard .membershipDetails {
+    background: #ffffff33;
+    color: #425c7d;
+  }
+  :global(html[data-system-theme="dark"]) .macDashboard .membershipDetails {
+    color: #eff6ff;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .macDashboard .topbar,
+  .macDashboard .sidebar {
+    background: var(--portal-bg);
+    backdrop-filter: none;
+  }
+}
+@media (min-width: 701px) {
+  .membershipMascot {
+    top: -10px;
+    right: 0;
+    width: 360px;
+    height: 260px;
+  }
+}
+
+/* Fit the desktop overview by reallocating space, without clipping content. */
+@media (min-width: 1200px) and (min-height: 760px) {
+  .shell[data-portal-section="overview"] .container {
+    padding: 16px 24px 36px;
+  }
+  .shell[data-portal-section="overview"] .intro {
+    margin-bottom: 16px;
+  }
+  .shell[data-portal-section="overview"] .dashboardLayout {
+    gap: 18px;
+  }
+  .shell[data-portal-section="overview"] .membership.membershipDashboard {
+    min-height: 160px;
+    padding: 18px 22px;
+  }
+  .shell[data-portal-section="overview"] .membershipDashboard .membershipCopy {
+    margin-top: 12px;
+  }
+  .shell[data-portal-section="overview"] .membershipMascot {
+    top: 0;
+    height: 160px;
+    width: 240px;
+  }
+  .shell[data-portal-section="overview"] .note {
+    margin-top: 12px;
+  }
+}
+
+.dashboardEyebrow {
+  margin: 0 0 5px;
+  color: var(--portal-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.shell[data-portal-section="overview"] .intro h1 {
+  font-size: clamp(24px, 2vw, 32px);
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+.shell .intro .dashboardDescription {
+  margin: 5px 0 0;
+  color: var(--portal-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+@media (min-width: 1200px) and (min-height: 760px) {
+  .shell[data-portal-section="overview"] .membership.membershipDashboard {
+    display: flex;
+    align-items: center;
+    min-height: 146px;
+  }
+  .shell[data-portal-section="overview"] .membershipTop {
+    position: absolute;
+    inset: 18px 22px auto;
+    justify-content: flex-end;
+  }
+  .shell[data-portal-section="overview"] .membershipTop .heroIcon {
+    position: absolute;
+    top: 28px;
+    left: 0;
+  }
+  .shell[data-portal-section="overview"] .membershipDashboard .membershipCopy {
+    margin-top: 0;
+    padding-left: 58px;
+  }
+  .shell[data-portal-section="overview"] .membershipMascot {
+    top: 0;
+    right: 14px;
+    width: 190px;
+    height: 146px;
+  }
+}
+@media (min-width: 1200px) and (min-height: 760px) {
+  .shell[data-portal-section="overview"] .intro {
+    margin: 0 0 12px;
+    align-items: center;
+  }
+  .shell[data-portal-section="overview"] .container {
+    padding-top: 14px;
+    padding-bottom: 48px;
+  }
+}
+@media (min-width: 1200px) and (min-height: 700px) and (max-height: 920px) {
+  .shell[data-portal-section="overview"] .dashboardLayout {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 16px;
+  }
+  .shell[data-portal-section="overview"] .container {
+    padding: 12px 20px 42px;
+  }
+  .shell[data-portal-section="overview"] .intro {
+    margin: 0 0 10px;
+  }
+  .shell[data-portal-section="overview"] .intro h1 {
+    font-size: 26px;
+  }
+  .shell[data-portal-section="overview"] .membership.membershipDashboard {
+    min-height: 112px;
+    padding: 12px 16px;
+  }
+  .shell[data-portal-section="overview"] .membershipTop {
+    inset: 12px 16px auto;
+  }
+  .shell[data-portal-section="overview"] .membershipTop .heroIcon {
+    top: 20px;
+  }
+  .shell[data-portal-section="overview"] .membershipMascot {
+    width: 150px;
+    height: 112px;
+  }
+  .shell[data-portal-section="overview"] .membershipDashboard .membershipCopy {
+    max-width: calc(100% - 120px);
+    padding-left: 52px;
+  }
+  .shell[data-portal-section="overview"] .membershipCopy h2 {
+    font-size: 22px;
+    margin-top: 3px;
+  }
+  .shell[data-portal-section="overview"] .note {
+    margin-top: 8px;
+    font-size: 12px;
+  }
+}
+/* Use the available height instead of leaving a short dashboard at the top. */
+@media (min-width: 1200px) and (min-height: 921px) {
+  .shell[data-portal-section="overview"] .container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px 24px 46px;
+  }
+  .shell[data-portal-section="overview"] .intro {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+  .shell[data-portal-section="overview"] .dashboardLayout {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .shell[data-portal-section="overview"] .dashboardMain {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .shell[data-portal-section="overview"] .overview {
+    flex: 0 0 clamp(150px, 18dvh, 190px);
+  }
+  .shell[data-portal-section="overview"] .membership.membershipDashboard {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 0;
+    padding: 24px;
+  }
+  .shell[data-portal-section="overview"] .membershipDashboard .membershipCopy {
+    margin: 0;
+    padding-left: 58px;
+    max-width: calc(100% - 240px);
+  }
+  .shell[data-portal-section="overview"] .membershipTop {
+    inset: 22px 24px auto;
+  }
+  .shell[data-portal-section="overview"] .membershipTop .heroIcon {
+    top: 42px;
+  }
+  .shell[data-portal-section="overview"] .membershipMascot {
+    top: 0;
+    right: 24px;
+    width: 240px;
+    height: 100%;
+  }
+  .shell[data-portal-section="overview"] .note {
+    flex: 0 0 auto;
+    margin: 0;
+    justify-content: center;
+  }
+}
+@media (min-width: 1200px) and (min-height: 921px) {
+  .shell[data-portal-section="overview"] .dashboardLayout {
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+/* Reserve space for the preview strip and keep mobile controls inside the screen. */
+@media (max-width: 700px) {
+  :global(body:has([data-presentation-notice])) .shell {
+    --portal-preview-height: 28px;
+    --portal-header-height: calc(92px + env(safe-area-inset-top));
+  }
+  .shell .topbar {
+    padding-top: calc(
+      9px + var(--portal-preview-height, 0px) + env(safe-area-inset-top)
+    );
+  }
+  .shell .brand {
+    min-width: 0;
+    gap: 7px;
+  }
+  .shell .brandMark {
+    width: 30px;
+    height: 30px;
+  }
+  .shell .brand strong {
+    font-size: 13px;
+  }
+  .shell .brand small {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+  .shell .mobileTopActions {
+    position: fixed;
+    z-index: 70;
+    top: calc(
+      12px + var(--portal-preview-height, 0px) + env(safe-area-inset-top)
+    );
+    right: 12px;
+    gap: 5px;
+  }
+  .shell .mobileTopActions > button,
+  .shell .mobileTopActions > div > button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+  .shell .intro {
+    margin: 0 0 16px;
+  }
+  .shell .introCopy {
+    min-width: 0;
+    width: 100%;
+  }
+  .shell .intro h1 {
+    font-size: 23px;
+    line-height: 1.3;
+  }
+  .shell .mobileBottomNav {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+    padding: 6px;
+  }
+  .shell .mobileNavItem {
+    min-width: 0;
+    min-height: 48px;
+    padding: 5px 2px;
+    font-size: 10px;
+  }
+  .shell .container {
+    scroll-padding-bottom: 96px;
+  }
+  .shell[data-portal-section="overview"] .membership.membershipDashboard {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+    min-height: 220px;
+    padding: 16px;
+  }
+  .shell[data-portal-section="overview"] .membershipTop {
+    position: relative;
+    inset: auto;
+    width: 100%;
+  }
+  .shell[data-portal-section="overview"] .membershipTop .heroIcon {
+    display: none;
+  }
+  .shell[data-portal-section="overview"] .membershipDashboard .membershipCopy {
+    max-width: calc(100% - 84px);
+    margin: 16px 0;
+  }
+  .shell[data-portal-section="overview"] .membershipCopy h2 {
+    font-size: 18px;
+    line-height: 1.3;
+    white-space: normal;
+  }
+  .shell[data-portal-section="overview"] .membershipMascot {
+    top: 72px;
+    right: 8px;
+    width: 108px;
+    height: 105px;
+  }
+  .shell[data-portal-section="overview"] .membershipMobileFooter {
+    width: 100%;
+  }
+  .shell[data-portal-section="overview"] .membershipMobileBatch {
+    flex: 1;
+  }
+  .shell[data-portal-section="overview"] .membershipDetails {
+    min-height: 44px;
+    padding: 0 10px;
   }
 }

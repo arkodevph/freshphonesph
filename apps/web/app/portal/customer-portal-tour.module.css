@@ -117,9 +117,6 @@
   line-height: 1.4;
   cursor: pointer;
 }
-.tourSkip:hover {
-  color: #8641dd;
-}
 .tourLabel {
   display: block;
   margin-top: 24px;
@@ -163,9 +160,6 @@
   line-height: 1.2;
   cursor: pointer;
 }
-.tourActions button:hover:not(:disabled) {
-  border-color: #a875ed;
-}
 .tourActions button:disabled {
   opacity: 0.45;
   cursor: default;
@@ -175,10 +169,6 @@
   border-color: #8339de;
   background: #8339de;
   color: #fff;
-}
-.tourActions .tourNext:hover {
-  border-color: #6d25c2;
-  background: #6d25c2;
 }
 
 @media (max-width: 700px) {

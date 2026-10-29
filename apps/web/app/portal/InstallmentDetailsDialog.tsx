@@ -1,7 +1,7 @@
 "use client";
 
 import type { PortalScheduleItem } from "@/lib/api";
-import { ArrowRight, X } from "@phosphor-icons/react";
+import { ArrowRight, Close as X } from "@/components/SolarIcons";
 import Link from "next/link";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { type KeyboardEvent } from "react";
@@ -71,7 +71,7 @@ export default function InstallmentDetailsDialog({
             return dialogRef.current?.close();
           }}
         >
-          <X weight="bold" aria-hidden="true" />
+          <X aria-hidden="true" />
         </button>
       </header>
       <div className={styles.dialogBody}>

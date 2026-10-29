@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { faqs, faqTopics, filterFaqs, type FaqTopicFilter } from "@/lib/faq";
 import SectionHeading from "./SectionHeading";
@@ -172,7 +173,7 @@ export default function Faq() {
           )}
         </div>
         <p className={styles.contact}>
-          Still need help? <a href="/support">Visit Help & Support</a>.
+          Still need help? <Link href="/support">Visit Help & Support</Link>.
         </p>
       </div>
     </section>

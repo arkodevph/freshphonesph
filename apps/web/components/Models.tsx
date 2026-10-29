@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   catalogAvailability,
@@ -72,7 +73,12 @@ function FlatDevicePreview({
   );
 }
 
-export default function Models() {
+export default function Models({
+  variant = "public",
+}: {
+  variant?: "public" | "portal";
+}) {
+  const inPortal = variant === "portal";
   const [items, setItems] = useState<PublicCatalogItem[]>([]);
 
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -182,26 +188,35 @@ export default function Models() {
 
     const timer = window.setInterval(refreshCatalog, 60000);
 
-    window.addEventListener("focus", refreshCatalog);
-
     return () => {
       clearInterval(timer);
-
-      window.removeEventListener("focus", refreshCatalog);
     };
   }, []);
 
   return (
-    <section id="units" className={styles.section}>
-      <SectionHeading
-        eyebrow="Find your device"
-        title={
-          <>
-            Phones for your <span className="holo-text">next chapter</span>
-          </>
-        }
-        subtitle="Browse our units, payment offers, and latest availability before you message us."
-      />
+    <section
+      id="units"
+      aria-label="Device catalog"
+      className={`${styles.section} ${inPortal ? styles.portal : ""}`}
+    >
+      {!inPortal && (
+        <SectionHeading
+          eyebrow="Find your device"
+          title={
+            <>
+              Phones for your <span className="holo-text">next chapter</span>
+            </>
+          }
+          subtitle="Browse our units, payment offers, and latest availability before you message us."
+        />
+      )}
+      {inPortal && (
+        <p className={styles.notice}>
+          Explore published offers below. Sample payments are illustrative; your
+          agreement confirms the final amounts and dates. Payments are made
+          outside the website.
+        </p>
+      )}
       {SAMPLE_CATALOG_MODE && (
         <p className="mx-auto mt-4 max-w-6xl text-center text-sm text-ink-soft">
           Sample catalog · Prices, payment plans, and availability are for
@@ -246,6 +261,27 @@ export default function Models() {
           </select>
         </label>
       </div>
+      {state === "ready" && (
+        <div className={styles.results}>
+          <p role="status">
+            {total} {total === 1 ? "device" : "devices"} found
+          </p>
+          {(q || availability) && (
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+
+                setAvailability("");
+
+                setPage(1);
+              }}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
       {state === "loading" && (
         <p
           role="status"
@@ -312,7 +348,11 @@ export default function Models() {
                       alt={m.imageAlt ?? `${m.name} product view`}
                       fill
                       unoptimized={item.hasImage}
-                      sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) 50vw, 33vw"
+                      sizes={
+                        inPortal
+                          ? "(max-width: 639px) calc((100vw - 50px) / 2), (max-width: 1279px) 50vw, 33vw"
+                          : "(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) 50vw, 33vw"
+                      }
                       className="object-contain transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none"
                     />
                   ) : (
@@ -321,9 +361,11 @@ export default function Models() {
                 </div>
 
                 <div className={styles.details}>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div
+                    className={`${styles.titleRow} flex flex-wrap items-center gap-2`}
+                  >
                     <h3
-                      className="min-w-0 break-words font-display text-xl font-700"
+                      className={`${styles.name} min-w-0 break-words font-display text-xl font-700`}
                       style={{ overflowWrap: "anywhere" }}
                     >
                       {m.name}
@@ -331,16 +373,18 @@ export default function Models() {
                     <span className={styles.condition}>{m.condition}</span>
                   </div>
                   <p
-                    className="mt-2 text-sm font-600 text-ink-soft"
+                    className={`${styles.description} mt-2 text-sm font-600 text-ink-soft`}
                     style={{ overflowWrap: "anywhere" }}
                   >
                     {item.description || "Contact us for model details."}
                   </p>
 
-                  <div className="mt-4 flex items-end justify-between">
+                  <div
+                    className={`${styles.priceRow} mt-4 flex items-end justify-between`}
+                  >
                     <div className="min-w-0">
                       <p
-                        className="break-words font-display text-2xl font-800"
+                        className={`${styles.price} break-words font-display text-2xl font-800`}
                         style={{ overflowWrap: "anywhere" }}
                       >
                         {m.daily}
@@ -355,19 +399,29 @@ export default function Models() {
                         {catalogAvailabilityLabels[item.availability]}
                       </p>
                     </div>
-                    <a
+                    <Link
                       href={`/inquire?device=${encodeURIComponent(item.name)}`}
                       className={styles.inquire}
                       aria-label={`Ask about ${m.name}`}
                     >
                       <ArrowUpRight weight="bold" className="h-5 w-5" />
-                    </a>
+                    </Link>
                   </div>
+                  {inPortal && (
+                    <details className={styles.mobileDetails}>
+                      <summary>Details</summary>
+                      <p>
+                        {item.description || "Contact us for model details."}
+                      </p>
+                      {!item.installmentPlan && (
+                        <p>Contact the team for a payment breakdown.</p>
+                      )}
+                    </details>
+                  )}
                   {item.installmentPlan ? (
                     <button
                       type="button"
                       className={styles.payments}
-
                       onClick={() => {
                         return setSelectedId(item.id);
                       }}
@@ -376,7 +430,7 @@ export default function Models() {
                       <span className="sr-only"> for {item.name}</span>
                     </button>
                   ) : (
-                    <p className="mt-4 text-xs">
+                    <p className={`${styles.paymentHint} mt-4 text-xs`}>
                       Contact the team for a payment breakdown.
                     </p>
                   )}
@@ -426,6 +480,7 @@ export default function Models() {
           key={`${selected.id}-${selected.version}`}
           item={selected}
           plan={selected.installmentPlan}
+          variant={variant}
           onClose={() => {
             return setSelectedId(null);
           }}
@@ -435,7 +490,7 @@ export default function Models() {
         <p className="text-sm font-600 text-ink-soft">
           Looking for a different model or storage?{" "}
           <a
-            href="#join"
+            href={inPortal ? "/portal/support" : "#join"}
             className="font-700 text-blue underline-offset-2 hover:underline"
           >
             Message us and we&apos;ll set up a plan for you.

@@ -4,13 +4,13 @@ import { pesoFormat as currency } from "@/lib/currency";
 import type { Payment, PendingCustomerPayment, PortalSummary } from "@/lib/api";
 import {
   ArrowRight,
-  CaretLeft,
-  CaretRight,
+  AltArrowLeft as CaretLeft,
+  AltArrowRight as CaretRight,
   CheckCircle,
-  Clock,
+  ClockCircle as Clock,
   FileText,
   Wallet,
-} from "@phosphor-icons/react";
+} from "@/components/SolarIcons";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { verifiedPaymentPercent } from "@/lib/portal-payment-overview";
@@ -179,7 +179,7 @@ export default function VerifiedPaymentsWorkspace({
         <header className={styles.header}>
           <div className={styles.heading}>
             <span className={styles.icon}>
-              <Wallet weight="duotone" aria-hidden="true" />
+              <Wallet aria-hidden="true" />
             </span>
             <div>
               <p className={styles.eyebrow}>Your account</p>
@@ -187,7 +187,7 @@ export default function VerifiedPaymentsWorkspace({
             </div>
           </div>
           <span className={styles.verifiedBadge}>
-            <CheckCircle weight="fill" aria-hidden="true" />
+            <CheckCircle aria-hidden="true" />
             Finance-verified
           </span>
         </header>
@@ -271,7 +271,7 @@ export default function VerifiedPaymentsWorkspace({
         <header className={styles.header}>
           <div className={styles.heading}>
             <span className={`${styles.icon} ${styles.tealIcon}`}>
-              <CheckCircle weight="duotone" aria-hidden="true" />
+              <CheckCircle aria-hidden="true" />
             </span>
             <div>
               <p className={styles.eyebrow}>Payment history</p>
@@ -298,7 +298,7 @@ export default function VerifiedPaymentsWorkspace({
           <LoadingRows rows={Math.min(4, Math.max(1, payments.length))} />
         ) : payments.length === 0 ? (
           <div className={styles.empty}>
-            <CheckCircle weight="duotone" aria-hidden="true" />
+            <CheckCircle aria-hidden="true" />
             <h3>No verified payments yet</h3>
             <p>Payments will appear here once Finance verifies them.</p>
           </div>
@@ -315,7 +315,7 @@ export default function VerifiedPaymentsWorkspace({
                   <li key={payment.id}>
                     <div className={styles.payment}>
                       <span className={styles.paymentCheck}>
-                        <CheckCircle weight="fill" aria-hidden="true" />
+                        <CheckCircle aria-hidden="true" />
                       </span>
                       <div>
                         <strong>{money(payment.amount)}</strong>
@@ -341,7 +341,7 @@ export default function VerifiedPaymentsWorkspace({
                       aria-label={`Payment confirmation for ${money(payment.amount)} on ${paymentDate(payment.payment_date)}, reference ${payment.reference_no || "not provided"}`}
                     >
                       Payment confirmation
-                      <ArrowRight weight="bold" aria-hidden="true" />
+                      <ArrowRight aria-hidden="true" />
                     </Link>
                   </li>
                 );
@@ -369,7 +369,7 @@ export default function VerifiedPaymentsWorkspace({
                   return changePage(pagination.page - 1);
                 }}
               >
-                <CaretLeft weight="bold" aria-hidden="true" />
+                <CaretLeft aria-hidden="true" />
                 Previous
               </button>
               <span>
@@ -383,7 +383,7 @@ export default function VerifiedPaymentsWorkspace({
                 }}
               >
                 Next
-                <CaretRight weight="bold" aria-hidden="true" />
+                <CaretRight aria-hidden="true" />
               </button>
             </div>
           </nav>
@@ -394,7 +394,7 @@ export default function VerifiedPaymentsWorkspace({
         <header className={styles.header}>
           <div className={styles.heading}>
             <span className={`${styles.icon} ${styles.pendingIcon}`}>
-              <Clock weight="duotone" aria-hidden="true" />
+              <Clock aria-hidden="true" />
             </span>
             <div>
               <p className={styles.eyebrow}>Recorded by staff</p>

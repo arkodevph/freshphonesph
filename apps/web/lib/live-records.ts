@@ -104,8 +104,6 @@ export function subscribeLiveRecords(listener: () => void) {
 
     failures = 0;
 
-    window.addEventListener("focus", notify);
-
     connect();
   }
 
@@ -122,8 +120,6 @@ export function subscribeLiveRecords(listener: () => void) {
       clearTimeout(timer);
 
       timer = undefined;
-
-      window.removeEventListener("focus", notify);
     }
   };
 }

@@ -4,23 +4,17 @@ import { pesoFormat as currency } from "@/lib/currency";
 import type { Payment, PortalScheduleItem, PortalSummary } from "@/lib/api";
 import {
   ArrowRight,
-  ArrowUpRight,
-  ChatCircleText,
-} from "@phosphor-icons/react";
+  ArrowRightUp as ArrowUpRight,
+  ChatRoundDots as ChatCircleText,
+} from "@/components/SolarIcons";
 import Link from "next/link";
 import {
-  installmentChart,
+  installmentProgress,
   paymentStaff,
   verifiedPaymentPercent,
 } from "@/lib/portal-payment-overview";
 import styles from "./payment-overview.module.css";
-
-const compact = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+import { formatDate } from "./portal-view";
 
 const percentFormat = new Intl.NumberFormat("en-PH", {
   maximumFractionDigits: 1,
@@ -83,21 +77,18 @@ export default function PaymentOverview({
 }: Props) {
   const percentage = verifiedPaymentPercent(summary);
 
-  const chart = installmentChart(schedule);
-
-  const maximum = Math.max(
-    1,
-    ...chart.flatMap((item) => {
-      return [item.expected, item.verified];
-    }),
-  );
+  const progress = installmentProgress(schedule);
 
   const staff = paymentStaff(payments);
 
   const visibleStaff = staff.slice(0, 3);
 
   return (
-    <aside className={styles.panel} aria-labelledby="payment-overview-title">
+    <aside
+      data-portal-material="summary"
+      className={styles.panel}
+      aria-labelledby="payment-overview-title"
+    >
       <header className={styles.header}>
         <h2 id="payment-overview-title">Payment overview</h2>
         <Link
@@ -105,7 +96,7 @@ export default function PaymentOverview({
           aria-label="View verified payment history"
           title="View verified payment history"
         >
-          <ArrowUpRight weight="bold" aria-hidden="true" />
+          <ArrowUpRight aria-hidden="true" />
         </Link>
       </header>
       {status === "error" ? (
@@ -177,82 +168,82 @@ export default function PaymentOverview({
                 href="/portal/schedule"
                 aria-label="View installment schedule"
               >
-                <ArrowUpRight weight="bold" aria-hidden="true" />
+                <ArrowUpRight aria-hidden="true" />
               </Link>
             </div>
-            {chart.length === 0 ? (
+            {progress.installments.length === 0 ? (
               <p className={styles.emptyState}>
-                Your chart will appear when a schedule is issued.
+                Your progress will appear when a schedule is issued.
               </p>
             ) : (
-              <>
-                <div className={styles.chart}>
-                  <div className={styles.axis} aria-hidden="true">
-                    <span>{compact.format(maximum)}</span>
-                    <span>{compact.format(maximum / 2)}</span>
-                    <span>₱0</span>
-                  </div>
-                  <div className={styles.plot}>
-                    <div className={styles.gridLines} aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
+              <div className={styles.installmentCard}>
+                <div className={styles.installmentSummary}>
+                  <p>
+                    <strong>{progress.completed}</strong>
+                    <span> of {progress.installments.length}</span>
+                  </p>
+                  <span>installments fully paid</span>
+                </div>
+                <ol
+                  className={styles.installmentSteps}
+                  style={{
+                    gridTemplateColumns: `repeat(${Math.ceil(progress.installments.length / Math.ceil(progress.installments.length / 12))}, minmax(0, 1fr))`,
+                  }}
+                  aria-label="Finance-verified installment progress"
+                >
+                  {progress.installments.map((item) => (
+                    <li key={item.sequence}>
+                      <span
+                        className={styles.installmentStep}
+                        aria-hidden="true"
+                        title={`Installment ${item.sequence}: ${money(item.verified)} verified of ${money(item.expected)}`}
+                      >
+                        <span style={{ width: `${item.percentage}%` }} />
+                      </span>
+                      <span className={styles.srOnly}>
+                        Installment {item.sequence}: {money(item.verified)}{" "}
+                        verified of {money(item.expected)} scheduled.
+                        {item.complete
+                          ? " Fully paid."
+                          : ` ${money(item.remaining)} remaining.`}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <div className={styles.installmentLegend} aria-hidden="true">
+                  <span>
+                    <i className={styles.paidKey} />
+                    Verified paid
+                  </span>
+                  <span>
+                    <i className={styles.unpaidKey} />
+                    Remaining
+                  </span>
+                </div>
+                {progress.next ? (
+                  <Link
+                    className={styles.nextInstallment}
+                    href={`/portal/schedule#installment-${progress.next.sequence}`}
+                  >
+                    <div>
+                      <span>Next unpaid installment</span>
+                      <strong>{money(progress.next.remaining)}</strong>
+                      <small>
+                        Installment {progress.next.sequence} ·{" "}
+                        {formatDate(progress.next.dueDate)}
+                      </small>
                     </div>
-                    <ul
-                      className={styles.bars}
-                      aria-label="Verified payment applied to each installment"
-                    >
-                      {chart.map((item) => {
-                        return (
-                          <li key={item.sequence}>
-                            <Link
-                              href={`/portal/schedule#installment-${item.sequence}`}
-                              aria-label={`Installment ${item.sequence}: ${money(item.verified)} verified of ${money(item.expected)} scheduled`}
-                              title={`Installment ${item.sequence}: ${money(item.verified)} verified of ${money(item.expected)} scheduled`}
-                            >
-                              <span
-                                className={styles.barColumn}
-                                aria-hidden="true"
-                              >
-                                <span
-                                  className={styles.expectedBar}
-                                  style={{
-                                    height: `${(item.expected / maximum) * 100}%`,
-                                  }}
-                                />
-                                <span
-                                  className={styles.verifiedBar}
-                                  style={{
-                                    height: `${(item.verified / maximum) * 100}%`,
-                                  }}
-                                />
-                              </span>
-                              <span
-                                className={styles.barLabel}
-                                aria-hidden="true"
-                              >
-                                {item.sequence}
-                              </span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                </div>
-                <div className={styles.chartCaption}>
-                  <span>
-                    Installments {chart[0].sequence}
-                    {chart.length > 1 ? `–${chart.at(-1)?.sequence}` : ""}
-                  </span>
-                  <span>
-                    <i className={styles.verifiedKey} />
-                    Verified
-                    <i className={styles.expectedKey} />
-                    Scheduled
-                  </span>
-                </div>
-              </>
+                    <ArrowUpRight aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <p className={styles.installmentsComplete}>
+                    All installments fully paid.
+                  </p>
+                )}
+                <p className={styles.installmentNote}>
+                  Progress includes Finance-verified payments only.
+                </p>
+              </div>
             )}
           </section>
 
@@ -305,7 +296,7 @@ export default function PaymentOverview({
               )}
               <Link href="/portal/payments" className={styles.viewAll}>
                 View all records
-                <ArrowRight weight="bold" aria-hidden="true" />
+                <ArrowRight aria-hidden="true" />
               </Link>
             </div>
             {hasMorePayments && (

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowRight,
   FacebookLogo,
@@ -97,9 +98,9 @@ export default function Footer() {
                     {group.links.map((l) => {
                       return (
                         <li key={l.href}>
-                          <a href={l.href} className={styles.navLink}>
+                          <Link href={l.href} className={styles.navLink}>
                             {l.label}
-                          </a>
+                          </Link>
                         </li>
                       );
                     })}

@@ -17,7 +17,11 @@
     "infra:down": "docker compose down",
     "format": "node scripts/format-code.mjs --write",
     "format:check": "node scripts/format-code.mjs",
-    "landing": "pnpm --filter @fresh/landing"
+    "landing": "pnpm --filter @fresh/landing",
+    "production:config": "docker compose --env-file .env.production -f docker-compose.production.yml config --quiet",
+    "production:build": "docker compose --env-file .env.production -f docker-compose.production.yml build",
+    "production:start": "docker compose --env-file .env.production -f docker-compose.production.yml up -d --wait",
+    "production:stop": "docker compose --env-file .env.production -f docker-compose.production.yml stop"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

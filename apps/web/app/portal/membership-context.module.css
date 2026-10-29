@@ -1,0 +1,252 @@
+.record,
+.contextCard {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--portal-border);
+  border-radius: 20px;
+  background: var(--portal-surface);
+  color: var(--portal-text);
+}
+.record {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 24px;
+}
+.recordHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.recordHeader > div {
+  min-width: 0;
+}
+.icon {
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--portal-border);
+  border-radius: 14px;
+  color: var(--portal-muted);
+}
+.eyebrow {
+  margin: 0 0 5px;
+  color: var(--portal-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.record h2 {
+  margin: 0;
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.3;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.batch {
+  margin: 5px 0 0;
+  color: var(--portal-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.recordFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-self: center;
+  margin: 0;
+}
+.recordFacts dt {
+  color: var(--portal-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.recordFacts dd {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.status {
+  text-transform: capitalize;
+}
+.recordLinks {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  padding-top: 10px;
+  border-top: 1px solid var(--portal-border);
+}
+.recordLinks a,
+.actionLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+  color: var(--portal-accent);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+}
+.recordLinks svg,
+.actionLink svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+}
+.context {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+}
+.contextCard {
+  padding: 20px;
+}
+.context h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.count {
+  color: var(--portal-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.documentList {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.documentList li + li {
+  border-top: 1px solid var(--portal-border);
+}
+.documentList a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  color: var(--portal-text);
+  text-decoration: none;
+}
+.documentList a > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.documentList strong,
+.documentList span > span {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.documentList span > span {
+  margin-top: 3px;
+  color: var(--portal-muted);
+}
+.documentList small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.documentList svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--portal-muted);
+}
+.body,
+.caption,
+.help p,
+.staffUpdate p,
+.state p {
+  margin: 10px 0 0;
+  color: var(--portal-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.caption {
+  font-size: 12px;
+}
+.staffUpdate {
+  margin: 14px 0 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--portal-border);
+}
+.staffUpdate p {
+  margin: 0 0 6px;
+}
+.staffUpdate small {
+  color: var(--portal-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.help {
+  padding: 4px 8px;
+}
+.help h2 {
+  font-size: 14px;
+}
+.help p {
+  margin-top: 6px;
+  font-size: 12px;
+}
+.state button {
+  min-height: 36px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--portal-border);
+  border-radius: 10px;
+  color: var(--portal-text);
+  background: var(--portal-surface-alt);
+}
+.record :focus-visible,
+.context :focus-visible {
+  outline: 3px solid var(--portal-accent);
+  outline-offset: 3px;
+}
+.record a:hover,
+.context a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 1100px) {
+  .record {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .record,
+  .contextCard {
+    padding: 18px;
+    border-radius: 18px;
+  }
+  .context {
+    margin-top: 4px;
+  }
+  .recordFacts {
+    gap: 12px;
+  }
+}
+@media (max-width: 360px) {
+  .recordFacts {
+    grid-template-columns: 1fr;
+  }
+}

@@ -42,18 +42,6 @@ export default function CareersBoard() {
 
   useEffect(() => {
     void loadJobs();
-
-    const refresh = () => {
-      if (document.visibilityState === "visible") {
-        void loadJobs();
-      }
-    };
-
-    window.addEventListener("focus", refresh);
-
-    return () => {
-      return window.removeEventListener("focus", refresh);
-    };
   }, [loadJobs]);
 
   const types = useMemo(() => {

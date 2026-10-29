@@ -46,7 +46,7 @@ test("dashboard subscribers share one live connection and release it after the l
 
     window.dispatchEvent(new Event("focus"));
 
-    assert.deepEqual(counts, [3, 3, 3, 3, 3]);
+    assert.deepEqual(counts, [2, 2, 2, 2, 2]);
 
     cleanup[0]();
 
@@ -54,7 +54,7 @@ test("dashboard subscribers share one live connection and release it after the l
 
     source.dispatchEvent(new Event("change"));
 
-    assert.deepEqual(counts, [3, 4, 4, 4, 4]);
+    assert.deepEqual(counts, [2, 3, 3, 3, 3]);
 
     cleanup.slice(1).forEach((stop) => {
       return stop();
@@ -64,7 +64,7 @@ test("dashboard subscribers share one live connection and release it after the l
 
     window.dispatchEvent(new Event("focus"));
 
-    assert.deepEqual(counts, [3, 4, 4, 4, 4]);
+    assert.deepEqual(counts, [2, 3, 3, 3, 3]);
 
     const stop = subscribeLiveRecords(() => {
       return counts[0]++;
@@ -74,11 +74,11 @@ test("dashboard subscribers share one live connection and release it after the l
 
     source.dispatchEvent(new Event("ready"));
 
-    assert.equal(counts[0], 3);
+    assert.equal(counts[0], 2);
 
     FakeSource.instances[1].dispatchEvent(new Event("ready"));
 
-    assert.equal(counts[0], 4);
+    assert.equal(counts[0], 3);
 
     stop();
   } finally {

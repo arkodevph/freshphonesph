@@ -19,6 +19,16 @@ The stack uses TypeScript across these deployables:
 `apps/api-ts/` is the sole backend. Its Prisma schema and committed SQL migrations own the
 database structure; `packages/contracts/` supplies shared API validation and types.
 
+## Real production runtime
+
+Use the built Next.js web app with the NestJS API and worker through
+`docker-compose.production.yml`. Configure `.env.production` from
+`deploy/production.env.example`, then run `pnpm production:config` and
+`pnpm production:build`. See [production startup and current blockers](docs/57-container-builds.md#run-the-real-production-services-together)
+for the explicit migration step, HTTPS gateway, startup and readiness checks.
+This runtime disables fictional presentation data. Current legal drafts and
+production-service configuration still block a real customer release.
+
 ## Start here
 
 **Current presentation deployment:** use Vercel with **Root Directory `apps/web`**.
@@ -63,6 +73,22 @@ server-only `LOCAL_DEMO_PASSWORD` in both service env files, apply migrations, a
 `pnpm --filter @fresh/api-ts seed:demo`. All 11 roles are available on `/login` during development.
 
 ### Protected web preview on Linux
+
+For fast browsing with fictional, read-only data, use the prebuilt presentation:
+
+```bash
+pnpm --filter @fresh/web preview
+```
+
+This builds all pages once with Webpack and starts the standalone server at
+`http://localhost:3000`. It requires no API or database and performs no deployment.
+The build and server run within a 4 GiB memory / 2 CPU resource limit. Stop with
+Ctrl+C or `systemctl --user stop freshphones-web-presentation.scope`.
+An optional port can be supplied, for example `pnpm --filter @fresh/web preview 3002`.
+Restart this command after changing source files to rebuild the presentation.
+
+For live code editing, use the development server below; its first visit to each
+page is slower because Next.js compiles that page on demand.
 
 Run `bash scripts/dev-web-safe.sh --hostname 127.0.0.1` from the repository root
 to preview the web app without starting the API or infrastructure. The equivalent workspace

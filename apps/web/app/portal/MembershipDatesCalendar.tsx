@@ -10,18 +10,19 @@ import {
 import Link from "next/link";
 import {
   ArrowRight,
-  CalendarBlank,
-  CaretLeft,
-  CaretRight,
-  Info,
-  X,
-} from "@phosphor-icons/react";
+  Calendar as CalendarBlank,
+  AltArrowLeft as CaretLeft,
+  AltArrowRight as CaretRight,
+  InfoCircle as Info,
+  Close as X,
+} from "@/components/SolarIcons";
 import type { PortalScheduleItem, PortalSummary } from "@/lib/api";
 import { today as manilaToday } from "@/lib/date";
 import {
   calendarMonthDays,
   membershipCalendarEvents,
   membershipMilestones,
+  groupedMembershipMilestones,
   calendarKeyboardDate,
   moveCalendarMonth,
   type MembershipMilestone,
@@ -63,6 +64,8 @@ export default function MembershipDatesCalendar({
   const milestones = membershipMilestones(summary);
 
   const events = membershipCalendarEvents(milestones, schedule);
+
+  const visibleMilestones = groupedMembershipMilestones(milestones);
 
   const [opened, setOpened] = useState<MembershipMilestone | null>(null);
 
@@ -185,11 +188,11 @@ export default function MembershipDatesCalendar({
   return (
     <>
       <div
-        className={styles.dates}
+        className={`${styles.dates} ${visibleMilestones.length === 2 ? styles.sharedStart : ""}`}
         role="group"
         aria-label="Membership key dates"
       >
-        {milestones.map((item) => {
+        {visibleMilestones.map((item) => {
           return (
             <button
               key={item.key}
@@ -266,7 +269,7 @@ export default function MembershipDatesCalendar({
                 return dialogRef.current?.close();
               }}
             >
-              <X weight="bold" aria-hidden="true" />
+              <X aria-hidden="true" />
             </button>
           </header>
           <div className={styles.body}>
@@ -278,7 +281,7 @@ export default function MembershipDatesCalendar({
                   return selectDay(moveCalendarMonth(selectedDate, -1));
                 }}
               >
-                <CaretLeft weight="bold" aria-hidden="true" />
+                <CaretLeft aria-hidden="true" />
               </button>
               <h3 aria-live="polite">
                 {monthLabel.format(dateObject(selectedDate))}
@@ -290,7 +293,7 @@ export default function MembershipDatesCalendar({
                   return selectDay(moveCalendarMonth(selectedDate, 1));
                 }}
               >
-                <CaretRight weight="bold" aria-hidden="true" />
+                <CaretRight aria-hidden="true" />
               </button>
             </div>
             <div className={styles.weekdays} aria-hidden="true">

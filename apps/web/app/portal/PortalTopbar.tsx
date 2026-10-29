@@ -4,14 +4,14 @@ import type { Me } from "@/lib/api";
 import { type PortalSummary } from "@/lib/api";
 import {
   Bell,
-  CaretDown,
-  GearSix,
-  List,
-  MagnifyingGlass,
+  AltArrowDown as CaretDown,
+  Settings as GearSix,
+  HamburgerMenu as List,
+  Magnifier as MagnifyingGlass,
   Moon,
-  SignOut,
+  Logout as SignOut,
   Sun,
-} from "@phosphor-icons/react";
+} from "@/components/SolarIcons";
 import Image from "next/image";
 import Link from "next/link";
 import type * as React from "react";
@@ -37,6 +37,7 @@ type Props = {
   desktopNotificationButtonRef: RefObject<HTMLButtonElement | null>;
   notificationsOpen: boolean;
   section:
+    | "catalog"
     | "overview"
     | "membership"
     | "schedule"
@@ -81,7 +82,7 @@ export default function PortalTopbar({
   logout,
 }: Props) {
   return (
-    <header className={styles.topbar}>
+    <header className={styles.topbar} data-portal-material="toolbar">
       <button
         type="button"
         className={styles.menuButton}
@@ -93,7 +94,7 @@ export default function PortalTopbar({
           return setMenuOpen(true);
         }}
       >
-        <List weight="bold" aria-hidden="true" />
+        <List aria-hidden="true" />
       </button>
       <div className={styles.brand}>
         <span className={styles.brandMark}>
@@ -208,10 +209,7 @@ export default function PortalTopbar({
               setProfileOpen(false);
             }}
           >
-            <Bell
-              weight={section === "notifications" ? "fill" : "regular"}
-              aria-hidden="true"
-            />
+            <Bell aria-hidden="true" />
             {unreadNotifications > 0 && <span className={styles.topbarDot} />}
           </button>
           {notificationPanel("customer-notification-preview")}

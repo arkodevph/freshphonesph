@@ -54,6 +54,22 @@ export function membershipMilestones(
   ];
 }
 
+export function groupedMembershipMilestones(milestones: MembershipMilestone[]) {
+  const joined = milestones.find((item) => item.key === "joined");
+
+  const start = milestones.find((item) => item.key === "batch-start");
+
+  if (!joined?.date || joined.date !== start?.date) {
+    return milestones;
+  }
+
+  return milestones
+    .filter((item) => item.key !== "batch-start")
+    .map((item) =>
+      item.key === "joined" ? { ...item, label: "Joined & batch start" } : item,
+    );
+}
+
 export function membershipCalendarEvents(
   milestones: MembershipMilestone[],
   schedule: PortalScheduleItem[],

@@ -2,11 +2,9 @@
 
 import type { PortalScheduleItem } from "@/lib/api";
 import { calendarDate } from "@/lib/portal-membership-calendar";
-import { ArrowDown, Clock } from "@phosphor-icons/react";
+import { ArrowDown, ClockCircle as Clock } from "@/components/SolarIcons";
 import type { RefObject } from "react";
-import PortalBannerArt from "./PortalBannerArt";
 import styles from "./payment-schedule.module.css";
-import bannerStyles from "./portal-banner.module.css";
 import { badgeClass, dueDate, money, State } from "./schedule-view";
 
 type Props = {
@@ -22,6 +20,7 @@ type Props = {
   onRetry: () => void;
   selectDay: (day: string, focus?: boolean) => void;
   calendarRef: RefObject<HTMLElement | null>;
+  onViewCalendar: () => void;
 };
 
 export default function InstallmentPlanSummary({
@@ -32,20 +31,17 @@ export default function InstallmentPlanSummary({
   onRetry,
   selectDay,
   calendarRef,
+  onViewCalendar,
 }: Props) {
   return (
-    <section
-      className={`${styles.plan} ${bannerStyles.banner} ${bannerStyles.night}`}
-      aria-labelledby="installment-plan-title"
-    >
-      <PortalBannerArt variant="plan" />
+    <section className={styles.plan} aria-labelledby="installment-plan-title">
       <header className={styles.heading}>
         <span className={styles.icon}>
-          <Clock weight="duotone" aria-hidden="true" />
+          <Clock aria-hidden="true" />
         </span>
         <div>
           <p>Your plan</p>
-          <h2 id="installment-plan-title">Your installment plan</h2>
+          <h2 id="installment-plan-title">Next installment</h2>
         </div>
         {status === "ready" && (
           <span className={styles.count}>{items.length} installments</span>
@@ -86,16 +82,6 @@ export default function InstallmentPlanSummary({
             </div>
           </div>
           <div className={styles.planFooter}>
-            <dl>
-              <div>
-                <dt>Installment amount</dt>
-                <dd>{money(featured.expected_amount)}</dd>
-              </div>
-              <div>
-                <dt>Finance verified</dt>
-                <dd>{money(featured.paid_applied)}</dd>
-              </div>
-            </dl>
             <button
               type="button"
               onClick={() => {
@@ -105,7 +91,15 @@ export default function InstallmentPlanSummary({
                   selectDay(day);
                 }
 
-                calendarRef.current?.scrollIntoView({ block: "start" });
+                onViewCalendar();
+
+                window.requestAnimationFrame(() => {
+                  calendarRef.current
+                    ?.querySelector<HTMLButtonElement>(
+                      `[data-schedule-date="${day}"]`,
+                    )
+                    ?.focus();
+                });
               }}
             >
               View in calendar

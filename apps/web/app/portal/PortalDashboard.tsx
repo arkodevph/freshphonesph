@@ -3,21 +3,24 @@
 import { usePortalWorkspace } from "./usePortalWorkspace";
 import {
   Bell,
-  Info,
+  InfoCircle as Info,
   Moon,
-  SquaresFour,
+  Widget as SquaresFour,
   Sun,
-  Truck,
-} from "@phosphor-icons/react";
+  Delivery as Truck,
+} from "@/components/SolarIcons";
 import Link from "next/link";
 import { DocumentChecklist } from "@/components/DocumentChecklist";
 import DashboardNextSteps from "./DashboardNextSteps";
 import PaymentOverview from "./PaymentOverview";
 import PaymentScheduleWorkspace from "./PaymentScheduleWorkspace";
 import styles from "./portal.module.css";
+import glass from "./portal-glass.module.css";
 import PortalSkeleton, { PortalLoadingRows } from "./PortalSkeleton";
 import MembershipDatesPanel from "./MembershipDatesPanel";
 import MembershipOverview from "./MembershipOverview";
+import MembershipRecord from "./MembershipRecord";
+import MembershipContext from "./MembershipContext";
 import {
   formatDate,
   formatMoney,
@@ -30,6 +33,7 @@ import PortalMoreSheet from "./PortalMoreSheet";
 import PortalNotificationsWorkspace from "./PortalNotificationsWorkspace";
 import PortalSettingsWorkspace from "./PortalSettingsWorkspace";
 import PortalSidebar from "./PortalSidebar";
+import Models from "@/components/Models";
 import PortalSupportWorkspace from "./PortalSupportWorkspace";
 import PortalTopbar from "./PortalTopbar";
 import VerifiedPaymentsWorkspace from "./VerifiedPaymentsWorkspace";
@@ -45,6 +49,7 @@ export default function PortalDashboard({
     portalTopbarProps,
     portalSidebarProps,
     membershipOverviewProps,
+    membershipContextProps,
     membershipDatesPanelProps,
     portalNotificationsWorkspaceProps,
     portalSupportWorkspaceProps,
@@ -77,6 +82,7 @@ export default function PortalDashboard({
     releaseDetails,
     releaseStatus,
     releaseUpdates,
+    portalContentRef,
     featuredInstallment,
     schedule,
     refresh,
@@ -94,6 +100,7 @@ export default function PortalDashboard({
     loadPending,
     moreTriggerRef,
     customerTourOverlay,
+    greeting,
   } = usePortalWorkspace({ section });
 
   if (me?.account_type !== "customer" || recordsStatus === "loading") {
@@ -101,7 +108,11 @@ export default function PortalDashboard({
   }
 
   return (
-    <main className={`${styles.shell} portal-shell`}>
+    <main
+      className={`${styles.shell} ${styles.macDashboard} ${glass.material} ${glass.interactions} portal-shell`}
+      data-glass-portal=""
+      data-portal-section={section}
+    >
       {(menuOpen || moreOpen) && (
         <button
           type="button"
@@ -117,19 +128,20 @@ export default function PortalDashboard({
       <PortalTopbar {...portalTopbarProps} />
       <PortalSidebar {...portalSidebarProps} />
       <div
+        ref={portalContentRef}
         className={`${styles.container} ${section === "membership" || section === "payments" ? styles.membershipWorkspace : ""}`}
       >
         <div className={styles.intro}>
           <div className={styles.introCopy}>
             {section === "overview" ? (
               <>
-                <nav className={styles.eyebrow} aria-label="Breadcrumb">
-                  <span aria-current="page">Dashboard</span>
-                </nav>
+                <p className={styles.dashboardEyebrow}>Your dashboard</p>
                 <h1>
-                  Hi, {summary?.full_name?.split(" ")[0] ?? "there"}{" "}
-                  <span aria-hidden="true">✦</span>
+                  {greeting}, {summary?.full_name?.split(" ")[0] ?? "there"}.
                 </h1>
+                <p className={styles.dashboardDescription}>
+                  Your membership, payments, and next steps at a glance.
+                </p>
               </>
             ) : (
               <>
@@ -174,10 +186,7 @@ export default function PortalDashboard({
                   });
                 }}
               >
-                <Bell
-                  weight={section === "notifications" ? "fill" : "regular"}
-                  aria-hidden="true"
-                />
+                <Bell aria-hidden="true" />
                 {unreadNotifications > 0 && (
                   <span className={styles.mobileUnreadDot} />
                 )}
@@ -222,7 +231,7 @@ export default function PortalDashboard({
               showMembershipWorkspace ? styles.dashboardMain : undefined
             }
           >
-            {showMembershipWorkspace && (
+            {section === "overview" && (
               <MembershipOverview {...membershipOverviewProps} />
             )}
 
@@ -273,13 +282,24 @@ export default function PortalDashboard({
               />
             )}
             {section === "membership" && summary && (
-              <MembershipDatesPanel
-                {...membershipDatesPanelProps}
-                summary={summary}
-              />
+              <>
+                <MembershipRecord summary={summary} schedule={schedule} />
+                <MembershipDatesPanel
+                  {...membershipDatesPanelProps}
+                  summary={summary}
+                />
+              </>
+            )}
+            {section === "membership" && recordsStatus === "error" && (
+              <div className={styles.attentionState} role="alert">
+                <p>Could not load your enrollment record.</p>
+                <button type="button" onClick={loadRecords}>
+                  Try again
+                </button>
+              </div>
             )}
           </div>
-          {showMembershipWorkspace && (
+          {section === "overview" && (
             <PaymentOverview
               summary={summary}
               schedule={schedule}
@@ -289,7 +309,12 @@ export default function PortalDashboard({
               onRetry={loadRecords}
             />
           )}
+          {section === "membership" && (
+            <MembershipContext summary={summary} {...membershipContextProps} />
+          )}
         </div>
+
+        {section === "catalog" && <Models variant="portal" />}
 
         {section === "release" && (
           <section
@@ -297,7 +322,7 @@ export default function PortalDashboard({
             aria-labelledby="release-title"
           >
             <span className={styles.releaseIcon}>
-              <Truck weight="duotone" aria-hidden="true" />
+              <Truck aria-hidden="true" />
             </span>
             <div>
               <p className={styles.eyebrow}>Unit status</p>
@@ -328,7 +353,7 @@ export default function PortalDashboard({
           >
             <div className={styles.sectionHeading}>
               <span className={`${styles.sectionIcon} ${styles.scheduleIcon}`}>
-                <Truck weight="duotone" aria-hidden="true" />
+                <Truck aria-hidden="true" />
               </span>
               <div>
                 <p className={styles.eyebrow}>Staff updates</p>
@@ -437,14 +462,14 @@ export default function PortalDashboard({
           section === "schedule" ||
           section === "payments") && (
           <p className={styles.note}>
-            <Info weight="fill" aria-hidden="true" /> Payments are coordinated
-            in Messenger. This portal shows Finance-verified records and your
-            derived balance.
+            <Info aria-hidden="true" /> Payments are coordinated in Messenger.
+            This portal shows Finance-verified records and your derived balance.
           </p>
         )}
       </div>
       <nav
         className={styles.mobileBottomNav}
+        data-portal-material="navigation"
         aria-label="Mobile customer navigation"
       >
         {mobileNav.map((item) => {
@@ -458,10 +483,7 @@ export default function PortalDashboard({
               data-customer-tour-mobile={item.id}
               aria-current={section === item.id ? "page" : undefined}
             >
-              <Icon
-                weight={section === item.id ? "fill" : "regular"}
-                aria-hidden="true"
-              />
+              <Icon aria-hidden="true" />
               <span>{item.label}</span>
             </Link>
           );
@@ -484,16 +506,7 @@ export default function PortalDashboard({
             return setMoreOpen(true);
           }}
         >
-          <SquaresFour
-            weight={
-              !mobileNav.some((item) => {
-                return item.id === section;
-              })
-                ? "fill"
-                : "regular"
-            }
-            aria-hidden="true"
-          />
+          <SquaresFour aria-hidden="true" />
           <span>More</span>
         </button>
       </nav>

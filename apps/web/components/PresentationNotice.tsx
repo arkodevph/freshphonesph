@@ -1,4 +1,5 @@
 import Link from "next/link";
+import styles from "./PresentationNotice.module.css";
 import { PRESENTATION_MODE } from "@/lib/presentation";
 
 export function PresentationNotice() {
@@ -9,11 +10,13 @@ export function PresentationNotice() {
   return (
     <aside
       aria-label="Presentation mode"
-      className="fixed bottom-20 left-1/2 z-[100] flex w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-3 rounded-xl border border-violet-200 bg-white px-4 py-2 text-xs text-slate-700 shadow-lg sm:bottom-3"
+      data-presentation-notice=""
+      className={styles.notice}
     >
-      <span>
+      <span className={styles.fullLabel}>
         <strong>Presentation</strong> · Fictional data · Read only
       </span>
+      <span className={styles.mobileLabel}>Demo data · Read only</span>
       <Link
         href="/login"
         className="shrink-0 font-bold text-violet-700 underline"

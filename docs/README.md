@@ -37,6 +37,12 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 
 ## Documents
 
+Start with the [2026-10-27 client feature implementation backlog](62-client-feature-implementation-backlog.md)
+for the latest role, receipt-review, membership and reporting clarifications.
+It overrides conflicting assumptions in documents 58–61 and records deployment
+and all third-party integrations as deferred. It is a requirements update, not
+an implementation-completion report.
+
 For the sequential task queue aligned with the Basic Website Workflow and Organizational
 Structure V4, start with [the workflow implementation checklist](58-workflow-v4-implementation-checklist.md).
 For a focused list of what is missing or needs revision, use

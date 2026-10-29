@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  installmentChart,
+  installmentProgress,
   paymentStaff,
   verifiedPaymentPercent,
 } from "../lib/portal-payment-overview";
@@ -42,46 +42,62 @@ test("verified progress uses the verified balance and handles missing totals and
   );
 });
 
-test("the chart shows verified allocations around the next unpaid installment without changing the plan", () => {
-  const plan: PortalScheduleItem[] = Array.from({ length: 12 }, (_, index) => {
-    return {
-      sequence_no: index + 1,
-      due_date: "2026-10-10",
-      expected_amount: "5000.25",
-      paid_applied: index < 5 ? "5000.25" : index === 5 ? "1020.10" : "0.00",
-      status: index < 5 ? "paid" : "upcoming",
-    };
-  });
+test("installment progress includes the entire plan and preserves partial verified payments", () => {
+  const plan: PortalScheduleItem[] = Array.from({ length: 24 }, (_, index) => ({
+    sequence_no: index + 1,
+    due_date: "2026-10-30",
+    expected_amount: "5000.25",
+    paid_applied: index < 5 ? "5000.25" : index === 5 ? "1020.10" : "0.00",
+    status: "upcoming",
+  }));
 
-  const chart = installmentChart([...plan].reverse());
+  const progress = installmentProgress([...plan].reverse());
 
-  assert.deepEqual(
-    chart.map((item) => {
-      return item.sequence;
-    }),
-    [5, 6, 7, 8, 9],
-  );
-
-  assert.equal(chart[1].verified, 1020.1);
-
-  assert.equal(chart[1].expected, 5000.25);
-
-  assert.equal(chart[2].verified, 0);
-
+  assert.equal(progress.installments.length, 24);
+  assert.equal(progress.completed, 5);
+  assert.equal(progress.next?.sequence, 6);
+  assert.equal(progress.next?.remaining, 3980.15);
+  assert.equal(progress.next?.verified, 1020.1);
+  assert.equal(progress.next?.dueDate, "2026-10-30");
+  assert.ok(progress.next!.percentage > 20 && progress.next!.percentage < 21);
+  assert.equal(progress.installments[23].percentage, 0);
   assert.equal(plan[0].sequence_no, 1);
 
-  assert.deepEqual(installmentChart([]), []);
-
-  assert.deepEqual(
-    installmentChart(
-      plan.map((item) => {
-        return { ...item, paid_applied: item.expected_amount };
-      }),
-    ).map((item) => {
-      return item.sequence;
-    }),
-    [8, 9, 10, 11, 12],
+  const paid = installmentProgress(
+    plan.map((item) => ({
+      ...item,
+      paid_applied: "6000.00",
+    })),
   );
+
+  assert.equal(paid.completed, 24);
+  assert.equal(paid.next, undefined);
+  assert.ok(
+    paid.installments.every(
+      (item) => item.percentage === 100 && item.remaining === 0,
+    ),
+  );
+  assert.deepEqual(installmentProgress([]), {
+    installments: [],
+    completed: 0,
+    next: undefined,
+  });
+});
+
+test("installment completion is based on verified allocations rather than a status label", () => {
+  const progress = installmentProgress([
+    {
+      sequence_no: 1,
+      due_date: "2026-10-30",
+      expected_amount: "2000.00",
+      paid_applied: "0.00",
+      status: "paid",
+    },
+  ]);
+
+  assert.equal(progress.completed, 0);
+  assert.equal(progress.next?.remaining, 2000);
+  assert.equal(progress.next?.percentage, 0);
 });
 
 test("staff come from verified records, merge roles by ID, and keep distinct staff with the same name", () => {

@@ -6,6 +6,7 @@ import {
   calendarMonthDays,
   membershipCalendarEvents,
   membershipMilestones,
+  groupedMembershipMilestones,
   moveCalendarDate,
   moveCalendarMonth,
 } from "../lib/portal-membership-calendar";
@@ -162,4 +163,42 @@ test("both calendars share keyboard navigation across day and month boundaries",
   for (const [key, next] of Object.entries(expected)) {
     assert.equal(calendarKeyboardDate("2026-01-31", key), next);
   }
+});
+
+test("shared enrollment dates are grouped in the summary while preserving both calendar events", () => {
+  const dates = membershipMilestones({
+    joined_at: "2026-10-01",
+    batch_start_date: "2026-10-01",
+    batch_end_date: "2027-01-21",
+  });
+  const grouped = groupedMembershipMilestones(dates);
+  assert.equal(grouped.length, 2);
+  assert.equal(grouped[0].label, "Joined & batch start");
+  assert.equal(
+    membershipCalendarEvents(dates, []).filter(
+      (event) => event.date === "2026-10-01",
+    ).length,
+    2,
+  );
+  assert.equal(dates.length, 3);
+  assert.equal(
+    groupedMembershipMilestones(
+      membershipMilestones({
+        joined_at: "2026-09-30",
+        batch_start_date: "2026-10-01",
+        batch_end_date: null,
+      }),
+    ).length,
+    3,
+  );
+  assert.equal(
+    groupedMembershipMilestones(
+      membershipMilestones({
+        joined_at: null,
+        batch_start_date: null,
+        batch_end_date: null,
+      }),
+    ).length,
+    3,
+  );
 });

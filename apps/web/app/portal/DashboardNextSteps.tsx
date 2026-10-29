@@ -5,13 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
-  CalendarBlank,
-  CaretLeft,
-  CaretRight,
-  ChatCircleText,
+  Calendar as CalendarBlank,
+  AltArrowLeft as CaretLeft,
+  AltArrowRight as CaretRight,
+  ChatRoundDots as ChatCircleText,
   FileText,
-  Truck,
-} from "@phosphor-icons/react";
+  Delivery as Truck,
+} from "@/components/SolarIcons";
 import type { PortalAttention } from "@/lib/portal-attention";
 import styles from "./dashboard-next-steps.module.css";
 
@@ -61,10 +61,10 @@ function appearance(href: string) {
 function ActionIllustration({ kind }: { kind: IllustrationKind }) {
   return (
     <Image
-      src={`/portal/illustrations/${kind}.png`}
+      src={`/portal/mascot/task-boy-${kind}.webp`}
       alt=""
       fill
-      sizes="(max-width: 700px) 85vw, (max-width: 900px) 45vw, 33vw"
+      sizes="(max-width: 700px) 64px, (max-width: 900px) 45vw, 33vw"
     />
   );
 }
@@ -206,51 +206,70 @@ export default function DashboardNextSteps({
       <div className={styles.statusTiles}>
         <Link
           href="/portal/schedule"
+          data-portal-material="tile"
           className={`${styles.statusTile} ${styles.sky}`}
           title={installment.description}
         >
           <span className={styles.tileIcon}>
-            <CalendarBlank weight="duotone" aria-hidden="true" />
+            <CalendarBlank aria-hidden="true" />
           </span>
           <span className={styles.statusCopy}>
-            <small>{installment.description}</small>
+            <small className={styles.desktopStatus}>
+              {installment.description}
+            </small>
+            <small className={styles.mobileStatus}>Next payment</small>
             <strong>{installment.amount}</strong>
-            <span>Installment plan</span>
+            <span className={styles.desktopStatus}>Installment plan</span>
+            <span className={styles.mobileStatus}>View plan</span>
           </span>
           <ArrowRight className={styles.tileArrow} aria-hidden="true" />
         </Link>
         <Link
           href="/portal/release"
+          data-portal-material="tile"
           className={`${styles.statusTile} ${styles.peach}`}
           title={`${release.description}${release.updatedAt ? ` Last release update: ${release.updatedAt}` : ""}`}
         >
           <span className={styles.tileIcon}>
-            <Truck weight="duotone" aria-hidden="true" />
+            <Truck aria-hidden="true" />
           </span>
           <span className={styles.statusCopy}>
             <small>Unit status</small>
             <strong className={styles.releaseStatus}>{release.status}</strong>
-            <span>Release &amp; fulfillment</span>
+            <span className={styles.desktopStatus}>
+              Release &amp; fulfillment
+            </span>
+            <span className={styles.mobileStatus}>View status</span>
           </span>
           <ArrowRight className={styles.tileArrow} aria-hidden="true" />
         </Link>
         <Link
           href={support.href}
+          data-portal-material="tile"
           className={`${styles.statusTile} ${styles.teal}`}
         >
           <span className={styles.tileIcon}>
-            <ChatCircleText weight="duotone" aria-hidden="true" />
+            <ChatCircleText aria-hidden="true" />
           </span>
           <span className={styles.statusCopy}>
-            <small>
+            <small className={styles.desktopStatus}>
               {attentionStatus === "error"
                 ? "Requests unavailable"
                 : attentionStatus === "loading"
                   ? "Checking requests…"
                   : `${support.count} open ${support.count === 1 ? "request" : "requests"}`}
             </small>
-            <strong>Customer support</strong>
-            <span>Follow your concerns</span>
+            <small className={styles.mobileStatus}>Support</small>
+            <strong className={styles.desktopStatus}>Customer support</strong>
+            <strong className={styles.mobileStatus}>
+              {attentionStatus === "ready"
+                ? `${support.count} open`
+                : attentionStatus === "error"
+                  ? "Unavailable"
+                  : "Checking…"}
+            </strong>
+            <span className={styles.desktopStatus}>Follow your concerns</span>
+            <span className={styles.mobileStatus}>View requests</span>
           </span>
           <ArrowRight className={styles.tileArrow} aria-hidden="true" />
         </Link>
@@ -262,9 +281,9 @@ export default function DashboardNextSteps({
           <h2 id="attention-title">Needs your attention</h2>
         </div>
         <div className={styles.browseControls}>
-          {ready && items.length > 0 && (
+          {ready && cards.length > 0 && (
             <span className={styles.count}>
-              {items.length} {items.length === 1 ? "item" : "items"}
+              {cards.length} {cards.length === 1 ? "item" : "items"}
             </span>
           )}
           {cards.length > 0 && (
@@ -278,7 +297,7 @@ export default function DashboardNextSteps({
                   return browse(-1);
                 }}
               >
-                <CaretLeft weight="bold" aria-hidden="true" />
+                <CaretLeft aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -290,7 +309,7 @@ export default function DashboardNextSteps({
                   return browse(1);
                 }}
               >
-                <CaretRight weight="bold" aria-hidden="true" />
+                <CaretRight aria-hidden="true" />
               </button>
             </>
           )}
@@ -341,21 +360,25 @@ export default function DashboardNextSteps({
               <li key={item.key}>
                 <Link
                   href={item.href}
+                  data-portal-material="card"
                   className={`${styles.actionCard} ${tone}`}
                 >
-                  <div className={styles.illustration}>
+                  <div
+                    className={styles.illustration}
+                    data-portal-material="illustration"
+                  >
                     <ActionIllustration kind={illustration} />
                   </div>
                   <div className={styles.cardBody}>
                     <span className={styles.category}>
-                      <Icon weight="bold" aria-hidden="true" />
+                      <Icon aria-hidden="true" />
                       {label}
                     </span>
                     <h3>{item.title}</h3>
                     <p>{item.detail}</p>
                     <span className={styles.cardAction}>
                       {item.action}
-                      <ArrowRight weight="bold" aria-hidden="true" />
+                      <ArrowRight aria-hidden="true" />
                     </span>
                   </div>
                 </Link>

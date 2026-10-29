@@ -81,12 +81,6 @@ export default function LoginPage() {
       }
     }
 
-    if (safeSupportReturn(destination)) {
-      window.location.assign(destination);
-
-      return;
-    }
-
     router.push(destination);
   }
 
