@@ -233,6 +233,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     BETTER_AUTH_SECRET: "redis-test-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local",
@@ -269,7 +270,7 @@ before(async () => {
       name: "Synthetic Redis Owner",
       email: `redis-owner-${suffix}@example.test`,
       passwordHash: hash,
-      role: "OWNER",
+      role: "SYSTEM_ADMIN",
     },
   });
 

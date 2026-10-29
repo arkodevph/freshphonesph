@@ -63,7 +63,9 @@ export function alertScopeSql(scope: StaffAlertScope) {
           ? Prisma.sql`entity = 'support'`
           : scope === "accounts"
             ? Prisma.sql`entity = 'account'`
-            : Prisma.sql`TRUE`;
+            : scope === "enrollments"
+              ? Prisma.sql`entity = 'enrollment'`
+              : Prisma.sql`TRUE`;
 }
 
 export function paymentResultRows(userId: string) {
@@ -73,7 +75,8 @@ export function paymentResultRows(userId: string) {
         ELSE 'PAYMENT_CLARIFICATION' END AS kind,
       r.amount::text AS amount, r."clientName", r."batchCode", NULL::text AS "taskTitle", NULL::timestamp AS deadline,
       r."createdAt", r."createdAt" AS "updatedAt", r."readAt", r."createdAt" AS "occurredAt"
-    FROM "PaymentResultAlert" r WHERE r."userId" = ${userId}::uuid
+    FROM "PaymentResultAlert" r JOIN "Payment" p ON p.id = r."paymentId" JOIN "Batch" b ON b.id = p."batchId" JOIN "User" u ON u.id = r."userId" WHERE r."userId" = ${userId}::uuid
+      AND (u.role NOT IN ('BATCH_HANDLER', 'CORE_HANDLER') OR b."handlerId" = u.id)
   `;
 }
 

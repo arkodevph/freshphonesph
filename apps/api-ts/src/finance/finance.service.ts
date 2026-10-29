@@ -1,3 +1,6 @@
+import { batchScope, clientScope } from "../records/scope";
+import { safeUser } from "../auth/auth.service";
+import { businessRole } from "@freshphones/contracts";
 import {
   BadRequestException,
   ConflictException,
@@ -70,7 +73,7 @@ export class FinanceService {
   private async write<T>(
     user: User,
     permission: Permission,
-    run: (tx: Prisma.TransactionClient) => Promise<T>,
+    run: (tx: Prisma.TransactionClient, current: User) => Promise<T>,
   ) {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
@@ -81,7 +84,7 @@ export class FinanceService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      return run(tx);
+      return run(tx, safeUser(current));
     });
   }
 
@@ -137,7 +140,7 @@ export class FinanceService {
     referenceNumber: string,
     excludeId?: string,
   ): Promise<PaymentDuplicateMatch[]> {
-    if (!allowed(user, "PAYMENT_RECORD")) {
+    if (!allowed(user, "PAYMENT_RECORD") && !allowed(user, "PAYMENT_VERIFY")) {
       throw new ForbiddenException("You cannot record payments.");
     }
 
@@ -152,9 +155,11 @@ export class FinanceService {
         p."paymentDate"::text AS "paymentDate", p.method, p."referenceNumber", p.status
       FROM "Payment" p
       JOIN "Client" c ON c.id = p."clientId"
+      JOIN "Batch" b ON b.id = p."batchId"
       WHERE lower(p.method) = lower(${method})
         AND upper(regexp_replace(p."referenceNumber", '[^[:alnum:]]', '', 'g')) = ${normalized}
         ${excludeId ? Prisma.sql`AND p.id <> ${excludeId}::uuid` : Prisma.empty}
+      ${businessRole(user.role) === "BATCH_HANDLER" ? Prisma.sql`AND b."handlerId" = ${user.id}::uuid` : Prisma.empty}
       ORDER BY p."createdAt" DESC
       LIMIT 10
     `;
@@ -201,7 +206,7 @@ export class FinanceService {
       return { clientId: user.clientId, status: "VERIFIED" };
     }
 
-    return {};
+    return { batch: batchScope(user) };
   }
 
   async customerPending(user: User) {
@@ -305,9 +310,9 @@ export class FinanceService {
   }
 
   async create(user: User, input: PaymentInput) {
-    return this.write(user, "PAYMENT_RECORD", async (tx) => {
-      const client = await tx.client.findUnique({
-        where: { id: input.clientId },
+    return this.write(user, "PAYMENT_RECORD", async (tx, current) => {
+      const client = await tx.client.findFirst({
+        where: { id: input.clientId, ...clientScope(current) },
       });
 
       if (!client) {
@@ -360,8 +365,10 @@ export class FinanceService {
   }
 
   async correct(user: User, id: string, input: PaymentInput, version: number) {
-    return this.write(user, "PAYMENT_RECORD", async (tx) => {
-      const before = await tx.payment.findUnique({ where: { id } });
+    return this.write(user, "PAYMENT_RECORD", async (tx, current) => {
+      const before = await tx.payment.findFirst({
+        where: { id, ...this.scope(current) },
+      });
 
       if (!before) {
         throw new NotFoundException("Payment not found.");
@@ -373,8 +380,8 @@ export class FinanceService {
         );
       }
 
-      const client = await tx.client.findUnique({
-        where: { id: input.clientId },
+      const client = await tx.client.findFirst({
+        where: { id: input.clientId, ...clientScope(current) },
       });
 
       if (!client) {
@@ -444,8 +451,10 @@ export class FinanceService {
     notes: string,
     version: number,
   ) {
-    return this.write(user, "PAYMENT_VERIFY", async (tx) => {
-      const before = await tx.payment.findUnique({ where: { id } });
+    return this.write(user, "PAYMENT_VERIFY", async (tx, current) => {
+      const before = await tx.payment.findFirst({
+        where: { id, ...this.scope(current) },
+      });
 
       if (!before) {
         throw new NotFoundException("Payment not found.");
@@ -511,8 +520,10 @@ export class FinanceService {
     const storageKey = await this.storage.save(file);
 
     try {
-      return await this.write(user, "PAYMENT_RECORD", async (tx) => {
-        const before = await tx.payment.findUnique({ where: { id } });
+      return await this.write(user, "PAYMENT_RECORD", async (tx, current) => {
+        const before = await tx.payment.findFirst({
+          where: { id, ...this.scope(current) },
+        });
 
         if (!before) {
           throw new NotFoundException("Payment not found.");
@@ -585,7 +596,7 @@ export class FinanceService {
   }
 
   async adjust(user: User, paymentId: string, input: PaymentAdjustmentInput) {
-    return this.write(user, "PAYMENT_VERIFY", async (tx) => {
+    return this.write(user, "PAYMENT_VERIFY", async (tx, current) => {
       const existing = await tx.paymentAdjustment.findUnique({
         where: { requestId: input.requestId },
       });
@@ -706,8 +717,8 @@ export class FinanceService {
       throw new NotFoundException("Client not found.");
     }
 
-    const client = await this.db.client.findUnique({
-      where: { id: clientId },
+    const client = await this.db.client.findFirst({
+      where: { id: clientId, ...clientScope(user) },
       select: { id: true },
     });
 
@@ -796,7 +807,11 @@ export class FinanceService {
       throw new NotFoundException("Client not found.");
     }
 
-    if (!(await this.db.client.count({ where: { id: clientId } }))) {
+    if (
+      !(await this.db.client.count({
+        where: { id: clientId, ...clientScope(user) },
+      }))
+    ) {
       throw new NotFoundException("Client not found.");
     }
 

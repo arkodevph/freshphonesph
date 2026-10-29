@@ -1,3 +1,5 @@
+import { safeUser } from "../auth/auth.service";
+import { batchScope } from "../records/scope";
 import {
   ConflictException,
   ForbiddenException,
@@ -7,6 +9,7 @@ import {
 } from "@nestjs/common";
 import type {
   AccountAlertKind,
+  EnrollmentAlertKind,
   PaymentResultDetail,
   PaymentResultKind,
   StaffAlert,
@@ -42,15 +45,27 @@ import {
   accountAlertRows,
   accountAlertTitles,
 } from "./account-alerts";
+import {
+  enrollmentAlertRows,
+  enrollmentAlertTitles,
+  markEnrollmentAlertsRead,
+} from "./enrollment-alerts";
 
 type AlertRow = {
   id: string;
   paymentId: string | null;
   caseId: string | null;
   accountId: string | null;
-  entity: "task" | "payment" | "payment-result" | "support" | "account";
+  entity:
+    | "task"
+    | "payment"
+    | "payment-result"
+    | "support"
+    | "account"
+    | "enrollment";
   kind:
     | AccountAlertKind
+    | EnrollmentAlertKind
     | TaskAlertKind
     | PaymentResultKind
     | SupportAlertKind
@@ -107,7 +122,15 @@ export class StaffAlertsService {
     }
 
     if (scope === "accounts" && !allowed(user, "ACCOUNT_MANAGE")) {
-      throw new ForbiddenException("Owner account access required.");
+      throw new ForbiddenException("Account administration access required.");
+    }
+
+    if (
+      scope === "enrollments" &&
+      !allowed(user, "ENROLLMENT_SUBMIT") &&
+      !allowed(user, "ENROLLMENT_REVIEW")
+    ) {
+      throw new ForbiddenException("Enrollment access required.");
     }
   }
   async list(
@@ -136,6 +159,13 @@ export class StaffAlertsService {
       source = Prisma.sql`${source} UNION ALL ${accountAlertRows(user.id)}`;
     }
 
+    if (
+      allowed(user, "ENROLLMENT_SUBMIT") ||
+      allowed(user, "ENROLLMENT_REVIEW")
+    ) {
+      source = Prisma.sql`${source} UNION ALL ${enrollmentAlertRows(user.id)}`;
+    }
+
     const scope = alertScopeSql(query.scope);
 
     const [rows, counts] = await this.db.$transaction(
@@ -156,13 +186,15 @@ export class StaffAlertsService {
             results: bigint;
             support: bigint;
             accounts: bigint;
+            enrollments: bigint;
           }[]
         >`
         WITH alerts AS (${source}) SELECT COUNT(*) AS active, COUNT(*) FILTER (WHERE "readAt" IS NULL) AS unread,
           COUNT(*) FILTER (WHERE ${scope}) AS filtered, COUNT(*) FILTER (WHERE ${scope} AND "readAt" IS NULL) AS "filteredUnread",
           COUNT(*) FILTER (WHERE entity = 'task') AS tasks, COUNT(*) FILTER (WHERE entity = 'payment') AS finance,
           COUNT(*) FILTER (WHERE entity = 'payment-result') AS results, COUNT(*) FILTER (WHERE entity = 'support') AS support,
-          COUNT(*) FILTER (WHERE entity = 'account') AS accounts FROM alerts`,
+          COUNT(*) FILTER (WHERE entity = 'account') AS accounts,
+          COUNT(*) FILTER (WHERE entity = 'enrollment') AS enrollments FROM alerts`,
       ],
       { isolationLevel: "RepeatableRead" },
     );
@@ -176,6 +208,20 @@ export class StaffAlertsService {
           readAt: row.readAt?.toISOString() ?? null,
           occurredAt: row.occurredAt.toISOString(),
         };
+
+        if (row.entity === "enrollment") {
+          const kind = row.kind as EnrollmentAlertKind;
+
+          return {
+            ...base,
+            entity: "enrollment",
+            kind,
+            version: row.version,
+            title: enrollmentAlertTitles[kind],
+            message: `${row.batchCode} · ${kind === "ENROLLMENT_PENDING" ? "A member enrollment needs your review." : "Open your enrollment request for the decision and review note."}`,
+            targetPath: `/system/enrollments?request=${row.id}`,
+          };
+        }
 
         if (row.entity === "account") {
           return {
@@ -254,16 +300,13 @@ export class StaffAlertsService {
       resultCount: Number(count.results),
       supportCount: Number(count.support),
       accountCount: Number(count.accounts),
+      enrollmentCount: Number(count.enrollments),
     };
   }
   private async write<T>(
     user: User,
     scope: StaffAlertScope,
-    run: (
-      tx: Prisma.TransactionClient,
-      current: Pick<User, "role">,
-      now: Date,
-    ) => Promise<T>,
+    run: (tx: Prisma.TransactionClient, current: User, now: Date) => Promise<T>,
   ) {
     this.access(user, scope);
 
@@ -272,7 +315,6 @@ export class StaffAlertsService {
 
       const current = await tx.user.findUnique({
         where: { id: user.id },
-        select: { role: true, active: true },
       });
 
       if (!current?.active) {
@@ -281,11 +323,42 @@ export class StaffAlertsService {
 
       this.access(current, scope);
 
-      return run(tx, current, new Date());
+      return run(tx, safeUser(current), new Date());
     });
   }
   async read(user: User, id: string, input: StaffAlertReadInput) {
     this.access(user);
+
+    if (input.entity === "enrollment") {
+      return this.write(user, "enrollments", async (tx, current, now) => {
+        const [alert] = await tx.$queryRaw<
+          { version: number; readAt: Date | null }[]
+        >`
+          SELECT version, "readAt" FROM (${enrollmentAlertRows(current.id)}) visible WHERE id = ${id}::uuid`;
+
+        if (!alert) {
+          throw new NotFoundException("Enrollment alert not found.");
+        }
+
+        if (alert.version !== input.version) {
+          throw new ConflictException(
+            "This enrollment changed. Refresh the alerts and open the current request.",
+          );
+        }
+
+        if (alert.readAt) {
+          return { id, readAt: alert.readAt.toISOString() };
+        }
+
+        await markEnrollmentAlertsRead(tx, current.id, now, id);
+
+        await tx.changeEvent.create({
+          data: { entity: "staff-alert-read", recordId: current.id },
+        });
+
+        return { id, readAt: now.toISOString() };
+      });
+    }
 
     if (input.entity === "payment") {
       return this.finance.read(user, id, input.version);
@@ -340,9 +413,13 @@ export class StaffAlertsService {
     }
 
     if (input.entity === "payment-result") {
-      return this.write(user, "results", async (tx, _current, now) => {
+      return this.write(user, "results", async (tx, current, now) => {
         const result = await tx.paymentResultAlert.findFirst({
-          where: { id, userId: user.id },
+          where: {
+            id,
+            userId: user.id,
+            payment: { batch: batchScope(current) },
+          },
         });
 
         if (!result) {
@@ -441,7 +518,11 @@ export class StaffAlertsService {
         canReadPaymentResults(current)
           ? (
               await tx.paymentResultAlert.updateMany({
-                where: { userId: user.id, readAt: null },
+                where: {
+                  userId: user.id,
+                  readAt: null,
+                  payment: { batch: batchScope(current) },
+                },
                 data: { readAt: now },
               })
             ).count
@@ -466,20 +547,29 @@ export class StaffAlertsService {
             ).count
           : 0;
 
-      if (tasks + finance + results + support + accounts) {
+      const enrollments =
+        (scope === "all" || scope === "enrollments") &&
+        (allowed(current, "ENROLLMENT_SUBMIT") ||
+          allowed(current, "ENROLLMENT_REVIEW"))
+          ? await markEnrollmentAlertsRead(tx, current.id, now)
+          : 0;
+
+      if (tasks + finance + results + support + accounts + enrollments) {
         await tx.changeEvent.create({
           data: { entity: "staff-alert-read", recordId: user.id },
         });
       }
 
-      return { updated: tasks + finance + results + support + accounts };
+      return {
+        updated: tasks + finance + results + support + accounts + enrollments,
+      };
     });
   }
   async result(user: User, id: string): Promise<PaymentResultDetail> {
     this.access(user, "results");
 
     const result = await this.db.paymentResultAlert.findFirst({
-      where: { id, userId: user.id },
+      where: { id, userId: user.id, payment: { batch: batchScope(user) } },
       include: { payment: { select: { status: true, version: true } } },
     });
 

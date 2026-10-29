@@ -10,6 +10,7 @@ const fields = {
     cadence: "Cadence",
     startDate: "Start date",
     endDate: "End date",
+    managerId: "Batch manager",
     handlerId: "Handler",
     agentId: "Agent",
   },
@@ -106,6 +107,10 @@ export function historyChanges(
 
       if (field === "batchId") {
         return value(object(snapshot.batch), "code") ?? raw;
+      }
+
+      if (field === "managerId") {
+        return value(object(snapshot.manager), "name") ?? raw;
       }
 
       if (field === "handlerId") {

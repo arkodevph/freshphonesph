@@ -16,6 +16,7 @@ import {
   type LegalStatus,
 } from "@/lib/legal";
 import { useMe } from "@/lib/useMe";
+import { WorkspaceContentSkeleton } from "./WorkspaceSkeleton";
 import styles from "./legal-gate.module.css";
 
 export function LegalGate({ children }: { children: ReactNode }) {
@@ -50,12 +51,12 @@ export function LegalGate({ children }: { children: ReactNode }) {
 
     loadingFor.current = userId;
 
+    // Rechecking on focus must preserve mounted forms, including a file chooser's selection.
+    // Account changes still block through loadedFor; failed checks discard the prior clearance.
     setLoadError(null);
 
     setActionError(null);
 
-    // Keep the current account's page mounted during background rechecks.
-    // Initial loads and account changes remain gated by loadedFor below.
     void getLegalStatus()
       .then((result) => {
         if (loadingFor.current !== userId) {
@@ -70,6 +71,8 @@ export function LegalGate({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (loadingFor.current === userId) {
+          setLoadedFor(null);
+
           setLoadError(
             "Could not check the current notices. Please try again.",
           );
@@ -87,19 +90,25 @@ export function LegalGate({ children }: { children: ReactNode }) {
   }, [reload]);
 
   useEffect(() => {
-    window.addEventListener("fp-legal-required", reload);
+    const requireCurrentNotices = () => {
+      setLoadedFor(null);
+
+      reload();
+    };
+
+    window.addEventListener("focus", reload);
+
+    window.addEventListener("fp-legal-required", requireCurrentNotices);
 
     return () => {
-      window.removeEventListener("fp-legal-required", reload);
+      window.removeEventListener("focus", reload);
+
+      window.removeEventListener("fp-legal-required", requireCurrentNotices);
     };
   }, [reload]);
 
   if (!me || (loadedFor !== String(me.id) && !loadError)) {
-    return (
-      <section className={styles.screen} role="status">
-        Checking account notices…
-      </section>
-    );
+    return <WorkspaceContentSkeleton label="Loading account" />;
   }
 
   if (loadError) {

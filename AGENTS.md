@@ -66,7 +66,11 @@ Create local test accounts with a private seed script or through the application
 account details outside Git. Provision employee and linked customer accounts through `POST /api/accounts`.
 Development role previews use `pnpm --filter @fresh/api-ts seed:demo` with a local database
 whose name ends in `_preview` and a server-only `LOCAL_DEMO_PASSWORD` in both service env files.
-The login page opens each seeded role with one click; this endpoint is disabled in production.
+The login page opens each seeded role with one click. The ignored local helper is
+disabled in normal deployment builds. The explicit optimized local-preview mode
+retains it only on loopback, with a local `_preview` database checked by its launcher.
+For client walkthroughs, use the `preview:build` and `preview:local` commands in
+[README.md](README.md#fast-local-demo-preview); source changes require rebuilding.
 
 For the active TypeScript preview, run `pnpm --filter @fresh/api-ts dev` and
 `pnpm --filter @fresh/api-ts worker:dev` in separate terminals with the same database,

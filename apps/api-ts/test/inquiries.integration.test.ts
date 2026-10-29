@@ -60,6 +60,7 @@ before(async () => {
     WEB_ORIGIN: origin,
     PUBLIC_SITE_ORIGIN: landing,
     JWT_SECRET: "synthetic-inquiry-test-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local",
@@ -217,7 +218,7 @@ test("public input is validated and no anonymous inquiry reads or status changes
   );
 
   assert.equal(
-    (await request("/clients", "POST", {}, "OWNER", landing)).status,
+    (await request("/clients", "POST", {}, "SYSTEM_ADMIN", landing)).status,
     403,
     "Landing origin can only submit inquiries",
   );

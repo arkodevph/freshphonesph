@@ -6,6 +6,11 @@ import type {
   User,
 } from "@freshphones/contracts";
 import { API_URL } from "./backend";
+import {
+  clearMembershipSelection,
+  currentMembership,
+  membershipHeaders,
+} from "./membership-selection";
 
 export class ApiError extends Error {
   constructor(
@@ -125,6 +130,8 @@ export async function tsRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const selectedHeaders = membershipHeaders(path);
+
   const response = await authenticatedResponse(
     () => {
       return fetch(`${API_URL}/api${path}`, {
@@ -132,6 +139,7 @@ export async function tsRequest<T>(
         credentials: "include",
         cache: "no-store",
         headers: {
+          ...selectedHeaders,
           ...(options.body ? { "Content-Type": "application/json" } : {}),
           ...options.headers,
         },
@@ -147,6 +155,8 @@ export async function tsRequest<T>(
 }
 
 export async function tsUpload<T>(path: string, body: FormData): Promise<T> {
+  const selectedHeaders = membershipHeaders(path);
+
   const response = await authenticatedResponse(
     () => {
       return fetch(`${API_URL}/api${path}`, {
@@ -154,6 +164,7 @@ export async function tsUpload<T>(path: string, body: FormData): Promise<T> {
         body,
         credentials: "include",
         cache: "no-store",
+        headers: selectedHeaders,
       });
     },
     true,
@@ -164,11 +175,14 @@ export async function tsUpload<T>(path: string, body: FormData): Promise<T> {
 }
 
 export async function tsDownload(path: string): Promise<Blob> {
+  const selectedHeaders = membershipHeaders(path);
+
   const response = await authenticatedResponse(
     () => {
       return fetch(`${API_URL}/api${path}`, {
         credentials: "include",
         cache: "no-store",
+        headers: selectedHeaders,
       });
     },
     true,
@@ -179,16 +193,23 @@ export async function tsDownload(path: string): Promise<Blob> {
 }
 
 export const toMe = (user: User) => {
+  if (user.role !== "CUSTOMER") {
+    clearMembershipSelection();
+  }
+
   return {
     id: user.id,
     email: user.email,
     full_name: user.name,
-    role: user.role.toLowerCase(),
+    role: user.role === "OWNER" ? "ceo" : user.role.toLowerCase(),
     image: user.image ?? null,
     employee_id: user.role === "CUSTOMER" ? null : user.id,
     account_type:
       user.role === "CUSTOMER" ? ("customer" as const) : ("employee" as const),
-    client_id: user.clientId,
+    client_id:
+      user.role === "CUSTOMER"
+        ? currentMembership(user.id, user.clientId)
+        : user.clientId,
     permissions: user.permissions,
   };
 };
@@ -216,7 +237,8 @@ export const toBatch = (batch: Batch) => {
     handler_name: batch.handler?.name ?? null,
     agent_name: batch.agent?.name ?? null,
     handler_available: Boolean(
-      batch.handler?.active && batch.handler.role === "CORE_HANDLER",
+      batch.handler?.active &&
+      ["CORE_HANDLER", "BATCH_HANDLER"].includes(batch.handler.role),
     ),
     agent_available: Boolean(batch.agent?.active),
   };

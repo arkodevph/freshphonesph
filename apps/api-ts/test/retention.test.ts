@@ -45,7 +45,7 @@ test("retention validation rejects invented approvals, unsafe periods and unboun
   );
 
   assert.ok(
-    effectivePermissions({ role: "OWNER" }).includes("RETENTION_MANAGE"),
+    effectivePermissions({ role: "SYSTEM_ADMIN" }).includes("RETENTION_MANAGE"),
   );
 
   assert.equal(

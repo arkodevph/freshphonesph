@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "node scripts/sync-assets.mjs && next dev --webpack --port 3001",
     "dev:safe": "node scripts/sync-assets.mjs && bash ../../scripts/dev-landing-safe.sh",
+    "preview:build": "node scripts/sync-assets.mjs && bash ../../scripts/preview-local-safe.sh landing build",
+    "preview:local": "bash ../../scripts/preview-local-safe.sh landing start",
     "build": "node scripts/sync-assets.mjs && next build --webpack",
     "start": "next start --port 3001",
     "deploy": "vercel deploy",

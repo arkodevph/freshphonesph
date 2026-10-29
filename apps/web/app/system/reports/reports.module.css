@@ -2,6 +2,27 @@
   color: var(--system-text);
   min-width: 0;
 }
+.ceoPage .heading {
+  margin: 22px 0;
+}
+.ceoPage .heading h1,
+.ceoPage .panel h2 {
+  font-family: var(--font-body), sans-serif;
+  font-weight: 800;
+}
+.ceoPage .heading p {
+  font-size: 14px;
+}
+.ceoPage .heading .kicker {
+  font-size: 11px;
+}
+.ceoPage .panel {
+  border-radius: 16px;
+}
+.ceoPage .tabs button {
+  min-height: 44px;
+  font-size: 13px;
+}
 .heading {
   display: flex;
   align-items: center;

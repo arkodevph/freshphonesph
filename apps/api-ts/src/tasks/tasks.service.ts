@@ -1,3 +1,5 @@
+import { staffScope, taskScope } from "../records/scope";
+import { businessRole } from "@freshphones/contracts";
 import {
   BadRequestException,
   ConflictException,
@@ -87,6 +89,18 @@ export class TasksService {
     private readonly storage: PrivateStorageService,
   ) {}
 
+  private taskView(user: User, row: Parameters<typeof view>[0]) {
+    const result = view(row, allowed(user, "KPI_REVIEW"));
+
+    if (
+      businessRole(user.role) === "KPI_OFFICER" &&
+      row.assigneeId !== user.id
+    ) {
+      return { ...result, instructions: "", report: "", attachment: null };
+    }
+
+    return result;
+  }
   private staff(user: User) {
     if (user.role === "CUSTOMER") {
       throw new ForbiddenException("Staff access required.");
@@ -95,7 +109,11 @@ export class TasksService {
   private visible(user: User, task: { assigneeId: string }) {
     this.staff(user);
 
-    if (allowed(user, "TASK_ASSIGN") || task.assigneeId === user.id) {
+    if (
+      allowed(user, "TASK_ASSIGN") ||
+      allowed(user, "KPI_REVIEW") ||
+      task.assigneeId === user.id
+    ) {
       return;
     }
 
@@ -161,7 +179,7 @@ export class TasksService {
     }
 
     return this.db.user.findMany({
-      where: { active: true, role: { not: "CUSTOMER" } },
+      where: staffScope(user),
       select: { id: true, name: true, role: true },
       orderBy: [{ name: "asc" }, { id: "asc" }],
     });
@@ -178,7 +196,7 @@ export class TasksService {
     this.staff(user);
 
     const where: Prisma.TaskWhereInput = {
-      ...(allowed(user, "TASK_ASSIGN") ? {} : { assigneeId: user.id }),
+      ...taskScope(user),
       ...(query.status ? { status: query.status } : {}),
     };
 
@@ -195,7 +213,7 @@ export class TasksService {
 
     return {
       results: rows.map((row) => {
-        return view(row, allowed(user, "KPI_REVIEW"));
+        return this.taskView(user, row);
       }),
       count,
       page: query.page,
@@ -205,8 +223,8 @@ export class TasksService {
   async detail(user: User, id: string) {
     user = await requireCurrentUser(this.db, user, "TASK_READ");
 
-    const row = await this.db.task.findUnique({
-      where: { id },
+    const row = await this.db.task.findFirst({
+      where: { id, ...taskScope(user) },
       include: taskInclude,
     });
 
@@ -216,7 +234,7 @@ export class TasksService {
 
     this.visible(user, row);
 
-    return view(row, allowed(user, "KPI_REVIEW"));
+    return this.taskView(user, row);
   }
   async create(
     user: User,
@@ -243,8 +261,11 @@ export class TasksService {
         throw new ForbiddenException("Your task access has changed.");
       }
 
-      const assignee = await tx.user.findUnique({
-        where: { id: input.assigneeId },
+      const assignee = await tx.user.findFirst({
+        where: {
+          id: input.assigneeId,
+          ...staffScope({ id: user.id, role: current.role }),
+        },
         select: { active: true, role: true },
       });
 
@@ -410,8 +431,8 @@ export class TasksService {
         throw new ForbiddenException("Your task access has changed.");
       }
 
-      const before = await tx.task.findUnique({
-        where: { id },
+      const before = await tx.task.findFirst({
+        where: { id, ...taskScope({ id: user.id, role: current.role }) },
         include: { review: { select: { id: true } } },
       });
 
@@ -452,10 +473,20 @@ export class TasksService {
     });
   }
   async attachment(user: User, id: string) {
+    if (businessRole(user.role) === "KPI_OFFICER") {
+      const own = await this.db.task.count({
+        where: { id, assigneeId: user.id },
+      });
+
+      if (!own) {
+        throw new NotFoundException("Task attachment not found.");
+      }
+    }
+
     this.staff(user);
 
-    const row = await this.db.task.findUnique({
-      where: { id },
+    const row = await this.db.task.findFirst({
+      where: { id, ...taskScope(user) },
       include: { attachment: true },
     });
 
@@ -484,6 +515,7 @@ export class TasksService {
     }
 
     const where: Prisma.TaskWhereInput = {
+      ...taskScope(user),
       status: "SUBMITTED",
       lateFlag: true,
       review: { is: null },
@@ -502,7 +534,7 @@ export class TasksService {
 
     return {
       results: rows.map((row) => {
-        return view(row, true);
+        return this.taskView(user, row);
       }),
       count,
       page,
@@ -518,6 +550,7 @@ export class TasksService {
 
     const [rows, count] = await this.db.$transaction([
       this.db.kpiReview.findMany({
+        where: { task: taskScope(user) },
         include: {
           task: {
             select: { title: true, assignee: { select: { name: true } } },
@@ -528,7 +561,7 @@ export class TasksService {
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.db.kpiReview.count(),
+      this.db.kpiReview.count({ where: { task: taskScope(user) } }),
     ]);
 
     return {
@@ -570,8 +603,8 @@ export class TasksService {
         throw new ForbiddenException("Your KPI access has changed.");
       }
 
-      const task = await tx.task.findUnique({
-        where: { id: input.taskId },
+      const task = await tx.task.findFirst({
+        where: { id: input.taskId, ...taskScope(current) },
         include: { review: { select: { id: true } } },
       });
 

@@ -5,7 +5,9 @@
   "files": [
     "dist",
     "scripts/receipt_ocr.py",
-    "scripts/receipt_templates.json"
+    "scripts/receipt_templates.json",
+    "scripts/gcash_pdf.py",
+    "scripts/gcash_pdf_requirements.txt"
   ],
   "scripts": {
     "seed:demo": "tsx scripts/seed-demo.ts",
@@ -18,12 +20,16 @@
     "storage:migrate": "tsx scripts/migrate-private-files.ts",
     "launch:check": "tsx scripts/customer-launch-check.ts",
     "staff-email:check": "tsx scripts/staff-email-launch-check.ts",
-    "test": "tsx --test test/unit.test.ts test/records-history.test.ts test/staff-email-launch.test.ts test/ledger.test.ts test/recruitment-query.test.ts test/confidential-hr.test.ts test/catalog.test.ts test/retention.test.ts",
-    "test:integration": "tsx --test --test-concurrency=1 test/integration.test.ts test/reports.integration.test.ts test/reconciliation.integration.test.ts test/payment-adjustments.integration.test.ts test/recruitment-directory.integration.test.ts test/confidential-hr.integration.test.ts test/hr-actions.integration.test.ts test/catalog.integration.test.ts test/support-source.integration.test.ts test/report-analysis.integration.test.ts test/legal.integration.test.ts test/retention.integration.test.ts test/auth-mfa.integration.test.ts test/inquiries.integration.test.ts",
+    "test": "tsx --test test/unit.test.ts test/records-history.test.ts test/staff-email-launch.test.ts test/ledger.test.ts test/recruitment-query.test.ts test/confidential-hr.test.ts test/catalog.test.ts test/retention.test.ts test/charts.test.ts test/gcash-pdf.test.ts",
+    "test:integration": "tsx --test --test-concurrency=1 test/integration.test.ts test/reports.integration.test.ts test/reconciliation.integration.test.ts test/payment-adjustments.integration.test.ts test/recruitment-directory.integration.test.ts test/confidential-hr.integration.test.ts test/hr-actions.integration.test.ts test/catalog.integration.test.ts test/support-source.integration.test.ts test/report-analysis.integration.test.ts test/legal.integration.test.ts test/retention.integration.test.ts test/auth-mfa.integration.test.ts test/inquiries.integration.test.ts test/ceo-access.integration.test.ts test/installment-earnings.integration.test.ts test/role-access.integration.test.ts test/owner-ceo.integration.test.ts test/gcash-history.integration.test.ts test/multiple-memberships.integration.test.ts test/workflow-notifications.integration.test.ts",
     "worker:dev": "tsx watch src/worker.ts",
     "worker:start": "node dist/worker.js",
+    "test:ceo": "tsx --test --test-concurrency=1 test/ceo-access.integration.test.ts",
+    "test:earnings": "tsx --test --test-concurrency=1 test/installment-earnings.integration.test.ts",
     "test:redis": "tsx --test --test-concurrency=1 test/redis.integration.test.ts",
-    "test:abuse": "tsx --test --test-concurrency=1 test/abuse.integration.test.ts"
+    "test:abuse": "tsx --test --test-concurrency=1 test/abuse.integration.test.ts",
+    "test:gcash": "tsx --test --test-concurrency=1 test/gcash-history.integration.test.ts",
+    "test:notifications": "tsx --test --test-concurrency=1 test/workflow-notifications.integration.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",

@@ -20,14 +20,14 @@ export function demoId(number: number) {
 
 export function demoUser(role: Role): User {
   return {
-    id: demoId(100 + roles.indexOf(role)),
+    id: demoId(100 + roles.indexOf(role === "OWNER" ? "CEO" : role)),
     name: role === "CUSTOMER" ? "Alex Sample" : `Demo ${roleLabels[role]}`,
     email: `${role.toLowerCase()}@example.com`,
     image: null,
     role,
     permissions: [...rolePermissions[role]],
     clientId: role === "CUSTOMER" ? demoId(10) : null,
-    hrConfidentialAccess: role === "OWNER",
+    hrConfidentialAccess: role === "SYSTEM_ADMIN",
   };
 }
 
@@ -212,7 +212,7 @@ export const demoTasks: Task[] = [
       "Presentation task. Review the sample records and coordinate with the responsible team.",
     assigneeId: demoUser("RECORDS").id,
     assigneeName: demoUser("RECORDS").name,
-    creatorName: demoUser("OWNER").name,
+    creatorName: demoUser("SYSTEM_ADMIN").name,
     priority: index === 0 ? "HIGH" : "MEDIUM",
     deadline: "2026-10-30T09:00:00.000Z",
     status: index === 0 ? "IN_PROGRESS" : "TODO",

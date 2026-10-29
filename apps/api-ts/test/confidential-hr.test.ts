@@ -25,7 +25,7 @@ test("confidential access requires an Owner or an explicit grant for an eligible
   for (const role of roles) {
     for (const hrConfidentialAccess of [false, true]) {
       const expected =
-        role === "OWNER" ||
+        role === "SYSTEM_ADMIN" ||
         (hrConfidentialAccess && (role === "HR_PAYROLL" || role === "COO"));
 
       const user = {
@@ -42,7 +42,7 @@ test("confidential access requires an Owner or an explicit grant for an eligible
 
       assert.equal(
         allowed(user, "KPI_REVIEW"),
-        expected,
+        expected || role === "KPI_OFFICER",
         `${role}/${hrConfidentialAccess}`,
       );
 
@@ -58,7 +58,7 @@ test("confidential access requires an Owner or an explicit grant for an eligible
 
     assert.equal(allowed({ role }, "RECRUITMENT_MANAGE"), true);
 
-    assert.equal(allowed({ role }, "TASK_ASSIGN"), true);
+    assert.equal(allowed({ role }, "TASK_ASSIGN"), role === "COO");
   }
 });
 

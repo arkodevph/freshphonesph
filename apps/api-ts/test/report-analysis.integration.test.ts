@@ -88,6 +88,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     JWT_SECRET: "report-analysis-test-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local",
@@ -127,7 +128,7 @@ before(async () => {
   const people = new Map<Role, string>();
 
   for (const role of [
-    "OWNER",
+    "SYSTEM_ADMIN",
     "ANALYTICS",
     "FINANCE_OFFICER",
     "CS_TEAM",
@@ -152,7 +153,7 @@ before(async () => {
     data: {
       clientId: client.id,
       batchId: batch.id,
-      recordedById: people.get("OWNER")!,
+      recordedById: people.get("SYSTEM_ADMIN")!,
       paymentDate: new Date("2045-02-28"),
       method: "Cash",
       amount: "15.00",
@@ -170,7 +171,7 @@ after(async () => {
 });
 
 test("saved periods accept one immutable human analysis, including older numeric-only snapshots", async () => {
-  const owner = await new Session().login("OWNER"),
+  const owner = await new Session().login("SYSTEM_ADMIN"),
     analyst = await new Session().login("ANALYTICS");
 
   const finance = await new Session().login("FINANCE_OFFICER"),
@@ -216,7 +217,7 @@ test("saved periods accept one immutable human analysis, including older numeric
         post({ body: "An unauthorized interpretation of these figures." }),
       )
     ).status,
-    403,
+    404,
   );
 
   assert.equal(
@@ -377,10 +378,13 @@ test("saved periods accept one immutable human analysis, including older numeric
     assert.ok(item?.analysis?.submittedBy.name);
   }
 
-  assert.equal(
-    (await csTeam.request("/reports/snapshots?kind=PAYMENTS")).status,
-    403,
+  const supportHistory = await csTeam.request(
+    "/reports/snapshots?kind=PAYMENTS",
   );
+
+  assert.equal(supportHistory.status, 200);
+
+  assert.deepEqual((await supportHistory.json()).items, []);
 
   assert.equal(
     (await customer.request("/reports/snapshots?kind=PAYMENTS")).status,

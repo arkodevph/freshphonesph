@@ -3,11 +3,22 @@ import { Controller, Get, Inject, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
 import type { User } from "@freshphones/contracts";
 import { AuthService } from "../auth/auth.service";
-import { allowed, type AuthRequest } from "../auth/access";
+import {
+  allowed,
+  type AuthRequest,
+  RequiresAny,
+  Requires,
+} from "../auth/access";
 import { Database } from "../database";
-import { batchScope, clientScope } from "../records/scope";
+import {
+  batchScope,
+  clientScope,
+  taskScope,
+  staffScope,
+} from "../records/scope";
 import { supportAlertIsVisible } from "../staff/support-alerts";
 import { accountAlertIsVisible } from "../staff/account-alerts";
+import { notificationVisibilitySql } from "../staff/enrollment-alerts";
 import {
   RedisEventsService,
   type LiveHint,
@@ -16,6 +27,19 @@ import {
 @AbusePolicy("stream")
 @Controller("events")
 export class RealtimeController {
+  private async membershipSession(request: AuthRequest) {
+    const session = await this.auth.authenticate(request.accessToken);
+
+    return request.user.role === "CUSTOMER" && request.user.clientId
+      ? {
+          ...session,
+          user: await this.auth.selectMembership(
+            session.user,
+            request.user.clientId,
+          ),
+        }
+      : session;
+  }
   constructor(
     @Inject(Database) private readonly db: Database,
     @Inject(AuthService) private readonly auth: AuthService,
@@ -25,8 +49,37 @@ export class RealtimeController {
     user: User,
     event: { entity: string; recordId: string },
   ) {
+    if (event.entity === "member") {
+      return (
+        (allowed(user, "CLIENT_READ") || user.role === "CUSTOMER") &&
+        Boolean(
+          await this.db.client.findFirst({
+            where: {
+              memberId: event.recordId,
+              retentionErasedAt: null,
+              ...clientScope(user),
+            },
+            select: { id: true },
+          }),
+        )
+      );
+    }
+
     if (event.entity === "retention") {
       return allowed(user, "RETENTION_MANAGE");
+    }
+
+    if (event.entity === "gcash-history") {
+      if (!allowed(user, "GCASH_HISTORY_READ")) {
+        return false;
+      }
+
+      return Boolean(
+        await this.db.gcashHistory.findFirst({
+          where: { id: event.recordId, batch: batchScope(user) },
+          select: { id: true },
+        }),
+      );
     }
 
     if (event.entity === "catalog") {
@@ -38,7 +91,7 @@ export class RealtimeController {
         return false;
       }
 
-      if (user.role === "OWNER") {
+      if (user.role === "SYSTEM_ADMIN") {
         return true;
       }
 
@@ -72,7 +125,7 @@ export class RealtimeController {
     if (event.entity === "payment-result") {
       if (
         user.role === "CUSTOMER" ||
-        !allowed(user, "PAYMENT_RECORD") ||
+        (!allowed(user, "PAYMENT_RECORD") && user.role !== "RECORDS") ||
         !allowed(user, "PAYMENT_READ")
       ) {
         return false;
@@ -80,7 +133,11 @@ export class RealtimeController {
 
       return Boolean(
         await this.db.paymentResultAlert.findFirst({
-          where: { id: event.recordId, userId: user.id },
+          where: {
+            id: event.recordId,
+            userId: user.id,
+            payment: { batch: batchScope(user) },
+          },
           select: { id: true },
         }),
       );
@@ -91,17 +148,35 @@ export class RealtimeController {
     }
 
     if (event.entity === "task") {
-      if (user.role === "CUSTOMER") {
+      return (
+        allowed(user, "TASK_READ") &&
+        Boolean(
+          await this.db.task.findFirst({
+            where: { id: event.recordId, ...taskScope(user) },
+            select: { id: true },
+          }),
+        )
+      );
+    }
+
+    if (event.entity === "enrollment_request") {
+      if (
+        !allowed(user, "ENROLLMENT_SUBMIT") &&
+        !allowed(user, "ENROLLMENT_REVIEW") &&
+        !allowed(user, "AGENT_NETWORK_READ")
+      ) {
         return false;
       }
 
-      if (allowed(user, "TASK_ASSIGN")) {
-        return true;
-      }
+      const scope = ["SYSTEM_ADMIN", "COO"].includes(user.role)
+        ? {}
+        : ["BATCH_MANAGER", "GENERAL_MANAGER"].includes(user.role)
+          ? { batch: batchScope(user) }
+          : { submittedBy: staffScope(user) };
 
       return Boolean(
-        await this.db.task.findFirst({
-          where: { id: event.recordId, assigneeId: user.id },
+        await this.db.enrollmentRequest.findFirst({
+          where: { id: event.recordId, ...scope },
           select: { id: true },
         }),
       );
@@ -126,67 +201,71 @@ export class RealtimeController {
     }
 
     if (event.entity === "agent") {
-      return allowed(user, "BATCH_READ") && user.role !== "CORE_HANDLER";
+      return allowed(user, "AGENT_MANAGE");
     }
 
     if (event.entity === "account") {
-      return user.id === event.recordId || allowed(user, "ACCOUNT_MANAGE");
+      return (
+        user.id === event.recordId ||
+        (allowed(user, "ACCOUNT_MANAGE") &&
+          Boolean(
+            await this.db.user.findFirst({
+              where: {
+                id: event.recordId,
+                ...(user.role === "SYSTEM_ADMIN"
+                  ? {}
+                  : { role: { not: "SYSTEM_ADMIN" } }),
+              },
+              select: { id: true },
+            }),
+          ))
+      );
     }
 
     if (event.entity === "client") {
-      if (user.role === "CORE_HANDLER") {
-        return Boolean(
+      return (
+        (allowed(user, "CLIENT_READ") || user.role === "CUSTOMER") &&
+        Boolean(
           await this.db.client.findFirst({
             where: { id: event.recordId, ...clientScope(user) },
             select: { id: true },
           }),
-        );
-      }
-
-      return user.clientId === event.recordId || allowed(user, "CLIENT_READ");
+        )
+      );
     }
 
     if (event.entity === "batch") {
-      if (user.role === "CORE_HANDLER") {
-        return Boolean(
+      return (
+        (allowed(user, "BATCH_READ") || user.role === "CUSTOMER") &&
+        Boolean(
           await this.db.batch.findFirst({
             where: { id: event.recordId, ...batchScope(user) },
             select: { id: true },
           }),
-        );
-      }
-
-      if (allowed(user, "BATCH_READ")) {
-        return true;
-      }
-
-      if (user.role === "CUSTOMER" && user.clientId) {
-        return Boolean(
-          await this.db.client.findFirst({
-            where: { id: user.clientId, batchId: event.recordId },
-            select: { id: true },
-          }),
-        );
-      }
+        )
+      );
     }
 
     if (event.entity === "payment") {
-      if (allowed(user, "PAYMENT_READ") && user.role !== "CUSTOMER") {
-        return true;
-      }
-
-      if (user.role === "CUSTOMER" && user.clientId) {
-        return Boolean(
+      return (
+        allowed(user, "PAYMENT_READ") &&
+        Boolean(
           await this.db.payment.findFirst({
             where: {
               id: event.recordId,
-              clientId: user.clientId,
-              status: "VERIFIED",
+              batch: batchScope(user),
+              ...(user.role === "CUSTOMER"
+                ? {
+                    clientId:
+                      user.clientId ?? "00000000-0000-0000-0000-000000000000",
+                    status: "VERIFIED",
+                  }
+                : {}),
             },
             select: { id: true },
           }),
-        );
-      }
+        )
+      );
     }
 
     if (event.entity === "support") {
@@ -210,15 +289,16 @@ export class RealtimeController {
           where: { id: event.recordId, userId: user.id },
           select: { id: true },
         })) ||
-        (await this.db.staffNotification.findFirst({
-          where: { id: event.recordId, recipientId: user.id },
-          select: { id: true },
-        })),
+        (
+          await this.db.$queryRaw<{ id: string }[]>`
+          SELECT n.id FROM "StaffNotification" n
+          WHERE n.id = ${event.recordId}::uuid AND ${notificationVisibilitySql(user.id)}`
+        )[0],
       );
     }
 
     if (event.entity === "document") {
-      if (user.role === "OWNER" || user.role === "RECORDS") {
+      if (user.role === "SYSTEM_ADMIN" || user.role === "RECORDS") {
         return true;
       }
 
@@ -235,6 +315,16 @@ export class RealtimeController {
     return false;
   }
   @Get()
+  @RequiresAny(
+    "BATCH_READ",
+    "CLIENT_READ",
+    "PAYMENT_READ",
+    "TASK_READ",
+    "SUPPORT_MANAGE",
+    "ACCOUNT_MANAGE",
+    "NOTIFICATION_READ",
+    "DOCUMENT_READ",
+  )
   async stream(@Req() request: AuthRequest, @Res() response: Response) {
     if (this.live.enabled) {
       return this.redisStream(request, response);
@@ -283,9 +373,7 @@ export class RealtimeController {
       }
 
       try {
-        const { user, mfaRequired } = await this.auth.authenticate(
-          request.accessToken,
-        );
+        const { user, mfaRequired } = await this.membershipSession(request);
 
         if (mfaRequired) {
           stop();
@@ -392,9 +480,7 @@ export class RealtimeController {
         while (!closed && pending.length) {
           const hint = pending.shift()!;
 
-          const { user, mfaRequired } = await this.auth.authenticate(
-            request.accessToken,
-          );
+          const { user, mfaRequired } = await this.membershipSession(request);
 
           if (mfaRequired) {
             stop();
@@ -443,8 +529,7 @@ export class RealtimeController {
 
       checking = true;
 
-      void this.auth
-        .authenticate(request.accessToken)
+      void this.membershipSession(request)
         .then(({ mfaRequired }) => {
           if (mfaRequired) {
             stop();

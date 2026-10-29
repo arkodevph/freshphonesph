@@ -154,13 +154,21 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         where: { dueDate: target },
         include: {
           client: {
-            include: { account: { select: { id: true, active: true } } },
+            include: {
+              member: {
+                include: {
+                  account: {
+                    select: { id: true, active: true, clientId: true },
+                  },
+                },
+              },
+            },
           },
         },
       });
 
       for (const item of due) {
-        if (!item.client.account?.active) {
+        if (!item.client.member.account?.active) {
           continue;
         }
 
@@ -210,7 +218,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
           await this.db.$transaction(async (tx) => {
             const notification = await tx.notification.create({
               data: {
-                userId: item.client.account!.id,
+                userId: item.client.member.account!.id,
                 kind: "installment",
                 dedupeKey: key,
                 title:
@@ -218,7 +226,7 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
                     ? "Installment due today"
                     : "Upcoming installment",
                 message: `Installment ${item.sequenceNo} is due ${dueDate}. Remaining scheduled amount: PHP ${outstanding}. ${pendingCount ? "A staff-recorded payment is awaiting Finance review; it is not included in this amount. " : ""}Coordinate payment in Messenger; only Finance-verified payments update your record.`,
-                targetPath: `/portal/schedule#installment-${item.sequenceNo}`,
+                targetPath: `/portal/schedule${item.client.member.account!.clientId !== item.clientId ? `?membership=${item.clientId}` : ""}#installment-${item.sequenceNo}`,
               },
             });
 

@@ -3,12 +3,18 @@ import { after, before, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
-import { roles, rolePermissions, type Role } from "@freshphones/contracts";
+import {
+  roles,
+  rolePermissions,
+  reportKindsFor,
+  type Role,
+} from "@freshphones/contracts";
 import { createApp } from "../src/app";
 import { Database } from "../src/database";
 import { hashPassword } from "../src/auth/password";
 import type { Config } from "../src/config";
 import { collections } from "../src/reports/collections";
+import { executiveCharts } from "../src/reports/charts";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 
@@ -65,6 +71,7 @@ before(async () => {
     // The authorization matrix exercises every report for every role in one burst.
     ABUSE_LIMITS: { expensive: [[1000, 60]] },
     JWT_SECRET: "reports-test-only-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "test@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local",
@@ -144,7 +151,7 @@ before(async () => {
       data: {
         clientId,
         batchId,
-        recordedById: sessions.get("OWNER")!.id,
+        recordedById: sessions.get("SYSTEM_ADMIN")!.id,
         paymentDate: new Date("2045-02-28"),
         method: "=SUM(1,2)",
         referenceNumber: "Private reference",
@@ -153,7 +160,7 @@ before(async () => {
         status,
         ...(status === "VERIFIED"
           ? {
-              verifierId: sessions.get("OWNER")!.id,
+              verifierId: sessions.get("SYSTEM_ADMIN")!.id,
               verifiedAt: new Date("2045-02-28T12:00:00Z"),
             }
           : {}),
@@ -165,12 +172,12 @@ before(async () => {
     data: {
       clientId,
       batchId,
-      recordedById: sessions.get("OWNER")!.id,
+      recordedById: sessions.get("SYSTEM_ADMIN")!.id,
       paymentDate: new Date("2045-03-01"),
       method: "Cash",
       amount: "999.00",
       status: "VERIFIED",
-      verifierId: sessions.get("OWNER")!.id,
+      verifierId: sessions.get("SYSTEM_ADMIN")!.id,
       verifiedAt: new Date("2045-03-01T12:00:00Z"),
     },
   });
@@ -179,8 +186,8 @@ before(async () => {
     data: {
       title: "Private task title",
       report: "Private task evidence",
-      assigneeId: sessions.get("OWNER")!.id,
-      creatorId: sessions.get("OWNER")!.id,
+      assigneeId: sessions.get("SYSTEM_ADMIN")!.id,
+      creatorId: sessions.get("SYSTEM_ADMIN")!.id,
       deadline: new Date("2045-02-28T10:00:00Z"),
       createdAt: new Date("2045-02-28T23:59:59.999Z"),
       status: "TODO",
@@ -190,8 +197,8 @@ before(async () => {
   await db.task.create({
     data: {
       title: "Outside period",
-      assigneeId: sessions.get("OWNER")!.id,
-      creatorId: sessions.get("OWNER")!.id,
+      assigneeId: sessions.get("SYSTEM_ADMIN")!.id,
+      creatorId: sessions.get("SYSTEM_ADMIN")!.id,
       deadline: new Date("2045-03-01T10:00:00Z"),
       createdAt: new Date("2045-03-01T00:00:00Z"),
     },
@@ -217,6 +224,7 @@ after(async () => {
 
 test("every Reports endpoint enforces REPORT_VIEW for every role and rejects anonymous access", async () => {
   const endpoints = [
+    "/reports/charts",
     "/reports/payments",
     "/reports/batches",
     "/reports/tasks",
@@ -236,7 +244,21 @@ test("every Reports endpoint enforces REPORT_VIEW for every role and rejects ano
     for (const role of roles) {
       assert.equal(
         (await request(role, path)).status,
-        rolePermissions[role].includes("REPORT_VIEW") ? 200 : 403,
+        (
+          path === "/reports/snapshots"
+            ? rolePermissions[role].includes("REPORT_VIEW")
+            : reportKindsFor({ role }).includes(
+                path.includes("tasks")
+                  ? "TASKS"
+                  : path.includes("support")
+                    ? "SUPPORT"
+                    : path.includes("collections") || path.includes("batches")
+                      ? "COLLECTIONS"
+                      : "PAYMENTS",
+              )
+        )
+          ? 200
+          : 403,
         `${role} ${path}`,
       );
     }
@@ -253,7 +275,10 @@ test("every Reports endpoint enforces REPORT_VIEW for every role and rejects ano
     for (const role of roles) {
       assert.equal(
         (await request(role, "/reports/snapshots", input)).status,
-        rolePermissions[role].includes("REPORT_VIEW") ? 201 : 403,
+        rolePermissions[role].includes("REPORT_WRITE") &&
+          reportKindsFor({ role }).includes(kind)
+          ? 201
+          : 403,
         role,
       );
     }
@@ -273,7 +298,7 @@ test("every Reports endpoint enforces REPORT_VIEW for every role and rejects ano
   for (const role of roles) {
     assert.equal(
       (await request(role, missingAnalysisPath, analysis)).status,
-      rolePermissions[role].includes("REPORT_VIEW") ? 404 : 403,
+      rolePermissions[role].includes("REPORT_WRITE") ? 404 : 403,
       `${role} analysis submission`,
     );
   }
@@ -517,7 +542,7 @@ test("saved payment periods retain all filters and immutable figures, write an a
         kind: "PAYMENTS",
         periodStart: new Date("2045-02-28"),
         periodEnd: new Date("2045-02-28"),
-        createdById: sessions.get("OWNER")!.id,
+        createdById: sessions.get("SYSTEM_ADMIN")!.id,
         payload: saved.payload,
       },
     });
@@ -622,12 +647,12 @@ test("collections derive decimal balances per client, retain overall totals acro
         status,
         paymentDate: new Date(date),
         method: "Cash",
-        recordedById: sessions.get("OWNER")!.id,
+        recordedById: sessions.get("SYSTEM_ADMIN")!.id,
         notes: "Sensitive collection notes",
         referenceNumber: "Sensitive collection reference",
         ...(status === "VERIFIED"
           ? {
-              verifierId: sessions.get("OWNER")!.id,
+              verifierId: sessions.get("SYSTEM_ADMIN")!.id,
               verifiedAt: new Date(`${date}T12:00:00Z`),
             }
           : {}),
@@ -710,7 +735,9 @@ test("collections derive decimal balances per client, retain overall totals acro
     const values = await Promise.all(
       people.map(async (person) => {
         return (
-          await (await request("OWNER", `/clients/${person.id}/balance`)).json()
+          await (
+            await request("SYSTEM_ADMIN", `/clients/${person.id}/balance`)
+          ).json()
         )[financeField];
       }),
     );
@@ -887,8 +914,8 @@ test("collection scopes follow current client membership even for payments recor
       status: "VERIFIED",
       paymentDate: new Date("2046-02-01"),
       method: "Cash",
-      recordedById: sessions.get("OWNER")!.id,
-      verifierId: sessions.get("OWNER")!.id,
+      recordedById: sessions.get("SYSTEM_ADMIN")!.id,
+      verifierId: sessions.get("SYSTEM_ADMIN")!.id,
       verifiedAt: new Date("2046-02-01T12:00:00Z"),
     },
   });
@@ -1065,7 +1092,7 @@ test("invalid or irrelevant filters and unsafe history pages are rejected; remov
     "extra=1",
   ]) {
     assert.equal(
-      (await request("OWNER", `/reports/payments?${query}`)).status,
+      (await request("SYSTEM_ADMIN", `/reports/payments?${query}`)).status,
       400,
       query,
     );
@@ -1092,7 +1119,7 @@ test("invalid or irrelevant filters and unsafe history pages are rejected; remov
     "/reports/export?kind=collections&format=xlsx&q=private",
     "/reports/export?kind=collections&format=xlsx&page=2",
   ]) {
-    assert.equal((await request("OWNER", path)).status, 400, path);
+    assert.equal((await request("SYSTEM_ADMIN", path)).status, 400, path);
   }
 
   for (const input of [
@@ -1129,12 +1156,12 @@ test("invalid or irrelevant filters and unsafe history pages are rejected; remov
     },
   ]) {
     assert.equal(
-      (await request("OWNER", "/reports/snapshots", input)).status,
+      (await request("SYSTEM_ADMIN", "/reports/snapshots", input)).status,
       400,
     );
   }
 
-  const missing = await request("OWNER", "/reports/snapshots", {
+  const missing = await request("SYSTEM_ADMIN", "/reports/snapshots", {
     kind: "PAYMENTS",
     periodStart: "2045-02-28",
     periodEnd: "2045-02-28",
@@ -1157,5 +1184,182 @@ test("invalid or irrelevant filters and unsafe history pages are rejected; remov
     "/reports/export?kind=collections&format=csv",
   ]) {
     assert.equal((await request("ANALYTICS", path)).status, 401, path);
+  }
+});
+
+test("charts zero-fill calendar months, apply Finance corrections to original payment dates and exclude future receipts", async () => {
+  const chartBatch = await db.batch.create({
+    data: {
+      code: `CHART-${suffix}`,
+      model: "Chart test",
+      startDate: new Date("2069-01-01"),
+      endDate: new Date("2071-12-31"),
+    },
+  });
+
+  const member = await db.client.create({
+    data: {
+      batchId: chartBatch.id,
+      name: "Private chart member",
+      email: "private-chart@example.test",
+      phone: "Private chart phone",
+    },
+  });
+
+  async function payment(
+    date: string,
+    amount: string,
+    status: "VERIFIED" | "PENDING" | "REJECTED" | "NEEDS_CLARIFICATION",
+  ) {
+    return db.payment.create({
+      data: {
+        clientId: member.id,
+        batchId: chartBatch.id,
+        recordedById: sessions.get("RECORDS")!.id,
+        paymentDate: new Date(date),
+        amount,
+        method: "GCash",
+        referenceNumber: "DO-NOT-EXPOSE",
+        status,
+        version: 2,
+        ...(status === "VERIFIED"
+          ? {
+              verifierId: sessions.get("FINANCE_OFFICER")!.id,
+              verifiedAt: new Date(date),
+            }
+          : {}),
+      },
+    });
+  }
+
+  await payment("2069-08-01", "70.00", "VERIFIED");
+
+  const january = await payment("2070-01-15", "500.00", "VERIFIED");
+
+  await db.paymentAdjustment.create({
+    data: {
+      paymentId: january.id,
+      actorId: sessions.get("FINANCE_OFFICER")!.id,
+      requestId: randomUUID(),
+      sequence: 1,
+      paymentVersion: 2,
+      beforeAmount: "500.00",
+      afterAmount: "400.00",
+      amount: "-100.00",
+      reason: "Synthetic chart correction",
+      createdAt: new Date("2070-02-10"),
+    },
+  });
+
+  await payment("2070-02-01", "100.10", "VERIFIED");
+
+  await payment("2070-02-02", "50.25", "PENDING");
+
+  await payment("2070-02-03", "9.99", "REJECTED");
+
+  await payment("2070-02-04", "8.00", "NEEDS_CLARIFICATION");
+
+  await payment("2070-02-20", "999.00", "VERIFIED");
+
+  const result = await executiveCharts(db, 6, new Date("2070-02-15T04:00:00Z"));
+
+  assert.deepEqual(
+    result.months.map((month) => {
+      return month.month;
+    }),
+    ["2069-09", "2069-10", "2069-11", "2069-12", "2070-01", "2070-02"],
+  );
+
+  assert.ok(
+    result.months.slice(0, 4).every((month) => {
+      return month.verifiedAmount === "0.00" && month.pendingAmount === "0.00";
+    }),
+  );
+
+  assert.equal(result.months[4].verifiedAmount, "400.00");
+
+  assert.equal(result.months[5].verifiedAmount, "100.10");
+
+  assert.equal(result.verifiedAmount, "500.10");
+
+  assert.equal(result.pendingAmount, "50.25");
+
+  assert.deepEqual(result.paymentCounts, {
+    verified: 2,
+    pending: 1,
+    clarification: 1,
+    rejected: 1,
+  });
+
+  assert.equal(JSON.stringify(result).includes("Private chart"), false);
+
+  assert.equal(JSON.stringify(result).includes("DO-NOT-EXPOSE"), false);
+});
+
+test("chart batch ranking covers the full scope and requests reject unbounded or injected periods", async () => {
+  let largestCode = "";
+
+  for (let index = 0; index < 21; index++) {
+    const batch = await db.batch.create({
+      data: {
+        code: `ZZZ-CHART-${suffix}-${String(index).padStart(2, "0")}`,
+        model: "Ranked chart test",
+        startDate: new Date("2069-01-01"),
+        endDate: new Date("2071-12-31"),
+      },
+    });
+
+    const client = await db.client.create({
+      data: {
+        batchId: batch.id,
+        name: "Private ranked member",
+        email: "",
+        phone: "",
+      },
+    });
+
+    await db.scheduleItem.create({
+      data: {
+        clientId: client.id,
+        sequenceNo: 1,
+        dueDate: new Date("2070-01-01"),
+        expectedAmount: index === 20 ? "1000000000.00" : "1000.00",
+      },
+    });
+
+    if (index === 20) {
+      largestCode = batch.code;
+    }
+  }
+
+  const result = await executiveCharts(db, 6, new Date("2070-02-15T04:00:00Z"));
+
+  assert.equal(result.batches.items.length, 6);
+
+  assert.ok(
+    result.batches.items.some((batch) => {
+      return batch.code === largestCode;
+    }),
+  );
+
+  assert.ok(result.batches.total > 20);
+
+  assert.deepEqual(Object.keys(result.batches.items[0]).sort(), [
+    "code",
+    "remainingBalance",
+  ]);
+
+  for (const query of [
+    "months=0",
+    "months=13",
+    "months=abc",
+    "months=3.5",
+    "months=6&role=OWNER",
+  ]) {
+    assert.equal(
+      (await request("FINANCE_OFFICER", `/reports/charts?${query}`)).status,
+      400,
+      query,
+    );
   }
 });

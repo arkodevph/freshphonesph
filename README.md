@@ -97,12 +97,41 @@ This requires a systemd user manager and caps the complete preview process tree 
 of memory, no swap, 1.5 CPU cores, and 128 tasks. Stop it with Ctrl+C or
 `systemctl --user stop freshphones-web-preview.scope`.
 
+The web preview allows a 2 GiB Node heap within that 3 GiB process-tree limit.
+It keeps the 20 most recently visited routes ready, retains other inactive entries
+for ten minutes, and enables development-only Webpack memory optimizations. This
+reduces repeated compilation when switching between workspace pages. A route's
+first visit after startup can still require compilation.
+
 Development uses Webpack because the local Turbopack landing-page compilation failed to
 complete and exhausted task limits in protected reproduction runs on Node 26.8.2 with
 Next.js 16.2.9. The same page returned HTTP 200 with Webpack under the same resource caps.
 Phosphor package imports are optimized to avoid loading unused icons. Production still
 uses `next build`. The exact internal cause of Turbopack's worker growth remains
 unconfirmed; do not retry it without process-tree resource limits.
+
+### Fast local demo preview
+
+The local demo runs prebuilt pages to avoid development compilation during a
+walkthrough. Build once, then start the two apps in separate terminals:
+
+```bash
+pnpm --filter @fresh/web preview:build
+pnpm --filter @fresh/landing preview:build
+pnpm --filter @fresh/web preview:local       # localhost:3000
+pnpm --filter @fresh/landing preview:local   # localhost:3001
+```
+
+Keep the development API and worker running as described above. The protected
+preview binds to loopback and uses the same memory, CPU and task limits as the
+development preview. The web command checks for the private local demo helper,
+its server-only credential and a local database ending in `_preview`. Its explicit
+local-preview flags retain the workspace buttons; normal deployment builds keep
+their usual login behavior. The ignored helper accepts loopback hosts only.
+
+Source edits require a new `preview:build`; restarting an unchanged preview only
+requires `preview:local`. Stop these servers with
+`systemctl --user stop freshphones-web-preview.scope freshphones-landing-preview.scope`.
 
 ## Landing site and system deployments
 
@@ -129,8 +158,10 @@ MFA, demo login, `/system/*` and `/portal/*` are absent and return 404. The syst
 stays in `apps/web`, which also serves the landing page at its root.
 
 Set `NEXT_PUBLIC_API_URL` on the landing deployment to the separately hosted API for
-careers, applications and public agent verification. Allow the landing origin in the
-API's existing CORS configuration. The home page itself needs no API.
+the public catalog, careers, applications and public agent verification.
+Configure the landing origin with `PUBLIC_SITE_ORIGIN` on the API. It allows public-site
+reads, career applications and device inquiry submissions; account and financial writes still require the
+system origin and their existing authentication and permissions.
 
 When the system has a URL, set `NEXT_PUBLIC_SYSTEM_URL` on the landing project (origin
 only, without `/login`) and rebuild. This connects the Login Portal button and

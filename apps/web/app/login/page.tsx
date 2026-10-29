@@ -2,7 +2,12 @@
 
 import { landingHref } from "@/lib/site-links";
 import { fetchMe, login, MfaChallenge } from "@/lib/api";
-import { roleLabels, roles, type Role } from "@freshphones/contracts";
+import {
+  roleLabels,
+  roles,
+  businessRoles,
+  type Role,
+} from "@freshphones/contracts";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,6 +28,13 @@ import { PRESENTATION_MODE } from "@/lib/presentation";
 import LoginCharacters, { type CharacterMood } from "./LoginCharacters";
 import styles from "./login.module.css";
 
+const demoAccounts = [
+  { label: "Owner", email: "demo@freshphones.test" },
+  { label: "Finance", email: "demo.finance@freshphones.test" },
+  { label: "Records", email: "demo.records@freshphones.test" },
+  { label: "Customer", email: "demo.customer@freshphones.test" },
+];
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -35,6 +47,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
+
+  const [localDemo, setLocalDemo] = useState(false);
+
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
+
+  const [demoError, setDemoError] = useState<string | null>(null);
 
   const [challenge, setChallenge] = useState(false);
 
@@ -50,9 +68,9 @@ export default function LoginPage() {
 
   const mood: CharacterMood = showPassword
     ? "private"
-    : error
+    : error || demoError
       ? "error"
-      : loading
+      : loading || demoLoading
         ? "loading"
         : focusedField
           ? "typing"
@@ -65,6 +83,14 @@ export default function LoginPage() {
           new URLSearchParams(window.location.search).get("next"),
         ),
       ),
+    );
+
+    setLocalDemo(
+      process.env.NODE_ENV === "development" &&
+        process.env.NEXT_PUBLIC_LOCAL_DEMO_AUTH === "true" &&
+        ["localhost", "127.0.0.1", "::1", "[::1]"].includes(
+          window.location.hostname,
+        ),
     );
   }, []);
 
@@ -82,6 +108,36 @@ export default function LoginPage() {
     }
 
     router.push(destination);
+  }
+
+  async function onDemoLogin(email: string) {
+    setDemoError(null);
+
+    setDemoLoading(email);
+
+    try {
+      await tsRequest("/auth/local-demo-login", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+
+      const me = await fetchMe();
+
+      await navigateAfterSignIn(
+        signInDestination(
+          me,
+          new URLSearchParams(window.location.search).get("next"),
+        ),
+      );
+    } catch (caughtError) {
+      setDemoError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not open this local account.",
+      );
+    } finally {
+      setDemoLoading(null);
+    }
   }
 
   async function onSubmit(event: React.FormEvent) {
@@ -243,7 +299,9 @@ export default function LoginPage() {
                   : "Your Fresh Phones workspace is waiting."}
             </p>
 
-            {(PRESENTATION_MODE || process.env.NODE_ENV === "development") &&
+            {(PRESENTATION_MODE ||
+              process.env.NODE_ENV === "development" ||
+              process.env.NEXT_PUBLIC_LOCAL_PREVIEW === "true") &&
               !challenge && (
                 <details
                   className={styles.demo}
@@ -252,20 +310,26 @@ export default function LoginPage() {
                   <summary>Preview a workspace</summary>
                   <p>One-click preview. No password needed.</p>
                   <div className={styles.demoRoles}>
-                    {roles.map((role) => {
-                      return (
-                        <button
-                          key={role}
-                          type="button"
-                          disabled={loading}
-                          onClick={() => {
-                            return openDemo(role);
-                          }}
-                        >
-                          {roleLabels[role]} <ArrowRight aria-hidden="true" />
-                        </button>
-                      );
-                    })}
+                    {roles
+                      .filter((role) => {
+                        return (
+                          businessRoles.includes(role) || role === "ANALYTICS"
+                        );
+                      })
+                      .map((role) => {
+                        return (
+                          <button
+                            key={role}
+                            type="button"
+                            disabled={loading}
+                            onClick={() => {
+                              return openDemo(role);
+                            }}
+                          >
+                            {roleLabels[role]} <ArrowRight aria-hidden="true" />
+                          </button>
+                        );
+                      })}
                   </div>
                 </details>
               )}
@@ -461,6 +525,46 @@ export default function LoginPage() {
                     Need your account details? <ArrowRight aria-hidden="true" />
                   </Link>
                 </form>
+
+                {localDemo && (
+                  <section
+                    className="login-demo"
+                    aria-labelledby="login-demo-title"
+                  >
+                    <p className="login-eyebrow">Local development</p>
+                    <h2 id="login-demo-title">Choose a demo account</h2>
+                    <p>
+                      Sign in to a seeded local role. These accounts are
+                      available only on this machine.
+                    </p>
+                    <div className="login-demo-grid">
+                      {demoAccounts.map((account) => {
+                        return (
+                          <button
+                            key={account.email}
+                            type="button"
+                            disabled={loading || Boolean(demoLoading)}
+                            onClick={() => {
+                              return onDemoLogin(account.email);
+                            }}
+                          >
+                            <strong>
+                              {demoLoading === account.email
+                                ? "Opening…"
+                                : account.label}
+                            </strong>
+                            <span>{account.email}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {demoError && (
+                      <p className="login-demo-error" role="alert">
+                        {demoError}
+                      </p>
+                    )}
+                  </section>
+                )}
               </>
             )}
 

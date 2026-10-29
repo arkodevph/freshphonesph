@@ -7,6 +7,15 @@ datasource db {
   provider = "postgresql"
 }
 enum Role {
+  BATCH_MANAGER
+  KPI_OFFICER
+  OPERATIONS_COORDINATOR
+  CSR
+  PIONEER_AGENT
+  AGENT
+  BATCH_HANDLER
+  CEO
+  SYSTEM_ADMIN
   OWNER
   COO
   GENERAL_MANAGER
@@ -143,6 +152,8 @@ model User {
   active Boolean @default(true)
   version Int @default(1)
   clientId String? @unique @db.Uuid
+  memberId String? @unique @db.Uuid
+  member Member? @relation(fields: [memberId], references: [id], onDelete: Restrict)
   hrConfidentialAccess Boolean @default(false)
   retentionErasedAt DateTime?
   emailVerified Boolean @default(false)
@@ -159,6 +170,8 @@ model User {
   recordedPayments Payment[] @relation("PaymentRecorder")
   verifiedPayments Payment[] @relation("PaymentVerifier")
   paymentAdjustments PaymentAdjustment[]
+  gcashUploads GcashHistorySubmission[] @relation("GcashUploader")
+  gcashReviews GcashHistorySubmission[] @relation("GcashReviewer")
   uploadedFiles StoredFile[]
   assignedCases SupportCase[] @relation("CaseAssignee")
   supportMessages SupportMessage[]
@@ -174,6 +187,15 @@ model User {
   reviewedDocuments CustomerDocument[] @relation("DocumentReviewer")
   assignedTasks Task[] @relation("TaskAssignee")
   handledBatches Batch[] @relation("BatchHandler")
+  managedBatches Batch[] @relation("BatchManager")
+  supervisorId String? @db.Uuid
+  supervisor User? @relation("StaffSupervisor", fields: [supervisorId], references: [id], onDelete: Restrict)
+  supervisedStaff User[] @relation("StaffSupervisor")
+  agentProfileId String? @unique @db.Uuid
+  agentProfile Agent? @relation("AgentAccount", fields: [agentProfileId], references: [id], onDelete: Restrict)
+  submittedEnrollments EnrollmentRequest[] @relation("EnrollmentSubmitter")
+  reviewedEnrollments EnrollmentRequest[] @relation("EnrollmentReviewer")
+  @@index([supervisorId, active, role])
   createdTasks Task[] @relation("TaskCreator")
   kpiReviews KpiReview[]
   proposedHrActions HrActionRequest[] @relation("HrActionProposer")
@@ -254,6 +276,7 @@ model PasswordReset {
   usedAt DateTime?
 }
 model Batch {
+  gcashHistories GcashHistory[]
   id String @id @default(uuid()) @db.Uuid
   code String @unique @db.VarChar(30)
   model String @db.VarChar(100)
@@ -264,6 +287,9 @@ model Batch {
   installmentCount Int?
   cadence Cadence?
   version Int @default(1)
+  managerId String? @db.Uuid
+  manager User? @relation("BatchManager", fields: [managerId], references: [id], onDelete: Restrict)
+  enrollmentRequests EnrollmentRequest[]
   handlerId String? @db.Uuid
   handler User? @relation("BatchHandler", fields: [handlerId], references: [id], onDelete: Restrict)
   agentId String? @db.Uuid
@@ -273,10 +299,12 @@ model Batch {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([status, createdAt])
+  @@index([managerId, createdAt, id])
   @@index([handlerId, createdAt, id])
   @@index([agentId, createdAt, id])
 }
 model Agent {
+  account User? @relation("AgentAccount")
   id String @id @default(uuid()) @db.Uuid
   name String @db.VarChar(200)
   code String @unique @db.VarChar(60)
@@ -287,10 +315,22 @@ model Agent {
   updatedAt DateTime @updatedAt
   @@index([active, name, id])
 }
+model Member {
+  id String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(100)
+  email String @db.VarChar(254)
+  phone String @db.VarChar(25)
+  memberships Client[]
+  account User?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 model Client {
   requirements ClientRequirement[]
   requirementDocuments RequirementDocument[]
   id String @id @default(uuid()) @db.Uuid
+  memberId String @default(uuid()) @db.Uuid
+  member Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
   name String @db.VarChar(100)
   email String @db.VarChar(254)
   phone String @db.VarChar(25)
@@ -311,6 +351,7 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([batchId])
+  @@unique([memberId, batchId])
   @@index([status, createdAt])
 }
 model CustomerDocument {
@@ -547,6 +588,7 @@ model PaymentResultAlert {
   @@index([paymentId])
 }
 model StoredFile {
+  gcashSubmission GcashHistorySubmission?
   catalogItem CatalogItem?
   requirementDocument RequirementDocument?
   workAttachment TaskAttachment?
@@ -1113,4 +1155,76 @@ model DeviceInquiry {
 
   @@index([status, createdAt, id])
   @@index([createdAt, id])
+}
+
+model EnrollmentRequest {
+  id String @id @default(uuid()) @db.Uuid
+  submissionId String @unique @db.Uuid
+  batchId String @db.Uuid
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  submittedById String @db.Uuid
+  submittedBy User @relation("EnrollmentSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  reviewedById String? @db.Uuid
+  reviewedBy User? @relation("EnrollmentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  status String @default("PENDING") @db.VarChar(20)
+  applicant Json
+  reason String @default("") @db.VarChar(1000)
+  clientId String? @unique @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  @@index([submittedById, createdAt, id])
+  @@index([status, batchId, createdAt])
+}
+
+enum GcashHistoryStatus {
+  SUBMITTED
+  REVIEWED
+  NEEDS_CLARIFICATION
+}
+model GcashHistory {
+  id String @id @default(uuid()) @db.Uuid
+  batchId String @db.Uuid
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  periodStart DateTime @db.Date
+  periodEnd DateTime @db.Date
+  status GcashHistoryStatus @default(SUBMITTED)
+  revision Int @default(1)
+  version Int @default(1)
+  submissions GcashHistorySubmission[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([batchId, periodStart, periodEnd])
+  @@index([createdAt, id])
+  @@index([status, createdAt, id])
+  @@index([batchId, createdAt, id])
+}
+model GcashHistorySubmission {
+  readingSummary Json?
+  reading GcashPdfReading?
+  id String @id @default(uuid()) @db.Uuid
+  historyId String @db.Uuid
+  history GcashHistory @relation(fields: [historyId], references: [id], onDelete: Restrict)
+  revision Int
+  fileId String @unique @db.Uuid
+  file StoredFile @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  status GcashHistoryStatus @default(SUBMITTED)
+  note String @default("") @db.VarChar(1000)
+  uploadedById String @db.Uuid
+  uploadedBy User @relation("GcashUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  submittedAt DateTime @default(now())
+  reviewNote String @default("") @db.VarChar(2000)
+  reviewedById String? @db.Uuid
+  reviewedBy User? @relation("GcashReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  reviewedAt DateTime?
+  @@unique([historyId, revision])
+  @@index([uploadedById])
+  @@index([reviewedById])
+}
+
+model GcashPdfReading {
+  submissionId String @id @db.Uuid
+  submission GcashHistorySubmission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  data Json
+  createdAt DateTime @default(now())
 }

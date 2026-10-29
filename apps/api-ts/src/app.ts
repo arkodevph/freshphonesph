@@ -1,3 +1,5 @@
+import { RoleWorkspaceController } from "./records/role-workspace.controller";
+import { RoleWorkspaceService } from "./records/role-workspace.service";
 import "reflect-metadata";
 import {
   Controller,
@@ -23,9 +25,13 @@ import { Errors } from "./http";
 import { AccessGuard, Public } from "./auth/access";
 import { AuthService } from "./auth/auth.service";
 import { AuthController } from "./auth/auth.controller";
+import { allowsBrowserWrite, browserOrigins } from "./auth/browser-origins";
 import { RecordsController } from "./records/records.controller";
 import { AgentsController } from "./records/agents.controller";
 import { RecordsService } from "./records/records.service";
+import { GcashHistoryController } from "./gcash-history/gcash-history.controller";
+import { GcashPdfService } from "./gcash-history/gcash-pdf.service";
+import { GcashHistoryService } from "./gcash-history/gcash-history.service";
 import { RealtimeController } from "./realtime/realtime.controller";
 import { FinanceController } from "./finance/finance.controller";
 import { FinanceAlertsController } from "./finance/finance-alerts.controller";
@@ -119,6 +125,8 @@ export async function createApp(config: Config = readConfig()) {
         AuthController,
         LegalController,
         RecordsController,
+        RoleWorkspaceController,
+        GcashHistoryController,
         AgentsController,
         FinanceController,
         FinanceAlertsController,
@@ -148,6 +156,9 @@ export async function createApp(config: Config = readConfig()) {
         AuthService,
         LegalService,
         RecordsService,
+        RoleWorkspaceService,
+        GcashHistoryService,
+        GcashPdfService,
         FinanceService,
         FinanceAlertsService,
         ReceiptService,
@@ -191,13 +202,10 @@ export async function createApp(config: Config = readConfig()) {
   app.use(helmet());
 
   app.enableCors({
-    origin: [
-      config.WEB_ORIGIN,
-      ...(config.PUBLIC_SITE_ORIGIN ? [config.PUBLIC_SITE_ORIGIN] : []),
-    ],
+    origin: browserOrigins(config),
     credentials: true,
     methods: ["GET", "POST", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "X-Membership-Id"],
     exposedHeaders: ["Retry-After"],
     preflightContinue: true,
   });
@@ -247,14 +255,13 @@ export async function createApp(config: Config = readConfig()) {
       const origin = req.headers.origin;
 
       if (
-        (origin &&
-          origin !== config.WEB_ORIGIN &&
-          !(
-            origin === config.PUBLIC_SITE_ORIGIN &&
-            req.method === "POST" &&
-            /^\/api\/inquiries\/?$/.test(req.path)
-          )) ||
-        (!origin && req.headers.cookie)
+        !allowsBrowserWrite(
+          config,
+          origin,
+          Boolean(req.headers.cookie),
+          req.method,
+          req.path,
+        )
       ) {
         res.status(403).json({ message: "Request origin is not allowed." });
 

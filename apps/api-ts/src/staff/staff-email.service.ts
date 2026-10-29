@@ -1,3 +1,5 @@
+import { batchScope } from "../records/scope";
+import { safeUser } from "../auth/auth.service";
 import {
   ConflictException,
   ForbiddenException,
@@ -68,7 +70,9 @@ export class StaffEmailService {
       const current = await tx.user.findUnique({ where: { id: user.id } });
 
       if (!current?.active || !allowed(current, "ACCOUNT_MANAGE")) {
-        throw new ForbiddenException("Owner access is required.");
+        throw new ForbiddenException(
+          "System administrator access is required.",
+        );
       }
 
       return run(tx);
@@ -272,7 +276,7 @@ export class StaffEmailService {
   ): Promise<string | null> {
     const user = await tx.user.findUnique({ where: { id: row.userId } });
 
-    if (!user?.active || user.role === "CUSTOMER") {
+    if (!user?.active || user.role === "CUSTOMER" || user.role === "CEO") {
       return "Recipient no longer has active staff access.";
     }
 
@@ -357,8 +361,11 @@ export class StaffEmailService {
         return "Recipient no longer has payment recording and reading access.";
       }
 
-      const result = await tx.paymentResultAlert.findUnique({
-        where: { id: row.resultId! },
+      const result = await tx.paymentResultAlert.findFirst({
+        where: {
+          id: row.resultId!,
+          payment: { batch: batchScope(safeUser(user)) },
+        },
       });
 
       if (

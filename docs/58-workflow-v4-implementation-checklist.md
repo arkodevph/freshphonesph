@@ -1,5 +1,13 @@
 # Fresh Phones PH workflow and implementation checklist
 
+**Current access implementation, 2026-10-28:** Jaycee approved COO business role
+administration and Agent enrollment requests approved by the assigned Batch Manager
+with COO oversight. [Role access alignment](66-role-access-alignment.md) records the
+implemented roles, hierarchy, API/UI scopes and remaining workflow limits. It supersedes
+conflicting historical cells below; HR role delegation, legacy Analytics reassignment
+and catalog ownership remain undecided.
+
+
 Updated 2026-10-16. This is the sequential work queue for aligning the existing system with the Basic Website Workflow and Organizational Structure V4. Extend the existing NestJS API, Prisma database and Next.js application. Reuse working features and implement the missing operational stages one at a time.
 
 For the shorter feature gap list in business priority order, use [missing features and required revisions](59-missing-features-and-required-revisions.md). Both views track the same work; this document retains the detailed implementation and release tasks.
@@ -57,12 +65,18 @@ For every implementation task: update contracts/schema only as needed, enforce t
 |---|---|---|---|
 | [ ] 01 | Decision | Record V4 as the target operating model and resolve differences with existing scope. Explicitly approve the role, finance and enrollment changes below before changing live grants. | O1–O8; [roles](04-roles-access.md) |
 | [ ] 02 | Decision | Map all twelve V4 roles to stored roles. Decide whether General Manager becomes Batch Manager; keep Analytics distinct from KPI; map CS roles deliberately; define Operations Coordinator, Pioneer Agent and Agent accounts. Preserve existing user IDs and history. | O3–O4; [contracts](../packages/contracts/src/index.ts), [schema](../apps/api-ts/prisma/schema.prisma) |
-| [ ] 03 | Decision | Separate CEO business oversight from technical administration. Decide how existing `OWNER` accounts map to CEO and separately controlled administration; do not grant CEO all permissions by default. | O3 CEO; current `OWNER: permissions` |
+| [x] 03 | Decision | Resolved by the 2026-10-26 client update: distinct report-only CEO, existing business Owner migration, separately controlled technical administration. CEO slice: [runbook](62-ceo-report-only-access.md). Other role migrations remain open. | O3 CEO superseded by client update |
 | [ ] 04 | Decision | Specify permitted fields/actions for each role and assignment scope, including CSR lookup, KPI personnel data and recruitment progress. Resolve the V4 KPI role against the existing per-person confidential HR policy. | O3–O4; [HR policy](42-confidential-hr-access.md) |
 | [ ] 05 | Decision | Specify who confirms prospects, handles withdrawals and replacements, and resolves duplicate prospects. Eight confirmations permit Batch ID creation; define actual batch capacity and the other conditions required for activation separately. | W2; O1, O5 |
 | [ ] 06 | Decision | Define payment review order, return paths and receipt requirements. Finance can receive an early receipt alert, but define when final verification becomes eligible after operational reviews. Decide who may correct each field and when reviews must restart. | W3–W4; O6 |
 | [ ] 07 | Decision | Confirm minimal HR onboarding and payroll/commission summaries. Existing scope excludes a payroll engine; approve any new preparation scope and calculation rules before building it. No automatic wage deductions or payouts. | W1; O3 HR; [HR actions](47-consequential-hr-action-approvals.md) |
 | [ ] 08 | Decision | Define portal join applications and the meaning of “purchase products.” Browsing exists; checkout/payment processing remains outside the existing scope unless separately approved. Also confirm which existing public careers features remain. | W4 Main Idea; [scope boundaries](08-commercials-boundaries.md) |
+
+
+2026-10-28 implementation note: canonical roles, reporting hierarchy, Agent-profile and
+batch-manager assignments, API scope, role navigation and reviewed enrollment are now
+implemented for existing workflows. Orientation evidence, capacity/activation gates,
+operational payment-review stages and delegated HR provisioning stay open. See docs/66.
 
 ## Phase 2 Align authentication and permissions
 

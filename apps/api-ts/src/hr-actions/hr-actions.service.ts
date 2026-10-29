@@ -73,7 +73,7 @@ export class HrActionsService {
     const current = await this.current(user);
 
     const where: Prisma.HrActionRequestWhereInput = {
-      ...(current.role === "OWNER" ? {} : { proposedById: current.id }),
+      ...(current.role === "SYSTEM_ADMIN" ? {} : { proposedById: current.id }),
       ...(query.status ? { status: query.status } : {}),
     };
 
@@ -236,9 +236,9 @@ export class HrActionsService {
       reason: string;
     },
   ) {
-    if (user.role !== "OWNER") {
+    if (user.role !== "SYSTEM_ADMIN") {
       throw new ForbiddenException(
-        "Only the Owner may decide HR action requests.",
+        "Only the system administrator may decide HR action requests.",
       );
     }
 
@@ -247,8 +247,10 @@ export class HrActionsService {
 
       const current = await tx.user.findUnique({ where: { id: user.id } });
 
-      if (!current?.active || current.role !== "OWNER") {
-        throw new ForbiddenException("Your Owner access has changed.");
+      if (!current?.active || current.role !== "SYSTEM_ADMIN") {
+        throw new ForbiddenException(
+          "Your System administrator access has changed.",
+        );
       }
 
       const before = await tx.hrActionRequest.findUnique({

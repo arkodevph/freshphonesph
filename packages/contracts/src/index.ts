@@ -1,6 +1,10 @@
 import { z } from "zod";
 
+export * from "./installment-earnings";
+
 export * from "./catalog";
+
+export * from "./gcash-history";
 
 export * from "./inquiries";
 
@@ -8,41 +12,80 @@ export * from "./legal";
 
 export * from "./retention";
 
+export * from "./report-charts";
+
 export const roles = [
-  "OWNER",
+  "CEO",
+  "SYSTEM_ADMIN",
   "COO",
-  "GENERAL_MANAGER",
+  "BATCH_MANAGER",
   "HR_PAYROLL",
   "FINANCE_OFFICER",
   "RECORDS",
+  "KPI_OFFICER",
+  "OPERATIONS_COORDINATOR",
+  "CSR",
+  "PIONEER_AGENT",
+  "AGENT",
+  "BATCH_HANDLER",
   "ANALYTICS",
+  "CUSTOMER",
+  "GENERAL_MANAGER",
   "CS_HEAD",
   "CS_TEAM",
   "CORE_HANDLER",
-  "CUSTOMER",
 ] as const;
 
-export const roleSchema = z.enum(roles);
+export const roleSchema = z.enum([...roles, "OWNER"]);
 
 export type Role = z.infer<typeof roleSchema>;
 
+export function businessRole(role: Role): Role {
+  const legacy: Partial<Record<Role, Role>> = {
+    OWNER: "CEO",
+    GENERAL_MANAGER: "BATCH_MANAGER",
+    CS_HEAD: "CSR",
+    CS_TEAM: "CSR",
+    CORE_HANDLER: "BATCH_HANDLER",
+  };
+
+  return legacy[role] ?? role;
+}
+
+export const businessRoles: readonly Role[] = roles.filter((role) => {
+  return (
+    businessRole(role) === role && !["SYSTEM_ADMIN", "ANALYTICS"].includes(role)
+  );
+});
+
 export const roleLabels: Record<Role, string> = {
-  OWNER: "Owner",
+  CEO: "Owner / CEO",
+  OWNER: "Owner / CEO",
+  SYSTEM_ADMIN: "System administrator",
   COO: "Chief operating officer",
-  GENERAL_MANAGER: "General manager",
-  HR_PAYROLL: "HR / Payroll",
+  BATCH_MANAGER: "Batch manager",
+  GENERAL_MANAGER: "Batch manager",
+  HR_PAYROLL: "HR & Payroll officer",
   FINANCE_OFFICER: "Finance officer",
-  RECORDS: "Records & monitoring",
-  ANALYTICS: "Analytics",
-  CS_HEAD: "Customer service head",
-  CS_TEAM: "Customer service",
-  CORE_HANDLER: "Handler",
+  RECORDS: "Records & monitoring officer",
+  KPI_OFFICER: "KPI officer",
+  OPERATIONS_COORDINATOR: "Operations coordinator & moderator",
+  CSR: "Customer service representative",
+  PIONEER_AGENT: "Pioneer agent",
+  AGENT: "Agent",
+  BATCH_HANDLER: "Batch handler",
+  ANALYTICS: "Analytics (legacy)",
+  CS_HEAD: "Customer service representative",
+  CS_TEAM: "Customer service representative",
+  CORE_HANDLER: "Batch handler",
   CUSTOMER: "Customer",
 };
 
 export const permissions = [
   "BATCH_READ",
   "BATCH_MANAGE",
+  "BATCH_CREATE",
+  "BATCH_ASSIGN",
   "CLIENT_READ",
   "CLIENT_MANAGE",
   "AGENT_MANAGE",
@@ -55,12 +98,16 @@ export const permissions = [
   "PAYMENT_VERIFY",
   "SUPPORT_MANAGE",
   "REPORT_VIEW",
+  "REPORT_WRITE",
   "TASK_ASSIGN",
   "KPI_REVIEW",
   "HR_CONFIDENTIAL",
   "DOCUMENT_READ",
   "DOCUMENT_UPLOAD",
   "DOCUMENT_REVIEW",
+  "GCASH_HISTORY_READ",
+  "GCASH_HISTORY_UPLOAD",
+  "GCASH_HISTORY_REVIEW",
   "REQUIREMENT_MANAGE",
   "TASK_READ",
   "TASK_SUBMIT",
@@ -69,86 +116,145 @@ export const permissions = [
   "RECRUITMENT_MANAGE",
   "NOTIFICATION_READ",
   "NOTIFICATION_MANAGE",
+  "STAFF_READ",
+  "AGENT_NETWORK_READ",
+  "ENROLLMENT_SUBMIT",
+  "ENROLLMENT_REVIEW",
 ] as const;
 
 export type Permission = (typeof permissions)[number];
 
-const records: Permission[] = [
-  "BATCH_READ",
-  "BATCH_MANAGE",
-  "CLIENT_READ",
-  "CLIENT_MANAGE",
-  "AGENT_MANAGE",
-  "CATALOG_MANAGE",
-];
-
 const ownWork: Permission[] = ["TASK_READ", "TASK_SUBMIT", "NOTIFICATION_READ"];
 
+const records: Permission[] = ["BATCH_READ", "CLIENT_READ"];
+
+const batchManager: Permission[] = [
+  ...records,
+  "BATCH_MANAGE",
+  "CLIENT_MANAGE",
+  "BATCH_ASSIGN",
+  "PAYMENT_READ",
+  "DOCUMENT_READ",
+  "DOCUMENT_UPLOAD",
+  "TASK_ASSIGN",
+  "ENROLLMENT_REVIEW",
+  "CATALOG_MANAGE",
+  ...ownWork,
+];
+
+const csr: Permission[] = [
+  "SUPPORT_MANAGE",
+  "SUPPORT_READ",
+  "SUPPORT_CREATE",
+  "REPORT_VIEW",
+  "REPORT_WRITE",
+  ...ownWork,
+];
+
+const handler: Permission[] = [
+  "GCASH_HISTORY_READ",
+  "GCASH_HISTORY_UPLOAD",
+  ...records,
+  "PAYMENT_READ",
+  "PAYMENT_RECORD",
+  ...ownWork,
+];
+
 export const rolePermissions: Record<Role, readonly Permission[]> = {
-  OWNER: permissions.filter((permission) => {
+  CEO: ["REPORT_VIEW"],
+  OWNER: ["REPORT_VIEW"],
+  SYSTEM_ADMIN: permissions.filter((permission) => {
     return permission !== "PAYMENT_VERIFY";
   }),
   COO: [
+    "GCASH_HISTORY_READ",
     ...records,
+    "BATCH_CREATE",
+    "BATCH_MANAGE",
+    "BATCH_ASSIGN",
+    "CLIENT_MANAGE",
+    "AGENT_MANAGE",
+    "CATALOG_MANAGE",
+    "ACCOUNT_MANAGE",
+    "STAFF_READ",
     "PAYMENT_READ",
-    "PAYMENT_RECORD",
     "REPORT_VIEW",
+    "REPORT_WRITE",
     "TASK_ASSIGN",
     "DOCUMENT_READ",
     "DOCUMENT_REVIEW",
     "REQUIREMENT_MANAGE",
+    "SUPPORT_MANAGE",
     "SUPPORT_READ",
     "SUPPORT_CREATE",
     "RECRUITMENT_MANAGE",
     "NOTIFICATION_MANAGE",
+    "AGENT_NETWORK_READ",
+    "ENROLLMENT_REVIEW",
     ...ownWork,
   ],
-  GENERAL_MANAGER: [
-    ...records,
-    "PAYMENT_READ",
-    "PAYMENT_RECORD",
-    "REPORT_VIEW",
-    "TASK_ASSIGN",
-    "DOCUMENT_READ",
-    ...ownWork,
-  ],
+  BATCH_MANAGER: batchManager,
+  GENERAL_MANAGER: batchManager,
   RECORDS: [
+    "GCASH_HISTORY_READ",
+    "GCASH_HISTORY_REVIEW",
     ...records,
+    "BATCH_CREATE",
+    "BATCH_MANAGE",
+    "CLIENT_MANAGE",
+    "AGENT_MANAGE",
+    "CATALOG_MANAGE",
     "PAYMENT_READ",
-    "PAYMENT_RECORD",
-    "REPORT_VIEW",
     "DOCUMENT_READ",
     "DOCUMENT_UPLOAD",
     "DOCUMENT_REVIEW",
     "REQUIREMENT_MANAGE",
+    "TASK_ASSIGN",
     ...ownWork,
   ],
   FINANCE_OFFICER: [
-    "BATCH_READ",
-    "CLIENT_READ",
+    "GCASH_HISTORY_READ",
+    ...records,
     "PAYMENT_READ",
-    "PAYMENT_RECORD",
     "PAYMENT_VERIFY",
     "REPORT_VIEW",
-    ...ownWork,
-  ],
-  HR_PAYROLL: [
-    "REPORT_VIEW",
+    "REPORT_WRITE",
     "TASK_ASSIGN",
+    ...ownWork,
+  ],
+  HR_PAYROLL: ["STAFF_READ", "RECRUITMENT_MANAGE", ...ownWork],
+  KPI_OFFICER: [
+    "STAFF_READ",
     "KPI_REVIEW",
-    "RECRUITMENT_MANAGE",
-    ...ownWork,
-  ],
-  ANALYTICS: ["REPORT_VIEW", ...ownWork],
-  CS_HEAD: [
     "REPORT_VIEW",
-    "SUPPORT_MANAGE",
-    "SUPPORT_READ",
-    "SUPPORT_CREATE",
+    "REPORT_WRITE",
+    "TASK_ASSIGN",
     ...ownWork,
   ],
-  CS_TEAM: ["SUPPORT_MANAGE", "SUPPORT_READ", "SUPPORT_CREATE", ...ownWork],
-  CORE_HANDLER: ["BATCH_READ", "CLIENT_READ", ...ownWork],
+  OPERATIONS_COORDINATOR: [
+    "STAFF_READ",
+    "AGENT_NETWORK_READ",
+    "TASK_ASSIGN",
+    ...ownWork,
+  ],
+  PIONEER_AGENT: [
+    "STAFF_READ",
+    "AGENT_NETWORK_READ",
+    "TASK_ASSIGN",
+    ...ownWork,
+  ],
+  AGENT: [
+    "AGENT_NETWORK_READ",
+    "ENROLLMENT_SUBMIT",
+    "TASK_READ",
+    "NOTIFICATION_READ",
+  ],
+  CSR: csr,
+  CS_HEAD: csr,
+  CS_TEAM: csr,
+  BATCH_HANDLER: handler,
+  CORE_HANDLER: handler,
+  ANALYTICS: ["REPORT_VIEW", "REPORT_WRITE", ...ownWork],
   CUSTOMER: [
     "PAYMENT_READ",
     "DOCUMENT_READ",
@@ -158,6 +264,24 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     "NOTIFICATION_READ",
   ],
 };
+
+export function reportKindsFor(user: { role: Role }): readonly string[] {
+  switch (businessRole(user.role)) {
+    case "SYSTEM_ADMIN":
+    case "CEO":
+    case "COO":
+    case "ANALYTICS":
+      return ["PAYMENTS", "COLLECTIONS", "RECONCILIATION", "TASKS", "SUPPORT"];
+    case "FINANCE_OFFICER":
+      return ["PAYMENTS", "COLLECTIONS", "RECONCILIATION"];
+    case "KPI_OFFICER":
+      return ["TASKS"];
+    case "CSR":
+      return ["SUPPORT"];
+    default:
+      return [];
+  }
+}
 
 export const confidentialHrRoles = ["COO", "HR_PAYROLL"] as const;
 
@@ -171,13 +295,13 @@ export function effectivePermissions(user: {
   role: Role;
   hrConfidentialAccess?: boolean;
 }): Permission[] {
-  if (user.role === "OWNER") {
-    return [...rolePermissions.OWNER];
+  if (user.role === "SYSTEM_ADMIN") {
+    return [...rolePermissions.SYSTEM_ADMIN];
   }
 
   const result: Permission[] = rolePermissions[user.role].filter(
     (permission) => {
-      return permission !== "KPI_REVIEW";
+      return permission !== "KPI_REVIEW" || user.role === "KPI_OFFICER";
     },
   );
 
@@ -217,7 +341,9 @@ export const accountSchema = z
       .transform((v) => {
         return v.toLowerCase();
       }),
-    role: roleSchema,
+    role: roleSchema.transform((role) => {
+      return role === "OWNER" ? ("CEO" as const) : role;
+    }),
     password: passwordSchema,
     clientId: z.string().uuid().optional(),
   })
@@ -236,10 +362,16 @@ export const accountSchema = z
 export const accountUpdateSchema = z
   .object({
     active: z.boolean().optional(),
-    role: roleSchema.optional(),
+    role: roleSchema
+      .transform((role) => {
+        return role === "OWNER" ? ("CEO" as const) : role;
+      })
+      .optional(),
     hrConfidentialAccess: z.boolean().optional(),
     hrAccessReason: z.string().trim().min(3).max(1000).optional(),
     version: z.number().int().positive(),
+    supervisorId: z.string().uuid().nullable().optional(),
+    agentProfileId: z.string().uuid().nullable().optional(),
   })
   .strict()
   .refine(
@@ -247,7 +379,9 @@ export const accountUpdateSchema = z
       return (
         value.active !== undefined ||
         value.role !== undefined ||
-        value.hrConfidentialAccess !== undefined
+        value.hrConfidentialAccess !== undefined ||
+        value.supervisorId !== undefined ||
+        value.agentProfileId !== undefined
       );
     },
     {
@@ -404,6 +538,7 @@ export const listQuerySchema = z.object({
 export const batchAssignmentSchema = z
   .object({
     version: z.number().int().positive(),
+    managerId: z.string().uuid().nullable().optional(),
     handlerId: z.string().uuid().nullable(),
     agentId: z.string().uuid().nullable(),
   })
@@ -449,6 +584,7 @@ export interface Agent extends AgentInput {
 }
 
 export interface AssignmentOptions {
+  managers?: { id: string; name: string; active: boolean }[];
   handlers: { id: string; name: string; active: boolean }[];
   agents: { id: string; name: string; active: boolean }[];
 }
@@ -491,7 +627,11 @@ export const accountListQuerySchema = z.object({
   q: z.string().max(100).default(""),
   page: z.coerce.number().int().min(1).max(100000).default(1),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
-  role: roleSchema.optional(),
+  role: roleSchema
+    .transform((role) => {
+      return role === "OWNER" ? ("CEO" as const) : role;
+    })
+    .optional(),
 });
 
 export const paymentStatuses = [
@@ -828,6 +968,8 @@ export interface Batch extends Omit<
   BatchInput,
   "contractPrice" | "installmentCount" | "cadence"
 > {
+  managerId?: string | null;
+  manager?: { id: string; name: string; active: boolean; role: Role } | null;
   handlerId?: string | null;
   agentId?: string | null;
   handler?: { id: string; name: string; active: boolean; role: Role } | null;
@@ -1050,6 +1192,14 @@ export const accountAlertKinds = [
 
 export type AccountAlertKind = (typeof accountAlertKinds)[number];
 
+export const enrollmentAlertKinds = [
+  "ENROLLMENT_PENDING",
+  "ENROLLMENT_APPROVED",
+  "ENROLLMENT_REJECTED",
+] as const;
+
+export type EnrollmentAlertKind = (typeof enrollmentAlertKinds)[number];
+
 export const staffAlertScopeSchema = z.enum([
   "all",
   "tasks",
@@ -1057,6 +1207,7 @@ export const staffAlertScopeSchema = z.enum([
   "results",
   "support",
   "accounts",
+  "enrollments",
 ]);
 
 export type StaffAlertScope = z.infer<typeof staffAlertScopeSchema>;
@@ -1082,6 +1233,12 @@ export const staffAlertReadSchema = z.discriminatedUnion("entity", [
   z.object({ entity: z.literal("payment-result") }).strict(),
   z.object({ entity: z.literal("support") }).strict(),
   z.object({ entity: z.literal("account") }).strict(),
+  z
+    .object({
+      entity: z.literal("enrollment"),
+      version: z.number().int().positive(),
+    })
+    .strict(),
 ]);
 
 export type StaffAlertReadInput = z.infer<typeof staffAlertReadSchema>;
@@ -1121,6 +1278,11 @@ export type StaffAlert = StaffAlertBase &
         accountId: string;
         version: number;
       }
+    | {
+        entity: "enrollment";
+        kind: EnrollmentAlertKind;
+        version: number;
+      }
   );
 
 export interface StaffAlertPage extends Page<StaffAlert> {
@@ -1133,6 +1295,7 @@ export interface StaffAlertPage extends Page<StaffAlert> {
   resultCount: number;
   supportCount: number;
   accountCount: number;
+  enrollmentCount: number;
 }
 
 export interface PaymentResultDetail {

@@ -95,6 +95,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     JWT_SECRET: "hr-action-test-only-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local" as const,
@@ -139,7 +140,7 @@ before(async () => {
 
   async function person(
     role:
-      | "OWNER"
+      | "SYSTEM_ADMIN"
       | "HR_PAYROLL"
       | "COO"
       | "GENERAL_MANAGER"
@@ -159,7 +160,7 @@ before(async () => {
     });
   }
 
-  owner = await person("OWNER");
+  owner = await person("SYSTEM_ADMIN");
 
   hr = await person("HR_PAYROLL", true);
 
@@ -439,7 +440,7 @@ test("rejection permits a fresh request; Owner approval is final, reasoned, audi
 
   assert.equal(final.status, "APPROVED");
 
-  assert.equal(final.decidedByName, "Synthetic OWNER");
+  assert.equal(final.decidedByName, "Synthetic SYSTEM_ADMIN");
 
   assert.equal(final.version, 2);
 

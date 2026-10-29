@@ -26,6 +26,10 @@ import {
 } from "@freshphones/contracts";
 import { hashPassword, verifyPassword } from "../src/auth/password";
 import { readConfig } from "../src/config";
+import {
+  allowsBrowserWrite,
+  browserOrigins,
+} from "../src/auth/browser-origins";
 import { generateSchedule, amountInCents } from "../src/records/schedule";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -37,6 +41,105 @@ import { renderCustomerEmail } from "../src/portal/notification-settings.service
 import { taskAlertKind } from "../src/staff/alert-queries";
 import { canReadPaymentResults } from "../src/staff/payment-results";
 import { hasResultEmailAccess, taskEmailStage } from "../src/staff/email-queue";
+
+test("the configured public site can read API data while its writes stay restricted to public submissions", () => {
+  const config = {
+    WEB_ORIGIN: "http://localhost:3000",
+    PUBLIC_SITE_ORIGIN: "http://localhost:3001",
+  };
+
+  assert.deepEqual(browserOrigins(config), [
+    config.WEB_ORIGIN,
+    config.PUBLIC_SITE_ORIGIN,
+  ]);
+
+  for (const endpoint of [
+    "/api/careers/apply",
+    "/api/inquiries",
+    "/api/inquiries/",
+  ]) {
+    assert.equal(
+      allowsBrowserWrite(
+        config,
+        config.PUBLIC_SITE_ORIGIN,
+        false,
+        "POST",
+        endpoint,
+      ),
+      true,
+      endpoint,
+    );
+  }
+
+  for (const endpoint of [
+    "/api/payments",
+    "/api/payments/id/verify",
+    "/api/auth/login",
+    "/api/accounts",
+    "/api/careers/apply/other",
+    "/api/inquiries/other",
+  ]) {
+    assert.equal(
+      allowsBrowserWrite(
+        config,
+        config.PUBLIC_SITE_ORIGIN,
+        true,
+        "POST",
+        endpoint,
+      ),
+      false,
+      endpoint,
+    );
+  }
+
+  assert.equal(
+    allowsBrowserWrite(
+      config,
+      "http://example.test",
+      false,
+      "POST",
+      "/api/careers/apply",
+    ),
+    false,
+  );
+
+  assert.equal(
+    allowsBrowserWrite(
+      config,
+      config.PUBLIC_SITE_ORIGIN,
+      false,
+      "PATCH",
+      "/api/careers/apply",
+    ),
+    false,
+  );
+
+  assert.equal(
+    allowsBrowserWrite(
+      config,
+      config.WEB_ORIGIN,
+      true,
+      "POST",
+      "/api/payments",
+    ),
+    true,
+  );
+
+  assert.equal(
+    allowsBrowserWrite(config, undefined, true, "POST", "/api/payments"),
+    false,
+  );
+
+  assert.equal(
+    allowsBrowserWrite(config, undefined, false, "POST", "/api/auth/login"),
+    true,
+  );
+
+  assert.equal(
+    browserOrigins({ WEB_ORIGIN: config.WEB_ORIGIN }),
+    config.WEB_ORIGIN,
+  );
+});
 
 test("staff email reminder stages respect exact before/after boundaries and configured timing", () => {
   const now = new Date("2026-10-06T00:00:00Z");
@@ -151,7 +254,7 @@ test("Finance results require staff payment recording and reading access, includ
       canReadPaymentResults({ role: role as keyof typeof rolePermissions }),
       role !== "CUSTOMER" &&
         permissions.includes("PAYMENT_READ") &&
-        permissions.includes("PAYMENT_RECORD"),
+        (permissions.includes("PAYMENT_RECORD") || role === "RECORDS"),
       role,
     );
   }
@@ -160,7 +263,7 @@ test("Finance results require staff payment recording and reading access, includ
 
   assert.equal(canReadPaymentResults({ role: "CUSTOMER" }), false);
 
-  assert.equal(canReadPaymentResults({ role: "CORE_HANDLER" }), false);
+  assert.equal(canReadPaymentResults({ role: "CORE_HANDLER" }), true);
 });
 
 test("immutable Finance result reads cannot forge a recipient, payment, decision or version", () => {
@@ -252,7 +355,7 @@ test("Owner account alerts accept only receipt actions and account email kinds",
   for (const extra of [
     { userId: "foreign" },
     { accountId: "foreign" },
-    { role: "OWNER" },
+    { role: "SYSTEM_ADMIN" },
     { active: false },
     { version: 2 },
     { kind: "ACCOUNT_CREATED" },
@@ -264,8 +367,10 @@ test("Owner account alerts accept only receipt actions and account email kinds",
   }
 
   assert.equal(
-    staffAlertReadAllSchema.safeParse({ scope: "accounts", role: "OWNER" })
-      .success,
+    staffAlertReadAllSchema.safeParse({
+      scope: "accounts",
+      role: "SYSTEM_ADMIN",
+    }).success,
     false,
   );
 });
@@ -551,7 +656,7 @@ test("customer linkage and employee roles cannot be mixed", () => {
   assert.equal(
     accountSchema.safeParse({
       ...input,
-      role: "OWNER",
+      role: "SYSTEM_ADMIN",
       clientId: "00000000-0000-4000-8000-000000000001",
     }).success,
     false,
@@ -615,10 +720,10 @@ test("record validation rejects invalid dates, unknown fields and missing links"
   assert.equal(passwordSchema.safeParse("short").success, false);
 });
 
-test("least privilege does not give management or customers account administration", () => {
-  assert.ok(rolePermissions.OWNER.includes("ACCOUNT_MANAGE"));
+test("COO can administer business access while other staff and customers cannot", () => {
+  assert.ok(rolePermissions.SYSTEM_ADMIN.includes("ACCOUNT_MANAGE"));
 
-  assert.equal(rolePermissions.COO.includes("ACCOUNT_MANAGE"), false);
+  assert.equal(rolePermissions.COO.includes("ACCOUNT_MANAGE"), true);
 
   assert.equal(rolePermissions.FINANCE_OFFICER.includes("BATCH_MANAGE"), false);
 
@@ -862,6 +967,7 @@ test("Redis config rejects other protocols and requires production credentials, 
   try {
     Object.assign(process.env, {
       NODE_ENV: "development",
+      LOCAL_DEMO_AUTH: "false",
       DATABASE_URL: "postgresql://fresh:fresh@localhost:5435/synthetic_test",
       WEB_ORIGIN: "http://localhost:3000",
       BETTER_AUTH_SECRET: "synthetic-config-secret-at-least-32-characters",
@@ -904,6 +1010,7 @@ test("production startup requires private S3 storage configuration", () => {
   try {
     Object.assign(process.env, {
       NODE_ENV: "production",
+      LOCAL_DEMO_AUTH: "false",
       REDIS_URL: "rediss://:synthetic-test@redis.example.test:6379",
       REDIS_NAMESPACE: "synthetic-production",
       BETTER_AUTH_SECRET:
@@ -939,6 +1046,7 @@ test("production startup rejects the example sender and unapproved privacy docum
   try {
     Object.assign(process.env, {
       NODE_ENV: "production",
+      LOCAL_DEMO_AUTH: "false",
       REDIS_URL: "rediss://:synthetic-test@redis.example.test:6379",
       REDIS_NAMESPACE: "synthetic-production",
       BETTER_AUTH_SECRET:
@@ -989,6 +1097,7 @@ test("production identity rejects legacy-only secrets, disabled staff MFA and cr
   try {
     Object.assign(process.env, {
       NODE_ENV: "production",
+      LOCAL_DEMO_AUTH: "false",
       REDIS_URL: "rediss://:synthetic-test@redis.example.test:6379",
       REDIS_NAMESPACE: "synthetic-production",
       WEB_ORIGIN: "https://freshphones.example.test",
@@ -1026,6 +1135,41 @@ test("production identity rejects legacy-only secrets, disabled staff MFA and cr
     assert.throws(() => {
       return readConfig();
     }, /BETTER_AUTH_URL/);
+  } finally {
+    process.env = previous;
+  }
+});
+
+test("local demo sign-in requires an explicit loopback development configuration", () => {
+  const previous = { ...process.env };
+
+  try {
+    Object.assign(process.env, {
+      NODE_ENV: "development",
+      HOST: "127.0.0.1",
+      WEB_ORIGIN: "http://localhost:3001",
+      DATABASE_URL:
+        "postgresql://fresh:fresh@127.0.0.1:5435/freshphones_v6_preview",
+      JWT_SECRET: "unit-test-secret-at-least-32-characters",
+      LOCAL_DEMO_AUTH: "true",
+    });
+
+    assert.equal(readConfig().LOCAL_DEMO_AUTH, true);
+
+    process.env.DATABASE_URL =
+      "postgresql://fresh:fresh@database.example.com/fresh";
+
+    assert.throws(() => {
+      return readConfig();
+    }, /loopback/);
+
+    process.env.DATABASE_URL = "postgresql://fresh:fresh@127.0.0.1:5435/fresh";
+
+    process.env.NODE_ENV = "production";
+
+    assert.throws(() => {
+      return readConfig();
+    }, /loopback/);
   } finally {
     process.env = previous;
   }

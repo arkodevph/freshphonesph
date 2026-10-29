@@ -86,7 +86,9 @@ export default function ClientsDashboard() {
         </div>
       )}
 
-      {canManage && <CreateClientForm {...createClientFormProps} />}
+      {can(me, "ENROLLMENT_REVIEW") && (
+        <CreateClientForm {...createClientFormProps} />
+      )}
       {can(me, "REQUIREMENT_MANAGE") && <RequirementsManager />}
       {canRead && (
         <RecordFilters

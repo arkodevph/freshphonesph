@@ -3,7 +3,12 @@ import { after, before, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";
-import { roles, rolePermissions, type Role } from "@freshphones/contracts";
+import {
+  roles,
+  rolePermissions,
+  reportKindsFor,
+  type Role,
+} from "@freshphones/contracts";
 import { createApp } from "../src/app";
 import { Database } from "../src/database";
 import { hashPassword } from "../src/auth/password";
@@ -171,7 +176,7 @@ before(async () => {
     });
   }
 
-  const owner = sessions.get("OWNER")!.id;
+  const owner = sessions.get("SYSTEM_ADMIN")!.id;
 
   async function payment(
     index: number,
@@ -314,7 +319,13 @@ test("reconciliation aggregates/export/history require REPORT_VIEW and exception
     for (const role of roles) {
       assert.equal(
         (await request(role, path)).status,
-        rolePermissions[role].includes("REPORT_VIEW") ? 200 : 403,
+        (
+          path.includes("snapshots")
+            ? rolePermissions[role].includes("REPORT_VIEW")
+            : reportKindsFor({ role }).includes("RECONCILIATION")
+        )
+          ? 200
+          : 403,
         `${role} ${path}`,
       );
     }
@@ -334,7 +345,7 @@ test("reconciliation aggregates/export/history require REPORT_VIEW and exception
   assert.equal((await request(null, "/reports/snapshots", input)).status, 401);
 
   for (const role of roles) {
-    const permitted = rolePermissions[role].includes("REPORT_VIEW");
+    const permitted = reportKindsFor({ role }).includes("RECONCILIATION");
 
     assert.equal(
       (await request(role, detail)).status,
@@ -344,7 +355,7 @@ test("reconciliation aggregates/export/history require REPORT_VIEW and exception
 
     assert.equal(
       (await request(role, "/reports/snapshots", input)).status,
-      permitted ? 201 : 403,
+      permitted && rolePermissions[role].includes("REPORT_WRITE") ? 201 : 403,
       role,
     );
   }
@@ -531,7 +542,7 @@ test("reconciliation exports contain full scoped aggregates and no payment-level
 
   await figures();
 
-  await request("OWNER", `/reports/reconciliation/exceptions?${query}`);
+  await request("SYSTEM_ADMIN", `/reports/reconciliation/exceptions?${query}`);
 
   assert.deepEqual(
     await db.payment.findMany({ where: { batchId }, orderBy: { id: "asc" } }),
@@ -574,7 +585,7 @@ test("reconciliation exports contain full scoped aggregates and no payment-level
 });
 
 test("reconciliation group and exception pagination preserve complete exports/snapshots, stable ordering and empty scopes", async () => {
-  const owner = sessions.get("OWNER")!.id;
+  const owner = sessions.get("SYSTEM_ADMIN")!.id;
 
   for (let index = 0; index < 23; index++) {
     await db.payment.create({
@@ -622,14 +633,14 @@ test("reconciliation group and exception pagination preserve complete exports/sn
 
   const details = await (
     await request(
-      "OWNER",
+      "SYSTEM_ADMIN",
       `/reports/reconciliation/exceptions?${period}&batchId=${batchId}`,
     )
   ).json();
 
   const more = await (
     await request(
-      "OWNER",
+      "SYSTEM_ADMIN",
       `/reports/reconciliation/exceptions?${period}&batchId=${batchId}&page=2`,
     )
   ).json();
@@ -723,7 +734,7 @@ test("strict reconciliation facets and revoked payment/report access are enforce
   ]) {
     for (const path of ["reconciliation", "reconciliation/exceptions"]) {
       assert.equal(
-        (await request("OWNER", `/reports/${path}?${query}`)).status,
+        (await request("SYSTEM_ADMIN", `/reports/${path}?${query}`)).status,
         400,
         query,
       );
@@ -734,7 +745,7 @@ test("strict reconciliation facets and revoked payment/report access are enforce
     assert.equal(
       (
         await request(
-          "OWNER",
+          "SYSTEM_ADMIN",
           `/reports/export?kind=reconciliation&format=csv&${query}`,
         )
       ).status,
@@ -745,7 +756,7 @@ test("strict reconciliation facets and revoked payment/report access are enforce
   for (const facet of [{ status: "PENDING" }, { page: 2 }, { q: "private" }]) {
     assert.equal(
       (
-        await request("OWNER", "/reports/snapshots", {
+        await request("SYSTEM_ADMIN", "/reports/snapshots", {
           kind: "RECONCILIATION",
           periodStart: "2048-02-01",
           periodEnd: "2048-02-29",
@@ -758,7 +769,7 @@ test("strict reconciliation facets and revoked payment/report access are enforce
 
   assert.equal(
     (
-      await request("OWNER", "/reports/snapshots", {
+      await request("SYSTEM_ADMIN", "/reports/snapshots", {
         kind: "RECONCILIATION",
         periodStart: "2048-02-01",
         periodEnd: "2048-02-29",
