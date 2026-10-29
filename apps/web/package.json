@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:safe": "bash ../../scripts/dev-web-safe.sh",
+    "preview:build": "bash ../../scripts/preview-local-safe.sh web build",
+    "preview:local": "bash ../../scripts/preview-local-safe.sh web start",
     "build": "next build",
     "start": "next start",
     "test": "tsx --test test/*.test.ts"

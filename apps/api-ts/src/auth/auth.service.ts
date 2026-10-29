@@ -19,6 +19,14 @@ import { randomUUID } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Prisma } from "../generated/prisma/client";
 import { addressGroup } from "../abuse/policies";
+import { selectMembership } from "./membership";
+
+export const localDemoEmails = [
+  "demo@freshphones.test",
+  "demo.finance@freshphones.test",
+  "demo.records@freshphones.test",
+  "demo.customer@freshphones.test",
+] as const;
 
 export const safeUser = (u: {
   id: string;
@@ -33,7 +41,7 @@ export const safeUser = (u: {
     id: u.id,
     name: u.name,
     email: u.email,
-    role: u.role,
+    role: u.role === "OWNER" ? "CEO" : u.role,
     clientId: u.clientId,
     image: u.image ?? null,
     hrConfidentialAccess: u.hrConfidentialAccess === true,
@@ -100,6 +108,9 @@ function mergeCookies(headers: Headers, result: globalThis.Response) {
 
 @Injectable()
 export class AuthService {
+  selectMembership(user: User, clientId: string) {
+    return selectMembership(this.db, user, clientId);
+  }
   private readonly identity: ReturnType<typeof createIdentity>;
   private readonly scope = new AsyncLocalStorage<{
     db: Prisma.TransactionClient;
@@ -322,6 +333,51 @@ export class AuthService {
 
         return { twoFactorRedirect: true as const };
       }
+
+      return this.completed(identityHeaders(req), result, res);
+    });
+  }
+  async localDemoLogin(email: string, req: Request, res: Response) {
+    if (
+      !this.config.LOCAL_DEMO_AUTH ||
+      this.config.NODE_ENV !== "development" ||
+      !localDemoEmails.some((allowed) => {
+        return allowed === email;
+      })
+    ) {
+      throw new NotFoundException();
+    }
+
+    if (
+      !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(
+        req.socket.remoteAddress ?? "",
+      )
+    ) {
+      throw new ForbiddenException(
+        "Local demo sign-in is available only on this machine.",
+      );
+    }
+
+    await this.limit(`local-demo:${req.socket.remoteAddress}`, 100);
+
+    return this.locked(async () => {
+      const user = await this.store.user.findUnique({ where: { email } });
+
+      if (!user?.active) {
+        throw new NotFoundException("Local demo account was not seeded.");
+      }
+
+      if (user.twoFactorEnabled) {
+        throw new ForbiddenException(
+          "This account has two-factor authentication. Sign in with its password and verification code.",
+        );
+      }
+
+      const result = await this.call(
+        "/local-demo-session",
+        identityHeaders(req),
+        { userId: user.id },
+      );
 
       return this.completed(identityHeaders(req), result, res);
     });

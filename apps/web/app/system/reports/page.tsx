@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  reportKindsFor,
+  roleSchema,
+  type ReportKind,
+} from "@freshphones/contracts";
 import { can, useMe } from "@/lib/useMe";
 import ReportsDashboard from "./ReportsDashboard";
 
@@ -20,6 +25,16 @@ export default function ReportsPage() {
   }
 
   return (
-    <ReportsDashboard key={me.id} canReviewPayments={can(me, "PAYMENT_READ")} />
+    <ReportsDashboard
+      key={`${me.id}:${me.permissions.join(",")}`}
+      canReviewPayments={can(me, "PAYMENT_READ")}
+      canWriteReports={can(me, "REPORT_WRITE")}
+      allowedKinds={reportKindsFor({
+        role: roleSchema.parse(me.role?.toUpperCase()),
+      }).map((kind) => {
+        return kind.toLowerCase() as ReportKind;
+      })}
+      showVisuals={me.role === "ceo"}
+    />
   );
 }

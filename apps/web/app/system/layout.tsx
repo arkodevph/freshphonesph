@@ -2,6 +2,7 @@
 
 import { LegalGate } from "@/components/LegalGate";
 import { StaffAlerts } from "@/components/StaffAlerts";
+import { WorkspaceSessionSkeleton } from "@/components/WorkspaceSkeleton";
 import {
   listNotifications,
   readAllNotifications,
@@ -11,6 +12,7 @@ import {
 import { logoutSession } from "@/lib/auth";
 import { availableRoute } from "@/lib/backend";
 import { can, useMe } from "@/lib/useMe";
+import { canOpenWorkspace } from "@/lib/workspace-access";
 import {
   Bell,
   Briefcase,
@@ -34,8 +36,27 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import ceoStyles from "./ceo-portal.module.css";
 
 const NAV = [
+  {
+    icon: Users,
+    label: "Personnel",
+    href: "/system/personnel",
+    perms: ["STAFF_READ"],
+  },
+  {
+    icon: Users,
+    label: "Agent network",
+    href: "/system/agent-network",
+    perms: ["AGENT_NETWORK_READ"],
+  },
+  {
+    icon: Users,
+    label: "Enrollments",
+    href: "/system/enrollments",
+    perms: ["ENROLLMENT_SUBMIT", "ENROLLMENT_REVIEW", "AGENT_NETWORK_READ"],
+  },
   {
     icon: Stack,
     label: "Public catalog",
@@ -59,6 +80,12 @@ const NAV = [
     label: "Payments & Finance",
     href: "/system/payments",
     perms: ["PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY"],
+  },
+  {
+    icon: Receipt,
+    label: "GCash history",
+    href: "/system/gcash-history",
+    perms: ["GCASH_HISTORY_READ"],
   },
   {
     icon: Users,
@@ -131,6 +158,14 @@ const NAV = [
 ] as const;
 
 const formatRole = (role?: string | null) => {
+  if (role === "ceo") {
+    return "Owner / CEO";
+  }
+
+  if (role === "system_admin") {
+    return "System administrator";
+  }
+
   return role
     ? role.replaceAll("_", " ").replace(/\b\w/g, (letter) => {
         return letter.toUpperCase();
@@ -337,20 +372,17 @@ export default function SystemLayout({
   }
 
   if (!ready || !me) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-[#f4f5f7]">
-        <p className="text-sm font-600 text-[#70727a]">Checking session…</p>
-      </main>
-    );
+    return <WorkspaceSessionSkeleton />;
   }
 
   const visibleNav = NAV.filter((item) => {
     return (
       item.href &&
+      canOpenWorkspace(me.role, item.href, me.permissions) &&
       availableRoute(item.href) &&
       (item.href !== "/system/customer-work" ||
         can(me, "SUPPORT_MANAGE", "PAYMENT_VERIFY") ||
-        me?.role === "owner" ||
+        me?.role === "system_admin" ||
         me?.role === "records") &&
       (item.perms.length === 0 || can(me, ...item.perms))
     );
@@ -377,27 +409,31 @@ export default function SystemLayout({
     .toUpperCase();
 
   return (
-    <div className="system-shell">
+    <div
+      className={`system-shell${me.role === "ceo" ? ` ${ceoStyles.shell}` : ""}`}
+    >
       <aside className="system-sidebar">
-        <Link
-          href="/system"
-          className="system-brand"
-          aria-label="Fresh Phones PH dashboard"
-        >
-          <span className="system-brand-mark">
-            <Image
-              src="/brand/fresh-phones-logo.png"
-              alt=""
-              width={38}
-              height={38}
-              className="h-9 w-9 scale-150 object-cover"
-            />
-          </span>
-          <span>
-            <strong>Fresh Phones</strong>
-            <small>Operations</small>
-          </span>
-        </Link>
+        {me.role !== "ceo" && (
+          <Link
+            href="/system"
+            className="system-brand"
+            aria-label="Fresh Phones PH dashboard"
+          >
+            <span className="system-brand-mark">
+              <Image
+                src="/brand/fresh-phones-logo.png"
+                alt=""
+                width={38}
+                height={38}
+                className="h-9 w-9 scale-150 object-cover"
+              />
+            </span>
+            <span>
+              <strong>Fresh Phones</strong>
+              <small>Operations</small>
+            </span>
+          </Link>
+        )}
 
         <div className="system-workspace-label">Workspace</div>
         <nav className="system-nav" aria-label="System navigation">
@@ -420,6 +456,7 @@ export default function SystemLayout({
                 key={label}
                 href={href}
                 className={`system-nav-item${active ? " is-active" : ""}`}
+                aria-current={active ? "page" : undefined}
               >
                 {content}
               </Link>
@@ -435,33 +472,57 @@ export default function SystemLayout({
           })}
         </nav>
 
-        <div className="system-sidebar-footer">
-          <div className="system-profile">
-            <span className="system-avatar">{initials}</span>
-            <span className="min-w-0 flex-1">
-              <strong className="block truncate">
-                {me?.full_name ?? "Loading profile"}
-              </strong>
-              <small className="block truncate">{formatRole(me?.role)}</small>
-            </span>
-            <button
-              onClick={logout}
-              className="system-icon-button"
-              aria-label="Log out"
-              title="Log out"
-            >
-              <SignOut className="h-[18px] w-[18px]" />
-            </button>
+        {me.role !== "ceo" && (
+          <div className="system-sidebar-footer">
+            <div className="system-profile">
+              <span className="system-avatar">{initials}</span>
+              <span className="min-w-0 flex-1">
+                <strong className="block truncate">
+                  {me?.full_name ?? "Loading profile"}
+                </strong>
+                <small className="block truncate">{formatRole(me?.role)}</small>
+              </span>
+              <button
+                onClick={logout}
+                className="system-icon-button"
+                aria-label="Log out"
+                title="Log out"
+              >
+                <SignOut className="h-[18px] w-[18px]" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </aside>
 
       <section className="system-main">
         <header className="system-topbar">
-          <div>
-            <p className="system-eyebrow">Fresh Phones PH</p>
-            <h1>{current}</h1>
-          </div>
+          {me.role === "ceo" ? (
+            <Link
+              href="/system"
+              className="system-brand"
+              aria-label="Fresh Phones PH dashboard"
+            >
+              <span className="system-brand-mark">
+                <Image
+                  src="/brand/fresh-phones-logo.png"
+                  alt=""
+                  width={38}
+                  height={38}
+                  className="h-9 w-9 scale-150 object-cover"
+                />
+              </span>
+              <span>
+                <strong>Fresh Phones</strong>
+                <small>CEO portal</small>
+              </span>
+            </Link>
+          ) : (
+            <div>
+              <p className="system-eyebrow">Fresh Phones PH</p>
+              <h1>{current}</h1>
+            </div>
+          )}
           <div className="system-topbar-actions" ref={actionsRef}>
             <div className="system-search-wrap">
               <button
@@ -469,12 +530,17 @@ export default function SystemLayout({
                 type="button"
                 aria-expanded={openPanel === "search"}
                 aria-controls="workspace-search-panel"
+                aria-label={
+                  me.role === "ceo" ? "Search pages" : "Search workspace"
+                }
                 onClick={() => {
                   return setOpenPanel(openPanel === "search" ? null : "search");
                 }}
               >
                 <MagnifyingGlass className="h-4 w-4" />
-                <span>Search workspace</span>
+                <span>
+                  {me.role === "ceo" ? "Search pages" : "Search workspace"}
+                </span>
                 <kbd>⌘ K</kbd>
               </button>
               {openPanel === "search" && (
@@ -532,96 +598,104 @@ export default function SystemLayout({
                 <Moon className="h-[19px] w-[19px]" />
               )}
             </button>
-            {me?.account_type === "employee" ? (
-              <StaffAlerts
-                canFinance={can(me, "PAYMENT_VERIFY")}
-                canResults={
-                  can(me, "PAYMENT_READ") && can(me, "PAYMENT_RECORD")
-                }
-                canSupport={can(me, "SUPPORT_MANAGE")}
-                canAccounts={can(me, "ACCOUNT_MANAGE")}
-                open={openPanel === "notifications"}
-                onToggle={() => {
-                  return setOpenPanel(
-                    openPanel === "notifications" ? null : "notifications",
-                  );
-                }}
-                onClose={() => {
-                  return setOpenPanel(null);
-                }}
-              />
-            ) : (
-              <div className="system-popover-anchor">
-                <button
-                  className="system-icon-button"
-                  aria-label="Notifications"
-                  aria-expanded={openPanel === "notifications"}
-                  aria-controls="notifications-panel"
-                  onClick={() => {
+            {me.role !== "ceo" &&
+              (me?.account_type === "employee" ? (
+                <StaffAlerts
+                  canFinance={can(me, "PAYMENT_VERIFY")}
+                  canResults={
+                    can(me, "PAYMENT_READ") &&
+                    (can(me, "PAYMENT_RECORD") || me.role === "records")
+                  }
+                  canSupport={can(me, "SUPPORT_MANAGE")}
+                  canAccounts={can(me, "ACCOUNT_MANAGE")}
+                  canEnrollments={can(
+                    me,
+                    "ENROLLMENT_SUBMIT",
+                    "ENROLLMENT_REVIEW",
+                  )}
+                  open={openPanel === "notifications"}
+                  onToggle={() => {
                     return setOpenPanel(
                       openPanel === "notifications" ? null : "notifications",
                     );
                   }}
-                >
-                  <Bell className="h-[19px] w-[19px]" />
-                </button>
-                {openPanel === "notifications" && (
-                  <section
-                    id="notifications-panel"
-                    className="system-popover system-notifications-popover"
+                  onClose={() => {
+                    return setOpenPanel(null);
+                  }}
+                />
+              ) : (
+                <div className="system-popover-anchor">
+                  <button
+                    className="system-icon-button"
                     aria-label="Notifications"
+                    aria-expanded={openPanel === "notifications"}
+                    aria-controls="notifications-panel"
+                    onClick={() => {
+                      return setOpenPanel(
+                        openPanel === "notifications" ? null : "notifications",
+                      );
+                    }}
                   >
-                    <div className="system-popover-heading">
-                      <strong>Notifications</strong>
-                      {unread > 0 ? (
-                        <button type="button" onClick={markAllRead}>
-                          Mark all read
-                        </button>
+                    <Bell className="h-[19px] w-[19px]" />
+                  </button>
+                  {openPanel === "notifications" && (
+                    <section
+                      id="notifications-panel"
+                      className="system-popover system-notifications-popover"
+                      aria-label="Notifications"
+                    >
+                      <div className="system-popover-heading">
+                        <strong>Notifications</strong>
+                        {unread > 0 ? (
+                          <button type="button" onClick={markAllRead}>
+                            Mark all read
+                          </button>
+                        ) : (
+                          <small>All read</small>
+                        )}
+                      </div>
+                      {notifications.length ? (
+                        <div className="system-notification-list">
+                          {notifications.slice(0, 8).map((item) => {
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                className={item.readAt ? "" : "is-unread"}
+                                onClick={() => {
+                                  return openNotification(item);
+                                }}
+                              >
+                                <span aria-hidden="true" />
+                                <div>
+                                  <strong>{item.title}</strong>
+                                  <p>{item.body}</p>
+                                  <time>
+                                    {new Date(item.createdAt).toLocaleString()}
+                                  </time>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
                       ) : (
-                        <small>All read</small>
+                        <div className="system-notification-empty">
+                          <span>
+                            <Bell weight="fill" />
+                          </span>
+                          <strong>You&apos;re all caught up</strong>
+                          <p>No new staff notifications.</p>
+                        </div>
                       )}
-                    </div>
-                    {notifications.length ? (
-                      <div className="system-notification-list">
-                        {notifications.slice(0, 8).map((item) => {
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              className={item.readAt ? "" : "is-unread"}
-                              onClick={() => {
-                                return openNotification(item);
-                              }}
-                            >
-                              <span aria-hidden="true" />
-                              <div>
-                                <strong>{item.title}</strong>
-                                <p>{item.body}</p>
-                                <time>
-                                  {new Date(item.createdAt).toLocaleString()}
-                                </time>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="system-notification-empty">
-                        <span>
-                          <Bell weight="fill" />
-                        </span>
-                        <strong>You&apos;re all caught up</strong>
-                        <p>No new staff notifications.</p>
-                      </div>
-                    )}
-                  </section>
-                )}
-              </div>
-            )}
+                    </section>
+                  )}
+                </div>
+              ))}
             <div className="system-popover-anchor">
               <button
                 className="system-top-profile system-profile-button"
                 type="button"
+                aria-label={`Account menu for ${me.full_name}`}
                 aria-expanded={openPanel === "profile"}
                 aria-controls="profile-panel"
                 onClick={() => {
@@ -684,7 +758,17 @@ export default function SystemLayout({
         </header>
 
         <main className="system-content">
-          {availableRoute(pathname) ? (
+          {!canOpenWorkspace(me.role, pathname, me.permissions) ? (
+            <section className="system-panel p-8">
+              <h1 className="font-display text-xl font-700">No access</h1>
+              <p className="mt-2 text-sm">
+                Your role does not have access to this workspace.
+              </p>
+              <Link href="/system/reports" className="system-text-link mt-4">
+                Open reports
+              </Link>
+            </section>
+          ) : availableRoute(pathname) ? (
             <LegalGate>{children}</LegalGate>
           ) : (
             <section className="glass rounded-3xl p-10 text-center">
@@ -698,6 +782,25 @@ export default function SystemLayout({
           )}
         </main>
       </section>
+      {me.role === "ceo" && (
+        <nav className={ceoStyles.mobileNav} aria-label="CEO mobile navigation">
+          {visibleNav.map(({ icon: Icon, label, href }) => {
+            return (
+              <Link
+                key={href}
+                href={href!}
+                aria-current={pathname === href ? "page" : undefined}
+              >
+                <Icon
+                  weight={pathname === href ? "fill" : "regular"}
+                  aria-hidden="true"
+                />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }

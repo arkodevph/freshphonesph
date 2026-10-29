@@ -13,11 +13,17 @@ import {
   type User,
 } from "@freshphones/contracts";
 import type { z } from "zod";
-import { CurrentUser, LegalExempt, Public } from "../auth/access";
+import {
+  CurrentUser,
+  LegalExempt,
+  PersonalAccess,
+  Public,
+} from "../auth/access";
 import { Validate } from "../http";
 import { LegalService } from "./legal.service";
 
 @LegalExempt()
+@PersonalAccess()
 @Controller("legal")
 export class LegalController {
   constructor(@Inject(LegalService) private readonly legal: LegalService) {}

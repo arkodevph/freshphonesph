@@ -16,17 +16,38 @@ export async function notifyCustomer(
   message: string,
   targetPath?: string,
 ) {
-  const account = await tx.user.findUnique({
-    where: { clientId },
-    select: { id: true, active: true },
+  const account = await tx.user.findFirst({
+    where: {
+      member: {
+        memberships: { some: { id: clientId, retentionErasedAt: null } },
+      },
+      role: "CUSTOMER",
+    },
+    select: { id: true, active: true, clientId: true },
   });
 
   if (!account?.active) {
     return;
   }
 
+  const path = targetPath
+    ? new URL(targetPath, "https://portal.invalid")
+    : null;
+
+  if (account.clientId !== clientId) {
+    path?.searchParams.set("membership", clientId);
+  }
+
   const notification = await tx.notification.create({
-    data: { userId: account.id, kind, title, message, targetPath },
+    data: {
+      userId: account.id,
+      kind,
+      title,
+      message,
+      targetPath: path
+        ? `${path.pathname}${path.search}${path.hash}`
+        : targetPath,
+    },
   });
 
   await tx.changeEvent.create({
@@ -38,13 +59,33 @@ export async function notifyCustomer(
 export class NotificationsService {
   constructor(@Inject(Database) private readonly db: Database) {}
 
+  private async scope(user: User): Promise<Prisma.NotificationWhereInput> {
+    const primary = await this.db.user.findUnique({
+      where: { id: user.id },
+      select: { clientId: true },
+    });
+
+    return {
+      userId: user.id,
+      OR: [
+        { targetPath: { contains: `membership=${user.clientId}` } },
+        ...(primary?.clientId === user.clientId
+          ? [
+              { targetPath: null },
+              { NOT: { targetPath: { contains: "membership=" } } },
+            ]
+          : []),
+      ],
+    };
+  }
+
   async list(user: User) {
     if (user.role !== "CUSTOMER") {
       throw new ForbiddenException("Customer account required.");
     }
 
     return this.db.notification.findMany({
-      where: { userId: user.id },
+      where: await this.scope(user),
       orderBy: { createdAt: "desc" },
       take: 50,
       select: {
@@ -99,7 +140,7 @@ export class NotificationsService {
     }
 
     const result = await this.db.notification.updateMany({
-      where: { userId: user.id, readAt: null },
+      where: { ...(await this.scope(user)), readAt: null },
       data: { readAt: new Date() },
     });
 

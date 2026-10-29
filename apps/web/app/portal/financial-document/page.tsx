@@ -12,6 +12,7 @@ import type {
   User,
 } from "@freshphones/contracts";
 import { tsRequest } from "@/lib/ts-api";
+import { currentMembership } from "@/lib/membership-selection";
 import { downloadAccountPdf } from "@/lib/account-pdf";
 import DocumentSheetSkeleton from "./DocumentSheetSkeleton";
 import styles from "./financial-document.module.css";
@@ -83,11 +84,13 @@ export default function FinancialDocumentPage() {
           return;
         }
 
+        const membershipId = currentMembership(user.id, user.clientId)!;
+
         const [account, record] = await Promise.all([
-          tsRequest<Client>(`/clients/${user.clientId}`),
+          tsRequest<Client>(`/clients/${membershipId}`),
           paymentId
             ? tsRequest<Confirmation>(`/payments/${paymentId}/confirmation`)
-            : tsRequest<Statement>(`/clients/${user.clientId}/statement`),
+            : tsRequest<Statement>(`/clients/${membershipId}/statement`),
         ]);
 
         setClient(account);

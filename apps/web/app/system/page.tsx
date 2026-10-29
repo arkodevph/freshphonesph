@@ -3,6 +3,7 @@
 import { availableRoute } from "@/lib/backend";
 import { can, useMe } from "@/lib/useMe";
 import { PRESENTATION_MODE } from "@/lib/presentation";
+import { WorkspaceContentSkeleton } from "@/components/WorkspaceSkeleton";
 import {
   ArrowUpRight,
   Briefcase,
@@ -18,6 +19,7 @@ import Link from "next/link";
 import CustomerWorkQueues from "./CustomerWorkQueues";
 import DashboardCards from "./DashboardCards";
 import PaymentsCta from "./PaymentsCta";
+import CeoDashboard from "./CeoDashboard";
 
 const SHORTCUTS = [
   {
@@ -55,7 +57,7 @@ export default function DashboardPage() {
 
   const hasCustomerWork =
     can(me, "SUPPORT_MANAGE", "PAYMENT_VERIFY") ||
-    me?.role === "owner" ||
+    me?.role === "system_admin" ||
     me?.role === "records";
 
   const displayName = me?.full_name?.split(" ")[0] ?? "there";
@@ -65,6 +67,14 @@ export default function DashboardPage() {
     month: "long",
     day: "numeric",
   }).format(new Date());
+
+  if (!me) {
+    return <WorkspaceContentSkeleton />;
+  }
+
+  if (me.role === "ceo") {
+    return <CeoDashboard key={me.id} name={me.full_name} />;
+  }
 
   return (
     <div className="system-dashboard">

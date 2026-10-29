@@ -23,6 +23,7 @@ export function StaffAlerts({
   canResults,
   canSupport,
   canAccounts,
+  canEnrollments,
 }: {
   open: boolean;
   onToggle: () => void;
@@ -31,6 +32,7 @@ export function StaffAlerts({
   canResults: boolean;
   canSupport: boolean;
   canAccounts: boolean;
+  canEnrollments: boolean;
 }) {
   const panelId = useId();
 
@@ -74,6 +76,12 @@ export function StaffAlerts({
     }
 
     if (scope === "accounts" && !canAccounts) {
+      setScope("all");
+
+      return;
+    }
+
+    if (scope === "enrollments" && !canEnrollments) {
       setScope("all");
 
       return;
@@ -126,6 +134,7 @@ export function StaffAlerts({
     canResults,
     canSupport,
     canAccounts,
+    canEnrollments,
   ]);
 
   const currentLoad = useRef(load);
@@ -236,7 +245,7 @@ export function StaffAlerts({
               <h2>Staff alerts</h2>
               <p>
                 {snapshot
-                  ? `${snapshot.taskCount} task${snapshot.taskCount === 1 ? "" : "s"}${canFinance ? ` · ${snapshot.financeCount} pending payments` : ""}${canResults ? ` · ${snapshot.resultCount} Finance results` : ""}${canSupport ? ` · ${snapshot.supportCount} Support alerts` : ""}${canAccounts ? ` · ${snapshot.accountCount} account events` : ""} · ${unread} unread`
+                  ? `${snapshot.taskCount} task${snapshot.taskCount === 1 ? "" : "s"}${canFinance ? ` · ${snapshot.financeCount} pending payments` : ""}${canResults ? ` · ${snapshot.resultCount} Finance results` : ""}${canSupport ? ` · ${snapshot.supportCount} Support alerts` : ""}${canAccounts ? ` · ${snapshot.accountCount} account events` : ""}${canEnrollments ? ` · ${snapshot.enrollmentCount} enrollment${snapshot.enrollmentCount === 1 ? "" : "s"}` : ""} · ${unread} unread`
                   : "Your tasks and reminders"}
               </p>
             </div>
@@ -264,6 +273,7 @@ export function StaffAlerts({
                 ...(canResults ? ["results"] : []),
                 ...(canSupport ? ["support"] : []),
                 ...(canAccounts ? ["accounts"] : []),
+                ...(canEnrollments ? ["enrollments"] : []),
               ] as StaffAlertScope[]
             ).map((value) => {
               return (
@@ -281,15 +291,17 @@ export function StaffAlerts({
                 >
                   {value === "all"
                     ? "All alerts"
-                    : value === "tasks"
-                      ? "Tasks"
-                      : value === "finance"
-                        ? "Finance"
-                        : value === "support"
-                          ? "Support"
-                          : value === "accounts"
-                            ? "Accounts"
-                            : "Results"}
+                    : value === "enrollments"
+                      ? "Enrollments"
+                      : value === "tasks"
+                        ? "Tasks"
+                        : value === "finance"
+                          ? "Finance"
+                          : value === "support"
+                            ? "Support"
+                            : value === "accounts"
+                              ? "Accounts"
+                              : "Results"}
                 </button>
               );
             })}
@@ -343,28 +355,32 @@ export function StaffAlerts({
               <strong>
                 {unreadOnly && snapshot?.filteredCount
                   ? "No unread alerts in this view"
-                  : scope === "tasks"
-                    ? "No tasks awaiting your work"
-                    : scope === "finance"
-                      ? "No payments awaiting verification"
-                      : scope === "results"
-                        ? "No Finance results yet"
-                        : scope === "accounts"
-                          ? "No account events yet"
-                          : scope === "support"
-                            ? "No Support alerts awaiting your attention"
-                            : "No staff alerts"}
+                  : scope === "enrollments"
+                    ? "No enrollment alerts"
+                    : scope === "tasks"
+                      ? "No tasks awaiting your work"
+                      : scope === "finance"
+                        ? "No payments awaiting verification"
+                        : scope === "results"
+                          ? "No Finance results yet"
+                          : scope === "accounts"
+                            ? "No account events yet"
+                            : scope === "support"
+                              ? "No Support alerts awaiting your attention"
+                              : "No staff alerts"}
               </strong>
               <p>
                 {unreadOnly && snapshot?.filteredCount
                   ? "Read alerts stay available while their work is current. Finished or reassigned Support cases leave this view."
-                  : scope === "accounts"
-                    ? "Staff account creation, role changes and sign-in access changes will appear here."
-                    : scope === "results"
-                      ? "Verified, rejected and clarification decisions will appear here."
-                      : scope === "support"
-                        ? "New concerns, assignments and customer replies will appear for their responsible staff."
-                        : "New assignments, reminders and relevant Finance or Support updates will appear here."}
+                  : scope === "enrollments"
+                    ? "Pending requests appear for their current Manager and COO. Agents receive their approval or rejection results."
+                    : scope === "accounts"
+                      ? "Staff account creation, role changes and sign-in access changes will appear here."
+                      : scope === "results"
+                        ? "Verified, rejected and clarification decisions will appear here."
+                        : scope === "support"
+                          ? "New concerns, assignments and customer replies will appear for their responsible staff."
+                          : "New assignments, reminders, enrollments and relevant Finance or Support updates will appear here."}
               </p>
             </div>
           ) : (
@@ -457,8 +473,8 @@ export function StaffAlerts({
               </div>
             )}
             <p>
-              Reading an alert does not complete a task, verify a payment,
-              resolve a case or change account access.
+              Reading an alert does not approve enrollment, complete a task,
+              verify a payment, resolve a case or change account access.
             </p>
           </footer>
         </section>

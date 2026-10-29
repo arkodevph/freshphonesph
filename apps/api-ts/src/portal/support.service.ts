@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import { supportSources, type User } from "@freshphones/contracts";
 import { Database } from "../database";
-import { allowed } from "../auth/access";
+import { allowed, requireCurrentUser } from "../auth/access";
 import {
   Prisma,
   type SupportSource,
@@ -144,13 +144,12 @@ export class SupportService {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
-      const current = await tx.user.findUnique({ where: { id: user.id } });
+      const current = await requireCurrentUser(tx, user);
 
       if (
-        !current?.active ||
-        (clientId
+        clientId
           ? current.role !== "CUSTOMER" || current.clientId !== clientId
-          : !allowed(current, "SUPPORT_MANAGE"))
+          : !allowed(current, "SUPPORT_MANAGE")
       ) {
         throw new ForbiddenException("Your access has changed.");
       }
@@ -249,13 +248,9 @@ export class SupportService {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
-      const current = await tx.user.findUnique({ where: { id: user.id } });
+      const current = await requireCurrentUser(tx, user);
 
-      if (
-        !current?.active ||
-        current.role !== "CUSTOMER" ||
-        current.clientId !== clientId
-      ) {
+      if (current.role !== "CUSTOMER" || current.clientId !== clientId) {
         throw new ForbiddenException("Your access has changed.");
       }
 
@@ -407,7 +402,7 @@ export class SupportService {
 
         if (
           !assignee?.active ||
-          !["CS_HEAD", "CS_TEAM"].includes(assignee.role)
+          !["CSR", "COO", "CS_HEAD", "CS_TEAM"].includes(assignee.role)
         ) {
           throw new BadRequestException(
             "Assign an active Customer Service staff member.",

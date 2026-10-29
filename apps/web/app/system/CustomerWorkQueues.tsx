@@ -231,7 +231,7 @@ export default function CustomerWorkQueues({
 
   const kinds: CustomerWorkKind[] = [
     ...(can(me, "SUPPORT_MANAGE") ? ["support" as const] : []),
-    ...(["owner", "records"].includes(me.role ?? "")
+    ...(["system_admin", "records"].includes(me.role ?? "")
       ? ["documents" as const]
       : []),
     ...(can(me, "PAYMENT_VERIFY") ? ["payments" as const] : []),

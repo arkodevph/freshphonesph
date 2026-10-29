@@ -1,6 +1,23 @@
 # Sprint 1 V4 roles and access
 
+**Owner / CEO correction, 2026-10-28:** These names identify one report-only business
+role. Technical maintenance uses internal SYSTEM_ADMIN. [Current role merge](67-owner-ceo-role.md)
+supersedes older OWNER-as-administrator code references.
+
+
+**Current access implementation, 2026-10-28:** Jaycee approved COO business role
+administration and Agent enrollment requests approved by the assigned Batch Manager
+with COO oversight. [Role access alignment](66-role-access-alignment.md) records the
+implemented roles, hierarchy, API/UI scopes and remaining workflow limits. It supersedes
+conflicting historical cells below; HR role delegation, legacy Analytics reassignment
+and catalog ownership remain undecided.
+
+
 Status: **S1 01 role specification complete; S1 05 financial-authority slice implemented for existing roles**. Created 2026-10-16. Full V4 role migration remains open.
+
+2026-10-26: the client-authorized report-only CEO slice adds the CEO role, business
+Owner mapping, report write separation and restricted portal. See [CEO access](62-ceo-report-only-access.md).
+This does not complete migration of the other V4 roles.
 
 **Goal:** establish the V4 role model and demonstrate that each role can access only its permitted actions and records, with financial verification exclusive to Finance. This provides the foundation for batch enrollment and payment review work in later sprints.
 
@@ -134,3 +151,5 @@ These are sequencing suggestions rather than committed sprint schedules. This sp
 | 2026-10-16 | Planning | Planned | Created Sprint 1 from the document gap list and existing team ownership. No application changes or test runs. | Start date, available capacity and S1 01 mapping decisions |
 | 2026-10-16 | S1 01 | Specification complete | Added docs/61 with the twelve-role matrix, action owners, legacy role mappings and separate CEO administration/KPI data boundaries, directly from the supplied requirements and labeled engineering interpretations. | S1 02 account migration and implementation; no application grants changed |
 | 2026-10-16 | S1 05 partial | Implemented for current roles | Removed Owner's `PAYMENT_VERIFY` grant; added explicit Finance-only and forged-permission tests; retained financial-history/report reads and separate Finance-account concurrency checks. | Full V4 role migration and remaining workflow revisions stay open |
+
+| 2026-10-28 | S1 access foundation | Implemented and verified locally | Canonical roles, audited alias conversion, hierarchy/Agent profiles, assigned records/payments/tasks/events, COO business administration, report families and reviewed Agent enrollment. 370 automated tests, migration/build/types/browser checks pass; see docs/66. | HR delegation, Analytics reassignment, catalog ownership, named business UAT and later workflow stages remain open. |

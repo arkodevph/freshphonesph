@@ -45,6 +45,7 @@ test("strict S3 erasure removes all object versions and retained local migration
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: "http://localhost:3100",
     JWT_SECRET: "storage-test-only-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "s3" as const,

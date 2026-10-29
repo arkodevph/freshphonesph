@@ -4,7 +4,12 @@ import { roles, rolePermissions } from "@freshphones/contracts";
 import { presentationResponse } from "../lib/presentation-api";
 import { demoClients, demoPayments } from "../lib/presentation-data";
 
-function request(path: string, method = "GET", role = "OWNER", body?: unknown) {
+function request(
+  path: string,
+  method = "GET",
+  role = "SYSTEM_ADMIN",
+  body?: unknown,
+) {
   return new Request(`https://demo.example.com/api/${path}`, {
     method,
     headers: { cookie: `freshphones-presentation-role=${role}` },
@@ -21,7 +26,9 @@ test("presentation is isolated, role-aware, read only, and balances use verified
     assert.equal(
       (
         await presentationResponse(
-          request("presentation-login", "POST", "OWNER", { role: "OWNER" }),
+          request("presentation-login", "POST", "SYSTEM_ADMIN", {
+            role: "SYSTEM_ADMIN",
+          }),
         )
       ).status,
       404,
@@ -55,7 +62,9 @@ test("presentation is isolated, role-aware, read only, and balances use verified
     assert.equal(
       (
         await presentationResponse(
-          request("presentation-login", "POST", "OWNER", { role: "ADMIN" }),
+          request("presentation-login", "POST", "SYSTEM_ADMIN", {
+            role: "ADMIN",
+          }),
         )
       ).status,
       400,
@@ -86,7 +95,7 @@ test("presentation is isolated, role-aware, read only, and balances use verified
       {
         method: "POST",
         headers: { origin: "https://unrelated.example.com" },
-        body: JSON.stringify({ role: "OWNER" }),
+        body: JSON.stringify({ role: "SYSTEM_ADMIN" }),
       },
     );
 
@@ -100,7 +109,7 @@ test("presentation is isolated, role-aware, read only, and balances use verified
           host: "demo.example.com",
           origin: "https://demo.example.com",
         },
-        body: JSON.stringify({ role: "OWNER" }),
+        body: JSON.stringify({ role: "SYSTEM_ADMIN" }),
       },
     );
 
@@ -168,7 +177,7 @@ test("presentation is isolated, role-aware, read only, and balances use verified
 
     assert.equal(secondPage.next, null);
 
-    for (const role of ["OWNER", "CS_TEAM"]) {
+    for (const role of ["SYSTEM_ADMIN", "CS_TEAM"]) {
       const inbox = await presentationResponse(
         request("inquiries?page=1&q=iPhone&status=NEW", "GET", role),
       );

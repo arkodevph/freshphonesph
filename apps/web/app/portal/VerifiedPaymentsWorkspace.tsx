@@ -45,6 +45,7 @@ const methodName = (method: string) => {
 };
 
 type Props = {
+  membershipId?: string | null;
   summary: PortalSummary | null;
   payments: Payment[];
   pagination: { count: number; page: number; pageSize: number };
@@ -113,6 +114,7 @@ export function VerifiedPaymentsSkeleton() {
 }
 
 export default function VerifiedPaymentsWorkspace({
+  membershipId,
   summary,
   payments,
   pagination,
@@ -204,7 +206,7 @@ export default function VerifiedPaymentsWorkspace({
               <p>Remaining balance</p>
               <strong>{money(summary?.remaining_balance)}</strong>
               <Link
-                href="/portal/financial-document"
+                href={`/portal/financial-document${membershipId ? `?membership=${membershipId}` : ""}`}
                 className={styles.statement}
               >
                 <FileText aria-hidden="true" />
@@ -336,7 +338,7 @@ export default function VerifiedPaymentsWorkspace({
                       <strong>{payment.reference_no || "Not provided"}</strong>
                     </div>
                     <Link
-                      href={`/portal/financial-document?payment=${payment.id}`}
+                      href={`/portal/financial-document?payment=${payment.id}${membershipId ? `&membership=${membershipId}` : ""}`}
                       className={styles.confirmation}
                       aria-label={`Payment confirmation for ${money(payment.amount)} on ${paymentDate(payment.payment_date)}, reference ${payment.reference_no || "not provided"}`}
                     >

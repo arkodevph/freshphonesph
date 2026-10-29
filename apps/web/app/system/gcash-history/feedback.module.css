@@ -1,0 +1,55 @@
+.password {
+  position: relative;
+  min-width: 0;
+}
+.passwordInput {
+  padding-right: 48px;
+}
+.eye {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--system-muted, #626276);
+  cursor: pointer;
+}
+.eye:hover,
+.eye:focus-visible {
+  background: var(--system-accent-soft, #eeeafc);
+  color: var(--system-text, #242438);
+}
+.eye:focus-visible {
+  outline: 2px solid var(--system-accent, #6e55cc);
+  outline-offset: -2px;
+}
+.eye:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.neutral {
+  border-color: var(--system-border, #dcd9e9);
+}
+.neutral > span {
+  color: var(--system-accent, #6e55cc);
+  background: var(--system-accent-soft, #eeeafc);
+}
+.spinner svg {
+  animation: gcash-reading-spin 1s linear infinite;
+}
+@keyframes gcash-reading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner svg {
+    animation: none;
+  }
+}

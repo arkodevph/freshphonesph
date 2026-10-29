@@ -49,6 +49,10 @@ remains separate; no client cloud services have been changed.
 - Production requires MFA for every staff role. Password-only staff sessions can
   access their account security flow but receive HTTP 412 from business/file/SSE
   routes until enrollment completes. Customers may enable MFA voluntarily.
+- Local demo sign-in remains explicitly development/loopback only and requires a
+  seeded allowlisted account. It refuses accounts with enabled MFA; those accounts
+  must use password + second factor. Local staff enforcement defaults off so the
+  existing four demo roles remain usable.
 - Identity writes and their audit entries use the same transaction and advisory
   fence as account decisions and retention. Expected failed verification commits
   failure counters. A database audit failure rolls back credential/MFA mutations.
@@ -94,7 +98,7 @@ second schema-migration system against the same database.
 3. Apply the migration to the intended environment; generate the Prisma client and
    start both API replicas with the same secret, trusted origin and required policy.
 4. Verify every role, password recovery, session/SSE revocation, mandatory MFA,
-   private-file access and retention.
+   private-file access and retention. Confirm the four local demo accounts separately.
 5. If verification fails, stop traffic and investigate. Recover within maintenance
    using the tested backup/code/configuration pair or a reviewed forward fix. Never
    restore a stale database over later financial writes, or expose legacy auth as a

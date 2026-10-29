@@ -1,6 +1,7 @@
 import { API_URL } from "./backend";
 import { PRESENTATION_MODE } from "./presentation";
 import { ApiError, tsRequest } from "./ts-api";
+import { membershipHeaders } from "./membership-selection";
 
 const listeners = new Set<() => void>();
 
@@ -56,9 +57,14 @@ function retry(minimumSeconds = 0) {
 }
 
 function connect() {
-  const connection = new EventSource(`${API_URL}/api/events`, {
-    withCredentials: true,
-  });
+  const membership = membershipHeaders("/events")["X-Membership-Id"];
+
+  const connection = new EventSource(
+    `${API_URL}/api/events${membership ? `?membership=${encodeURIComponent(membership)}` : ""}`,
+    {
+      withCredentials: true,
+    },
+  );
 
   source = connection;
 

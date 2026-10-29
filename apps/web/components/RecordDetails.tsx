@@ -562,9 +562,10 @@ export function RecordDetails({
                   </p>
                 )}
                 <p className={styles.help}>
-                  Contact email is part of the client record. Changing it does
-                  not change the customer&apos;s sign-in email. Use Post update
-                  on the client list to change release status.
+                  Name, contact email and phone are shared across this member's
+                  batches. Changing the contact email does not change the
+                  customer&apos;s sign-in email. Use Post update on the client
+                  list to change release status.
                 </p>
               </>
             ) : null}

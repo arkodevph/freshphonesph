@@ -37,7 +37,7 @@ export const hasResultEmailAccess = (user: Pick<User, "role">) => {
   return (
     user.role !== "CUSTOMER" &&
     allowed(user, "PAYMENT_READ") &&
-    allowed(user, "PAYMENT_RECORD")
+    (allowed(user, "PAYMENT_RECORD") || user.role === "RECORDS")
   );
 };
 
@@ -127,7 +127,7 @@ export async function queueTaskEmail(
 ) {
   const assignee = await tx.user.findUnique({ where: { id: task.assigneeId } });
 
-  if (!assignee?.active || assignee.role === "CUSTOMER") {
+  if (!assignee?.active || !allowed(assignee, "TASK_READ")) {
     return;
   }
 

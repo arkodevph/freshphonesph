@@ -313,7 +313,9 @@ export default function RecordsPage() {
             Paluwagan Records
           </h1>
           <p className="text-xs text-ink-soft">
-            {me?.role === "core_handler"
+            {["core_handler", "batch_handler", "batch_manager"].includes(
+              me?.role ?? "",
+            )
               ? "Your assigned batches and members"
               : "Batches — the plan terms drive each member's schedule & balance"}
           </p>
@@ -332,7 +334,7 @@ export default function RecordsPage() {
         </div>
       )}
 
-      {canManage && (
+      {can(me, "BATCH_CREATE") && (
         <form onSubmit={onCreate} className="glass mb-4 rounded-3xl p-5">
           <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
             <Plus weight="bold" className="h-4 w-4" /> New batch
@@ -501,7 +503,9 @@ export default function RecordsPage() {
                   colSpan={canManage ? 10 : 9}
                   className="px-2 py-6 text-center text-ink-soft"
                 >
-                  {me?.role === "core_handler"
+                  {["core_handler", "batch_handler", "batch_manager"].includes(
+                    me?.role ?? "",
+                  )
                     ? "No assigned batches match these filters."
                     : "No batches match these filters."}
                 </td>
@@ -570,16 +574,18 @@ export default function RecordsPage() {
                           >
                             Assign
                           </button>
-                          <button
-                            type="button"
-                            className="rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
-                            aria-label={`Edit batch ${b.batch_number}`}
-                            onClick={() => {
-                              return setDetails({ id: b.id, mode: "edit" });
-                            }}
-                          >
-                            Edit
-                          </button>
+                          {can(me, "BATCH_ASSIGN") && (
+                            <button
+                              type="button"
+                              className="rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
+                              aria-label={`Edit batch ${b.batch_number}`}
+                              onClick={() => {
+                                return setDetails({ id: b.id, mode: "edit" });
+                              }}
+                            >
+                              Edit
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="rounded-lg bg-white/70 px-2 py-1 text-xs font-700 text-blue"

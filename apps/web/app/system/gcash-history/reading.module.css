@@ -1,0 +1,138 @@
+.dialog {
+  width: min(1120px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  overflow-y: auto;
+  border: 1px solid var(--system-border, #dcd9e9);
+  border-radius: 20px;
+  background: var(--system-surface, #fff);
+  color: var(--system-text, #242438);
+}
+.dialog::backdrop {
+  background: #141224a6;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+.header h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.help {
+  margin: 12px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--system-muted, #626276);
+  overflow-wrap: anywhere;
+}
+.dialog button {
+  border: 1px solid var(--system-border, #dcd9e9);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dialog button:focus-visible,
+.tableWrap:focus-visible {
+  outline: 3px solid var(--system-accent, #6e55cc);
+  outline-offset: 3px;
+}
+.warning {
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--system-border, #dcd9e9);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.warning ul,
+.checks,
+.tableWrap ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+.totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.totals div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--system-border, #dcd9e9);
+  border-radius: 12px;
+}
+.totals dt {
+  font-size: 12px;
+  color: var(--system-muted, #626276);
+}
+.totals dd {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.checks {
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.tableWrap {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--system-border, #dcd9e9);
+  border-radius: 12px;
+}
+.tableWrap table {
+  min-width: 940px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tableWrap th,
+.tableWrap td {
+  padding: 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--system-border, #dcd9e9);
+}
+.tableWrap th {
+  font-weight: 600;
+}
+.tableWrap small {
+  display: block;
+  margin-top: 4px;
+  color: var(--system-muted, #626276);
+}
+.description {
+  min-width: 190px;
+  max-width: 290px;
+  overflow-wrap: anywhere;
+}
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .dialog {
+    padding: 16px;
+  }
+  .totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .header {
+    flex-wrap: wrap;
+  }
+}

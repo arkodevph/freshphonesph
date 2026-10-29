@@ -28,13 +28,28 @@ import styles from "./reports.module.css";
 import { LoadedReport, message, names, ReportHistory } from "./report-view";
 import ReportFiltersPanel from "./ReportFiltersPanel";
 import ReportResultsPanel from "./ReportResultsPanel";
+import InstallmentEarnings from "./InstallmentEarnings";
 
 export default function ReportsDashboard({
   canReviewPayments = false,
+  canWriteReports = false,
+  showVisuals = false,
+  allowedKinds = [
+    "payments",
+    "collections",
+    "reconciliation",
+    "tasks",
+    "support",
+  ],
 }: {
   canReviewPayments?: boolean;
+  canWriteReports?: boolean;
+  showVisuals?: boolean;
+  allowedKinds?: readonly ReportKind[];
 }) {
-  const [kind, setKind] = useState<ReportKind>("payments");
+  const [kind, setKind] = useState<ReportKind>(allowedKinds[0] ?? "tasks");
+
+  const [showEarnings, setShowEarnings] = useState(false);
 
   const [draft, setDraft] = useState<ReportFilters>(defaultReportFilters);
 
@@ -83,6 +98,10 @@ export default function ReportsDashboard({
   }, []);
 
   const load = useCallback(async () => {
+    if (showEarnings) {
+      return;
+    }
+
     const query = reportFilterQuery(kind, applied);
 
     if (!query.params) {
@@ -152,7 +171,7 @@ export default function ReportsDashboard({
         setLoading(false);
       }
     }
-  }, [kind, applied, reportPage]);
+  }, [kind, applied, reportPage, showEarnings]);
 
   useEffect(() => {
     void load();
@@ -195,11 +214,13 @@ export default function ReportsDashboard({
   }
 
   function selectKind(next: ReportKind) {
-    if (next === kind || operation.current) {
+    if ((next === kind && !showEarnings) || operation.current) {
       return;
     }
 
     sequence.current++;
+
+    setShowEarnings(false);
 
     const filters = { ...applied, batchId: "", status: "" };
 
@@ -281,6 +302,10 @@ export default function ReportsDashboard({
   }
 
   async function runAction(action: "csv" | "xlsx" | "save") {
+    if (action === "save" && !canWriteReports) {
+      return;
+    }
+
     if (operation.current || loading || !report || dirty) {
       return;
     }
@@ -372,69 +397,104 @@ export default function ReportsDashboard({
   };
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page}${showVisuals ? ` ${styles.ceoPage}` : ""}`}>
       <header className={styles.heading}>
-        <div className={styles.titleIcon}>
-          <ChartBar weight="fill" aria-hidden="true" />
-        </div>
+        {!showVisuals && (
+          <div className={styles.titleIcon}>
+            <ChartBar weight="fill" aria-hidden="true" />
+          </div>
+        )}
         <div>
-          <p className={styles.kicker}>Operations overview</p>
+          <p className={styles.kicker}>
+            {showVisuals ? "Company reports" : "Operations overview"}
+          </p>
           <h1>Reports</h1>
           <p>
-            Review collections, task timing and customer support across a chosen
-            period.
+            Review scheduled earnings, collections, task timing and customer
+            support across a chosen period.
           </p>
         </div>
       </header>
       <nav className={styles.tabs} aria-label="Report types">
-        {(Object.keys(names) as ReportKind[]).map((item) => {
-          return (
-            <button
-              key={item}
-              type="button"
-              aria-pressed={kind === item}
-              disabled={Boolean(busy)}
-              onClick={() => {
-                return selectKind(item);
-              }}
-            >
-              {names[item]}
-            </button>
-          );
-        })}
-      </nav>
-      <ReportFiltersPanel
-        kind={kind}
-        apply={apply}
-        busy={busy}
-        draft={draft}
-        edit={edit}
-        onReset={resetFilters}
-        onBatchChange={selectBatch}
-        batch={batch}
-        validation={validation}
-        dirty={dirty}
-      />
+        {(Object.keys(names) as ReportKind[])
+          .filter((kind) => {
+            return allowedKinds.includes(kind);
+          })
+          .map((item) => {
+            return (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={!showEarnings && kind === item}
+                disabled={Boolean(busy)}
+                onClick={() => {
+                  return selectKind(item);
+                }}
+              >
+                {names[item]}
+              </button>
+            );
+          })}
+        {allowedKinds.includes("collections") && (
+          <button
+            type="button"
+            aria-pressed={showEarnings}
+            disabled={Boolean(busy)}
+            onClick={() => {
+              sequence.current++;
 
-      <ReportResultsPanel
-        loading={loading}
-        kind={kind}
-        applied={applied}
-        appliedBatch={appliedBatch}
-        busy={busy}
-        load={load}
-        report={report}
-        dirty={dirty}
-        runAction={runAction}
-        actionError={actionError}
-        notice={notice}
-        error={error}
-        canReviewPayments={canReviewPayments}
-        onPage={selectPage}
-        analysisDraft={analysisDraft}
-        onAnalysisChange={editAnalysis}
-      />
-      <ReportHistory key={`${kind}:${historyRefresh}`} kind={kind} />
+              setShowEarnings(true);
+            }}
+          >
+            Installment earnings
+          </button>
+        )}
+      </nav>
+      {showEarnings ? (
+        <InstallmentEarnings />
+      ) : (
+        <>
+          <ReportFiltersPanel
+            kind={kind}
+            apply={apply}
+            busy={busy}
+            draft={draft}
+            edit={edit}
+            onReset={resetFilters}
+            onBatchChange={selectBatch}
+            batch={batch}
+            validation={validation}
+            dirty={dirty}
+          />
+
+          <ReportResultsPanel
+            loading={loading}
+            kind={kind}
+            applied={applied}
+            appliedBatch={appliedBatch}
+            busy={busy}
+            load={load}
+            report={report}
+            dirty={dirty}
+            runAction={runAction}
+            actionError={actionError}
+            notice={notice}
+            error={error}
+            canReviewPayments={canReviewPayments}
+            canWriteReports={canWriteReports}
+            showVisuals={showVisuals}
+            onPage={selectPage}
+            analysisDraft={analysisDraft}
+            onAnalysisChange={editAnalysis}
+          />
+          <ReportHistory
+            key={`${kind}:${historyRefresh}`}
+            kind={kind}
+            canWriteReports={canWriteReports}
+            showVisuals={showVisuals}
+          />
+        </>
+      )}
     </div>
   );
 }

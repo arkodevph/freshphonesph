@@ -36,6 +36,7 @@ type Props = {
   receiptPreview: string | null;
   receiptDialog: RefObject<HTMLDialogElement | null>;
   receiptImage: File | null;
+  receiptError: string | null;
   scanReceipt: () => Promise<void>;
   scanResult: ReceiptScan | null;
   recordClient: ClientChoice | null;
@@ -89,6 +90,7 @@ export default function RecordPaymentForm({
   receiptPreview,
   receiptDialog,
   receiptImage,
+  receiptError,
   scanReceipt,
   scanResult,
   recordClient,
@@ -197,6 +199,13 @@ export default function RecordPaymentForm({
                 ref={receiptInput}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
+                aria-label="Choose a receipt image"
+                aria-invalid={Boolean(receiptError)}
+                aria-describedby={
+                  receiptError
+                    ? "payment-receipt-help payment-receipt-error"
+                    : "payment-receipt-help"
+                }
                 onChange={(event) => {
                   return selectReceipt(event.target.files?.[0] ?? null);
                 }}
@@ -228,8 +237,12 @@ export default function RecordPaymentForm({
                       ? receiptImage.name
                       : "Drop or paste a receipt image"}
                   </p>
-                  <p className="mt-0.5 text-xs text-ink-soft">
-                    Drag it here, press Ctrl/⌘+V, or browse · JPG, PNG, WebP
+                  <p
+                    id="payment-receipt-help"
+                    className="mt-0.5 text-xs text-ink-soft"
+                  >
+                    Drag it here, press Ctrl/⌘+V, or browse · JPG, PNG, WebP ·
+                    Max 5 MB
                   </p>
                   <div className="receipt-upload-actions">
                     <button
@@ -238,6 +251,11 @@ export default function RecordPaymentForm({
                         return receiptInput.current?.click();
                       }}
                       className="receipt-browse"
+                      aria-describedby={
+                        receiptError
+                          ? "payment-receipt-help payment-receipt-error"
+                          : "payment-receipt-help"
+                      }
                     >
                       {receiptImage ? "Replace image" : "Browse files"}
                     </button>
@@ -265,6 +283,16 @@ export default function RecordPaymentForm({
               {scanning ? "Scanning…" : "Extract text"}
             </button>
           </div>
+          {receiptError && (
+            <div
+              id="payment-receipt-error"
+              role="alert"
+              className="receipt-scan-result has-warning mt-3"
+            >
+              <strong>Check the receipt image</strong>
+              <p>{receiptError}</p>
+            </div>
+          )}
           <p className="receipt-scan-help mt-2 text-xs">
             Scanning is temporary. When you record the claim, the selected image
             is attached as private proof. Review every extracted field first.

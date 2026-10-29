@@ -102,7 +102,7 @@ class Browser {
   }
 }
 
-async function person(role: "OWNER" | "RECORDS" = "OWNER") {
+async function person(role: "SYSTEM_ADMIN" | "RECORDS" = "SYSTEM_ADMIN") {
   return db.user.create({
     data: {
       name: "Synthetic Auth",
@@ -121,6 +121,7 @@ before(async () => {
     DATABASE_URL: url!,
     WEB_ORIGIN: origin,
     BETTER_AUTH_SECRET: "auth-migration-test-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local" as const,
@@ -177,7 +178,7 @@ test("credentials preserve account IDs and hashes, signed HTTP-only cookies repl
 
   assert.equal(user.id, identity.id);
 
-  assert.equal(user.role, "OWNER");
+  assert.equal(user.role, "SYSTEM_ADMIN");
 
   assert.equal("token" in user, false);
 

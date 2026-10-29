@@ -860,7 +860,7 @@ export class RetentionService {
     }
 
     if (m.target.scope === "CUSTOMER") {
-      await tx.client.update({
+      const erased = await tx.client.update({
         where: { id: m.target.subjectId },
         data: {
           name: "Erased customer",
@@ -870,6 +870,11 @@ export class RetentionService {
           retentionErasedAt: now,
           version: { increment: 1 },
         },
+      });
+
+      await tx.member.update({
+        where: { id: erased.memberId },
+        data: { name: "Erased customer", email: "", phone: "" },
       });
     }
 

@@ -127,8 +127,9 @@ export default function SupportCasesTable({
                   </td>
                   <td className="px-2 py-2.5 text-xs text-ink-soft">
                     {c.assigned_staff_name ??
-                      (["cs_head", "cs_team"].includes(me?.role ?? "") &&
-                      !["resolved", "closed"].includes(c.status) ? (
+                      (["csr", "coo", "cs_head", "cs_team"].includes(
+                        me?.role ?? "",
+                      ) && !["resolved", "closed"].includes(c.status) ? (
                         <button
                           type="button"
                           disabled={!!pending}

@@ -190,6 +190,15 @@ export async function describe(
       where: { id },
       include: {
         account: true,
+        member: {
+          include: {
+            account: true,
+            memberships: {
+              where: { retentionErasedAt: null },
+              select: { id: true },
+            },
+          },
+        },
         schedule: true,
         payments: { include: { proofFile: true, adjustments: true } },
         supportCases: { include: { messages: true } },
@@ -212,8 +221,19 @@ export async function describe(
       blockers.push("Complete the customer record and unit release first.");
     }
 
-    if (row.account?.active) {
+    if (row.member.account?.active) {
       blockers.push("Deactivate the customer portal account first.");
+    }
+
+    if (
+      eraseProfile &&
+      row.member.memberships.some((membership) => {
+        return membership.id !== id;
+      })
+    ) {
+      blockers.push(
+        "This member has other batch memberships. Their shared identity and account require a coordinated retention review.",
+      );
     }
 
     if (
@@ -263,10 +283,17 @@ export async function describe(
 
     state.push(row);
 
-    anchorAt = maxActivity(row, eraseProfile ? row.updatedAt : anchorAt);
+    // A backfilled shared-profile row is bookkeeping, not new customer activity.
+    // Profile edits already update the mirrored membership's updatedAt/version.
+    anchorAt = maxActivity(
+      { ...row, member: undefined },
+      eraseProfile ? row.updatedAt : anchorAt,
+    );
 
     if (eraseProfile) {
       label = row.name;
+
+      manifest.recordIds.push(row.memberId);
 
       if (row.account) {
         manifest.userIds.push(row.account.id);
@@ -456,7 +483,24 @@ export async function describe(
       );
     }
 
-    state.push(batches, cases, protectedRecords, analyses, openCreated);
+    const gcashHistoryRecords = await tx.gcashHistorySubmission.count({
+      where: { OR: [{ uploadedById: row.id }, { reviewedById: row.id }] },
+    });
+
+    if (gcashHistoryRecords) {
+      blockers.push(
+        "Authored GCash history submissions or reviews require a separate approved disposition.",
+      );
+    }
+
+    state.push(
+      batches,
+      cases,
+      protectedRecords,
+      analyses,
+      openCreated,
+      gcashHistoryRecords,
+    );
 
     manifest.recordIds.push(
       ...row.sessions.map((item) => {
@@ -593,6 +637,23 @@ export async function describe(
 
       state.push(file);
     }
+  }
+
+  if (
+    manifest.files.length &&
+    (await tx.gcashHistorySubmission.count({
+      where: {
+        fileId: {
+          in: manifest.files.map((file) => {
+            return file.id;
+          }),
+        },
+      },
+    }))
+  ) {
+    blockers.push(
+      "This PDF belongs to a GCash history review. A separate approved retention disposition is required.",
+    );
   }
 
   for (const file of manifest.files) {

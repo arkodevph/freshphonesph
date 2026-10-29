@@ -104,6 +104,8 @@ export function usePaymentsWorkspace() {
 
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
 
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
   const [receiptDragging, setReceiptDragging] = useState(false);
@@ -391,7 +393,9 @@ export function usePaymentsWorkspace() {
     }
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setError("Use a JPG, PNG, or WebP receipt image.");
+      setReceiptError(
+        "Image not selected. Use a JPG, PNG, or WebP receipt image.",
+      );
 
       if (receiptInput.current) {
         receiptInput.current.value = "";
@@ -401,7 +405,21 @@ export function usePaymentsWorkspace() {
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("Receipt image must be 5 MB or smaller.");
+      setReceiptError(
+        `Image not selected. This file is ${(file.size / (1024 * 1024)).toFixed(1)} MB; the maximum is 5 MB. Choose a smaller image.`,
+      );
+
+      if (receiptInput.current) {
+        receiptInput.current.value = "";
+      }
+
+      return;
+    }
+
+    if (file.size === 0) {
+      setReceiptError(
+        "Image not selected. This file is empty. Choose another receipt image.",
+      );
 
       if (receiptInput.current) {
         receiptInput.current.value = "";
@@ -415,6 +433,8 @@ export function usePaymentsWorkspace() {
     setScanning(false);
 
     setError(null);
+
+    setReceiptError(null);
 
     clearExtractedCandidates();
 
@@ -526,6 +546,8 @@ export function usePaymentsWorkspace() {
 
       setReceiptImage(null);
 
+      setReceiptError(null);
+
       if (receiptInput.current) {
         receiptInput.current.value = "";
       }
@@ -571,7 +593,7 @@ export function usePaymentsWorkspace() {
 
   async function scanReceipt() {
     if (!receiptImage) {
-      setError("Choose a receipt image first.");
+      setReceiptError("Choose a receipt image first.");
 
       return;
     }
@@ -585,6 +607,8 @@ export function usePaymentsWorkspace() {
     setScanning(true);
 
     setError(null);
+
+    setReceiptError(null);
 
     setScanResult(null);
 
@@ -614,7 +638,7 @@ export function usePaymentsWorkspace() {
         return;
       }
 
-      setError(
+      setReceiptError(
         e instanceof Error ? e.message : "Receipt could not be scanned.",
       );
     } finally {
@@ -753,6 +777,7 @@ export function usePaymentsWorkspace() {
       receiptPreview,
       receiptDialog,
       receiptImage,
+      receiptError,
       scanReceipt,
       scanResult,
       recordClient,

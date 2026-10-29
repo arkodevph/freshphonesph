@@ -12,6 +12,12 @@ const sections: PortalSection[] = [
   "settings",
 ];
 
+export function generateStaticParams() {
+  return sections.map((section) => {
+    return { section };
+  });
+}
+
 export default async function PortalSectionPage({
   params,
 }: {

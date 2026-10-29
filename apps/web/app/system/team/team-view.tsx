@@ -14,11 +14,22 @@ export const EMPTY_FORM = {
 };
 
 export const roleDescriptions: Record<string, string> = {
-  owner: "Full oversight, account administration, and sensitive workflows.",
-  coo: "Broad operations, records, payments, and reporting access.",
+  system_admin: "Technical administration; Finance alone verifies payments.",
+  ceo: "Business Owner / CEO: company overview and reports only.",
+  batch_manager: "Assigned batches, Handlers and enrollment approvals.",
+  kpi_officer:
+    "Staff targets, factual performance and KPI evaluations; no private payroll files.",
+  operations_coordinator:
+    "Assigned Pioneer and Agent teams, coordination and tasks.",
+  pioneer_agent: "Assigned Agents, coaching and recruitment progress.",
+  agent: "Own endorsements and enrollment requests; approval is required.",
+  batch_handler: "Assigned members, pending payment entry and proof uploads.",
+  csr: "Customer lookup, inquiries and support; no financial edits.",
+  coo: "Business operations, role assignment and oversight; no final payment verification.",
   general_manager: "Operations, clients, records, and management reporting.",
   hr_payroll: "Approved HR and payroll responsibilities.",
-  finance_officer: "Payment recording, verification, and finance reporting.",
+  finance_officer:
+    "Final payment verification, audited corrections and financial reports.",
   records_monitoring: "Paluwagan batches, client records, and monitoring.",
   analytics: "Authorized summaries, reports, and trends.",
   cs_head: "Customer service oversight and resolution workflows.",
@@ -69,6 +80,8 @@ export type CreateField = keyof typeof EMPTY_FORM;
 
 export type AccessDraft = {
   role: string;
+  supervisorId?: string | null;
+  agentProfileId?: string | null;
   active: boolean;
   version?: number;
   hrConfidentialAccess: boolean;

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { DocumentChecklist } from "@/components/DocumentChecklist";
 import DashboardNextSteps from "./DashboardNextSteps";
 import PaymentOverview from "./PaymentOverview";
+import ReleaseStatusCard from "./ReleaseStatusCard";
 import PaymentScheduleWorkspace from "./PaymentScheduleWorkspace";
 import styles from "./portal.module.css";
 import PortalSkeleton, { PortalLoadingRows } from "./PortalSkeleton";
@@ -33,6 +34,7 @@ import PortalSidebar from "./PortalSidebar";
 import PortalSupportWorkspace from "./PortalSupportWorkspace";
 import PortalTopbar from "./PortalTopbar";
 import VerifiedPaymentsWorkspace from "./VerifiedPaymentsWorkspace";
+import MembershipSelector from "./MembershipSelector";
 
 export type { PortalSection } from "./portal-view";
 
@@ -119,6 +121,9 @@ export default function PortalDashboard({
       <div
         className={`${styles.container} ${section === "membership" || section === "payments" ? styles.membershipWorkspace : ""}`}
       >
+        <MembershipSelector
+          selectedId={me?.client_id == null ? null : String(me.client_id)}
+        />
         <div className={styles.intro}>
           <div className={styles.introCopy}>
             {section === "overview" ? (
@@ -292,34 +297,22 @@ export default function PortalDashboard({
         </div>
 
         {section === "release" && (
-          <section
-            className={styles.releaseCard}
-            aria-labelledby="release-title"
-          >
-            <span className={styles.releaseIcon}>
-              <Truck weight="duotone" aria-hidden="true" />
-            </span>
-            <div>
-              <p className={styles.eyebrow}>Unit status</p>
-              <h2 id="release-title">Release &amp; fulfillment</h2>
-              <p>
-                {releaseStatusDescription ??
-                  releaseDetails[releaseStatus] ??
-                  "Your unit status will appear here when updated."}
-              </p>
-              {releaseUpdates[0] && (
-                <small>
-                  Last release update:{" "}
-                  {new Date(releaseUpdates[0].updated_at).toLocaleString(
-                    "en-PH",
-                  )}
-                </small>
-              )}
-            </div>
-            <strong className={styles.releaseBadge}>
-              {releaseStatusLabel}
-            </strong>
-          </section>
+          <ReleaseStatusCard
+            releaseStatus={releaseStatus}
+            status={recordsStatus}
+            description={
+              releaseStatusDescription ??
+              releaseDetails[releaseStatus] ??
+              "Your unit status will appear here when updated."
+            }
+            unitName={summary?.unit_model}
+            updatedAt={
+              releaseUpdatesStatus === "ready"
+                ? releaseUpdates[0]?.updated_at
+                : undefined
+            }
+            onRetry={loadRecords}
+          />
         )}
         {section === "release" && (
           <section
@@ -393,6 +386,7 @@ export default function PortalDashboard({
 
         {section === "payments" && (
           <VerifiedPaymentsWorkspace
+            membershipId={me?.client_id == null ? null : String(me.client_id)}
             summary={summary}
             payments={payments}
             pagination={paymentPagination}

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   createParamDecorator,
   ExecutionContext,
   ForbiddenException,
@@ -12,6 +13,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import {
   effectivePermissions,
+  reportKindsFor,
   type Permission,
   type User,
 } from "@freshphones/contracts";
@@ -19,6 +21,7 @@ import type { Request } from "express";
 import { AuthService, safeUser } from "./auth.service";
 import type { Database } from "../database";
 import { LegalService } from "../legal/legal.service";
+import { selectMembership } from "./membership";
 
 export interface AuthRequest extends Request {
   user: User;
@@ -38,8 +41,21 @@ export const MfaExempt = () => {
   return SetMetadata("mfaExempt", true);
 };
 
+/** Own-account identity, security and required notice actions; no business records. */
+export const PersonalAccess = () => {
+  return SetMetadata("personalAccess", true);
+};
+
 export const Requires = (...permissions: Permission[]) => {
   return SetMetadata("permission", permissions);
+};
+
+export const ReportFamily = (family: string) => {
+  return SetMetadata("reportFamily", family);
+};
+
+export const RequiresAny = (...permissions: Permission[]) => {
+  return SetMetadata("anyPermission", permissions);
 };
 
 export const CurrentUser = createParamDecorator(
@@ -56,7 +72,7 @@ export function allowed(
 }
 
 export async function requireCurrentUser(
-  db: Pick<Database, "user">,
+  db: Pick<Database, "user" | "client">,
   user: User,
   ...permissions: Permission[]
 ) {
@@ -71,7 +87,11 @@ export async function requireCurrentUser(
     throw new ForbiddenException("Your access has changed.");
   }
 
-  return safeUser(current);
+  const identity = safeUser(current);
+
+  return identity.role === "CUSTOMER" && user.clientId
+    ? selectMembership(db, identity, user.clientId)
+    : identity;
 }
 
 @Injectable()
@@ -103,6 +123,28 @@ export class AccessGuard implements CanActivate {
 
     request.user = session.user;
 
+    const personalAccess = this.reflector.getAllAndOverride<boolean>(
+      "personalAccess",
+      [context.getHandler(), context.getClass()],
+    );
+
+    const membership =
+      request.headers["x-membership-id"] ??
+      (request.path === "/api/events" ? request.query.membership : undefined);
+
+    if (membership !== undefined && !personalAccess) {
+      if (
+        typeof membership !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          membership,
+        )
+      ) {
+        throw new BadRequestException("Invalid membership selection.");
+      }
+
+      request.user = await this.auth.selectMembership(session.user, membership);
+    }
+
     request.sessionId = session.sessionId;
 
     request.accessToken = token;
@@ -124,6 +166,17 @@ export class AccessGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
+    const anyPermissions = this.reflector.getAllAndOverride<Permission[]>(
+      "anyPermission",
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (!personalAccess && !permissions?.length && !anyPermissions?.length) {
+      throw new ForbiddenException(
+        "This action has no authorized business access.",
+      );
+    }
+
     if (
       permissions &&
       !permissions.every((permission) => {
@@ -133,6 +186,43 @@ export class AccessGuard implements CanActivate {
       throw new ForbiddenException(
         "Your role does not have access to this action.",
       );
+    }
+
+    if (
+      anyPermissions &&
+      !anyPermissions.some((permission) => {
+        return allowed(session.user, permission);
+      })
+    ) {
+      throw new ForbiddenException(
+        "Your role does not have access to this action.",
+      );
+    }
+
+    const reportFamily = this.reflector.getAllAndOverride<string>(
+      "reportFamily",
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (reportFamily) {
+      const family =
+        reportFamily === "query" ? request.query.kind : reportFamily;
+
+      if (
+        typeof family === "string" &&
+        [
+          "PAYMENTS",
+          "COLLECTIONS",
+          "RECONCILIATION",
+          "TASKS",
+          "SUPPORT",
+        ].includes(family.toUpperCase()) &&
+        !reportKindsFor(session.user).includes(family.toUpperCase())
+      ) {
+        throw new ForbiddenException(
+          "This report family is outside your role's responsibilities.",
+        );
+      }
     }
 
     const legalExempt = this.reflector.getAllAndOverride<boolean>(

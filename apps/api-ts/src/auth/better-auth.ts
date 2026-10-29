@@ -10,10 +10,18 @@ export async function createIdentity(
   ownTransactions = true,
 ) {
   // Native imports preserve Better Auth's ESM entry points in the NestJS CommonJS build.
-  const [{ betterAuth }, { prismaAdapter }, { twoFactor }] = await Promise.all([
+  const [
+    { betterAuth },
+    { prismaAdapter },
+    { twoFactor },
+    { createAuthEndpoint },
+    { setSessionCookie },
+  ] = await Promise.all([
     import("better-auth"),
     import("better-auth/adapters/prisma"),
     import("better-auth/plugins"),
+    import("better-auth/api"),
+    import("better-auth/cookies"),
   ]);
 
   return betterAuth({
@@ -123,6 +131,39 @@ export async function createIdentity(
           durationSeconds: 900,
         },
       }),
+      {
+        id: "fresh-local-demo",
+        endpoints: {
+          localDemoSession: createAuthEndpoint(
+            "/local-demo-session",
+            { method: "POST" },
+            async (ctx) => {
+              const user = await ctx.context.internalAdapter.findUserById(
+                (ctx.body as { userId: string }).userId,
+              );
+
+              const current =
+                user && (await db.user.findUnique({ where: { id: user.id } }));
+
+              if (!user || !current?.active || current.twoFactorEnabled) {
+                throw new Error("Demo session is unavailable.");
+              }
+
+              const session = await ctx.context.internalAdapter.createSession(
+                user.id,
+              );
+
+              if (!session) {
+                throw new Error("Demo session is unavailable.");
+              }
+
+              await setSessionCookie(ctx, { session, user });
+
+              return ctx.json({ ok: true });
+            },
+          ),
+        },
+      },
     ],
   });
 }

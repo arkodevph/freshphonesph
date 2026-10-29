@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  businessRole,
   catalogItemSchema,
   catalogQuerySchema,
   publicCatalogQuerySchema,
@@ -98,11 +99,13 @@ test("public queries cannot select hidden listings; search and page sizes are bo
   }
 });
 
-test("catalog management is granted only to the four user-approved roles", () => {
+test("existing catalog management is preserved through business role aliases", () => {
   for (const role of roles) {
     assert.equal(
       rolePermissions[role].includes("CATALOG_MANAGE"),
-      ["OWNER", "COO", "GENERAL_MANAGER", "RECORDS"].includes(role),
+      ["SYSTEM_ADMIN", "COO", "BATCH_MANAGER", "RECORDS"].includes(
+        businessRole(role),
+      ),
       role,
     );
   }

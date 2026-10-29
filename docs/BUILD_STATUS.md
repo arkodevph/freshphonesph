@@ -1,5 +1,122 @@
 # Build Status
 
+## GCash PDF reading and upload passwords
+
+The main GCash upload reads PDF text or scanned pages (Tesseract), accepts an
+optional transient password, and stores a per-revision transaction table for
+Records to check. Financial verification is unchanged. Existing uploads remain
+valid without extraction. Verification: 168 automated checks, API/web builds/types,
+11 browser groups and unchanged original financial/assignment data. Main services
+are running. [Current guide](72-gcash-pdf-reading.md).
+
+
+## Evening update — multiple batch memberships (2026-10-28)
+
+Checklist #10 is implemented and verified in the main local demo. One member/customer login can switch among independently scheduled batch memberships; existing Agent submission and assigned Manager approval remain. Original identities, account links, schedules and verified credit are preserved. Types/builds, 22 focused database scenarios, web/API/Redis checks and main browser/PDF verification pass. The broader regression exposed one retention-age issue, now fixed with all nine retention cases rerun successfully. Local/uncommitted; user acceptance pending. [Implementation and test guide](70-multiple-batch-memberships.md).
+
+## Evening update — GCash available in the main demo (2026-10-28)
+
+Full-history GCash PDF upload, clarification/correction and Records review now run at
+`http://localhost:3000/system/gcash-history`. Main login's **Preview a workspace**
+uses the existing **Batch handler** and **Records & monitoring officer** accounts;
+separate isolated credentials are no longer needed. Finance/COO read evidence only;
+Owner / CEO stays report-only. Finance alone verifies money.
+
+228 automated checks pass (44 PostgreSQL integration, 68 API unit, 116 web), API
+types/build and optimized web build/types pass, and seeded-login/full-workflow
+browser checks passed. Original data was preserved. Main integration is local and
+uncommitted; user acceptance remains pending. [Current guide](69-gcash-history-main-demo.md).
+
+
+Owner and CEO now use one report-only business role, **Owner / CEO**. Legacy OWNER
+normalizes to CEO; technical maintenance uses SYSTEM_ADMIN. See [the role merge](67-owner-ceo-role.md).
+Validated with 375 automated scenarios, types/builds, preserved-data migration and
+desktop/mobile browser checks. Existing identities remain separate and unchanged.
+
+
+
+## Role access alignment — 2026-10-28
+
+The approved business roles, COO role administration, current assignment scope and
+Agent enrollment with assigned Batch Manager approval/COO oversight are implemented
+and verified locally. CEO remains report-only; Finance alone verifies money.
+HR delegation, legacy Analytics reassignment and catalog ownership remain undecided.
+Actual teams/batches must be assigned by COO; no real roster was guessed.
+
+Validation: 370 automated tests pass (181 PostgreSQL integration, 68 API unit,
+108 web, 13 Redis); one optional Redis interruption test skipped. Typechecks,
+API/web builds, formatting, migration preservation and all local role previews passed.
+Browser-tested Agent submission → Manager approval → Agent status, CSR lookup and mobile.
+The integrated preview is running at http://localhost:3000/login. Changes remain local
+and uncommitted in the shared checkout. See [the role matrix, evidence and workflow
+limits](66-role-access-alignment.md).
+
+
+## Scheduled installment earnings — 2026-10-28
+
+Item 2 of the October 26 workflow notes is implemented locally: scheduled
+installment amounts per batch and member, with monthly, bi-monthly (15th and
+month-end) and every-two-month periods. Includes batch filtering, member drill-down, complete
+scope totals, pagination and CSV/XLSX downloads. Existing schedules and financial
+records are unchanged. The API requires `REPORT_VIEW` for reads and exports.
+
+Validation passed: 106 web tests and 20 API integration tests (six focused
+earnings, ten existing reports, four CEO access), API/web typechecks, optimized
+web preview build and ten browser check groups covering real data reconciliation,
+period selection, drill-down, pagination, exports, zero periods, retry, both
+themes and 390/320px layouts. Browser page errors: zero. SQL plans were captured
+on the small local dataset; production-scale acceptance remains open.
+
+Concurrent role/access edits required isolating the reporting source and Prisma
+client for validation. The dedicated review preview runs at
+`http://localhost:3002` with API port 4102, preserving the other session's preview.
+Source changes remain in the main checkout; manual acceptance by Jaycee is
+pending. See [Scheduled installment earnings](65-scheduled-installment-earnings.md).
+
+## CEO client-portal design — 2026-10-26
+
+CEO now follows the existing customer portal's full-width brand header, gray
+navigation, illustrated blue/blush banner, summary panel, typography and card
+styles. Small screens have Dashboard/Reports bottom navigation. Existing charts
+and report reading remain; other staff/customer layouts and backend access are
+unchanged. All 98 web tests, web typecheck/build, format/diff checks and six layout
+browser groups plus fourteen chart browser regression groups passed. The local preview is rebuilt. Details:
+[CEO client-portal design](64-ceo-client-portal-design.md). Deployment remains deferred.
+
+## CEO report visualizations — 2026-10-26
+
+The report-only CEO overview now includes interactive 3/6/12-month collections,
+payment-status counts and full-scope outstanding batch rankings. All five live
+and saved report families include comparisons from their own data. Net credit,
+pending claims, signed corrections, current balances and captured figures have
+explicit labels. No write permissions, migrations or dependencies were added.
+
+Local checks: 179 automated tests (67 API unit, 98 web, 10 report integration,
+4 CEO authorization), workspace typechecks, API/web builds, formatting/whitespace,
+two query plans and fourteen browser check groups. Browser coverage includes
+keyboard, themes, mobile, request races, errors/retry, zero data, historical
+figures, filters/CSV and retained Finance authoring. Details and evidence limits:
+[CEO report visualizations](63-ceo-report-visualizations.md). Deployment remains deferred.
+
+## CEO report-only portal — 2026-10-26
+
+The client-authorized CEO slice adds a distinct `CEO` role, maps existing business
+Owner accounts with an audited migration, and limits the portal to executive
+overview and report reading. `REPORT_WRITE` separates saving/analysis from report
+viewing. API guards also deny unannotated operational routes; personal account
+security/notices remain available. Finance verification stays exclusive to Finance.
+Other client workflow changes and external deployment remain deferred.
+
+Local verification: 64 API unit, 92 web, 77 core integration, 4 CEO integration,
+8 report integration, 1 report-analysis and 9 authentication/MFA tests passed
+(255 total), plus workspace typechecks, API/web builds, formatting and whitespace
+checks. Migration rehearsal preserved identity/credentials and payment history.
+Real browser checks covered all five existing report families, exports, all thirteen
+blocked operational routes, light/dark/mobile, retained Finance authoring and the
+customer portal. Local preview uses the migrated `_preview` database. Details:
+[CEO access](62-ceo-report-only-access.md). This is local implementation evidence,
+not production deployment or named client UAT.
+
 > **2026-10-08 architecture update (documentation only):** Neon PostgreSQL and Better Auth
 > replace the planned Supabase database/Auth stack. On 2026-10-09 the user reaffirmed Redis
 > for live events and background workers; Redis Streams/BullMQ and Better Auth/MFA are
@@ -14,6 +131,37 @@ The former backend has been removed, and its historical test count is not a curr
 NestJS is the sole backend. Prisma owns database schema and migrations. Delivery gates are in
 [17-full-scope-workflow.md](17-full-scope-workflow.md); row-level coverage is in
 [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md).
+
+## Current implementation review — 2026-10-12
+
+The earlier 14-item gap list now has **13 Built non-AI items** and **one AI item
+Deferred - funding**. The application features for catalog/availability, sample payments,
+FAQ search, public support, HR approvals, Support source, submitted report analysis,
+legal notices/version tracking, retention/deletion, Better Auth/MFA, Redis events,
+Redis workers and broader abuse limits are implemented. The authentication item follows
+the approved Better Auth/Neon replacement of the earlier Supabase plan.
+
+Business configuration, publication/activation, production provisioning and named UAT
+are tracked as acceptance work. See the [item-by-item implementation checklist](18-scope-traceability-matrix.md#earlier-14-item-gap-list--implementation-review-2026-10-12).
+
+Verification of the current local `feature/reports-page` checkout, including existing
+uncommitted changes:
+
+| Check | Passed |
+|---|---|
+| API unit tests | 63 |
+| Web tests with `NEXT_PUBLIC_API_BACKEND=typescript` | 71 |
+| PostgreSQL business/auth/retention integration tests | 152 |
+| Redis events/workers, including an actual isolated Redis interruption | 14 |
+| Abuse limits, including isolated Redis stall/outage recovery | 23 |
+| Synthetic private S3 version/local-copy erasure | 1 |
+| **Total** | **324 — no failures or skips** |
+
+Workspace typechecks and the API build passed. All **34 active migrations** applied
+to fresh audit databases; the local preview also has 34 applied migrations. Tests used
+disposable databases, a separate test Redis container and a synthetic local MinIO bucket.
+The disposable resources were removed after verification. Production services, policies
+and acceptance records were not changed by this review.
 
 ## TypeScript foundation
 
@@ -447,7 +595,10 @@ their owned domains against the accepted business requirements.
   TypeScript task reminders, Finance pending/results, staff email templates/timing/history/retries
   plus Support/account events and customer delivery/templates/read UI exist. Setup checks and
   the named Owner walkthrough are ready in [33-staff-email-launch.md](33-staff-email-launch.md).
-- Task proof/attachments; report role-scoped field trimming; RLS hardening (optional, docs/15).
+- Task proof/attachments are implemented in the TypeScript staff task workflow and covered
+  by private-evidence integration checks. Remaining report field-matrix approval and any
+  subsequent field trimming are tracked with Reporting acceptance; RLS hardening is optional
+  (docs/15).
 - Production provisioning (Neon/Railway/VPS/Cloudflare/Resend plus selected private storage and event/job infrastructure) — client-owned accounts (§20).
 
 ## Test & run

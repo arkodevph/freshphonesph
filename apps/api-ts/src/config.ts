@@ -56,11 +56,27 @@ export function readConfig() {
       HOST: z.string().default("127.0.0.1"),
       DATABASE_URL: z.string().url(),
       WEB_ORIGIN: z.string().url(),
-      PUBLIC_SITE_ORIGIN: z.string().url().optional(),
+      PUBLIC_SITE_ORIGIN: z
+        .string()
+        .url()
+        .refine((value) => {
+          const url = new URL(value);
+
+          return (
+            url.origin === value && ["http:", "https:"].includes(url.protocol)
+          );
+        }, "PUBLIC_SITE_ORIGIN must be an HTTP(S) origin without a path.")
+        .optional(),
       JWT_SECRET: z.string().min(32).optional(), // Local migration compatibility only.
       BETTER_AUTH_SECRET: z.string().min(32).optional(),
       BETTER_AUTH_URL: z.string().url().optional(),
       AUTH_REQUIRE_STAFF_MFA: z.enum(["true", "false"]).optional(),
+      LOCAL_DEMO_AUTH: z
+        .enum(["true", "false"])
+        .default("false")
+        .transform((value) => {
+          return value === "true";
+        }),
       RESEND_API_KEY: z.string().optional(),
       EMAIL_FROM: z.string().default("Fresh Phones <accounts@example.com>"),
       CUSTOMER_REMINDER_DAYS_BEFORE: z.string().default(""),
@@ -160,6 +176,21 @@ export function readConfig() {
     )
   ) {
     throw new Error("BETTER_AUTH_URL must be an origin or end with /api/auth.");
+  }
+
+  if (config.LOCAL_DEMO_AUTH) {
+    const localHosts = ["localhost", "127.0.0.1", "[::1]"];
+
+    if (
+      config.NODE_ENV !== "development" ||
+      !localHosts.includes(config.HOST) ||
+      !localHosts.includes(new URL(config.WEB_ORIGIN).hostname) ||
+      !localHosts.includes(new URL(config.DATABASE_URL).hostname)
+    ) {
+      throw new Error(
+        "Local demo authentication requires development and loopback web, API and database hosts.",
+      );
+    }
   }
 
   if (

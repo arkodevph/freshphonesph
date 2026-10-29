@@ -3,13 +3,21 @@
 > **2026-10-08 architecture update (documentation only):** Neon PostgreSQL and Better Auth
 > replace the planned Supabase database/Auth stack. On 2026-10-09 the user reaffirmed Redis
 > for live events and background workers; Redis Streams/BullMQ and Better Auth/MFA are
-> implemented locally. Production provisioning, distributed rate limiting and private
-> object storage selection remain open. See [the decision record](20-v6-architecture-decision.md)
+> implemented locally, together with shared abuse rate limiting. Production provisioning,
+> proxy/quota acceptance and private object storage selection remain open. See [the decision record](20-v6-architecture-decision.md)
 > and [Redis runbook](53-redis-events-workers.md).
 
-Updated **2026-10-08**. This is a summary of work completed or integrated locally,
+Updated **2026-10-12**. This is a summary of work completed or integrated locally,
 plus the remaining implementation and launch tasks. Local verification does not
 mean business UAT or production acceptance is complete.
+
+**The earlier gap list's non-AI items #1–13 are implemented locally; only #14, AI,
+remains unimplemented and deferred for funding.** Authentication uses the approved
+Better Auth/Neon replacement for the earlier Supabase choice. See the
+[current implementation checklist](18-scope-traceability-matrix.md#earlier-14-item-gap-list--implementation-review-2026-10-12)
+and [324-test verification](BUILD_STATUS.md#current-implementation-review--2026-10-12).
+The remaining work below includes business configuration and production acceptance;
+it does not classify completed features as absent.
 
 ## Current handoff state
 
@@ -44,8 +52,8 @@ mean business UAT or production acceptance is complete.
   The shared application uses normal sign-in with privately provisioned accounts.
 - All 97 pre-merge local files were preserved. The recovery stash and private
   database/file backups remain available locally; they are not project source.
-- The local preview database has all **30 active migrations**, with existing data
-  preserved and no Prisma schema drift.
+- The local preview database has all **34 active migrations**. Fresh audit databases
+  also applied all 34 migrations successfully during the 2026-10-12 verification.
 - Local web: `http://localhost:3000`; API: `http://localhost:4101`;
   API/database health: `GET /api/health`.
 
@@ -162,7 +170,8 @@ local email tools are ready, but real delivery is not accepted.
   uses Better Auth database sessions locally.
 - [ ] Provision and validate production Redis Streams/BullMQ, replica/reconnect/outage
   recovery and capacity. Local implementation is complete; see [53-redis-events-workers.md](53-redis-events-workers.md).
-  Broader distributed rate limiting remains scope #13.
+  Broader distributed rate limiting is also implemented locally (gap item #13);
+  production proxy/quota acceptance remains open; see [54-abuse-rate-limits.md](54-abuse-rate-limits.md).
 - [ ] Provision client-owned VPS, Railway, Neon, selected private S3-compatible storage,
   domain/HTTPS, authenticated Redis, separate worker services and monitoring; Confirm provider/region/operating decisions first.
 - [ ] Test two API replicas, private storage migration/access, secrets, access

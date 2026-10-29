@@ -46,7 +46,7 @@ test("default login and identity requests use cookie sessions", async () => {
       id: "owner-id",
       name: "Demo Owner",
       email: "owner@demo.freshphones.test",
-      role: "OWNER",
+      role: "SYSTEM_ADMIN",
       clientId: null,
       permissions: ["ACCOUNT_MANAGE"],
     });
@@ -63,7 +63,7 @@ test("default login and identity requests use cookie sessions", async () => {
 
   assert.equal(me.account_type, "employee");
 
-  assert.equal(me.role, "owner");
+  assert.equal(me.role, "system_admin");
 
   assert.deepEqual(requests, [
     {
@@ -88,7 +88,7 @@ test("simultaneous identity reads share a request without caching later session 
     return Response.json({
       id: "owner-id",
       name: "Demo Owner",
-      role: "OWNER",
+      role: "SYSTEM_ADMIN",
       permissions: [],
     });
   };

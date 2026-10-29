@@ -15,6 +15,7 @@ import {
   type LegalStatus,
 } from "@/lib/legal";
 import { useMe } from "@/lib/useMe";
+import { WorkspaceContentSkeleton } from "./WorkspaceSkeleton";
 import styles from "./legal-gate.module.css";
 
 export function LegalGate({ children }: { children: ReactNode }) {
@@ -47,11 +48,11 @@ export function LegalGate({ children }: { children: ReactNode }) {
 
     loadingFor.current = userId;
 
+    // Rechecking on focus must preserve mounted forms, including a file chooser's selection.
+    // Account changes still block through loadedFor; failed checks discard the prior clearance.
     setLoadError(null);
 
     setActionError(null);
-
-    setLoadedFor(null);
 
     void getLegalStatus()
       .then((result) => {
@@ -67,6 +68,8 @@ export function LegalGate({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (loadingFor.current === userId) {
+          setLoadedFor(null);
+
           setLoadError(
             "Could not check the current notices. Please try again.",
           );
@@ -84,23 +87,25 @@ export function LegalGate({ children }: { children: ReactNode }) {
   }, [reload]);
 
   useEffect(() => {
+    const requireCurrentNotices = () => {
+      setLoadedFor(null);
+
+      reload();
+    };
+
     window.addEventListener("focus", reload);
 
-    window.addEventListener("fp-legal-required", reload);
+    window.addEventListener("fp-legal-required", requireCurrentNotices);
 
     return () => {
       window.removeEventListener("focus", reload);
 
-      window.removeEventListener("fp-legal-required", reload);
+      window.removeEventListener("fp-legal-required", requireCurrentNotices);
     };
   }, [reload]);
 
   if (!me || (loadedFor !== String(me.id) && !loadError)) {
-    return (
-      <section className={styles.screen} role="status">
-        Checking account notices…
-      </section>
-    );
+    return <WorkspaceContentSkeleton label="Loading account" />;
   }
 
   if (loadError) {

@@ -48,7 +48,15 @@ export async function notifyAccount(
   }
 
   const recipients = await tx.user.findMany({
-    where: { active: true, role: "OWNER" },
+    where: {
+      active: true,
+      role: {
+        in:
+          after.role === "SYSTEM_ADMIN"
+            ? ["SYSTEM_ADMIN"]
+            : ["SYSTEM_ADMIN", "COO"],
+      },
+    },
     select: { id: true },
   });
 
@@ -91,7 +99,7 @@ export async function notifyAccount(
 }
 
 export function accountAlertVisibleSql(userId: string) {
-  return Prisma.sql`r."userId" = ${userId}::uuid AND u.active AND u.role = 'OWNER'`;
+  return Prisma.sql`r."userId" = ${userId}::uuid AND u.active AND u.role IN ('SYSTEM_ADMIN', 'COO') AND (u.role = 'SYSTEM_ADMIN' OR (r.role <> 'SYSTEM_ADMIN' AND COALESCE(r."previousRole"::text, '') <> 'SYSTEM_ADMIN'))`;
 }
 
 export function accountAlertRows(userId: string) {

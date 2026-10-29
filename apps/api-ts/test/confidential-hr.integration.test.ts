@@ -6,6 +6,7 @@ import type { INestApplication } from "@nestjs/common";
 import {
   roles,
   rolePermissions,
+  reportKindsFor,
   type Role,
   type User,
 } from "@freshphones/contracts";
@@ -113,7 +114,7 @@ async function decision(
     where: { id: subject.id },
   });
 
-  return sessions.get("OWNER")!.request(
+  return sessions.get("SYSTEM_ADMIN")!.request(
     `/accounts/${subject.id}`,
     json({
       version: version ?? current.version,
@@ -200,6 +201,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     JWT_SECRET: "confidential-test-only-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local" as const,
@@ -252,11 +254,16 @@ before(async () => {
     sessions.set(role, await new Session().login(user));
   }
 
+  await db.user.update({
+    where: { id: people.get("CORE_HANDLER")!.id },
+    data: { supervisorId: people.get("GENERAL_MANAGER")!.id },
+  });
+
   taskId = (
     await db.task.create({
       data: {
         title: `HR task ${suffix}`,
-        creatorId: people.get("OWNER")!.id,
+        creatorId: people.get("SYSTEM_ADMIN")!.id,
         assigneeId: people.get("CORE_HANDLER")!.id,
         deadline: new Date("2026-01-01"),
         submittedAt: new Date("2026-01-02"),
@@ -265,7 +272,7 @@ before(async () => {
         lateFlag: true,
         review: {
           create: {
-            reviewerId: people.get("OWNER")!.id,
+            reviewerId: people.get("SYSTEM_ADMIN")!.id,
             factualEvidence: "Private context",
             evaluation: "CONFIDENTIAL-EVALUATION",
             recommendation: "CONFIDENTIAL-RECOMMENDATION",
@@ -360,12 +367,18 @@ test("migration defaults every non-Owner off and all private routes deny every u
 
     const me = await (await sessions.get(role)!.request("/auth/me")).json();
 
-    assert.equal(me.permissions.includes("HR_CONFIDENTIAL"), role === "OWNER");
+    assert.equal(
+      me.permissions.includes("HR_CONFIDENTIAL"),
+      role === "SYSTEM_ADMIN",
+    );
 
     for (const path of paths) {
       assert.equal(
         (await sessions.get(role)!.request(path)).status,
-        role === "OWNER" ? 200 : 403,
+        role === "SYSTEM_ADMIN" ||
+          (role === "KPI_OFFICER" && path.includes("kpi/"))
+          ? 200
+          : 403,
         `${role} ${path}`,
       );
     }
@@ -376,11 +389,11 @@ test("migration defaults every non-Owner off and all private routes deny every u
   }
 });
 
-test("Owner alone can change grants or read decision history; invalid bodies and ineligible recipients are rejected", async () => {
+test("Owner and COO can change grants or read decision history; invalid bodies and ineligible recipients are rejected", async () => {
   const subject = await person("COO");
 
   for (const role of roles.filter((value) => {
-    return value !== "OWNER";
+    return value !== "SYSTEM_ADMIN" && value !== "COO";
   })) {
     assert.equal(
       (
@@ -408,7 +421,7 @@ test("Owner alone can change grants or read decision history; invalid bodies and
     );
   }
 
-  const owner = sessions.get("OWNER")!;
+  const owner = sessions.get("SYSTEM_ADMIN")!;
 
   for (const body of [
     { hrConfidentialAccess: true, hrAccessReason: "Missing version." },
@@ -423,7 +436,7 @@ test("Owner alone can change grants or read decision history; invalid bodies and
       version: 1,
       hrConfidentialAccess: true,
       hrAccessReason: "Forged.",
-      actorId: people.get("OWNER")!.id,
+      actorId: people.get("SYSTEM_ADMIN")!.id,
     },
   ]) {
     assert.equal(
@@ -482,7 +495,7 @@ test("explicit grants unlock HR and COO after fresh sign-in and record a minimiz
 
     const history = await (
       await sessions
-        .get("OWNER")!
+        .get("SYSTEM_ADMIN")!
         .request(`/accounts/${subject.id}/hr-access-history`)
     ).json();
 
@@ -490,7 +503,7 @@ test("explicit grants unlock HR and COO after fresh sign-in and record a minimiz
 
     assert.equal(history.items[0].granted, true);
 
-    assert.equal(history.items[0].actorName, "Synthetic OWNER");
+    assert.equal(history.items[0].actorName, "Synthetic SYSTEM_ADMIN");
 
     assert.match(history.items[0].reason, /Owner approved/);
 
@@ -510,12 +523,20 @@ test("both task API families redact private evaluations for managers and the emp
   })) {
     const session = sessions.get(role)!;
 
-    const expected = ["OWNER", "HR_PAYROLL", "COO"].includes(role);
+    const expected = [
+      "SYSTEM_ADMIN",
+      "HR_PAYROLL",
+      "COO",
+      "KPI_OFFICER",
+    ].includes(role);
 
     for (const path of ["/tasks", "/work/tasks"]) {
       const response = await session.request(path);
 
-      assert.equal(response.status, 200);
+      assert.equal(
+        response.status,
+        rolePermissions[role].includes("TASK_READ") ? 200 : 403,
+      );
 
       const payload = await response.json();
 
@@ -526,7 +547,7 @@ test("both task API families redact private evaluations for managers and the emp
       );
     }
 
-    if (rolePermissions[role].includes("REPORT_VIEW")) {
+    if (reportKindsFor({ role }).includes("TASKS")) {
       const report = await session.request("/reports/tasks");
 
       assert.equal(report.status, 200);
@@ -663,7 +684,7 @@ test("cross-instance applicant events reach approved reviewers and stay private 
     ungrantedCoo = await person("COO");
 
   const feeds = await Promise.all([
-    openStream(sessions.get("OWNER")!),
+    openStream(sessions.get("SYSTEM_ADMIN")!),
     openStream(await new Session().login(approved)),
     openStream(await new Session().login(ungrantedHr)),
     openStream(await new Session().login(ungrantedCoo)),
@@ -707,7 +728,7 @@ test("cross-instance applicant events reach approved reviewers and stay private 
 });
 
 test("grants are cleared on every role change and deactivation and do not return on reactivation", async () => {
-  const owner = sessions.get("OWNER")!;
+  const owner = sessions.get("SYSTEM_ADMIN")!;
 
   for (const changes of [
     { role: "COO" },
@@ -755,7 +776,7 @@ test("Owner can approve a new eligible role in the same versioned save, with a f
 
   assert.equal((await decision(subject, true)).status, 200);
 
-  const response = await sessions.get("OWNER")!.request(
+  const response = await sessions.get("SYSTEM_ADMIN")!.request(
     `/accounts/${subject.id}`,
     json({
       version: 2,
@@ -771,7 +792,7 @@ test("Owner can approve a new eligible role in the same versioned save, with a f
 
   const history = await (
     await sessions
-      .get("OWNER")!
+      .get("SYSTEM_ADMIN")!
       .request(`/accounts/${subject.id}/hr-access-history`)
   ).json();
 
@@ -816,7 +837,7 @@ test("history paging is bounded, stable and private; database constraints reject
     assert.equal((await decision(subject, index % 2 === 0)).status, 200);
   }
 
-  const owner = sessions.get("OWNER")!;
+  const owner = sessions.get("SYSTEM_ADMIN")!;
 
   const first = await (
     await owner.request(`/accounts/${subject.id}/hr-access-history`)
@@ -852,7 +873,11 @@ test("history paging is bounded, stable and private; database constraints reject
     );
   }
 
-  for (const role of ["GENERAL_MANAGER", "FINANCE_OFFICER", "OWNER"] as const) {
+  for (const role of [
+    "GENERAL_MANAGER",
+    "FINANCE_OFFICER",
+    "SYSTEM_ADMIN",
+  ] as const) {
     await assert.rejects(
       db.user.update({
         where: { id: people.get(role)!.id },
@@ -887,7 +912,7 @@ test("grant changes preserve job management, public pages and Finance permission
     );
   }
 
-  const retiredOwner = await person("OWNER"),
+  const retiredOwner = await person("SYSTEM_ADMIN"),
     subject = await person("HR_PAYROLL");
 
   const stale = safeUser(retiredOwner);

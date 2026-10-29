@@ -8,10 +8,14 @@ import {
 import type { z } from "zod";
 import {
   reportQuerySchema,
+  reportKindsFor,
   reportSnapshotSchema,
   type PaymentReport,
+  type ChartMonths,
   type ReportKind,
   type User,
+  type InstallmentEarningsQuery,
+  earningsFrequencyLabels,
 } from "@freshphones/contracts";
 import { Database } from "../database";
 import { Prisma } from "../generated/prisma/client";
@@ -23,7 +27,9 @@ import {
   reconciliationExceptions,
 } from "./reconciliation";
 import { allowed } from "../auth/access";
+import { executiveCharts } from "./charts";
 import { effectiveAmount, verifiedTotals } from "../finance/ledger";
+import { installmentEarnings } from "./installment-earnings";
 
 type ReportQuery = z.infer<typeof reportQuerySchema>;
 
@@ -48,6 +54,67 @@ const snapshotInclude = {
 @Injectable()
 export class ReportsService {
   constructor(@Inject(Database) private readonly db: Database) {}
+
+  charts(months: ChartMonths) {
+    return executiveCharts(this.db, months);
+  }
+
+  installmentEarnings(query: InstallmentEarningsQuery) {
+    return installmentEarnings(this.db, query);
+  }
+
+  async installmentEarningsExport(
+    query: InstallmentEarningsQuery,
+    format: "csv" | "xlsx",
+  ) {
+    const report = await installmentEarnings(this.db, query, true);
+
+    const rows: unknown[][] = [
+      [
+        "Scheduled installment earnings",
+        earningsFrequencyLabels[report.frequency],
+      ],
+      ["Period from", report.dateFrom, "Period to", report.dateTo],
+      [
+        "Expected amounts from issued installment due dates. These figures are scheduled earnings, not collected payments or profit. Grouped by each member's current batch.",
+      ],
+      [
+        "Batch",
+        "Member",
+        "Members",
+        "Installments due",
+        "Scheduled amount (PHP)",
+        "Members without issued schedule",
+      ],
+      ...report.items.map((row) => {
+        return [
+          row.batchCode,
+          row.memberName ?? "",
+          row.members,
+          row.installments,
+          row.scheduledAmount,
+          row.membersWithoutSchedule,
+        ];
+      }),
+      [
+        "TOTAL",
+        "",
+        report.totals.members,
+        report.totals.installments,
+        report.totals.scheduledAmount,
+        report.totals.membersWithoutSchedule,
+      ],
+    ];
+
+    return format === "xlsx"
+      ? workbook(rows, "Installment earnings")
+      : "\uFEFF" +
+          rows
+            .map((row) => {
+              return row.map(csv).join(",");
+            })
+            .join("\r\n");
+  }
 
   private where(query: ReportQuery): Prisma.PaymentWhereInput {
     return {
@@ -576,7 +643,11 @@ export class ReportsService {
 
         const current = await tx.user.findUnique({ where: { id: user.id } });
 
-        if (!current?.active || !allowed(current, "REPORT_VIEW")) {
+        if (
+          !current?.active ||
+          !allowed(current, "REPORT_WRITE") ||
+          !reportKindsFor(current).includes(input.kind)
+        ) {
           throw new ForbiddenException("Your report access has changed.");
         }
 
@@ -698,12 +769,12 @@ export class ReportsService {
 
       const current = await tx.user.findUnique({ where: { id: user.id } });
 
-      if (!current?.active || !allowed(current, "REPORT_VIEW")) {
+      if (!current?.active || !allowed(current, "REPORT_WRITE")) {
         throw new ForbiddenException("Your report access has changed.");
       }
 
-      const snapshot = await tx.reportSnapshot.findUnique({
-        where: { id: snapshotId },
+      const snapshot = await tx.reportSnapshot.findFirst({
+        where: { id: snapshotId, kind: { in: [...reportKindsFor(current)] } },
         include: { analysis: { select: { id: true } } },
       });
 
@@ -736,8 +807,13 @@ export class ReportsService {
     });
   }
 
-  async snapshots(query: { page: number; kind?: string }) {
-    const where = query.kind ? { kind: query.kind } : {};
+  async snapshots(user: User, query: { page: number; kind?: string }) {
+    const where = {
+      AND: [
+        { kind: { in: [...reportKindsFor(user)] } },
+        ...(query.kind ? [{ kind: query.kind }] : []),
+      ],
+    };
 
     const [items, total] = await this.db.$transaction([
       this.db.reportSnapshot.findMany({

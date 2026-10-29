@@ -7,6 +7,8 @@ import { join } from "node:path";
 import type { INestApplication } from "@nestjs/common";
 import {
   effectivePermissions,
+  businessRole,
+  reportKindsFor,
   roles,
   rolePermissions,
   staffEmailKinds,
@@ -204,7 +206,7 @@ before(async () => {
     DATABASE_URL: databaseUrl,
     WEB_ORIGIN: origin,
     JWT_SECRET: "integration-only-secret-at-least-32-characters",
-
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "test@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local",
@@ -306,7 +308,7 @@ before(async () => {
     DATABASE_URL: databaseUrl,
     WEB_ORIGIN: origin,
     JWT_SECRET: "integration-only-secret-at-least-32-characters",
-
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "test@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local",
@@ -348,6 +350,17 @@ test("database health and anonymous API denial", async () => {
 
   assert.equal((await fetch(`${base}/api/batches`)).status, 401);
 
+  assert.equal(
+    (
+      await fetch(`${base}/api/auth/local-demo-login`, {
+        method: "POST",
+        headers: { Origin: origin, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "demo@freshphones.test" }),
+      })
+    ).status,
+    404,
+  );
+
   assert.equal((await fetch(`${base}/api/events`)).status, 401);
 });
 
@@ -378,15 +391,33 @@ test("role matrix is enforced for every foundation collection", async () => {
     for (const [route, permission] of Object.entries(routes)) {
       assert.equal(
         (await session.request(route)).status,
-        rolePermissions[role].includes(permission) ? 200 : 403,
+        (
+          route === "/reports/dashboard"
+            ? reportKindsFor({ role }).includes("PAYMENTS")
+            : rolePermissions[role].includes(permission)
+        )
+          ? 200
+          : 403,
         `${role} ${route}`,
       );
     }
 
-    const overview = await (await session.request("/overview")).json();
+    const overviewResponse = await session.request("/overview");
 
-    if (!rolePermissions[role].includes("CLIENT_READ")) {
-      assert.equal(overview.clients, null);
+    if (
+      !["BATCH_READ", "CLIENT_READ", "ACCOUNT_MANAGE", "TASK_READ"].some(
+        (permission) => {
+          return rolePermissions[role].includes(permission as never);
+        },
+      )
+    ) {
+      assert.equal(overviewResponse.status, 403);
+    } else {
+      const overview = await overviewResponse.json();
+
+      if (!rolePermissions[role].includes("CLIENT_READ")) {
+        assert.equal(overview.clients, null);
+      }
     }
 
     await session.request("/auth/logout", post({}));
@@ -476,7 +507,7 @@ test("owner and recruitment staff share the public job board and applicant revie
 
   const customer = await new Session().login("CUSTOMER");
 
-  for (const role of ["OWNER", "COO", "HR_PAYROLL"] as const) {
+  for (const role of ["SYSTEM_ADMIN", "COO", "HR_PAYROLL"] as const) {
     const staff = await new Session().login(role);
 
     const record = {
@@ -572,7 +603,10 @@ test("owner and recruitment staff share the public job board and applicant revie
 
     const application = await applied.json();
 
-    const owner = role === "OWNER" ? staff : await new Session().login("OWNER");
+    const owner =
+      role === "SYSTEM_ADMIN"
+        ? staff
+        : await new Session().login("SYSTEM_ADMIN");
 
     const queue = await (
       await owner.request(
@@ -635,7 +669,7 @@ test("owner and recruitment staff share the public job board and applicant revie
 
     assert.equal(
       review.reviewerId,
-      accounts.get(canReviewApplicants ? role : "OWNER"),
+      accounts.get(canReviewApplicants ? role : "SYSTEM_ADMIN"),
     );
 
     assert.equal(review.status, "REVIEWING");
@@ -758,7 +792,7 @@ test("wrong credentials, origin forgery, cookie flags and signed database-sessio
     (
       await session.request(
         "/auth/login",
-        post({ email: emails.get("OWNER"), password: "wrong" }),
+        post({ email: emails.get("SYSTEM_ADMIN"), password: "wrong" }),
       )
     ).status,
     401,
@@ -766,7 +800,7 @@ test("wrong credentials, origin forgery, cookie flags and signed database-sessio
 
   const login = await session.request(
     "/auth/login",
-    post({ email: emails.get("OWNER"), password }),
+    post({ email: emails.get("SYSTEM_ADMIN"), password }),
   );
 
   assert.equal(login.status, 200);
@@ -818,7 +852,7 @@ test("wrong credentials, origin forgery, cookie flags and signed database-sessio
 });
 
 test("batch writes audit atomically; duplicates, malformed input and stale edits are rejected", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const finance = await new Session().login("FINANCE_OFFICER");
 
@@ -892,7 +926,7 @@ test("batch writes audit atomically; duplicates, malformed input and stale edits
 });
 
 test("client account linkage, record updates and cross-customer isolation", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const customer = await new Session().login("CUSTOMER");
 
@@ -949,8 +983,12 @@ test("client account linkage, record updates and cross-customer isolation", asyn
   );
 
   assert.equal(
-    (await owner.request("/accounts", post({ ...account, role: "OWNER" })))
-      .status,
+    (
+      await owner.request(
+        "/accounts",
+        post({ ...account, role: "SYSTEM_ADMIN" }),
+      )
+    ).status,
     400,
   );
 
@@ -985,7 +1023,7 @@ test("client account linkage, record updates and cross-customer isolation", asyn
 });
 
 test("owner can find, filter and safely update a staff account", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const email = `${suffix}-directory@example.test`;
 
@@ -1066,7 +1104,7 @@ test("owner can find, filter and safely update a staff account", async () => {
     );
 
     const self = await db.user.findUniqueOrThrow({
-      where: { id: accounts.get("OWNER")! },
+      where: { id: accounts.get("SYSTEM_ADMIN")! },
     });
 
     assert.equal(
@@ -1084,7 +1122,7 @@ test("owner can find, filter and safely update a staff account", async () => {
 });
 
 test("SSE delivers across two API instances and isolates customer events", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const customer = await new Session().login("CUSTOMER");
 
@@ -1167,7 +1205,7 @@ test("SSE delivers across two API instances and isolates customer events", async
 });
 
 test("enrollment snapshots exact installments, freezes terms and rolls back invalid writes", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const terms = {
     code: `PLAN-${suffix}`,
@@ -1359,7 +1397,7 @@ test("client search finds and pages records in a 1,000-client dataset", async ()
 });
 
 test("schedule issuance is idempotent under concurrency, audited and isolated by role/customer", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const customer = await new Session().login("CUSTOMER");
 
@@ -1419,25 +1457,31 @@ test("schedule issuance is idempotent under concurrency, audited and isolated by
 
     assert.equal(
       (await session.request(`/clients/${firstClient}/schedule`)).status,
-      role === "CUSTOMER" ||
-        (role !== "CORE_HANDLER" &&
-          rolePermissions[role].includes("CLIENT_READ"))
-        ? 200
-        : 404,
+      !rolePermissions[role].some((permission) => {
+        return ["CLIENT_READ", "DOCUMENT_READ"].includes(permission);
+      })
+        ? 403
+        : ["BATCH_MANAGER", "BATCH_HANDLER"].includes(businessRole(role))
+          ? 404
+          : 200,
       role,
     );
 
     assert.equal(
       (await session.request(`/clients/${firstClient}/schedule`, post({})))
         .status,
-      rolePermissions[role].includes("CLIENT_MANAGE") ? 201 : 403,
+      !rolePermissions[role].includes("ENROLLMENT_REVIEW")
+        ? 403
+        : businessRole(role) === "BATCH_MANAGER"
+          ? 404
+          : 201,
       role,
     );
   }
 });
 
 test("Finance verification alone moves balances and customer-visible history", async () => {
-  const records = await new Session().login("RECORDS");
+  const recorder = await new Session().login("SYSTEM_ADMIN");
 
   const finance = await new Session().login("FINANCE_OFFICER");
 
@@ -1469,7 +1513,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 
   assert.equal(
     (
-      await records.request(
+      await recorder.request(
         "/payments/receipt-scan",
         post({ template: "gcash" }),
       )
@@ -1479,7 +1523,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 
   assert.equal((await support.request("/payments", post(input))).status, 403);
 
-  const recorded = await records.request("/payments", post(input));
+  const recorded = await recorder.request("/payments", post(input));
 
   assert.equal(recorded.status, 201);
 
@@ -1526,7 +1570,10 @@ test("Finance verification alone moves balances and customer-visible history", a
     "receipt.png",
   );
 
-  const attached = await records.upload(`/payments/${payment.id}/proof`, proof);
+  const attached = await recorder.upload(
+    `/payments/${payment.id}/proof`,
+    proof,
+  );
 
   assert.equal(attached.status, 201);
 
@@ -1534,7 +1581,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 
   assert.ok(paymentWithProof.proofFile.id);
 
-  const storedProof = await records.request(`/payments/${payment.id}/proof`);
+  const storedProof = await recorder.request(`/payments/${payment.id}/proof`);
 
   assert.equal(storedProof.status, 200);
 
@@ -1561,19 +1608,19 @@ test("Finance verification alone moves balances and customer-visible history", a
   );
 
   assert.equal(
-    (await records.upload(`/payments/${payment.id}/proof`, duplicateProof))
+    (await recorder.upload(`/payments/${payment.id}/proof`, duplicateProof))
       .status,
     409,
   );
 
   const duplicate = await (
-    await records.request("/payments", post(input))
+    await recorder.request("/payments", post(input))
   ).json();
 
   assert.equal(duplicate.duplicateReference, true);
 
   const pendingBalance = await (
-    await records.request(`/clients/${firstClient}/balance`)
+    await recorder.request(`/clients/${firstClient}/balance`)
   ).json();
 
   assert.equal(pendingBalance.totalDue, "100.00");
@@ -1600,7 +1647,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 
   assert.equal(
     (
-      await records.request(
+      await recorder.request(
         `/payments/${payment.id}/verify`,
         post({
           decision: "VERIFIED",
@@ -1728,7 +1775,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 
   assert.equal((await clarification.json()).status, "NEEDS_CLARIFICATION");
 
-  const corrected = await records.request(
+  const corrected = await recorder.request(
     `/payments/${duplicate.id}`,
     patch({
       version: duplicate.version + 1,
@@ -1750,7 +1797,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 
   assert.equal(
     (
-      await records.request(
+      await recorder.request(
         `/payments/${payment.id}`,
         patch({
           version: payment.version + 1,
@@ -1767,7 +1814,7 @@ test("Finance verification alone moves balances and customer-visible history", a
   );
 
   const overpayment = await (
-    await records.request(
+    await recorder.request(
       "/payments",
       post({
         ...input,
@@ -1792,7 +1839,7 @@ test("Finance verification alone moves balances and customer-visible history", a
   );
 
   const overpaidBalance = await (
-    await records.request(`/clients/${firstClient}/balance`)
+    await recorder.request(`/clients/${firstClient}/balance`)
   ).json();
 
   assert.equal(overpaidBalance.remainingBalance, "0.00");
@@ -1827,7 +1874,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 });
 
 test("payment duplicate precheck finds matching references across clients", async () => {
-  const records = await new Session().login("RECORDS");
+  const recorder = await new Session().login("SYSTEM_ADMIN");
 
   const support = await new Session().login("CS_TEAM");
 
@@ -1837,13 +1884,13 @@ test("payment duplicate precheck finds matching references across clients", asyn
 
   assert.equal((await support.request(query)).status, 403);
 
-  assert.deepEqual(await (await records.request(query)).json(), []);
+  assert.deepEqual(await (await recorder.request(query)).json(), []);
 
   const created: string[] = [];
 
   try {
     for (const clientId of [firstClient, secondClient]) {
-      const response = await records.request(
+      const response = await recorder.request(
         "/payments",
         post({
           clientId,
@@ -1859,7 +1906,7 @@ test("payment duplicate precheck finds matching references across clients", asyn
       created.push((await response.json()).id);
     }
 
-    const matches = (await (await records.request(query)).json()) as Array<{
+    const matches = (await (await recorder.request(query)).json()) as Array<{
       id: string;
       clientId: string;
       referenceNumber: string;
@@ -1884,10 +1931,10 @@ test("payment duplicate precheck finds matching references across clients", asyn
 
     const otherMethod = query.replace("method=gcash", "method=maya");
 
-    assert.deepEqual(await (await records.request(otherMethod)).json(), []);
+    assert.deepEqual(await (await recorder.request(otherMethod)).json(), []);
 
     const excluding = (await (
-      await records.request(`${query}&excludeId=${created[0]}`)
+      await recorder.request(`${query}&excludeId=${created[0]}`)
     ).json()) as Array<{ id: string }>;
 
     assert.deepEqual(
@@ -1902,7 +1949,7 @@ test("payment duplicate precheck finds matching references across clients", asyn
 });
 
 test("payment search and stable pagination find claims in a 1,000-row queue", async () => {
-  const records = await new Session().login("RECORDS");
+  const recorder = await new Session().login("SYSTEM_ADMIN");
 
   const marker = `LOAD-${suffix}`;
 
@@ -1915,18 +1962,18 @@ test("payment search and stable pagination find claims in a 1,000-row queue", as
         paymentDate: new Date("2026-09-20"),
         method: "GCash",
         referenceNumber: `${marker}-${String(index).padStart(4, "0")}`,
-        recordedById: accounts.get("RECORDS")!,
+        recordedById: accounts.get("SYSTEM_ADMIN")!,
       };
     }),
   });
 
   try {
     const first = await (
-      await records.request(`/payments?q=${marker}&page=1`)
+      await recorder.request(`/payments?q=${marker}&page=1`)
     ).json();
 
     const last = await (
-      await records.request(`/payments?q=${marker}&page=50`)
+      await recorder.request(`/payments?q=${marker}&page=50`)
     ).json();
 
     assert.equal(first.total, 1000);
@@ -1948,14 +1995,14 @@ test("payment search and stable pagination find claims in a 1,000-row queue", as
     );
 
     const batchSearch = await (
-      await records.request(
+      await recorder.request(
         `/payments?q=${encodeURIComponent(`TEST-${suffix}`)}&status=PENDING&dateFrom=2026-09-20&dateTo=2026-09-20`,
       )
     ).json();
 
     assert.equal(batchSearch.total, 1000);
 
-    const exported = await records.request(
+    const exported = await recorder.request(
       `/reports/payments/export?q=${marker}&status=PENDING&dateFrom=2026-09-20&dateTo=2026-09-20`,
     );
 
@@ -1976,7 +2023,7 @@ test("payment search and stable pagination find claims in a 1,000-row queue", as
 });
 
 test("deactivation stops an existing stream and invalidates the session", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const records = await new Session().login("RECORDS");
 
@@ -2011,7 +2058,7 @@ test("deactivation stops an existing stream and invalidates the session", async 
     assert.equal(
       (
         await owner.request(
-          `/accounts/${accounts.get("OWNER")}`,
+          `/accounts/${accounts.get("SYSTEM_ADMIN")}`,
           patch({ active: false, version: 1 }),
         )
       ).status,
@@ -2023,7 +2070,7 @@ test("deactivation stops an existing stream and invalidates the session", async 
 });
 
 test("disconnect recovery retrieves current authoritative records", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const customer = await new Session().login("CUSTOMER");
 
@@ -2367,7 +2414,7 @@ test("customer documents stay private through clarification, resubmission and re
 
   assert.equal(
     (await unrelatedStaff.request(`/documents/${first.id}/file`)).status,
-    404,
+    403,
   );
 
   assert.equal(
@@ -2484,7 +2531,7 @@ test("support updates and notifications are scoped to the linked customer", asyn
 
   const staff = await new Session().login("CS_TEAM");
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const other = new Session();
 
@@ -2747,7 +2794,7 @@ test("support replies stay on the linked case and release milestones stay privat
 
   const staff = await new Session().login("CS_TEAM");
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const other = new Session();
 
@@ -2933,7 +2980,7 @@ test("staff work queues show only authorized, actionable records and open exact 
     200,
   );
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   for (const kind of ["support", "documents", "payments"]) {
     assert.equal(
@@ -3179,15 +3226,17 @@ test("Owner can edit audited customer email templates while other roles cannot",
       key: {
         in: [
           "login-ip:127.0.0.1",
-          ...(["OWNER", "CORE_HANDLER", "CUSTOMER"] as const).map((role) => {
-            return `login-email:${emails.get(role)}`;
-          }),
+          ...(["SYSTEM_ADMIN", "CORE_HANDLER", "CUSTOMER"] as const).map(
+            (role) => {
+              return `login-email:${emails.get(role)}`;
+            },
+          ),
         ].map(tokenHash),
       },
     },
   });
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const handler = await new Session().login("CORE_HANDLER");
 
@@ -3534,7 +3583,7 @@ test("staff tasks enforce ownership, private evidence, objective lateness and hu
           "login-ip:127.0.0.1",
           ...(
             [
-              "OWNER",
+              "SYSTEM_ADMIN",
               "HR_PAYROLL",
               "CORE_HANDLER",
               "CS_TEAM",
@@ -3548,7 +3597,7 @@ test("staff tasks enforce ownership, private evidence, objective lateness and hu
     },
   });
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const hr = await new Session().login("HR_PAYROLL");
 
@@ -3562,7 +3611,7 @@ test("staff tasks enforce ownership, private evidence, objective lateness and hu
 
   assert.equal((await otherStaff.request("/tasks/assignees")).status, 403);
 
-  assert.equal((await hr.request("/tasks/assignees")).status, 200);
+  assert.equal((await hr.request("/tasks/assignees")).status, 403);
 
   const assignment = {
     title: `Check stock ${suffix}`,
@@ -3837,7 +3886,7 @@ test("staff tasks enforce ownership, private evidence, objective lateness and hu
 });
 
 test("record details and history enforce role permissions, field minimization and bounded pagination", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const records = await new Session().login("RECORDS");
 
@@ -3869,7 +3918,7 @@ test("record details and history enforce role permissions, field minimization an
   };
 
   const client = await (
-    await records.request("/clients", post(clientInput))
+    await owner.request("/clients", post(clientInput))
   ).json();
 
   assert.equal(client.scheduleIssued, true);
@@ -3909,7 +3958,8 @@ test("record details and history enforce role permissions, field minimization an
     ] as const) {
       assert.equal(
         (await session.request(route)).status,
-        role === "CORE_HANDLER" && route === `/batches/${batch.id}`
+        ["BATCH_MANAGER", "BATCH_HANDLER"].includes(businessRole(role)) &&
+          rolePermissions[role].includes(permission)
           ? 404
           : rolePermissions[role].includes(permission)
             ? 200
@@ -3990,7 +4040,7 @@ test("record details and history enforce role permissions, field minimization an
   await db.auditEntry.createMany({
     data: Array.from({ length: 22 }, (_, index) => {
       return {
-        actorId: accounts.get("OWNER")!,
+        actorId: accounts.get("SYSTEM_ADMIN")!,
         action: "batch.updated",
         entity: "batch",
         recordId: batch.id,
@@ -4060,7 +4110,7 @@ test("record details and history enforce role permissions, field minimization an
 });
 
 test("client edits reject stale concurrent drafts and preserve schedules and verified balances", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const records = await new Session().login("RECORDS");
 
@@ -4189,7 +4239,7 @@ test("client edits reject stale concurrent drafts and preserve schedules and ver
 });
 
 test("agent directory permissions, optimistic updates and privacy match the public verification contract", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const input = {
     name: `Recognized Agent ${suffix}`,
@@ -4246,7 +4296,7 @@ test("agent directory permissions, optimistic updates and privacy match the publ
           patch({ version: 1, handlerId: null, agentId: null }),
         )
       ).status,
-      rolePermissions[role].includes("BATCH_MANAGE") ? 404 : 403,
+      rolePermissions[role].includes("BATCH_ASSIGN") ? 404 : 403,
       `${role} batch assignment`,
     );
 
@@ -4372,7 +4422,7 @@ test("agent directory permissions, optimistic updates and privacy match the publ
 });
 
 test("batch assignments restrict every handler read and filter, preserve schedules, and audit names atomically", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const hash = await hashPassword(password);
 
@@ -4648,7 +4698,6 @@ test("batch assignments restrict every handler read and filter, preserve schedul
     `/clients/${clients[0].id}/history`,
     "/accounts",
     "/agents",
-    "/payments",
     "/reports/dashboard",
     `/clients/${clients[0].id}/documents`,
   ]) {
@@ -4761,7 +4810,7 @@ test("batch assignments restrict every handler read and filter, preserve schedul
 });
 
 test("live events disclose only current assignments and invalidate the previous handler after reassignment", async () => {
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const hash = await hashPassword(password);
 
@@ -5050,7 +5099,7 @@ test("Finance alerts enforce every role, origin, strict input and current review
   for (const body of [
     {},
     { version: 0 },
-    { version: 1, userId: accounts.get("OWNER") },
+    { version: 1, userId: accounts.get("SYSTEM_ADMIN") },
   ]) {
     assert.equal(
       (
@@ -5289,7 +5338,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
 
   const { session: finance, user } = await alertAccount("lifecycle");
 
-  const records = await new Session().login("RECORDS");
+  const recorder = await new Session().login("SYSTEM_ADMIN");
 
   assert.equal(
     (await finance.request("/staff/finance-alerts/read-all", post({}))).status,
@@ -5304,7 +5353,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
     referenceNumber: `ALERT-${suffix}`,
   };
 
-  const create = await records.request("/payments", post(input));
+  const create = await recorder.request("/payments", post(input));
 
   assert.equal(create.status, 201);
 
@@ -5323,7 +5372,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
 
   assert.equal((await alertSnapshot(finance)).unreadCount, 0);
 
-  const correction = await records.request(
+  const correction = await recorder.request(
     `/payments/${payment.id}`,
     patch({ version: 1, record: { ...input, amount: "3.75" } }),
     secondBase,
@@ -5369,7 +5418,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
   );
 
   assert.equal(
-    (await records.upload(`/payments/${payment.id}/proof`, proof)).status,
+    (await recorder.upload(`/payments/${payment.id}/proof`, proof)).status,
     201,
   );
 
@@ -5405,7 +5454,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
 
   assert.equal(
     (
-      await records.request(
+      await recorder.request(
         `/payments/${payment.id}`,
         patch({
           version: 4,
@@ -5467,7 +5516,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
   );
 
   const rejected = await (
-    await records.request(
+    await recorder.request(
       "/payments",
       post({ ...input, referenceNumber: `ALERT-REJECT-${suffix}` }),
     )
@@ -5499,13 +5548,13 @@ test("Finance alert reads refresh only the same reviewer across instances and se
 
   const other = await alertAccount("stream-two");
 
-  const records = await new Session().login("RECORDS");
+  const recorder = await new Session().login("SYSTEM_ADMIN");
 
   const ownFeed = await stream(first.session, secondBase);
 
   const otherFeed = await stream(other.session);
 
-  const recordsFeed = await stream(records, secondBase);
+  const recordsFeed = await stream(recorder, secondBase);
 
   try {
     const input = {
@@ -5516,7 +5565,7 @@ test("Finance alert reads refresh only the same reviewer across instances and se
       referenceNumber: `ALERT-STREAM-${suffix}`,
     };
 
-    const created = await records.request("/payments", post(input));
+    const created = await recorder.request("/payments", post(input));
 
     assert.equal(created.status, 201);
 
@@ -5556,7 +5605,7 @@ test("Finance alert reads refresh only the same reviewer across instances and se
         post({}),
         secondBase,
       ),
-      records.request(
+      recorder.request(
         `/payments/${payment.id}`,
         patch({ version: 1, record: { ...input, amount: "1.25" } }),
       ),
@@ -5624,13 +5673,15 @@ function staffRead(alert: StaffAlert): RequestInit {
   return post(
     alert.entity === "payment"
       ? { entity: "payment", version: alert.version }
-      : alert.entity === "payment-result"
-        ? { entity: "payment-result" }
-        : alert.entity === "support"
-          ? { entity: "support" }
-          : alert.entity === "account"
-            ? { entity: "account" }
-            : { entity: "task", kind: alert.kind, deadline: alert.deadline },
+      : alert.entity === "enrollment"
+        ? { entity: "enrollment", version: alert.version }
+        : alert.entity === "payment-result"
+          ? { entity: "payment-result" }
+          : alert.entity === "support"
+            ? { entity: "support" }
+            : alert.entity === "account"
+              ? { entity: "account" }
+              : { entity: "task", kind: alert.kind, deadline: alert.deadline },
   );
 }
 
@@ -5645,7 +5696,7 @@ async function alertTask(
       instructions: "Private task instructions",
       report: "Private draft report",
       assigneeId,
-      creatorId: accounts.get("OWNER")!,
+      creatorId: accounts.get("SYSTEM_ADMIN")!,
       deadline,
     },
   });
@@ -5665,13 +5716,17 @@ test("staff alerts enforce assignee isolation for every role and deny Finance/cu
     const { user, session } = await alertAccount(`staff-matrix-${role}`, role);
 
     const own =
-      role !== "CUSTOMER"
+      role !== "CUSTOMER" && role !== "CEO"
         ? await alertTask(user.id, `Own alert ${role}`)
         : null;
 
     const list = await session.request("/staff/alerts");
 
-    assert.equal(list.status, role === "CUSTOMER" ? 403 : 200, role);
+    assert.equal(
+      list.status,
+      role === "CUSTOMER" || role === "CEO" ? 403 : 200,
+      role,
+    );
 
     if (own) {
       const snapshot: StaffAlertPage = await list.json();
@@ -5729,7 +5784,7 @@ test("staff alerts enforce assignee isolation for every role and deny Finance/cu
           post({ scope: "tasks" }),
         )
       ).status,
-      role === "CUSTOMER" ? 403 : 200,
+      role === "CUSTOMER" || role === "CEO" ? 403 : 200,
       role,
     );
 
@@ -5897,7 +5952,7 @@ test("task alert backlog pages safely and reminder SQL matches exact time bounda
         id,
         title: `Paged task ${index}`,
         assigneeId: user.id,
-        creatorId: accounts.get("OWNER")!,
+        creatorId: accounts.get("SYSTEM_ADMIN")!,
         deadline: new Date(Date.now() + 48 * 3_600_000),
         instructions: "private-evidence-instructions",
         report: "private-report-text",
@@ -5911,7 +5966,7 @@ test("task alert backlog pages safely and reminder SQL matches exact time bounda
         data: {
           title: `Closed ${status}`,
           assigneeId: user.id,
-          creatorId: accounts.get("OWNER")!,
+          creatorId: accounts.get("SYSTEM_ADMIN")!,
           status,
           deadline: new Date(Date.now() - 3_600_000),
           submittedAt: new Date(),
@@ -5970,7 +6025,7 @@ test("task alerts retain reads on start, advance once at deadlines, and stop on 
 
   const assignee = await alertAccount("task-lifecycle", "CORE_HANDLER");
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const deadline = new Date(Date.now() + 8000);
 
@@ -6354,7 +6409,7 @@ test("task assignment events and reads stay scoped across instances and serializ
 
   const other = await alertAccount("task-stream-other", "CS_TEAM");
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const customer = await alertAccount("task-stream-customer", "CUSTOMER");
 
@@ -6540,7 +6595,7 @@ test("Finance decisions notify active Records and the recorder once and retain h
 
   const records = await alertAccount("result-records", "RECORDS");
 
-  const recorder = await alertAccount("result-recorder", "COO");
+  const recorder = await alertAccount("result-recorder", "SYSTEM_ADMIN");
 
   const observer = await alertAccount("result-observer", "GENERAL_MANAGER");
 
@@ -6804,7 +6859,7 @@ test("Finance result details and reads enforce every role, recipient, current ac
       recordedById: accounts.get("RECORDS")!,
       status: "VERIFIED",
       version: 2,
-      verifierId: accounts.get("OWNER")!,
+      verifierId: accounts.get("SYSTEM_ADMIN")!,
       verifiedAt: new Date(),
     },
   });
@@ -6815,6 +6870,13 @@ test("Finance result details and reads enforce every role, recipient, current ac
 
   for (const role of roles) {
     const { user, session } = await alertAccount(`result-matrix-${role}`, role);
+
+    if (businessRole(role) === "BATCH_HANDLER") {
+      await db.batch.update({
+        where: { id: batchId },
+        data: { handlerId: user.id },
+      });
+    }
 
     const result = await seededResult(user.id, payment.id);
 
@@ -6854,7 +6916,7 @@ test("Finance result details and reads enforce every role, recipient, current ac
       role,
     );
 
-    if (role !== "CUSTOMER") {
+    if (role !== "CUSTOMER" && role !== "CEO") {
       const all = await staffAlertSnapshot(session);
 
       assert.equal(all.resultCount, permitted ? 1 : 0, role);
@@ -6964,12 +7026,12 @@ test("Finance result details and reads enforce every role, recipient, current ac
     app
       .get(StaffAlertsService)
       .read(stale, result.id, { entity: "payment-result" }),
-    /Payment recording and read access/,
+    /Finance result.*not found/,
   );
 
-  await assert.rejects(
-    app.get(StaffAlertsService).readAll(stale, "results"),
-    /Payment recording and read access/,
+  assert.deepEqual(
+    await app.get(StaffAlertsService).readAll(stale, "results"),
+    { updated: 0 },
   );
 
   await app.get(StaffAlertsService).readAll(stale, "all");
@@ -7001,7 +7063,7 @@ test("Finance result details and reads enforce every role, recipient, current ac
 test("Finance result history pages and scoped mark-all preserve other alerts, payments, balances and customer delivery", async () => {
   await resetAlertLoginLimit();
 
-  const reviewer = await alertAccount("result-pages");
+  const reviewer = await alertAccount("result-pages", "RECORDS");
 
   const other = await alertAccount("result-pages-other", "RECORDS");
 
@@ -7158,8 +7220,8 @@ test("Finance result history pages and scoped mark-all preserve other alerts, pa
   assert.equal(afterResults.resultCount, 25);
 
   assert.equal(
-    (await alertSnapshot(reviewer.session)).unreadCount,
-    first.financeCount,
+    (await reviewer.session.request("/staff/finance-alerts")).status,
+    403,
   );
 
   assert.equal(
@@ -7261,7 +7323,7 @@ test("Finance result events and reads reach only each recipient across API insta
     "RECORDS",
   );
 
-  const recorder = await alertAccount("result-stream-recorder", "COO");
+  const recorder = await alertAccount("result-stream-recorder", "SYSTEM_ADMIN");
 
   const unrelated = await alertAccount(
     "result-stream-observer",
@@ -7397,13 +7459,13 @@ test("Finance result events and reads reach only each recipient across API insta
 test("Finance result delivery commits atomically and duplicate decisions cannot duplicate results or customer notices", async () => {
   await resetAlertLoginLimit();
 
-  const recorder = await alertAccount("result-atomic-recorder", "RECORDS");
+  const recorder = await alertAccount("result-atomic-recorder", "SYSTEM_ADMIN");
 
   const customer = await alertAccount("result-atomic-customer", "CUSTOMER");
 
   const finance = (await alertAccount("result-atomic-finance")).session;
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const otherFinance = (await alertAccount("result-atomic-second-finance"))
     .session;
@@ -7498,7 +7560,7 @@ test("Finance result delivery commits atomically and duplicate decisions cannot 
 
   assert.equal(
     await db.paymentResultAlert.count({ where: { paymentId: payment.id } }),
-    activeRecords,
+    activeRecords + 1,
   );
 
   assert.equal(
@@ -7553,7 +7615,7 @@ async function mailTask(
       title,
       instructions: "Private instructions remain behind sign-in.",
       assigneeId: userId,
-      creatorId: accounts.get("OWNER")!,
+      creatorId: accounts.get("SYSTEM_ADMIN")!,
       deadline: new Date(Date.now() + hours * 3_600_000),
     },
   });
@@ -7572,7 +7634,7 @@ async function queueAssigned(task: Awaited<ReturnType<typeof mailTask>>) {
 test("staff email settings and delivery controls enforce every role, strict inputs, stale versions and audit", async () => {
   await resetAlertLoginLimit();
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const anonymous = new Session();
 
@@ -7777,7 +7839,7 @@ test("staff email settings and delivery controls enforce every role, strict inpu
   assert.ok(
     await db.auditEntry.count({
       where: {
-        actorId: accounts.get("OWNER")!,
+        actorId: accounts.get("SYSTEM_ADMIN")!,
         action: "staff_email_template.updated",
       },
     }),
@@ -7786,7 +7848,7 @@ test("staff email settings and delivery controls enforce every role, strict inpu
   assert.ok(
     await db.auditEntry.count({
       where: {
-        actorId: accounts.get("OWNER")!,
+        actorId: accounts.get("SYSTEM_ADMIN")!,
         action: "staff_email_timing.updated",
       },
     }),
@@ -7797,15 +7859,18 @@ test("staff email settings and delivery controls enforce every role, strict inpu
     data: { dueSoonHours: 24, overdueHours: 0 },
   });
 
-  const revoked = await alertAccount("staff-email-revoked-owner", "OWNER");
+  const revoked = await alertAccount(
+    "staff-email-revoked-owner",
+    "SYSTEM_ADMIN",
+  );
 
   const staleOwner = {
     id: revoked.user.id,
-    role: "OWNER",
+    role: "SYSTEM_ADMIN",
     name: revoked.user.name,
     email: revoked.user.email,
     clientId: null,
-    permissions: rolePermissions.OWNER,
+    permissions: rolePermissions.SYSTEM_ADMIN,
   } as const;
 
   await db.user.update({
@@ -7817,7 +7882,7 @@ test("staff email settings and delivery controls enforce every role, strict inpu
     app
       .get(StaffEmailService)
       .settings({ ...staleOwner, permissions: [...staleOwner.permissions] }),
-    /Owner access/,
+    /access.*required/i,
   );
 
   assert.equal(
@@ -7836,9 +7901,9 @@ test("staff emails cover all seven kinds with correct recipients, private conten
     data: { status: "DONE" },
   });
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
-  const recorder = await alertAccount("staff-mail-recorder", "RECORDS");
+  const recorder = await alertAccount("staff-mail-recorder", "SYSTEM_ADMIN");
 
   const finance = await alertAccount("staff-mail-finance");
 
@@ -8331,7 +8396,10 @@ test("staff email delivery rechecks active access, recipient address, task owner
 
   const finance = await alertAccount("staff-mail-auth-finance");
 
-  const recorder = await alertAccount("staff-mail-auth-recorder", "RECORDS");
+  const recorder = await alertAccount(
+    "staff-mail-auth-recorder",
+    "SYSTEM_ADMIN",
+  );
 
   const inactiveTask = await mailTask(staff.user.id),
     addressTask = await mailTask(changedAddress.user.id),
@@ -8429,7 +8497,7 @@ test("staff email delivery rechecks active access, recipient address, task owner
     keep.length,
   );
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const visible = await (
     await owner.request(
@@ -8555,7 +8623,7 @@ test("staff email failures back off, preserve provider payload, stop at five att
 
   await resetAlertLoginLimit();
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const handler = await alertAccount("staff-mail-retry", "CORE_HANDLER");
 
@@ -8832,9 +8900,12 @@ test("staff email outbox failures roll back task assignments and Finance decisio
 
   await resetAlertLoginLimit();
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
-  const recorder = await alertAccount("staff-mail-atomic-recorder", "RECORDS");
+  const recorder = await alertAccount(
+    "staff-mail-atomic-recorder",
+    "SYSTEM_ADMIN",
+  );
 
   const customer = await alertAccount("staff-mail-atomic-customer", "CUSTOMER");
 
@@ -8953,7 +9024,7 @@ test("staff email history pages and filters exclude sensitive payloads and retri
 
   await resetAlertLoginLimit();
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const handler = await alertAccount("staff-mail-pages", "CORE_HANDLER");
 
@@ -9114,7 +9185,7 @@ async function supportFixture(key: string) {
 
   const customer = await new Session().login("CUSTOMER");
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const team = await alertAccount(`support-${key}`, "CS_TEAM");
 
@@ -9147,7 +9218,7 @@ test("Support alerts route new cases to active heads, isolate recipients and enf
   );
 
   const heads = await db.user.findMany({
-    where: { active: true, role: "CS_HEAD" },
+    where: { active: true, role: { in: ["CS_HEAD", "CSR"] } },
     select: { id: true },
   });
 
@@ -9196,14 +9267,14 @@ test("Support alerts route new cases to active heads, isolate recipients and enf
       role,
     );
 
-    if (role !== "CUSTOMER") {
+    if (role !== "CUSTOMER" && role !== "CEO") {
       const queue = await staffAlertSnapshot(session);
 
       const own = queue.items.filter((a) => {
         return a.entity === "support" && a.caseId === created.id;
       });
 
-      assert.equal(own.length, role === "CS_HEAD" ? 1 : 0, role);
+      assert.equal(own.length, ["CS_HEAD", "CSR"].includes(role) ? 1 : 0, role);
 
       assert.doesNotMatch(
         JSON.stringify(own),
@@ -9238,7 +9309,7 @@ test("Support alerts route new cases to active heads, isolate recipients and enf
   })!;
 
   for (const extra of [
-    { userId: accounts.get("OWNER") },
+    { userId: accounts.get("SYSTEM_ADMIN") },
     { caseId: created.id },
     { version: 1 },
     { kind: "SUPPORT_NEW_CASE" },
@@ -9284,10 +9355,10 @@ test("Support triage falls back to active Owners without heads and does not back
 
   const customer = await new Session().login("CUSTOMER");
 
-  const owner = await new Session().login("OWNER");
+  const owner = await new Session().login("SYSTEM_ADMIN");
 
   const heads = await db.user.findMany({
-    where: { role: "CS_HEAD", active: true },
+    where: { role: { in: ["CS_HEAD", "CSR"] }, active: true },
     select: { id: true },
   });
 
@@ -9310,7 +9381,7 @@ test("Support triage falls back to active Owners without heads and does not back
     });
 
     const owners = await db.user.findMany({
-      where: { active: true, role: "OWNER" },
+      where: { active: true, role: "SYSTEM_ADMIN" },
       select: { id: true },
     });
 
@@ -9360,10 +9431,6 @@ test("Support triage falls back to active Owners without heads and does not back
 
     const sent: string[] = [];
 
-    await app.get(StaffEmailService).deliver(async (id) => {
-      sent.push(id);
-    });
-
     const outbox = await db.staffEmail.findMany({
       where: {
         supportAlertId: {
@@ -9374,14 +9441,30 @@ test("Support triage falls back to active Owners without heads and does not back
       },
     });
 
+    for (const row of outbox) {
+      await app.get(StaffEmailService).deliver(async (id) => {
+        sent.push(id);
+      }, row.id);
+    }
+
+    const currentOutbox = await db.staffEmail.findMany({
+      where: {
+        id: {
+          in: outbox.map((row) => {
+            return row.id;
+          }),
+        },
+      },
+    });
+
     assert.ok(
-      outbox.every((row) => {
+      currentOutbox.every((row) => {
         return !sent.includes(row.id);
       }),
     );
 
     assert.ok(
-      outbox.every((e) => {
+      currentOutbox.every((e) => {
         return e.status === "SKIPPED";
       }),
     );
@@ -10222,7 +10305,7 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
     matrix.set(role, await alertAccount(`account-role-${role}`, role));
   }
 
-  const owner = matrix.get("OWNER")!;
+  const owner = matrix.get("SYSTEM_ADMIN")!;
 
   const subject = await createAlertAccount(owner.session, "matrix");
 
@@ -10231,7 +10314,7 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
   });
 
   const owners = await db.user.findMany({
-    where: { active: true, role: "OWNER" },
+    where: { active: true, role: { in: ["SYSTEM_ADMIN", "COO"] } },
     select: { id: true },
   });
 
@@ -10257,7 +10340,7 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
 
     assert.equal(
       (await session.request("/staff/alerts?scope=accounts")).status,
-      role === "OWNER" ? 200 : 403,
+      ["SYSTEM_ADMIN", "COO"].includes(role) ? 200 : 403,
       role,
     );
 
@@ -10268,7 +10351,7 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
           post({ scope: "accounts" }),
         )
       ).status,
-      role === "OWNER" ? 200 : 403,
+      ["SYSTEM_ADMIN", "COO"].includes(role) ? 200 : 403,
       role,
     );
 
@@ -10279,32 +10362,39 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
           post({ entity: "account" }),
         )
       ).status,
-      role === "OWNER" ? 200 : 403,
+      role === "SYSTEM_ADMIN" ? 200 : role === "COO" ? 404 : 403,
       role,
     );
 
     assert.equal(
       (await session.request(`/accounts/${subject.id}`)).status,
-      role === "OWNER" ? 200 : 403,
+      ["SYSTEM_ADMIN", "COO"].includes(role) ? 200 : 403,
       role,
     );
 
-    if (role !== "CUSTOMER") {
+    if (role !== "CUSTOMER" && role !== "CEO") {
       const queue = await staffAlertSnapshot(session);
 
       assert.equal(
         queue.items.some((r) => {
           return r.id === target.id;
         }),
-        role === "OWNER",
+        role === "SYSTEM_ADMIN",
         role,
       );
 
-      assert.equal(queue.accountCount, role === "OWNER" ? 1 : 0, role);
+      assert.equal(
+        queue.accountCount,
+        ["SYSTEM_ADMIN", "COO"].includes(role) ? 1 : 0,
+        role,
+      );
     }
   }
 
-  const foreignOwner = await alertAccount("account-foreign-owner", "OWNER");
+  const foreignOwner = await alertAccount(
+    "account-foreign-owner",
+    "SYSTEM_ADMIN",
+  );
 
   assert.equal(
     (
@@ -10423,7 +10513,7 @@ test("Account alerts and detail reads enforce every role, recipient isolation, s
 test("Account lifecycle keeps historical snapshots, emits each real change once and retains existing session revocation", async () => {
   await resetSupportLoginLimit();
 
-  const owner = await alertAccount("account-lifecycle-owner", "OWNER");
+  const owner = await alertAccount("account-lifecycle-owner", "SYSTEM_ADMIN");
 
   let subject = await createAlertAccount(owner.session, "lifecycle");
 
@@ -10578,7 +10668,7 @@ test("Account lifecycle keeps historical snapshots, emits each real change once 
     (
       await owner.session.request(
         `/accounts/${promoted.user.id}`,
-        patch({ role: "OWNER", version: 1 }),
+        patch({ role: "SYSTEM_ADMIN", version: 1 }),
       )
     ).status,
     200,
@@ -10601,9 +10691,9 @@ test("Account lifecycle keeps historical snapshots, emits each real change once 
 test("Account mark-all reads all historical pages without changing access, sessions, audit, money or other categories", async () => {
   await resetSupportLoginLimit();
 
-  const owner = await alertAccount("account-pages-owner", "OWNER");
+  const owner = await alertAccount("account-pages-owner", "SYSTEM_ADMIN");
 
-  const other = await alertAccount("account-pages-other", "OWNER");
+  const other = await alertAccount("account-pages-other", "SYSTEM_ADMIN");
 
   let subject = await createAlertAccount(owner.session, "pages");
 
@@ -10766,7 +10856,7 @@ test("Account emails use four Owner templates, private local previews and frozen
 
   await resetSupportLoginLimit();
 
-  const owner = await alertAccount("account-mail-owner", "OWNER");
+  const owner = await alertAccount("account-mail-owner", "SYSTEM_ADMIN");
 
   let subject = await createAlertAccount(owner.session, "mail");
 
@@ -10804,9 +10894,16 @@ test("Account emails use four Owner templates, private local previews and frozen
     );
   }
 
+  const batchesToDrain =
+    Math.ceil(
+      (await db.staffEmail.count({
+        where: { status: "PENDING", accountAlertId: { not: null } },
+      })) / 20,
+    ) + 1;
+
   for (
     let i = 0;
-    i < 12 &&
+    i < batchesToDrain &&
     (await db.staffEmail.count({
       where: { status: "PENDING", accountAlertId: { not: null } },
     }));
@@ -10982,11 +11079,11 @@ test("Account email and receipt eligibility rechecks current Owner access, activ
 
   await resetSupportLoginLimit();
 
-  const actor = await new Session().login("OWNER");
+  const actor = await new Session().login("SYSTEM_ADMIN");
 
   const recipients = await Promise.all(
     ["role", "inactive", "address", "valid"].map((key) => {
-      return alertAccount(`account-recipient-${key}`, "OWNER");
+      return alertAccount(`account-recipient-${key}`, "SYSTEM_ADMIN");
     }),
   );
 
@@ -11056,18 +11153,18 @@ test("Account email and receipt eligibility rechecks current Owner access, activ
 
   const stale = {
     id: recipients[0].user.id,
-    role: "OWNER",
+    role: "SYSTEM_ADMIN",
     name: recipients[0].user.name,
     email: recipients[0].user.email,
     clientId: null,
-    permissions: rolePermissions.OWNER,
+    permissions: rolePermissions.SYSTEM_ADMIN,
   } as const;
 
   await assert.rejects(
     app
       .get(StaffAlertsService)
       .readAll({ ...stale, permissions: [...stale.permissions] }, "accounts"),
-    /Owner account access/,
+    /access.*required/i,
   );
 
   const delivered: string[] = [];
@@ -11089,8 +11186,8 @@ test("Account email and receipt eligibility rechecks current Owner access, activ
 test("Account SSE events and read invalidations stay private to each active Owner across instances", async () => {
   await resetSupportLoginLimit();
 
-  const own = await alertAccount("account-stream-own", "OWNER"),
-    other = await alertAccount("account-stream-other", "OWNER");
+  const own = await alertAccount("account-stream-own", "SYSTEM_ADMIN"),
+    other = await alertAccount("account-stream-other", "SYSTEM_ADMIN");
 
   const staff = await alertAccount("account-stream-staff", "CS_TEAM"),
     customer = await alertAccount("account-stream-customer", "CUSTOMER");
@@ -11171,7 +11268,7 @@ test("Account outbox failure rolls back creation, access, audit and session revo
 
   await resetSupportLoginLimit();
 
-  const owner = await alertAccount("account-atomic-owner", "OWNER");
+  const owner = await alertAccount("account-atomic-owner", "SYSTEM_ADMIN");
 
   const subject = await createAlertAccount(owner.session, "atomic");
 
@@ -11311,7 +11408,7 @@ test("Account outbox failure rolls back creation, access, audit and session revo
 async function recordFilterFixture(key: string) {
   await resetAlertLoginLimit();
 
-  const owner = await alertAccount(`filter-${key}-owner`, "OWNER");
+  const owner = await alertAccount(`filter-${key}-owner`, "SYSTEM_ADMIN");
 
   const handler = await alertAccount(`filter-${key}-handler`, "CORE_HANDLER");
 
@@ -11418,7 +11515,7 @@ test("Records/Clients filters enforce the full role matrix and strict inputs at 
 
   await resetAlertLoginLimit();
 
-  const owner = await alertAccount("filter-input-owner", "OWNER");
+  const owner = await alertAccount("filter-input-owner", "SYSTEM_ADMIN");
 
   for (const path of ["/batches", "/clients"]) {
     for (const input of [
@@ -11969,8 +12066,12 @@ test("merged operations endpoints retain the existing permission grants and enfo
       assert.equal(
         (await session.request(path)).status,
         rolePermissions[role].includes(permission) &&
+          (!path.startsWith("/reports/") ||
+            reportKindsFor({ role }).includes(
+              path.endsWith("tasks") ? "TASKS" : "SUPPORT",
+            )) &&
           (path !== "/recruitment/applicants" ||
-            role === "OWNER" ||
+            role === "SYSTEM_ADMIN" ||
             role === "HR_PAYROLL")
           ? 200
           : 403,
@@ -11989,7 +12090,7 @@ test("merged operations endpoints retain the existing permission grants and enfo
     assert.equal((await new Session().request(path)).status, 401, path);
   }
 
-  assert.equal(rolePermissions.COO.includes("SUPPORT_MANAGE"), false);
+  assert.equal(rolePermissions.COO.includes("SUPPORT_MANAGE"), true);
 
   assert.equal(rolePermissions.CORE_HANDLER.includes("BATCH_READ"), true);
 
@@ -11999,7 +12100,7 @@ test("merged operations endpoints retain the existing permission grants and enfo
 test("merged recruitment supports public applications/private attachments and versioned internal review without touching client documents", async () => {
   await resetAlertLoginLimit();
 
-  const owner = await alertAccount("merged-recruit-owner", "OWNER");
+  const owner = await alertAccount("merged-recruit-owner", "SYSTEM_ADMIN");
 
   const hr = await alertAccount("merged-recruit-hr", "HR_PAYROLL");
 
@@ -12145,7 +12246,7 @@ test("merged recruitment supports public applications/private attachments and ve
 test("merged configured requirements keep old document reviews intact and enforce customer ownership with private revision history", async () => {
   await resetAlertLoginLimit();
 
-  const owner = await alertAccount("merged-doc-owner", "OWNER");
+  const owner = await alertAccount("merged-doc-owner", "SYSTEM_ADMIN");
 
   const customer = await alertAccount("merged-doc-customer", "CUSTOMER");
 
@@ -12264,7 +12365,7 @@ test("merged configured requirements keep old document reviews intact and enforc
 test("merged operations reports count existing task submissions/reviews and support turnaround, export aggregates and retain snapshots", async () => {
   await resetAlertLoginLimit();
 
-  const owner = await alertAccount("merged-report-owner", "OWNER");
+  const owner = await alertAccount("merged-report-owner", "SYSTEM_ADMIN");
 
   const task = await db.task.create({
     data: {
