@@ -1,0 +1,127 @@
+.panel {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--system-border, #e5e7ec);
+  border-radius: 14px;
+  background: var(--system-surface, #fff);
+  color: var(--system-text, #242438);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heading h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--system-accent-soft, #eeecff);
+  color: var(--system-accent, #5548ff);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 12px 0 0;
+}
+
+.group {
+  margin-top: 16px;
+}
+
+.group h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slot {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--system-border, #e5e7ec);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+
+.slot span {
+  font-size: 12px;
+}
+
+.slot strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.occupied {
+  background: var(--system-accent-soft, #eeecff);
+}
+
+.open {
+  background: var(--system-surface, #fff);
+}
+
+.placeholder {
+  border-style: dashed;
+  background: var(--system-surface, #fff);
+}
+
+.help,
+.activation {
+  margin: 10px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.activation {
+  padding-top: 12px;
+  border-top: 1px solid var(--system-border, #e5e7ec);
+  margin-top: 16px;
+}
+
+.warning {
+  padding: 10px;
+  margin: 12px 0 0;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+}
+
+@media (max-width: 520px) {
+  .panel {
+    padding: 12px;
+  }
+
+  .slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (forced-colors: active) {
+  .occupied {
+    border-width: 2px;
+  }
+}

@@ -30,6 +30,9 @@ type Enrollment = {
   version: number;
   submittedBy: string;
   reviewedBy: string | null;
+  withdrawalId?: string | null;
+  replacementMode?: "CONTINUE_UNPAID" | "RESTART" | null;
+  publicApplicationId?: string | null;
 };
 
 type BatchChoice = { id: string; code: string; model: string };
@@ -105,6 +108,10 @@ export default function RoleWorkspace({
   const [error, setError] = useState<string | null>(null);
 
   const [notice, setNotice] = useState("");
+
+  const [confirmReplacement, setConfirmReplacement] = useState<string | null>(
+    null,
+  );
 
   const [loading, setLoading] = useState(true);
 
@@ -287,8 +294,18 @@ export default function RoleWorkspace({
     }
   }
 
-  async function review(item: Enrollment, decision: "APPROVED" | "REJECTED") {
+  async function review(
+    item: Enrollment,
+    decision: "APPROVED" | "REJECTED",
+    confirmed = false,
+  ) {
     if (busy) {
+      return;
+    }
+
+    if (decision === "APPROVED" && item.withdrawalId && !confirmed) {
+      setConfirmReplacement(item.id);
+
       return;
     }
 
@@ -310,9 +327,13 @@ export default function RoleWorkspace({
 
       setNotice(
         decision === "APPROVED"
-          ? "Enrollment approved and member record created."
+          ? item.withdrawalId
+            ? "Replacement admitted. The original member's unpaid obligation was released and the replacement's schedule was issued."
+            : "Enrollment approved and member record created."
           : "Enrollment request rejected.",
       );
+
+      setConfirmReplacement(null);
 
       await load();
     } catch (caught) {
@@ -666,6 +687,33 @@ export default function RoleWorkspace({
                       {item.status.toLowerCase()} · Submitted by{" "}
                       {item.submittedBy}
                     </p>
+                    {item.publicApplicationId && (
+                      <Link
+                        className="mt-2 inline-flex min-h-11 items-center text-sm underline"
+                        href={`/system/enrollments?application=${encodeURIComponent(item.publicApplicationId)}`}
+                      >
+                        View original website application
+                      </Link>
+                    )}
+                    {item.withdrawalId && (
+                      <div className="mt-3 rounded-lg border p-3 text-sm">
+                        <strong>Replacement enrollment</strong>
+                        <p>
+                          {item.replacementMode === "RESTART"
+                            ? "Start the new installment plan recorded by the COO."
+                            : "Continue only the departing member's unpaid installments."}{" "}
+                          Approval admits the replacement and completes the
+                          handover of this batch position. The original member's
+                          verified payments remain in their history.
+                        </p>
+                        <Link
+                          className="underline"
+                          href={`/system/withdrawals?request=${encodeURIComponent(item.withdrawalId)}`}
+                        >
+                          Review the withdrawal and COO replacement terms
+                        </Link>
+                      </div>
+                    )}
                     {item.reason && (
                       <p className="mt-2 text-sm">Review: {item.reason}</p>
                     )}
@@ -687,7 +735,48 @@ export default function RoleWorkspace({
                               }}
                             />
                           </label>
-                          <div className="flex gap-3">
+                          {confirmReplacement === item.id && (
+                            <div
+                              className="rounded-lg border p-3 text-sm"
+                              role="group"
+                              aria-label="Confirm replacement handover"
+                            >
+                              <strong>Confirm replacement admission</strong>
+                              <p>
+                                Admit {item.name} under the COO's recorded
+                                terms, release the departing member's unpaid
+                                obligation, and issue the replacement schedule.
+                                This preserves the existing payments and
+                                completes a one-for-one handover.
+                              </p>
+                              <div className="mt-3 flex flex-wrap gap-3">
+                                <button
+                                  type="button"
+                                  className="rounded-lg border px-3 py-2"
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setConfirmReplacement(null);
+                                  }}
+                                >
+                                  Keep reviewing
+                                </button>
+                                <button
+                                  type="button"
+                                  className="rounded-lg border px-3 py-2"
+                                  disabled={
+                                    busy ||
+                                    (reasons[item.id] ?? "").trim().length < 3
+                                  }
+                                  onClick={() => {
+                                    void review(item, "APPROVED", true);
+                                  }}
+                                >
+                                  Confirm replacement admission
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex flex-wrap gap-3">
                             <button
                               type="button"
                               className="rounded-lg border px-3 py-2"
@@ -699,7 +788,9 @@ export default function RoleWorkspace({
                                 return void review(item, "APPROVED");
                               }}
                             >
-                              Approve enrollment
+                              {item.withdrawalId
+                                ? "Review replacement admission"
+                                : "Approve enrollment"}
                             </button>
                             <button
                               type="button"

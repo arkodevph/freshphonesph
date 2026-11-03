@@ -14,7 +14,7 @@ import {
   accountSchema,
   accountListQuerySchema,
   accountUpdateSchema,
-  batchSchema,
+  batchCreateSchema,
   batchUpdateSchema,
   batchAssignmentSchema,
   clientSchema,
@@ -23,7 +23,7 @@ import {
   clientUpdateSchema,
   listQuerySchema,
   type AccountInput,
-  type BatchInput,
+  type BatchCreateInput,
   type ClientInput,
   type User,
 } from "@freshphones/contracts";
@@ -59,6 +59,16 @@ const historyQuerySchema = z
 
 @Controller()
 export class RecordsController {
+  @Get("portal/application-summary")
+  @Requires("PAYMENT_READ")
+  portalApplicationSummary(@CurrentUser() user: User) {
+    return this.records.portalApplicationSummary(user);
+  }
+  @Get("portal/batch-summary") @Requires("PAYMENT_READ") portalBatchSummary(
+    @CurrentUser() user: User,
+  ) {
+    return this.records.portalBatchSummary(user);
+  }
   @Get("portal/memberships") @Requires("PAYMENT_READ") memberships(
     @CurrentUser() user: User,
   ) {
@@ -80,7 +90,7 @@ export class RecordsController {
   }
   @Post("batches") @Requires("BATCH_CREATE") createBatch(
     @CurrentUser() user: User,
-    @Body(new Validate(batchSchema)) body: BatchInput,
+    @Body(new Validate(batchCreateSchema)) body: BatchCreateInput,
   ) {
     return this.records.createBatch(user, body);
   }

@@ -13,9 +13,13 @@ import type {
   GcashHistoryUpload,
   Permission,
   User,
+  GcashCorrection,
+  GcashArchive,
+  GcashHistory,
 } from "@freshphones/contracts";
-import { gcashReadingSchema } from "@freshphones/contracts";
+import { gcashReadingSchema, gcashTimeForEdit } from "@freshphones/contracts";
 import { GcashPdfService } from "./gcash-pdf.service";
+import { reconcileReading } from "./reconcile-reading";
 import { Database } from "../database";
 import { Prisma } from "../generated/prisma/client";
 import { allowed, requireCurrentUser } from "../auth/access";
@@ -40,6 +44,7 @@ const submissionInclude = {
 
 const historyInclude = {
   batch: { select: { id: true, code: true } },
+  archivedBy: { select: { id: true, name: true } },
   submissions: {
     include: submissionInclude,
     orderBy: { revision: "desc" },
@@ -82,6 +87,9 @@ const historyView = (row: History) => {
     version: row.version,
     revision: row.revision,
     current: submissionView(row.submissions[0]),
+    archivedAt: row.archivedAt?.toISOString() ?? null,
+    archiveReason: row.archiveReason,
+    archivedBy: row.archivedBy,
   };
 };
 
@@ -120,6 +128,7 @@ export class GcashHistoryService {
     user = await requireCurrentUser(this.db, user, "GCASH_HISTORY_READ");
 
     const where: Prisma.GcashHistoryWhereInput = {
+      archivedAt: query.archived === "archived" ? { not: null } : null,
       batch: {
         AND: [
           batchScope(user),
@@ -275,7 +284,8 @@ export class GcashHistoryService {
 
           if (
             before
-              ? before.version !== input.expectedVersion ||
+              ? before.archivedAt !== null ||
+                before.version !== input.expectedVersion ||
                 before.status !== "NEEDS_CLARIFICATION"
               : input.expectedVersion !== 0
           ) {
@@ -346,8 +356,8 @@ export class GcashHistoryService {
 
   async review(user: User, id: string, input: GcashHistoryReview) {
     return this.write(user, "GCASH_HISTORY_REVIEW", async (tx, current) => {
-      const before = await tx.gcashHistory.findUnique({
-        where: { id },
+      const before = await tx.gcashHistory.findFirst({
+        where: { id, batch: batchScope(current) },
         include: historyInclude,
       });
 
@@ -355,7 +365,11 @@ export class GcashHistoryService {
         throw new NotFoundException("GCash history not found.");
       }
 
-      if (before.version !== input.version || before.status !== "SUBMITTED") {
+      if (
+        before.archivedAt ||
+        before.version !== input.version ||
+        before.status !== "SUBMITTED"
+      ) {
         throw new ConflictException(
           "This submission has changed. Load its latest state before reviewing.",
         );
@@ -396,12 +410,12 @@ export class GcashHistoryService {
     });
   }
 
-  async reading(user: User, id: string, page: number) {
+  async reading(user: User, id: string, page: number, source = "current") {
     user = await requireCurrentUser(this.db, user, "GCASH_HISTORY_READ");
 
     const row = await this.db.gcashHistorySubmission.findFirst({
       where: { id, history: { batch: batchScope(user) } },
-      select: { reading: { select: { data: true } } },
+      include: { reading: true, history: true },
     });
 
     if (!row?.reading) {
@@ -410,7 +424,11 @@ export class GcashHistoryService {
       );
     }
 
-    const { rows, ...metadata } = gcashReadingSchema.parse(row.reading.data);
+    const { rows, ...metadata } = gcashReadingSchema.parse(
+      source === "original"
+        ? row.reading.data
+        : (row.reading.correctedData ?? row.reading.data),
+    );
 
     return {
       ...metadata,
@@ -418,6 +436,280 @@ export class GcashHistoryService {
       total: rows.length,
       page,
       pageSize: 25,
+      correctionVersion: row.reading.correctionVersion,
+      historyVersion: row.history.version,
+      editable:
+        allowed(user, "GCASH_HISTORY_REVIEW") &&
+        !row.history.archivedAt &&
+        row.revision === row.history.revision &&
+        source !== "original",
+    };
+  }
+
+  async corrections(user: User, id: string, page: number) {
+    user = await requireCurrentUser(this.db, user, "GCASH_HISTORY_READ");
+
+    if (
+      !(await this.db.gcashHistorySubmission.findFirst({
+        where: { id, history: { batch: batchScope(user) } },
+        select: { id: true },
+      }))
+    ) {
+      throw new NotFoundException("GCash PDF not found.");
+    }
+
+    const where = { submissionId: id };
+
+    const [items, total] = await this.db.$transaction(
+      [
+        this.db.gcashReadingCorrection.findMany({
+          where,
+          include: { editor: { select: { id: true, name: true } } },
+          orderBy: { version: "desc" },
+          skip: (page - 1) * 20,
+          take: 20,
+        }),
+        this.db.gcashReadingCorrection.count({ where }),
+      ],
+      { isolationLevel: "RepeatableRead" },
+    );
+
+    return {
+      items: items.map(({ submissionId: _, editorId: __, ...entry }) => {
+        return { ...entry, createdAt: entry.createdAt.toISOString() };
+      }),
+      total,
+      page,
+      pageSize: 20,
+    };
+  }
+
+  async correct(user: User, id: string, input: GcashCorrection) {
+    return this.write(user, "GCASH_HISTORY_REVIEW", async (tx, current) => {
+      const submission = await tx.gcashHistorySubmission.findFirst({
+        where: { id, history: { batch: batchScope(current) } },
+        include: { reading: true, history: { include: historyInclude } },
+      });
+
+      if (!submission?.reading) {
+        throw new NotFoundException("Extracted transactions not found.");
+      }
+
+      const before = submission.history;
+
+      const reading = submission.reading;
+
+      if (
+        before.archivedAt ||
+        before.revision !== submission.revision ||
+        before.version !== input.version ||
+        reading.correctionVersion !== input.correctionVersion
+      ) {
+        throw new ConflictException(
+          "This submission has changed or is archived. Load the latest submission before correcting it.",
+        );
+      }
+
+      const original = gcashReadingSchema.parse(reading.data);
+
+      const interpreted = gcashReadingSchema.parse(
+        reading.correctedData ?? reading.data,
+      );
+
+      const previous = interpreted.rows[input.rowIndex];
+
+      if (!previous) {
+        throw new BadRequestException("Transaction row not found.");
+      }
+
+      const next = { ...previous, ...input.row };
+
+      if (
+        JSON.stringify({
+          ...previous,
+          time: gcashTimeForEdit(previous.time),
+        }) === JSON.stringify(next)
+      ) {
+        throw new BadRequestException("Change at least one transaction field.");
+      }
+
+      interpreted.rows[input.rowIndex] = next;
+
+      const checked = gcashReadingSchema.safeParse(
+        reconcileReading(original, interpreted.rows, {
+          start: before.periodStart.toISOString().slice(0, 10),
+          end: before.periodEnd.toISOString().slice(0, 10),
+        }),
+      );
+
+      if (!checked.success) {
+        throw new BadRequestException(
+          "The corrected totals exceed the supported statement limits.",
+        );
+      }
+
+      await tx.gcashReadingCorrection.create({
+        data: {
+          submissionId: id,
+          version: reading.correctionVersion + 1,
+          rowIndex: input.rowIndex,
+          reason: input.reason,
+          before: json(previous),
+          after: json(next),
+          editorId: current.id,
+        },
+      });
+
+      await tx.gcashPdfReading.update({
+        where: { submissionId: id },
+        data: {
+          correctedData: json(checked.data),
+          correctionVersion: { increment: 1 },
+        },
+      });
+
+      await tx.gcashHistorySubmission.update({
+        where: { id },
+        data: {
+          status: "SUBMITTED",
+          reviewNote: "",
+          reviewedById: null,
+          reviewedAt: null,
+          readingSummary: json({
+            status: checked.data.status,
+            method: checked.data.method,
+            pages: checked.data.pages,
+            transactionCount: checked.data.transactionCount,
+            warningCount: checked.data.warnings.length,
+          }),
+        },
+      });
+
+      const after = await tx.gcashHistory.update({
+        where: { id: before.id },
+        data: { status: "SUBMITTED", version: { increment: 1 } },
+        include: historyInclude,
+      });
+
+      await this.audit(
+        tx,
+        current,
+        before.id,
+        "transaction_corrected",
+        historyView(before),
+        {
+          ...historyView(after),
+          submissionId: id,
+          rowIndex: input.rowIndex,
+          correctionVersion: reading.correctionVersion + 1,
+          reason: input.reason,
+        },
+      );
+
+      return historyView(after);
+    });
+  }
+
+  async archive(user: User, id: string, input: GcashArchive) {
+    return this.write(user, "GCASH_HISTORY_REVIEW", async (tx, current) => {
+      const before = await tx.gcashHistory.findFirst({
+        where: { id, batch: batchScope(current) },
+        include: historyInclude,
+      });
+
+      if (!before) {
+        throw new NotFoundException("GCash history not found.");
+      }
+
+      if (
+        before.version !== input.version ||
+        Boolean(before.archivedAt) === input.archived
+      ) {
+        throw new ConflictException(
+          "This submission has changed. Load the latest state before archiving or restoring.",
+        );
+      }
+
+      const after = await tx.gcashHistory.update({
+        where: { id },
+        data: {
+          version: { increment: 1 },
+          archivedAt: input.archived ? new Date() : null,
+          archiveReason: input.archived ? input.reason : "",
+          archivedById: input.archived ? current.id : null,
+        },
+        include: historyInclude,
+      });
+
+      await this.audit(
+        tx,
+        current,
+        id,
+        input.archived ? "archived" : "restored",
+        historyView(before),
+        { ...historyView(after), reason: input.reason },
+      );
+
+      return historyView(after);
+    });
+  }
+
+  async activity(user: User, id: string, page: number) {
+    user = await requireCurrentUser(this.db, user, "GCASH_HISTORY_READ");
+
+    if (
+      !(await this.db.gcashHistory.findFirst({
+        where: { id, batch: batchScope(user) },
+        select: { id: true },
+      }))
+    ) {
+      throw new NotFoundException("GCash history not found.");
+    }
+
+    const where = { entity: "gcash-history", recordId: id };
+
+    const [items, total] = await this.db.$transaction(
+      [
+        this.db.auditEntry.findMany({
+          where,
+          include: { actor: { select: { id: true, name: true } } },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 20,
+          skip: (page - 1) * 20,
+        }),
+        this.db.auditEntry.count({ where }),
+      ],
+      { isolationLevel: "RepeatableRead" },
+    );
+
+    return {
+      items: items.map((entry) => {
+        const after = entry.after as unknown as
+          (GcashHistory & { reason?: string }) | null;
+
+        const before = entry.before as unknown as GcashHistory | null;
+
+        return {
+          id: entry.id,
+          action: entry.action,
+          actor: entry.actor,
+          createdAt: entry.createdAt.toISOString(),
+          revision: after?.revision ?? null,
+          reason: after?.reason ?? after?.current?.reviewNote ?? "",
+          previousReview:
+            entry.action === "gcash_history.transaction_corrected" &&
+            before?.current.reviewNote
+              ? {
+                  note: before.current.reviewNote,
+                  reviewer: before.current.reviewedBy?.name ?? "Records",
+                  reviewedAt: before.current.reviewedAt,
+                }
+              : null,
+        };
+      }),
+      total,
+      page,
+      pageSize: 20,
     };
   }
 

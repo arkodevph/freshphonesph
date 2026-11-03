@@ -65,5 +65,16 @@ export function notificationVisibilitySql(userId: string) {
     OR EXISTS (SELECT 1 FROM (${enrollmentAlertRows(userId)}) a
       WHERE n."dedupeKey" = CASE a.kind WHEN 'ENROLLMENT_PENDING'
         THEN 'enrollment:' || a.id::text || ':' || ${userId}::text
-        ELSE 'enrollment-review:' || a.id::text END))`;
+        ELSE 'enrollment-review:' || a.id::text END)) AND (
+      n."eventKey" <> 'withdrawal.updated' OR EXISTS (
+        SELECT 1 FROM "WithdrawalRequest" w JOIN "Client" c ON c.id=w."clientId"
+        JOIN "Batch" b ON b.id=c."batchId" JOIN "User" u ON u.id=${userId}::uuid AND u.active
+        LEFT JOIN "Agent" a ON a.id=b."agentId"
+        WHERE n.link='/system/withdrawals?request=' || w.id::text AND (
+          u.role IN ('COO','FINANCE_OFFICER','SYSTEM_ADMIN')
+          OR (u.role IN ('BATCH_MANAGER','GENERAL_MANAGER') AND b."managerId"=u.id)
+          OR (u.role='AGENT' AND a.active AND u."agentProfileId"=a.id)
+        )
+      )
+    )`;
 }

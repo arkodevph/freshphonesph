@@ -1,10 +1,23 @@
 import { z } from "zod";
+import { previewInstallments } from "./installment-schedule";
+
+export * from "./installment-schedule";
+
+export * from "./batch-capacity";
+
+export type { PortalBatchSummary } from "./portal-batch";
+
+export type { PortalApplicationSummary } from "./application-summary";
+
+export * from "./enrollment-form";
 
 export * from "./installment-earnings";
 
 export * from "./catalog";
 
 export * from "./gcash-history";
+
+export * from "./withdrawals";
 
 export * from "./inquiries";
 
@@ -120,6 +133,15 @@ export const permissions = [
   "AGENT_NETWORK_READ",
   "ENROLLMENT_SUBMIT",
   "ENROLLMENT_REVIEW",
+  "ENROLLMENT_FORM_MANAGE",
+  "ENROLLMENT_APPLICATION_READ",
+  "ENROLLMENT_APPLICATION_MANAGE",
+  "WITHDRAWAL_READ",
+  "WITHDRAWAL_SUBMIT",
+  "WITHDRAWAL_AGENT_REVIEW",
+  "WITHDRAWAL_DECIDE",
+  "WITHDRAWAL_REFUND_DECIDE",
+  "WITHDRAWAL_REFUND_PAY",
 ] as const;
 
 export type Permission = (typeof permissions)[number];
@@ -139,6 +161,8 @@ const batchManager: Permission[] = [
   "TASK_ASSIGN",
   "ENROLLMENT_REVIEW",
   "CATALOG_MANAGE",
+  "ENROLLMENT_APPLICATION_READ",
+  "WITHDRAWAL_READ",
   ...ownWork,
 ];
 
@@ -164,9 +188,22 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
   CEO: ["REPORT_VIEW"],
   OWNER: ["REPORT_VIEW"],
   SYSTEM_ADMIN: permissions.filter((permission) => {
-    return permission !== "PAYMENT_VERIFY";
+    return ![
+      "PAYMENT_VERIFY",
+      "WITHDRAWAL_SUBMIT",
+      "WITHDRAWAL_AGENT_REVIEW",
+      "WITHDRAWAL_DECIDE",
+      "WITHDRAWAL_REFUND_DECIDE",
+      "WITHDRAWAL_REFUND_PAY",
+    ].includes(permission);
   }),
   COO: [
+    "ENROLLMENT_FORM_MANAGE",
+    "ENROLLMENT_APPLICATION_READ",
+    "ENROLLMENT_APPLICATION_MANAGE",
+    "WITHDRAWAL_READ",
+    "WITHDRAWAL_DECIDE",
+    "WITHDRAWAL_REFUND_DECIDE",
     "GCASH_HISTORY_READ",
     ...records,
     "BATCH_CREATE",
@@ -196,6 +233,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
   BATCH_MANAGER: batchManager,
   GENERAL_MANAGER: batchManager,
   RECORDS: [
+    "ENROLLMENT_FORM_MANAGE",
     "GCASH_HISTORY_READ",
     "GCASH_HISTORY_REVIEW",
     ...records,
@@ -213,6 +251,8 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     ...ownWork,
   ],
   FINANCE_OFFICER: [
+    "WITHDRAWAL_READ",
+    "WITHDRAWAL_REFUND_PAY",
     "GCASH_HISTORY_READ",
     ...records,
     "PAYMENT_READ",
@@ -244,6 +284,10 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     ...ownWork,
   ],
   AGENT: [
+    "ENROLLMENT_APPLICATION_READ",
+    "ENROLLMENT_APPLICATION_MANAGE",
+    "WITHDRAWAL_READ",
+    "WITHDRAWAL_AGENT_REVIEW",
     "AGENT_NETWORK_READ",
     "ENROLLMENT_SUBMIT",
     "TASK_READ",
@@ -256,6 +300,8 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
   CORE_HANDLER: handler,
   ANALYTICS: ["REPORT_VIEW", "REPORT_WRITE", ...ownWork],
   CUSTOMER: [
+    "WITHDRAWAL_READ",
+    "WITHDRAWAL_SUBMIT",
     "PAYMENT_READ",
     "DOCUMENT_READ",
     "DOCUMENT_UPLOAD",
@@ -430,65 +476,115 @@ export const moneySchema = z
     return Number(value) > 0;
   }, "Amount must be positive.");
 
-export const batchSchema = z
-  .object({
-    code: z
-      .string()
-      .trim()
-      .min(2)
-      .max(30)
-      .regex(/^[A-Za-z0-9-]+$/, "Use letters, numbers and hyphens.")
-      .transform((v) => {
-        return v.toUpperCase();
-      }),
-    model: z.string().trim().min(2).max(100),
-    status: z.enum(batchStatuses),
-    startDate: z.string().date(),
-    endDate: z.string().date(),
-    contractPrice: moneySchema.optional(),
-    installmentCount: z.number().int().min(1).max(600).optional(),
-    cadence: cadenceSchema.optional(),
-  })
-  .strict()
-  .refine(
-    (v) => {
-      return v.endDate >= v.startDate;
-    },
-    {
+const batchFields = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(2)
+    .max(71)
+    .regex(/^[A-Za-z0-9-]+$/, "Use letters, numbers and hyphens.")
+    .transform((v) => {
+      return v.toUpperCase();
+    }),
+  model: z.string().trim().min(2).max(100),
+  status: z.enum(batchStatuses),
+  startDate: z.string().date(),
+  endDate: z.string().date(),
+  contractPrice: moneySchema.optional(),
+  installmentCount: z.number().int().min(1).max(600).optional(),
+  cadence: cadenceSchema.optional(),
+  firstDueDate: z.string().date().nullable().optional(),
+  monthEnd: z.boolean().optional(),
+});
+
+const validateBatch = (
+  value: Omit<z.infer<typeof batchFields>, "code">,
+  ctx: z.RefinementCtx,
+) => {
+  if (value.firstDueDate || value.monthEnd) {
+    if (!value.contractPrice || !value.installmentCount || !value.cadence) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["firstDueDate"],
+        message:
+          "Set the price, installment count and frequency before choosing due dates.",
+      });
+    } else {
+      try {
+        const items = previewInstallments({
+          ...value,
+          contractPrice: value.contractPrice,
+          installmentCount: value.installmentCount,
+          cadence: value.cadence,
+        });
+
+        if (items[items.length - 1].dueDate > value.endDate) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["endDate"],
+            message: "The batch end date must include the last installment.",
+          });
+        }
+      } catch (error) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["firstDueDate"],
+          message:
+            error instanceof Error
+              ? error.message
+              : "Choose valid installment dates.",
+        });
+      }
+    }
+  }
+
+  if (value.endDate < value.startDate) {
+    ctx.addIssue({
+      code: "custom",
       path: ["endDate"],
       message: "End date must be on or after the start date.",
-    },
-  )
-  .superRefine((value, ctx) => {
-    const terms = [value.contractPrice, value.installmentCount, value.cadence];
+    });
+  }
 
-    if (
-      terms.some((term) => {
-        return term !== undefined;
-      }) &&
-      terms.some((term) => {
-        return term === undefined;
-      })
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["contractPrice"],
-        message: "Provide price, installment count and cadence together.",
-      });
-    }
+  const terms = [value.contractPrice, value.installmentCount, value.cadence];
 
-    if (
-      value.contractPrice &&
-      value.installmentCount &&
-      Math.round(Number(value.contractPrice) * 100) < value.installmentCount
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["installmentCount"],
-        message: "Each installment must be at least one centavo.",
-      });
-    }
-  });
+  if (
+    terms.some((term) => {
+      return term !== undefined;
+    }) &&
+    terms.some((term) => {
+      return term === undefined;
+    })
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["contractPrice"],
+      message: "Provide price, installment count and cadence together.",
+    });
+  }
+
+  if (
+    value.contractPrice &&
+    value.installmentCount &&
+    Math.round(Number(value.contractPrice) * 100) < value.installmentCount
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["installmentCount"],
+      message: "Each installment must be at least one centavo.",
+    });
+  }
+};
+
+export const batchSchema = batchFields.strict().superRefine(validateBatch);
+
+export const batchCreateSchema = batchFields
+  .omit({ code: true })
+  .extend({ agentId: z.string().uuid() })
+  .strict()
+  .superRefine(validateBatch);
+
+export type BatchCreateInput = z.infer<typeof batchCreateSchema>;
 
 export const batchUpdateSchema = z
   .object({ version: z.number().int().positive(), record: batchSchema })
@@ -586,7 +682,7 @@ export interface Agent extends AgentInput {
 export interface AssignmentOptions {
   managers?: { id: string; name: string; active: boolean }[];
   handlers: { id: string; name: string; active: boolean }[];
-  agents: { id: string; name: string; active: boolean }[];
+  agents: { id: string; name: string; active: boolean; code?: string }[];
 }
 
 const recordFilterFields = {
@@ -970,12 +1066,16 @@ export interface Batch extends Omit<
 > {
   managerId?: string | null;
   manager?: { id: string; name: string; active: boolean; role: Role } | null;
+  numberingAgentId?: string | null;
+  numberSequence?: number | null;
   handlerId?: string | null;
   agentId?: string | null;
   handler?: { id: string; name: string; active: boolean; role: Role } | null;
   agent?: { id: string; name: string; active: boolean } | null;
   termsLocked?: boolean;
   contractPrice: string | null;
+  firstDueDate?: string | null;
+  monthEnd?: boolean;
   installmentCount: number | null;
   cadence: Cadence | null;
   id: string;
@@ -986,6 +1086,16 @@ export interface Batch extends Omit<
 }
 
 export interface Client extends Omit<ClientInput, "joinedAt"> {
+  replacementCompletedAt?: string | null;
+  membershipPlan?: {
+    startDate: string;
+    endDate: string;
+    contractPrice: string;
+    installmentCount: number;
+    cadence: "WEEKLY" | "SEMIMONTHLY" | "MONTHLY";
+    firstDueDate: string;
+    monthEnd: boolean;
+  } | null;
   scheduleIssued?: boolean;
   joinedAt: string | null;
   id: string;
@@ -997,6 +1107,8 @@ export interface Client extends Omit<ClientInput, "joinedAt"> {
 }
 
 export interface ScheduleItem {
+  originalExpectedAmount?: string;
+  releasedAmount?: string;
   id: string;
   sequenceNo: number;
   dueDate: string;
@@ -1047,6 +1159,8 @@ export interface Payment extends Omit<
 
 export interface ClientBalance {
   clientId: string;
+  originalDue?: string;
+  releasedDue?: string;
   totalDue: string;
   verifiedPaid: string;
   remainingBalance: string;

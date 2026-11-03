@@ -39,7 +39,7 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 
 For the October 28 afternoon work, current role access and exact test-preview paths,
 read the [afternoon handoff](68-2026-10-28-afternoon-handoff.md). It distinguishes
-features available in the main demo from separately tested work awaiting integration.
+current main-demo availability from historical isolated previews and pending acceptance.
 
 For the sequential task queue aligned with the Basic Website Workflow and Organizational
 Structure V4, start with [the workflow implementation checklist](58-workflow-v4-implementation-checklist.md).
@@ -125,3 +125,18 @@ The scheduled installment report is documented in [Scheduled installment earning
 - [Multiple batch memberships](70-multiple-batch-memberships.md): one identity/login, independent batch histories, current approval flow and main-demo test guide.
 
 - [GCash PDF reading and password uploads](72-gcash-pdf-reading.md): automatic text/OCR reading, per-revision transaction tables and source-review checks in the main demo.
+
+- [GCash review workspace](73-gcash-review-workspace.md): original PDF comparison, audited transaction corrections, review history and reversible archive/restore.
+
+- [Calendar schedules and Agent numbering in the main demo](74-calendar-numbering-main-demo.md): normal accounts, current permissions, preserved history and combined testing for checklist #6/#15.
+
+- [Member withdrawal/refund and replacement review plan](76-member-withdrawal-review-plan.md): original member → Agent → COO requirements and source comparison, now implemented in docs/77.
+
+- [Batch capacity and staff-only internal positions](75-batch-capacity-internal-positions.md): eight real memberships, four internal display positions, atomic/full and authorized manual activation, customer isolation and preservation checks.
+
+- [Member withdrawals, replacement and separate refunds](77-member-withdrawals-main-demo.md): main-demo workflow, current role boundaries, unpaid continuation/restart, Finance external payout and 531-check verification.
+- [Customer batch participation](78-customer-batch-participation.md): My membership aggregate count/fullness, privacy and main-browser evidence.
+- [Printable application summary](79-printable-application-summary.md): My documents preview/PDF/Print, captured customer ownership, recorded plan fields, original schedule amount and verified local evidence.
+- [Editable website enrollment form](81-editable-public-enrollment-form.md): public landing intake, COO/Records draft/publish builder, versioned answers, assigned Agent→Manager workflow, privacy/retention and verified main-demo evidence.
+
+- [Payroll spreadsheet workflow v1](80-payroll-spreadsheet-workflow.md): blank template, fictional example, documented assumptions, preparation/review/payment flow and 18-scenario verification; client alignment remains separate.

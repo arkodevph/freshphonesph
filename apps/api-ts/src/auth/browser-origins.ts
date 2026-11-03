@@ -24,6 +24,8 @@ export function allowsBrowserWrite(
     origin === config.WEB_ORIGIN ||
     (origin === config.PUBLIC_SITE_ORIGIN &&
       method === "POST" &&
-      (path === "/api/careers/apply" || /^\/api\/inquiries\/?$/.test(path)))
+      (path === "/api/careers/apply" ||
+        /^\/api\/inquiries\/?$/.test(path) ||
+        /^\/api\/public\/enrollment-applications\/?$/.test(path)))
   );
 }

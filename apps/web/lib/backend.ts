@@ -16,6 +16,7 @@ export function availableRoute(path: string) {
     "/system/personnel",
     "/system/agent-network",
     "/system/enrollments",
+    "/system/withdrawals",
     "/system/records",
     "/system/clients",
     "/system/agents",

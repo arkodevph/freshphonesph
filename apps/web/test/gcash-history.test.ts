@@ -4,12 +4,17 @@ import {
   gcashHistoryReviewSchema,
   gcashHistoryUploadSchema,
   rolePermissions,
+  gcashTimeForEdit,
 } from "@freshphones/contracts";
 import {
   gcashPdfError,
   uploadGcashHistory,
   reviewGcashHistory,
   listGcashHistories,
+  getGcashReading,
+  correctGcashTransaction,
+  archiveGcashHistory,
+  getGcashCorrections,
 } from "../lib/gcash-history";
 import { canOpenWorkspace } from "../lib/workspace-access";
 
@@ -26,6 +31,20 @@ const input = {
   expectedVersion: 2,
   note: "Corrected full history",
 };
+
+test("extracted AM/PM times open as valid 24-hour correction values", () => {
+  assert.equal(gcashTimeForEdit("09:01 AM"), "09:01");
+
+  assert.equal(gcashTimeForEdit("12:30 AM"), "00:30");
+
+  assert.equal(gcashTimeForEdit("12:30 PM"), "12:30");
+
+  assert.equal(gcashTimeForEdit("1:20:30 PM"), "13:20:30");
+
+  assert.equal(gcashTimeForEdit("23:59"), "23:59");
+
+  assert.equal(gcashTimeForEdit("unread"), "unread");
+});
 
 test("PDF validation explains empty, oversized and wrong-type selections", () => {
   assert.equal(gcashPdfError({ size: 20, type: "application/pdf" }), null);
@@ -260,7 +279,7 @@ test("transaction reads keep the selected revision and page, with explicit permi
 
     assert.match(
       String(url),
-      /submissions\/selected-revision\/reading\?page=2$/,
+      /submissions\/selected-revision\/reading\?page=2&source=current$/,
     );
 
     assert.equal(options!.credentials, "include");
@@ -277,4 +296,79 @@ test("transaction reads keep the selected revision and page, with explicit permi
   );
 
   assert.equal(calls, 1);
+});
+
+test("original-extraction reads and correction history keep the selected PDF revision and authenticated no-store access", async () => {
+  const paths: string[] = [];
+
+  globalThis.fetch = async (url, options) => {
+    paths.push(new URL(String(url)).pathname + new URL(String(url)).search);
+
+    assert.equal(options?.credentials, "include");
+
+    assert.equal(options?.cache, "no-store");
+
+    return Response.json({ items: [], total: 0 });
+  };
+
+  await getGcashReading("historical-revision", 3, "original");
+
+  await getGcashCorrections("historical-revision", 2);
+
+  assert.deepEqual(paths, [
+    "/api/gcash-history/submissions/historical-revision/reading?page=3&source=original",
+    "/api/gcash-history/submissions/historical-revision/corrections?page=2",
+  ]);
+});
+
+test("correction and archive requests preserve captured versions and reasons without retrying conflicts", async () => {
+  const bodies: unknown[] = [];
+
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(options?.method, "POST");
+
+    bodies.push(JSON.parse(String(options?.body)));
+
+    return Response.json({ message: "Submission changed" }, { status: 409 });
+  };
+
+  const correction = {
+    version: 7,
+    correctionVersion: 2,
+    rowIndex: 26,
+    reason: "Compared original",
+    row: {
+      date: "2026-10-01",
+      time: "09:30",
+      description: "Corrected",
+      reference: "0001",
+      debit: null,
+      credit: "20.00",
+      balance: "20.00",
+    },
+  };
+
+  await assert.rejects(
+    correctGcashTransaction("revision", correction),
+    /Submission changed/,
+  );
+
+  const archive = { version: 7, reason: "Duplicate export", archived: true };
+
+  await assert.rejects(
+    archiveGcashHistory("period", archive),
+    /Submission changed/,
+  );
+
+  assert.deepEqual(bodies, [correction, archive]);
+});
+
+test("archive queue filters are explicit so archived evidence can be found and restored", async () => {
+  globalThis.fetch = async (url) => {
+    assert.equal(new URL(String(url)).searchParams.get("archived"), "archived");
+
+    return Response.json({ items: [], total: 0 });
+  };
+
+  await listGcashHistories({ archived: "archived" });
 });

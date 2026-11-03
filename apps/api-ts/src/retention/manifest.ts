@@ -217,6 +217,16 @@ export async function describe(
       throw new NotFoundException("Customer is unavailable or already erased.");
     }
 
+    if (
+      await tx.withdrawalRequest.count({
+        where: { OR: [{ clientId: id }, { replacementClientId: id }] },
+      })
+    ) {
+      blockers.push(
+        "Withdrawal, replacement and refund evidence requires a separate approved disposition and cannot be erased here.",
+      );
+    }
+
     if (row.status !== "COMPLETED" || row.releaseStatus !== "RELEASED") {
       blockers.push("Complete the customer record and unit release first.");
     }
@@ -253,7 +263,7 @@ export async function describe(
     }
 
     const due = row.schedule.reduce((total, item) => {
-      return total.add(item.expectedAmount);
+      return total.add(item.expectedAmount.sub(item.releasedAmount));
     }, new Prisma.Decimal(0));
 
     const paid = await verifiedTotals(tx, { clientId: id });
@@ -410,7 +420,46 @@ export async function describe(
     }
   }
 
-  if (target.scope === "APPLICANT") {
+  if (target.scope === "PUBLIC_ENROLLMENT") {
+    const row = await tx.publicEnrollmentApplication.findUnique({
+      where: { id: target.subjectId },
+      include: {
+        enrollmentRequest: {
+          select: {
+            id: true,
+            status: true,
+            version: true,
+            clientId: true,
+            reviewedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!row || row.retentionErasedAt) {
+      throw new NotFoundException(
+        "Public enrollment application is unavailable or already erased.",
+      );
+    }
+
+    label = row.name;
+
+    state.push(row);
+
+    anchorAt = maxActivity(row, row.updatedAt);
+
+    if (row.status !== "CLOSED") {
+      blockers.push(
+        "Close the public enrollment application before requesting erasure.",
+      );
+    }
+
+    if (row.enrollmentRequestId || row.status === "FORWARDED") {
+      blockers.push(
+        "Forwarded applications and linked enrollment or membership evidence require a separate approved disposition and cannot be erased here.",
+      );
+    }
+  } else if (target.scope === "APPLICANT") {
     await applicant(target.subjectId, true);
   } else if (target.scope === "CUSTOMER") {
     await customer(target.subjectId, true);
@@ -422,6 +471,18 @@ export async function describe(
 
     if (!row || row.retentionErasedAt || row.role === "CUSTOMER") {
       throw new NotFoundException("Employee is unavailable or already erased.");
+    }
+
+    if (
+      (await tx.withdrawalEvent.count({ where: { actorId: row.id } })) ||
+      (await tx.withdrawalPayout.count({ where: { recordedById: row.id } })) ||
+      (await tx.withdrawalRequest.count({
+        where: { OR: [{ requesterId: row.id }, { agentReviewedById: row.id }] },
+      }))
+    ) {
+      blockers.push(
+        "Withdrawal and refund review evidence requires a separate approved disposition.",
+      );
     }
 
     label = row.name;
@@ -487,7 +548,24 @@ export async function describe(
       where: { OR: [{ uploadedById: row.id }, { reviewedById: row.id }] },
     });
 
-    if (gcashHistoryRecords) {
+    const gcashCorrections = await tx.gcashReadingCorrection.count({
+      where: { editorId: row.id },
+    });
+
+    const gcashArchives = await tx.gcashHistory.count({
+      where: { archivedById: row.id },
+    });
+
+    const gcashAuthoredEvents = await tx.auditEntry.count({
+      where: { entity: "gcash-history", actorId: row.id },
+    });
+
+    if (
+      gcashHistoryRecords ||
+      gcashCorrections ||
+      gcashArchives ||
+      gcashAuthoredEvents
+    ) {
       blockers.push(
         "Authored GCash history submissions or reviews require a separate approved disposition.",
       );
@@ -500,6 +578,9 @@ export async function describe(
       analyses,
       openCreated,
       gcashHistoryRecords,
+      gcashCorrections,
+      gcashArchives,
+      gcashAuthoredEvents,
     );
 
     manifest.recordIds.push(
@@ -865,8 +946,15 @@ export async function describe(
 const safeStringKeys =
   /^(id|.*Id|status|role|source|method|action|entity|decision|kind|priority|releaseStatus|createdAt|updatedAt|verifiedAt|paymentDate|dueDate|startDate|endDate|periodStart|periodEnd|submittedAt|closedAt|reviewedAt|amount|amountDue|.*Amount|originalVerifiedAmount|adjustmentAmount|effectiveAmount|resultingAmount)$/;
 
-export function redactSnapshot(value: unknown): Prisma.InputJsonValue {
+export function redactSnapshot(
+  value: unknown,
+  privateFields: readonly string[] = [],
+): Prisma.InputJsonValue {
   function visit(item: unknown, key = ""): unknown {
+    if (privateFields.includes(key)) {
+      return "[erased]";
+    }
+
     if (typeof item === "string") {
       return safeStringKeys.test(key) ? item : "[erased]";
     }

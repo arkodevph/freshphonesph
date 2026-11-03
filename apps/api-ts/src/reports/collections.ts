@@ -64,7 +64,7 @@ export async function collections(
     ), clients AS (
       SELECT c.id, c."batchId" FROM "Client" c JOIN scope b ON b.id = c."batchId"
     ), schedules AS (
-      SELECT s."clientId", SUM(s."expectedAmount") AS due
+      SELECT s."clientId", SUM(s."expectedAmount" - s."releasedAmount") AS due
       FROM "ScheduleItem" s JOIN clients c ON c.id = s."clientId" GROUP BY s."clientId"
     ), adjustments AS (
       SELECT a."paymentId", SUM(a.amount) AS amount

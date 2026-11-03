@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" color="#82678f" role="img" aria-label="Join Heart">
+  <g stroke="none" data-paint="fill">
+    <path d="M15.6 15.6C11.5 10 5.2 13.1 5.7 19.1C6.2 24.5 12.5 28.1 17.9 32.9C22.8 28.8 29.7 23.7 29.2 18.1C28.8 13.6 24.5 11.7 21.3 14.7C19.3 12.8 17.2 13.7 15.6 15.6Z" fill="#f3c5df" />
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" data-paint="outline">
+    <path d="M15.6 15.6C11.5 10 5.2 13.1 5.7 19.1C6.2 24.5 12.5 28.1 17.9 32.9C22.8 28.8 29.7 23.7 29.2 18.1C28.8 13.6 24.5 11.7 21.3 14.7" />
+    <path d="M18.4 21.8C22.4 17.5 27.8 11.3 33.6 6.2M24.8 6.7C28 6.2 31.5 5.9 34.2 6L33.7 15.1" />
+    <path d="M4.1 29.3L7 30.5M9 35.4L9.7 32.4" stroke-width="2.6" />
+  </g>
+</svg>

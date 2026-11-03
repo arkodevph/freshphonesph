@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" color="#82678f" role="img" aria-label="Package Check">
+  <g stroke="none" data-paint="fill">
+    <path d="M6.2 12.1L19.6 5.6L34.2 12.3L34.4 28.9L20.4 35.9L6.5 29.6Z" fill="#f3c5df" />
+    <path d="M20 19.4L34.2 12.3L34.4 28.9L20.4 35.9Z" fill="#fff1f8" />
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" data-paint="outline">
+    <path d="M6.2 12.1L19.6 5.6L34.2 12.3L34.4 28.9L20.4 35.9L6.5 29.6Z" />
+    <path d="M6.5 12.4L20 19.4L34 12.6M20 19.4L20.4 35.5M13.2 8.7L27.3 15.6" />
+    <path d="M24.2 25.2L26.8 28L31.1 22.5" stroke-width="2.8" />
+  </g>
+</svg>

@@ -1,3 +1,4 @@
+import { previewInstallments } from "@freshphones/contracts";
 import type {
   Agent,
   AgentInput,
@@ -13,6 +14,8 @@ import type {
   CollectionReport,
   FinanceAlertPage,
   Page,
+  PortalBatchSummary,
+  PortalApplicationSummary,
   PaymentDuplicateMatch,
   PaymentReport,
   PaymentResultDetail,
@@ -590,6 +593,8 @@ export type Batch = {
   created_at: string;
   version?: number;
   terms_locked?: boolean;
+  first_due_date?: string | null;
+  month_end?: boolean;
   handler_name?: string | null;
   agent_name?: string | null;
   handler_available?: boolean;
@@ -613,6 +618,8 @@ export type ClientRecord = {
 };
 
 export type ScheduleItem = {
+  original_expected_amount?: string;
+  released_amount?: string;
   id: RecordId;
   sequence_no: number;
   due_date: string;
@@ -734,39 +741,45 @@ export async function listBatchChoices(): Promise<Batch[]> {
 }
 
 export function createBatch(body: {
-  batch_number: string;
+  agent_id: string;
   unit_model: string;
   status: string;
   contract_price: string;
   num_installments: number;
   cadence: string;
   start_date: string;
+  first_due_date?: string;
+  month_end?: boolean;
 }) {
   const cadence = body.cadence.toUpperCase() as NonNullable<
     BatchInput["cadence"]
   >;
 
-  const endDate = new Date(body.start_date);
+  let endDate: string;
 
-  const days = { WEEKLY: 7, SEMIMONTHLY: 15, MONTHLY: 30 }[cadence];
+  try {
+    if (body.first_due_date !== undefined && !body.first_due_date) {
+      throw new Error("Choose the first installment due date.");
+    }
 
-  if (
-    !days ||
-    !Number.isInteger(body.num_installments) ||
-    body.num_installments < 1 ||
-    body.num_installments > 600
-  ) {
-    return Promise.reject(
-      new Error("Choose a cadence and 1–600 installments."),
-    );
+    const items = previewInstallments({
+      contractPrice: body.contract_price,
+      installmentCount: body.num_installments,
+      cadence,
+      startDate: body.start_date,
+      firstDueDate: body.first_due_date,
+      monthEnd: body.month_end,
+    });
+
+    endDate = items[items.length - 1].dueDate;
+  } catch (error) {
+    return Promise.reject(error);
   }
-
-  endDate.setUTCDate(endDate.getUTCDate() + days * body.num_installments);
 
   return tsRequest<TsBatch>("/batches", {
     method: "POST",
     body: JSON.stringify({
-      code: body.batch_number,
+      agentId: body.agent_id,
       model: body.unit_model,
       status: (
         {
@@ -777,7 +790,13 @@ export function createBatch(body: {
         } as const
       )[body.status as "forming" | "active" | "closed" | "cancelled"],
       startDate: body.start_date,
-      endDate: endDate.toISOString().slice(0, 10),
+      endDate,
+      ...(body.first_due_date !== undefined
+        ? {
+            firstDueDate: body.first_due_date,
+            monthEnd: body.month_end ?? false,
+          }
+        : {}),
       contractPrice: body.contract_price,
       installmentCount: body.num_installments,
       cadence,
@@ -903,6 +922,7 @@ export function fetchMe() {
 
 // ── Customer portal (M5) ───────────────────────────────────────────────────
 export type PortalSummary = {
+  membership_id?: string;
   full_name: string;
   batch_number: string;
   unit_model: string;
@@ -914,7 +934,20 @@ export type PortalSummary = {
   joined_at?: string | null;
   batch_start_date?: string | null;
   batch_end_date?: string | null;
+  individual_plan?: boolean;
 };
+
+export function getPortalBatchSummary(membershipId: string) {
+  return tsRequest<PortalBatchSummary>("/portal/batch-summary", {
+    headers: { "X-Membership-Id": membershipId },
+  });
+}
+
+export function getPortalApplicationSummary(membershipId: string) {
+  return tsRequest<PortalApplicationSummary>("/portal/application-summary", {
+    headers: { "X-Membership-Id": membershipId },
+  });
+}
 
 export async function getPortalRecords(paymentPage = 1) {
   const user = await tsRequest<User>("/auth/me");
@@ -946,6 +979,8 @@ export async function getPortalRecords(paymentPage = 1) {
 }
 
 export type PortalScheduleItem = {
+  original_expected_amount?: string;
+  released_amount?: string;
   sequence_no: number;
   due_date: string;
   expected_amount: string;

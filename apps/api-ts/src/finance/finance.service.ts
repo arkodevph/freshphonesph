@@ -1,3 +1,4 @@
+import { requireOpenMembership } from "../withdrawals/withdrawal-tools";
 import { batchScope, clientScope } from "../records/scope";
 import { safeUser } from "../auth/auth.service";
 import { businessRole } from "@freshphones/contracts";
@@ -319,6 +320,8 @@ export class FinanceService {
         throw new NotFoundException("Client not found.");
       }
 
+      await requireOpenMembership(tx, input.clientId);
+
       if (input.scheduleItemId) {
         const item = await tx.scheduleItem.findFirst({
           where: { id: input.scheduleItemId, clientId: input.clientId },
@@ -374,6 +377,8 @@ export class FinanceService {
         throw new NotFoundException("Payment not found.");
       }
 
+      await requireOpenMembership(tx, before.clientId);
+
       if (!["PENDING", "NEEDS_CLARIFICATION"].includes(before.status)) {
         throw new ConflictException(
           "Verified or rejected payments are immutable. Record an audited adjustment instead.",
@@ -387,6 +392,8 @@ export class FinanceService {
       if (!client) {
         throw new NotFoundException("Client not found.");
       }
+
+      await requireOpenMembership(tx, input.clientId);
 
       if (
         input.scheduleItemId &&
@@ -460,6 +467,8 @@ export class FinanceService {
         throw new NotFoundException("Payment not found.");
       }
 
+      await requireOpenMembership(tx, before.clientId);
+
       if (before.status !== "PENDING") {
         throw new ConflictException(
           "Only pending payments can receive a Finance decision.",
@@ -528,6 +537,8 @@ export class FinanceService {
         if (!before) {
           throw new NotFoundException("Payment not found.");
         }
+
+        await requireOpenMembership(tx, before.clientId);
 
         if (!["PENDING", "NEEDS_CLARIFICATION"].includes(before.status)) {
           throw new ConflictException(
@@ -632,6 +643,8 @@ export class FinanceService {
       if (!payment) {
         throw new NotFoundException("Payment not found.");
       }
+
+      await requireOpenMembership(tx, payment.clientId);
 
       if (payment.status !== "VERIFIED") {
         throw new ConflictException("Only verified payments can be adjusted.");
@@ -738,7 +751,7 @@ export class FinanceService {
     const [schedule, verified, pending] = await Promise.all([
       tx.scheduleItem.aggregate({
         where: { clientId },
-        _sum: { expectedAmount: true },
+        _sum: { expectedAmount: true, releasedAmount: true },
       }),
       verifiedTotals(tx, { clientId }),
       tx.payment.aggregate({
@@ -747,7 +760,9 @@ export class FinanceService {
       }),
     ]);
 
-    const totalDue = schedule._sum.expectedAmount ?? new Prisma.Decimal(0);
+    const totalDue = (
+      schedule._sum.expectedAmount ?? new Prisma.Decimal(0)
+    ).sub(schedule._sum.releasedAmount ?? 0);
 
     const verifiedPaid = verified.effective;
 
@@ -757,6 +772,12 @@ export class FinanceService {
 
     return {
       clientId,
+      originalDue: (
+        schedule._sum.expectedAmount ?? new Prisma.Decimal(0)
+      ).toFixed(2),
+      releasedDue: (
+        schedule._sum.releasedAmount ?? new Prisma.Decimal(0)
+      ).toFixed(2),
       totalDue: totalDue.toFixed(2),
       verifiedPaid: verifiedPaid.toFixed(2),
       remainingBalance: Prisma.Decimal.max(difference, 0).toFixed(2),

@@ -9,6 +9,7 @@ const sections: PortalSection[] = [
   "release",
   "notifications",
   "support",
+  "withdrawals",
   "settings",
 ];
 
@@ -20,8 +21,10 @@ export function generateStaticParams() {
 
 export default async function PortalSectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ section: string }>;
+  searchParams: Promise<{ request?: string | string[] }>;
 }) {
   const { section } = await params;
 
@@ -33,5 +36,12 @@ export default async function PortalSectionPage({
     notFound();
   }
 
-  return <PortalDashboard section={section as PortalSection} />;
+  const { request } = await searchParams;
+
+  return (
+    <PortalDashboard
+      section={section as PortalSection}
+      withdrawalRequestId={typeof request === "string" ? request : undefined}
+    />
+  );
 }

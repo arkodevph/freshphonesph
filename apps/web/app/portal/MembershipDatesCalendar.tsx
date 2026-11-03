@@ -406,8 +406,9 @@ export default function MembershipDatesCalendar({
             </section>
             <p className={styles.note}>
               <Info aria-hidden="true" />
-              The planned batch end is not a collection date. Check your release
-              status for collection updates.
+              The planned {summary.individual_plan ? "plan" : "batch"} end is
+              not a collection date. Check your release status for collection
+              updates.
             </p>
           </div>
           <footer className={styles.footer}>

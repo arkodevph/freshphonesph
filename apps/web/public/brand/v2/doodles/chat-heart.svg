@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" color="#82678f" role="img" aria-label="Chat Heart">
+  <g stroke="none" data-paint="fill">
+    <path d="M11.2 7.7C6.7 8.5 4.2 12.1 4.6 18C4.9 23.3 7.3 26.4 12 27.2L9.6 34.6C13.7 32.8 17 30.5 19.8 27.7C28.3 28.2 34.8 25.9 35.1 18.2C35.4 10.6 29.8 6.8 21 7.1C17.4 7.1 14 7.3 11.2 7.7Z" fill="#f3c5df" />
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" data-paint="outline">
+    <path d="M11.2 7.7C6.7 8.5 4.2 12.1 4.6 18C4.9 23.3 7.3 26.4 12 27.2L9.6 34.6C13.7 32.8 17 30.5 19.8 27.7C28.3 28.2 34.8 25.9 35.1 18.2C35.4 10.6 29.8 6.8 21 7.1C17.4 7.1 14 7.3 11.2 7.7Z" />
+    <path d="M19.9 23C17.2 21 13.5 19.1 13.9 16.3C14.3 13.5 17.9 12.8 19.9 15.3C21.7 12.5 25.8 13.9 25.4 16.9C25.1 19.5 22.2 21.3 19.9 23Z" stroke-width="2.8" fill="#fff1f8" />
+  </g>
+</svg>

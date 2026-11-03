@@ -1,159 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { GcashHistory, GcashHistoryStatus } from "@freshphones/contracts";
+import type {
+  GcashHistory,
+  GcashHistoryStatus,
+  GcashSubmission,
+} from "@freshphones/contracts";
 import { Field, inputCls } from "@/components/FormField";
 import { useGcashHistory } from "./useGcashHistory";
 import { ReadingDialog } from "./ReadingDialog";
 import { GcashFeedback } from "./GcashFeedback";
 import { PdfPasswordField } from "./PdfPasswordField";
 import { HistoryDialog } from "./HistoryDialog";
+import { SubmissionCard } from "./SubmissionCard";
+import { ArchiveConfirmation } from "./SubmissionActions";
+import styles from "./workspace.module.css";
 
 const button =
   "rounded-xl border border-slate-200 px-3 py-2 text-sm font-600 disabled:opacity-50";
-
-function ReviewForm({
-  row,
-  saving,
-  submit,
-  cancel,
-  refresh,
-  download,
-  read,
-}: {
-  row: GcashHistory;
-  saving: boolean;
-  submit: (value: {
-    version: number;
-    status: "REVIEWED" | "NEEDS_CLARIFICATION";
-    note: string;
-  }) => Promise<void>;
-  cancel: () => void;
-  refresh: () => Promise<void>;
-  download: () => Promise<void>;
-  read: () => void;
-}) {
-  const [status, setStatus] = useState<"REVIEWED" | "NEEDS_CLARIFICATION">(
-    "REVIEWED",
-  );
-
-  const [note, setNote] = useState("");
-
-  return (
-    <form
-      aria-label="Review GCash PDF"
-      className="glass mb-5 rounded-3xl p-5"
-      onSubmit={(event) => {
-        event.preventDefault();
-
-        void submit({ version: row.version, status, note });
-      }}
-    >
-      <h2 className="font-display text-lg font-700">
-        Review {row.batch.code} · revision {row.revision}
-      </h2>
-      <p className="mb-3 text-sm text-ink-soft">
-        {row.periodStart} to {row.periodEnd}. Review the full PDF before
-        recording your decision.
-      </p>
-      <button
-        type="button"
-        className={button}
-        onClick={() => {
-          void download();
-        }}
-      >
-        Download PDF for this review
-      </button>
-      {row.current.reading && (
-        <button type="button" className={button} onClick={read}>
-          View extracted transactions
-        </button>
-      )}
-      {row.status !== "SUBMITTED" && (
-        <p role="status">
-          This submission is now {row.status.replaceAll("_", " ").toLowerCase()}
-          . Close this review and check the queue.
-        </p>
-      )}
-      <fieldset
-        disabled={saving || row.status !== "SUBMITTED"}
-        className="mt-3 grid gap-3 sm:grid-cols-2"
-      >
-        <Field label="Records decision">
-          <select
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as typeof status);
-            }}
-            className={inputCls}
-          >
-            <option value="REVIEWED">Reviewed</option>
-            <option value="NEEDS_CLARIFICATION">Needs clarification</option>
-          </select>
-        </Field>
-        <Field label="Review note">
-          <textarea
-            required
-            maxLength={2000}
-            value={note}
-            onChange={(event) => {
-              setNote(event.target.value);
-            }}
-            className={inputCls}
-            placeholder="What was checked, or what needs correcting"
-          />
-        </Field>
-      </fieldset>
-      <p className="my-3 text-xs text-ink-soft">
-        Records review does not verify payments or change member balances.
-        Finance retains final verification.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <button
-          className="btn-candy rounded-xl px-4 py-2"
-          disabled={saving || !note.trim() || row.status !== "SUBMITTED"}
-        >
-          {saving ? "Saving…" : "Save Records review"}
-        </button>
-        <button
-          type="button"
-          disabled={saving}
-          className={button}
-          onClick={() => {
-            void refresh();
-          }}
-        >
-          Load latest submission
-        </button>
-        <button
-          type="button"
-          disabled={saving}
-          className={button}
-          onClick={cancel}
-        >
-          Close review
-        </button>
-      </div>
-    </form>
-  );
-}
 
 export default function GcashHistoryPage() {
   const work = useGcashHistory();
 
   const [history, setHistory] = useState<GcashHistory | null>(null);
 
+  const [archiving, setArchiving] = useState<GcashHistory | null>(null);
+
   const [reading, setReading] = useState<{
-    id: string;
-    fileName: string;
+    row: GcashHistory;
+    submission: GcashSubmission;
   } | null>(null);
 
   useEffect(() => {
     setHistory(null);
 
     setReading(null);
-  }, [work.me?.id, work.canRead]);
+
+    setArchiving(null);
+  }, [work.me?.id, work.canRead, work.canReview]);
 
   if (work.me && !work.canRead) {
     return (
@@ -171,7 +55,8 @@ export default function GcashHistoryPage() {
           GCash history
         </h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Full transaction-history PDFs · Handler submission · Records review
+          Compare original statements, check transaction readings and keep a
+          clear review trail.
         </p>
         <p className="mt-2 text-sm text-ink-soft">
           This workspace does not verify payments or change balances.
@@ -333,36 +218,15 @@ export default function GcashHistoryPage() {
           </div>
         </form>
       )}
-      {work.reviewing && work.canReview && (
-        <ReviewForm
-          key={work.reviewing.id}
-          row={work.reviewing}
-          saving={work.saving}
-          read={() => {
-            if (work.reviewing) {
-              setReading(work.reviewing.current);
-            }
-          }}
-          submit={work.review}
-          cancel={() => {
-            work.setReviewing(null);
-          }}
-          refresh={work.refreshReview}
-          download={() => {
-            return work.download(
-              work.reviewing!.current.id,
-              work.reviewing!.current.fileName,
-            );
-          }}
-        />
-      )}
       <section
-        className="glass rounded-3xl p-5"
+        className={`glass rounded-3xl p-5 ${styles.queue}`}
         aria-label="GCash review queue"
+        tabIndex={-1}
       >
-        <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Search batch">
             <input
+              placeholder="Search by batch code"
               maxLength={100}
               value={work.query}
               onChange={(event) => {
@@ -375,6 +239,7 @@ export default function GcashHistoryPage() {
           </Field>
           <Field label="Review status">
             <select
+              aria-label="Review status"
               value={work.status}
               onChange={(event) => {
                 work.setStatus(event.target.value as GcashHistoryStatus | "");
@@ -387,6 +252,21 @@ export default function GcashHistoryPage() {
               <option value="SUBMITTED">Awaiting Records review</option>
               <option value="NEEDS_CLARIFICATION">Needs clarification</option>
               <option value="REVIEWED">Reviewed</option>
+            </select>
+          </Field>
+          <Field label="Queue view">
+            <select
+              aria-label="Queue view"
+              className={inputCls}
+              value={work.archived}
+              onChange={(event) => {
+                work.setArchived(event.target.value as "active" | "archived");
+
+                work.setPage(1);
+              }}
+            >
+              <option value="active">Active submissions</option>
+              <option value="archived">Archived submissions</option>
             </select>
           </Field>
           <button
@@ -420,109 +300,28 @@ export default function GcashHistoryPage() {
           <div className="grid gap-3">
             {work.items.map((row) => {
               return (
-                <article
+                <SubmissionCard
                   key={row.id}
-                  className="min-w-0 rounded-2xl border border-slate-200 p-4"
-                  aria-label={`${row.batch.code} revision ${row.revision}`}
-                >
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <h2 className="font-display font-700 text-blue-ink">
-                      {row.batch.code} · revision {row.revision}
-                    </h2>
-                    <span className="text-sm font-600">
-                      {row.status === "SUBMITTED"
-                        ? "Awaiting Records review"
-                        : row.status === "REVIEWED"
-                          ? "Reviewed"
-                          : "Needs clarification"}
-                    </span>
-                  </div>
-                  <p className="my-1 text-sm">
-                    {row.periodStart} to {row.periodEnd}
-                  </p>
-                  <p className="break-words text-sm">
-                    {row.current.fileName} · {row.current.uploadedBy.name}
-                  </p>
-                  {row.current.reading && (
-                    <p className="my-2 text-sm text-ink-soft">
-                      {row.current.reading.transactionCount} transactions read
-                      {row.current.reading.warningCount
-                        ? " · Reading needs checking"
-                        : " · Totals checked"}
-                    </p>
-                  )}
-                  {row.current.note && (
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                      Handler: {row.current.note}
-                    </p>
-                  )}
-                  {row.current.reviewNote && (
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                      Records: {row.current.reviewNote} ·{" "}
-                      {row.current.reviewedBy?.name}
-                    </p>
-                  )}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={button}
-                      onClick={() => {
-                        void work.download(
-                          row.current.id,
-                          row.current.fileName,
-                        );
-                      }}
-                    >
-                      Download PDF
-                    </button>
-                    <button
-                      type="button"
-                      className={button}
-                      onClick={() => {
-                        setHistory(row);
-                      }}
-                    >
-                      PDF history
-                    </button>
-                    {row.current.reading && (
-                      <button
-                        type="button"
-                        className={button}
-                        onClick={() => {
-                          setReading(row.current);
-                        }}
-                      >
-                        View extracted transactions
-                      </button>
-                    )}
-                    {work.canReview && row.status === "SUBMITTED" && (
-                      <button
-                        type="button"
-                        className={button}
-                        disabled={work.saving}
-                        onClick={() => {
-                          work.setReviewing(row);
-
-                          work.setError(null);
-                        }}
-                      >
-                        Review submission
-                      </button>
-                    )}
-                    {work.canUpload && row.status === "NEEDS_CLARIFICATION" && (
-                      <button
-                        type="button"
-                        className={button}
-                        disabled={work.saving}
-                        onClick={() => {
-                          work.correct(row);
-                        }}
-                      >
-                        Submit corrected PDF
-                      </button>
-                    )}
-                  </div>
-                </article>
+                  row={row}
+                  canReview={work.canReview}
+                  canUpload={work.canUpload}
+                  busy={work.saving}
+                  open={() => {
+                    setReading({ row, submission: row.current });
+                  }}
+                  history={() => {
+                    setHistory(row);
+                  }}
+                  correct={() => {
+                    work.correct(row);
+                  }}
+                  changed={() => {
+                    void work.load();
+                  }}
+                  archive={() => {
+                    setArchiving(row);
+                  }}
+                />
               );
             })}
           </div>
@@ -565,15 +364,46 @@ export default function GcashHistoryPage() {
             setHistory(null);
           }}
           download={work.download}
+          canReview={work.canReview}
+          viewerId={work.me ? String(work.me.id) : undefined}
+          changed={() => {
+            void work.load();
+          }}
+        />
+      )}
+      {archiving && work.canReview && (
+        <ArchiveConfirmation
+          key={`${work.me?.id}-${archiving.id}-${archiving.version}`}
+          row={archiving}
+          changed={() => {
+            void work.load();
+          }}
+          close={() => {
+            setArchiving(null);
+          }}
         />
       )}
       {reading && (
         <ReadingDialog
-          key={reading.id}
-          id={reading.id}
-          filename={reading.fileName}
+          key={`${work.me?.id}-${reading.submission.id}`}
+          row={reading.row}
+          submission={reading.submission}
+          canReview={work.canReview}
+          viewerId={work.me ? String(work.me.id) : undefined}
+          changed={() => {
+            void work.load();
+          }}
+          download={work.download}
           close={() => {
             setReading(null);
+
+            requestAnimationFrame(() => {
+              document
+                .querySelector<HTMLElement>(
+                  'section[aria-label="GCash review queue"]',
+                )
+                ?.focus();
+            });
           }}
         />
       )}

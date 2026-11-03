@@ -1,0 +1,98 @@
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, transparent, #000 22%);
+}
+
+.light {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 70% 30%,
+      rgb(255 255 255 / 75%),
+      transparent 58%
+    ),
+    radial-gradient(ellipse at 6% 65%, rgb(74 135 198 / 16%), transparent 58%),
+    linear-gradient(to top, rgb(239 248 255 / 55%), transparent 48%);
+}
+
+.distantClouds,
+.nearClouds {
+  position: absolute;
+  background: url("/brand/cloud-section-divider-v2.webp") center / contain
+    no-repeat;
+}
+
+.distantClouds {
+  top: 12%;
+  left: -12%;
+  width: 115%;
+  height: 38%;
+  opacity: 0.27;
+  filter: blur(6px);
+}
+
+.shadow {
+  position: absolute;
+  top: 62%;
+  left: 22%;
+  width: 60%;
+  height: 9%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(28 72 129 / 16%), transparent 68%);
+  filter: blur(12px);
+  transform: scaleX(calc(0.8 + var(--story-progress, 0) * 0.2));
+}
+
+.nearClouds {
+  bottom: -20%;
+  left: -35%;
+  width: 175%;
+  height: 55%;
+  opacity: 0.38;
+  filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .distantClouds {
+    transform: translate3d(calc(var(--story-progress, 0) * -3%), 0, 0);
+  }
+
+  .nearClouds {
+    transform: translate3d(
+      calc(var(--story-progress, 0) * 3%),
+      calc(var(--story-progress, 0) * -12%),
+      0
+    );
+  }
+}
+
+@media (max-width: 640px) {
+  .distantClouds {
+    width: 180%;
+    left: -40%;
+    top: 22%;
+    opacity: 0.2;
+  }
+
+  .nearClouds {
+    width: 250%;
+    left: -75%;
+    opacity: 0.28;
+  }
+
+  .shadow {
+    top: 55%;
+    left: 10%;
+    width: 80%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shadow {
+    transform: none;
+  }
+}

@@ -24,6 +24,9 @@ import {
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { RecordHistory } from "./RecordHistory";
 import styles from "./record-details.module.css";
+import { BatchSchedulePreview } from "./BatchSchedulePreview";
+import { BatchCapacity } from "./BatchCapacity";
+import type { InstallmentCadence } from "@freshphones/contracts";
 
 export function RecordDetails({
   kind,
@@ -260,7 +263,15 @@ export function RecordDetails({
           value={draft?.[key] ?? ""}
           onChange={(event) => {
             return setDraft((current) => {
-              return current && { ...current, [key]: event.target.value };
+              return (
+                current && {
+                  ...current,
+                  [key]: event.target.value,
+                  ...(key === "cadence" && event.target.value !== "MONTHLY"
+                    ? { monthEnd: "false" }
+                    : {}),
+                }
+              );
             });
           }}
           {...extra}
@@ -287,7 +298,15 @@ export function RecordDetails({
           disabled={disabled}
           onChange={(event) => {
             return setDraft((current) => {
-              return current && { ...current, [key]: event.target.value };
+              return (
+                current && {
+                  ...current,
+                  [key]: event.target.value,
+                  ...(key === "cadence" && event.target.value !== "MONTHLY"
+                    ? { monthEnd: "false" }
+                    : {}),
+                }
+              );
             });
           }}
         >
@@ -444,10 +463,15 @@ export function RecordDetails({
           >
             {kind === "batch" && "code" in record ? (
               <>
+                <BatchCapacity
+                  realMembers={record._count.clients}
+                  status={record.status}
+                />
                 <div className={styles.grid}>
                   {field("Batch number", "code", "text", true, {
                     minLength: 2,
-                    maxLength: 30,
+                    maxLength: 71,
+                    readOnly: Boolean(record.numberingAgentId),
                     pattern: "[A-Za-z0-9-]+",
                   })}
                   {select("Status", "status", [
@@ -457,10 +481,17 @@ export function RecordDetails({
                     ["CANCELLED", "Cancelled"],
                   ])}
                 </div>
+                {record.numberingAgentId && (
+                  <p className={styles.help}>
+                    This batch number is permanent. Changing its Agent keeps the
+                    same number.
+                  </p>
+                )}
                 {record.termsLocked && (
                   <p className={styles.warning}>
-                    Payment schedules have been issued. Unit, dates, and payment
-                    terms are locked; use a new batch for a different plan.
+                    Schedules or payments have been recorded. Unit, dates, and
+                    payment terms are locked; use a new batch for a different
+                    plan.
                   </p>
                 )}
                 <fieldset disabled={record.termsLocked} className={styles.grid}>
@@ -488,22 +519,49 @@ export function RecordDetails({
                     [
                       ["", "Terms not set"],
                       ["WEEKLY", "Weekly"],
-                      ["SEMIMONTHLY", "Semi-monthly"],
+                      ["SEMIMONTHLY", "Bi-monthly — 15th and month end"],
                       ["MONTHLY", "Monthly"],
                     ],
                     false,
                     Boolean(draft.contractPrice || draft.installmentCount),
                   )}
                   {field("Start date", "startDate", "date", true)}
+                  {field(
+                    "First installment due date",
+                    "firstDueDate",
+                    "date",
+                    Boolean(record.firstDueDate),
+                    { min: draft.startDate, max: draft.endDate },
+                  )}
+                  {draft.cadence === "MONTHLY" &&
+                    select("Monthly alignment", "monthEnd", [
+                      ["false", "Same day of every month"],
+                      ["true", "Last day of every month"],
+                    ])}
                   {field("End date", "endDate", "date", true, {
                     min: draft.startDate,
                   })}
                 </fieldset>
                 <p className={styles.help}>
-                  If you set payment terms, provide the price, installment
-                  count, and cadence together. Dates use the existing 7 / 15 /
-                  30-day schedule.
+                  {record.firstDueDate || draft.firstDueDate
+                    ? "The chosen first due date is installment 1. Bi-monthly dates fall on the 15th and month end. Include the final installment in the batch end date."
+                    : "This batch retains its original fixed-interval schedule. For a batch without issued schedules or payments, choose a first due date to use calendar scheduling."}
                 </p>
+                {draft.contractPrice &&
+                  draft.installmentCount &&
+                  draft.cadence && (
+                    <BatchSchedulePreview
+                      requireFirstDate={Boolean(record.firstDueDate)}
+                      plan={{
+                        contractPrice: draft.contractPrice,
+                        installmentCount: Number(draft.installmentCount),
+                        cadence: draft.cadence as InstallmentCadence,
+                        startDate: draft.startDate,
+                        firstDueDate: draft.firstDueDate || null,
+                        monthEnd: draft.monthEnd === "true",
+                      }}
+                    />
+                  )}
               </>
             ) : kind === "client" && "name" in record ? (
               <>

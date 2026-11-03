@@ -38,10 +38,15 @@ export default function Hero() {
             Find your iPhone or iPad. Follow a clear paluwagan schedule, with
             real people to guide you from application to release.
           </p>
-          <a href="#units" className={styles.cta}>
-            View available units
-            <ArrowRight weight="bold" aria-hidden="true" />
-          </a>
+          <div className={styles.actions}>
+            <a href="#units" className={styles.cta}>
+              View available units
+              <ArrowRight weight="bold" aria-hidden="true" />
+            </a>
+            <a href="/enroll" className={styles.apply}>
+              Apply to join
+            </a>
+          </div>
         </div>
       </div>
       <aside

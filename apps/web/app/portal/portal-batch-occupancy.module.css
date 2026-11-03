@@ -1,0 +1,172 @@
+.panel {
+  --occupancy-accent: #2b60ae;
+  --occupancy-accent-soft: #eaf3fc;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--portal-border, #e5e7ec);
+  border-radius: 20px;
+  background: var(--portal-surface, #fff);
+  color: var(--portal-text, #17181c);
+}
+
+:global(html[data-system-theme="dark"]) .panel {
+  --occupancy-accent: #9fc6f5;
+  --occupancy-accent-soft: #253442;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--occupancy-accent-soft);
+  color: var(--occupancy-accent);
+}
+
+.icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.header p {
+  margin: 3px 0 0;
+  color: var(--portal-muted, #60636e);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--occupancy-accent-soft);
+  color: var(--occupancy-accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-top: 18px;
+}
+
+.count {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.count strong {
+  color: var(--occupancy-accent);
+  font-size: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.count span {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.availability {
+  display: grid;
+  min-width: 0;
+  max-width: 32rem;
+  gap: 4px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.availability strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.availability span {
+  color: var(--portal-muted, #60636e);
+  overflow-wrap: anywhere;
+}
+
+.message {
+  margin: 18px 0 0;
+  color: var(--portal-muted, #60636e);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.error {
+  margin-top: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.error p {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+
+.retry {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--portal-border, #e5e7ec);
+  border-radius: 10px;
+  background: var(--portal-surface, #fff);
+  color: var(--occupancy-accent);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.retry:hover {
+  border-color: var(--occupancy-accent);
+  background: var(--occupancy-accent-soft);
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--occupancy-accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .body {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -45,6 +45,7 @@ type Props = {
     | "release"
     | "notifications"
     | "support"
+    | "withdrawals"
     | "settings";
   unreadNotifications: number;
   notificationPanel: (id: string) => React.ReactNode;

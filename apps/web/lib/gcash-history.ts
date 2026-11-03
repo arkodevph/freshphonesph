@@ -7,6 +7,10 @@ import {
   type GcashHistoryUpload,
   type GcashSubmission,
   type Page,
+  type GcashCorrection,
+  type GcashCorrectionEntry,
+  type GcashArchive,
+  type GcashActivityEntry,
 } from "@freshphones/contracts";
 import { tsDownload, tsRequest, tsUpload } from "./ts-api";
 
@@ -101,8 +105,34 @@ export function gcashPdfError(file: Pick<File, "size" | "type">) {
     : "Choose a PDF exported from GCash.";
 }
 
-export function getGcashReading(id: string, page = 1) {
+export function getGcashReading(id: string, page = 1, source = "current") {
   return tsRequest<GcashReadingPage>(
-    `/gcash-history/submissions/${id}/reading?page=${page}`,
+    `/gcash-history/submissions/${id}/reading?page=${page}&source=${source}`,
+  );
+}
+
+export function correctGcashTransaction(id: string, input: GcashCorrection) {
+  return tsRequest<GcashHistory>(
+    `/gcash-history/submissions/${id}/corrections`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export function getGcashCorrections(id: string, page = 1) {
+  return tsRequest<Page<GcashCorrectionEntry>>(
+    `/gcash-history/submissions/${id}/corrections?page=${page}`,
+  );
+}
+
+export function archiveGcashHistory(id: string, input: GcashArchive) {
+  return tsRequest<GcashHistory>(`/gcash-history/${id}/archive`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getGcashActivity(id: string, page = 1) {
+  return tsRequest<Page<GcashActivityEntry>>(
+    `/gcash-history/${id}/activity?page=${page}`,
   );
 }

@@ -1,0 +1,43 @@
+.divider {
+  position: relative;
+  z-index: 3;
+  height: clamp(14rem, 38svh, 28rem);
+  margin-top: -18svh;
+  overflow: hidden;
+  pointer-events: none;
+  background: #c1e4f4;
+  mask-image: linear-gradient(to bottom, transparent, #000 35%);
+}
+.clouds {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 24%,
+    #000 70%,
+    transparent
+  );
+}
+
+@media (max-width: 640px) {
+  .divider {
+    height: 26svh;
+    min-height: 12rem;
+    margin-top: -12svh;
+  }
+
+  .clouds {
+    width: 160%;
+    max-width: none;
+    margin-left: -30%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clouds {
+    transform: none;
+  }
+}

@@ -55,7 +55,19 @@ const NAV = [
     icon: Users,
     label: "Enrollments",
     href: "/system/enrollments",
-    perms: ["ENROLLMENT_SUBMIT", "ENROLLMENT_REVIEW", "AGENT_NETWORK_READ"],
+    perms: [
+      "ENROLLMENT_SUBMIT",
+      "ENROLLMENT_REVIEW",
+      "AGENT_NETWORK_READ",
+      "ENROLLMENT_FORM_MANAGE",
+      "ENROLLMENT_APPLICATION_READ",
+    ],
+  },
+  {
+    icon: Users,
+    label: "Withdrawals",
+    href: "/system/withdrawals",
+    perms: ["WITHDRAWAL_READ"],
   },
   {
     icon: Stack,

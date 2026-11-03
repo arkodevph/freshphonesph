@@ -171,7 +171,24 @@ export async function downloadAccountPdf(
   if ("balance" in record) {
     line("Account balance", 13, true, purple);
 
-    line(`Total due: ${money(record.balance.totalDue)}`);
+    if (Number(record.balance.releasedDue ?? 0) > 0) {
+      line(
+        `Originally issued installment obligation: ${record.balance.originalDue ? money(record.balance.originalDue) : "Not captured"}`,
+      );
+
+      line(
+        `Unpaid obligation released at replacement: ${money(record.balance.releasedDue!)}`,
+      );
+
+      line(
+        "The replacement release is not a payment or refund. Original incoming payments remain in this history; refund decisions and external refund records are tracked separately.",
+        9,
+        false,
+        muted,
+      );
+    }
+
+    line(`Current installment obligation: ${money(record.balance.totalDue)}`);
 
     line(`Finance-verified paid: ${money(record.balance.verifiedPaid)}`);
 

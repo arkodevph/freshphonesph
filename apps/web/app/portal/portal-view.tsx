@@ -6,6 +6,7 @@ import {
   CalendarBlank,
   ChatCircleText,
   FileText,
+  ArrowBendUpLeft,
   GearSix,
   House,
   Package,
@@ -60,6 +61,12 @@ export const portalNav = [
     typescriptOnly: true,
   },
   { id: "support", label: "Support", icon: ChatCircleText, group: "Updates" },
+  {
+    id: "withdrawals",
+    label: "Withdrawals",
+    icon: ArrowBendUpLeft,
+    group: "Account",
+  },
   { id: "settings", label: "Settings", icon: GearSix, group: "Account" },
 ] as const;
 
@@ -81,6 +88,7 @@ export const moreToolDetails: Partial<Record<PortalSection, string>> = {
   release: "Track your unit",
   notifications: "Recent account updates",
   support: "Get help with a concern",
+  withdrawals: "Request withdrawal and follow its review",
   settings: "Profile, appearance, and security",
 };
 
@@ -122,6 +130,12 @@ export const sectionCopy: Record<
     eyebrow: "Updates",
     title: "Support",
     description: "Send a concern and follow its status here.",
+  },
+  withdrawals: {
+    eyebrow: "Account",
+    title: "Withdrawal requests",
+    description:
+      "Explain your request, follow its review, and track any separate refund decision.",
   },
   settings: {
     eyebrow: "Account",

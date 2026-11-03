@@ -1,3 +1,4 @@
+import { Prisma } from "../generated/prisma/client";
 import {
   Inject,
   Injectable,
@@ -172,61 +173,31 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
           continue;
         }
 
-        const all = await this.db.scheduleItem.findMany({
-          where: { clientId: item.clientId },
-          orderBy: { sequenceNo: "asc" },
-        });
-
-        const verified = await this.db.$transaction(
-          (tx) => {
-            return verifiedTotals(tx, { clientId: item.clientId });
-          },
-          { isolationLevel: "RepeatableRead" },
-        );
-
-        const pendingCount = await this.db.payment.count({
-          where: { clientId: item.clientId, status: "PENDING" },
-        });
-
-        const allocation = allocateVerifiedPayments(
-          all.map((row) => {
-            return {
-              sequenceNo: row.sequenceNo,
-              dueDate: row.dueDate.toISOString().slice(0, 10),
-              expectedAmount: row.expectedAmount.toFixed(2),
-            };
-          }),
-          verified.effective.toFixed(2),
-          today,
-        );
-
-        const current = allocation.find((row) => {
-          return row.sequenceNo === item.sequenceNo;
-        });
-
-        if (!current || current.status === "PAID") {
-          continue;
-        }
-
-        const outstanding = (
-          Number(current.expectedAmount) - Number(current.paidApplied)
-        ).toFixed(2);
-
         const key = `installment:${item.id}:${offset}`;
 
         try {
           await this.db.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+
+            const current = await this.currentInstallment(tx, item.id, today);
+
+            if (!current || !current.item.client.member.account?.active) {
+              return;
+            }
+
+            const account = current.item.client.member.account;
+
             const notification = await tx.notification.create({
               data: {
-                userId: item.client.member.account!.id,
+                userId: account.id,
                 kind: "installment",
                 dedupeKey: key,
                 title:
                   offset === 0
                     ? "Installment due today"
                     : "Upcoming installment",
-                message: `Installment ${item.sequenceNo} is due ${dueDate}. Remaining scheduled amount: PHP ${outstanding}. ${pendingCount ? "A staff-recorded payment is awaiting Finance review; it is not included in this amount. " : ""}Coordinate payment in Messenger; only Finance-verified payments update your record.`,
-                targetPath: `/portal/schedule${item.client.member.account!.clientId !== item.clientId ? `?membership=${item.clientId}` : ""}#installment-${item.sequenceNo}`,
+                message: `Installment ${current.item.sequenceNo} is due ${dueDate}. Remaining scheduled amount: PHP ${current.outstanding}. ${current.pendingCount ? "A staff-recorded payment is awaiting Finance review; it is not included in this amount. " : ""}Coordinate payment in Messenger; only Finance-verified payments update your record.`,
+                targetPath: `/portal/schedule${account.clientId !== item.clientId ? `?membership=${item.clientId}` : ""}#installment-${current.item.sequenceNo}`,
               },
             });
 
@@ -246,6 +217,72 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
         }
       }
     }
+  }
+
+  private async currentInstallment(
+    tx: Prisma.TransactionClient,
+    id: string,
+    today: string,
+  ) {
+    const item = await tx.scheduleItem.findUnique({
+      where: { id },
+      include: {
+        client: {
+          include: {
+            member: {
+              include: {
+                account: { select: { id: true, active: true, clientId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (
+      !item ||
+      item.client.replacementCompletedAt ||
+      item.client.retentionErasedAt
+    ) {
+      return null;
+    }
+
+    const [all, verified, pendingCount] = await Promise.all([
+      tx.scheduleItem.findMany({
+        where: { clientId: item.clientId },
+        orderBy: { sequenceNo: "asc" },
+      }),
+      verifiedTotals(tx, { clientId: item.clientId }),
+      tx.payment.count({
+        where: { clientId: item.clientId, status: "PENDING" },
+      }),
+    ]);
+
+    const current = allocateVerifiedPayments(
+      all.map((row) => {
+        return {
+          sequenceNo: row.sequenceNo,
+          dueDate: row.dueDate.toISOString().slice(0, 10),
+          expectedAmount: row.expectedAmount.sub(row.releasedAmount).toFixed(2),
+        };
+      }),
+      verified.effective.toFixed(2),
+      today,
+    ).find((row) => {
+      return row.sequenceNo === item.sequenceNo;
+    });
+
+    if (!current || current.status === "PAID") {
+      return null;
+    }
+
+    return {
+      item,
+      pendingCount,
+      outstanding: new Prisma.Decimal(current.expectedAmount)
+        .sub(current.paidApplied)
+        .toFixed(2),
+    };
   }
 
   async deliver(onlyId?: string, includeStaff = true) {
@@ -300,6 +337,27 @@ export class EmailDeliveryService implements OnModuleInit, OnModuleDestroy {
           });
 
           return null;
+        }
+
+        if (current.kind === "installment") {
+          const itemId = current.dedupeKey?.split(":")[1];
+
+          const installment = itemId
+            ? await this.currentInstallment(tx, itemId, philippineDate())
+            : null;
+
+          if (
+            !installment ||
+            installment.item.client.member.account?.id !== current.userId ||
+            !current.message.includes(`PHP ${installment.outstanding}.`)
+          ) {
+            await tx.notification.update({
+              where: { id: current.id },
+              data: { emailStatus: "SKIPPED", emailAttemptId: null },
+            });
+
+            return null;
+          }
         }
 
         const template = await this.settings.template(current.kind);

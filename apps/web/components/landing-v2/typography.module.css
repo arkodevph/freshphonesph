@@ -1,0 +1,22 @@
+.root {
+  --font-body: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    var(--font-landing-v2), var(--font-nunito), ui-monospace, monospace;
+  --font-sans: var(--font-body);
+  font-family: var(--font-display);
+  font-variation-settings: "MONO" 1;
+}
+
+.root
+  :where(
+    p:not([class~="font-display"]),
+    small,
+    blockquote,
+    figcaption,
+    dd,
+    input,
+    textarea,
+    select
+  ) {
+  font-family: var(--font-body);
+}

@@ -1,4 +1,14 @@
 import {
+  applicationChanged,
+  receivingAgentWhere,
+} from "../enrollment-forms/enrollment-form-tools";
+import {
+  completeReplacement,
+  type ReplacementApplicant,
+} from "../withdrawals/withdrawal-handover";
+import { withdrawalScope } from "../withdrawals/withdrawals.service";
+import { currentBatchPositionWhere } from "./batch-capacity";
+import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -109,7 +119,7 @@ export class RoleWorkspaceService {
         code: true,
         model: true,
         status: true,
-        _count: { select: { clients: true } },
+        _count: { select: { clients: { where: currentBatchPositionWhere } } },
       },
       orderBy: { code: "asc" },
       take: 100,
@@ -188,6 +198,7 @@ export class RoleWorkspaceService {
           batch: { select: { code: true } },
           submittedBy: { select: { name: true } },
           reviewedBy: { select: { name: true } },
+          publicApplication: { select: { id: true, retentionErasedAt: true } },
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         skip: (page - 1) * 20,
@@ -196,13 +207,40 @@ export class RoleWorkspaceService {
       this.db.enrollmentRequest.count({ where }),
     ]);
 
+    const caseIds = items
+      .map((row) => {
+        return (row.applicant as { withdrawalId?: string }).withdrawalId;
+      })
+      .filter((id): id is string => {
+        return Boolean(id);
+      });
+
+    const cases =
+      allowed(user, "WITHDRAWAL_READ") && caseIds.length
+        ? await this.db.withdrawalRequest.findMany({
+            where: { id: { in: caseIds }, ...withdrawalScope(user) },
+            select: { id: true, replacementMode: true },
+          })
+        : [];
+
+    const linkedCases = new Map(
+      cases.map((row) => {
+        return [row.id, row];
+      }),
+    );
+
     return {
       items: items.map((row) => {
         const applicant = row.applicant as {
           name: string;
           email: string;
           phone: string;
+          withdrawalId?: string;
         };
+
+        const withdrawal = applicant.withdrawalId
+          ? linkedCases.get(applicant.withdrawalId)
+          : undefined;
 
         return {
           id: row.id,
@@ -216,6 +254,12 @@ export class RoleWorkspaceService {
           reviewedBy: row.reviewedBy?.name ?? null,
           createdAt: row.createdAt,
           reviewedAt: row.reviewedAt,
+          withdrawalId: withdrawal?.id ?? null,
+          replacementMode: withdrawal?.replacementMode ?? null,
+          publicApplicationId:
+            row.publicApplication && !row.publicApplication.retentionErasedAt
+              ? row.publicApplication.id
+              : null,
         };
       }),
       total,
@@ -252,8 +296,49 @@ export class RoleWorkspaceService {
       phone: string;
       memberId?: string;
     },
+    source?: { id: string; version: number },
   ) {
     return this.write(user, "ENROLLMENT_SUBMIT", async (tx, current) => {
+      const publicApplication = source
+        ? await tx.publicEnrollmentApplication.findFirst({
+            where: {
+              id: source.id,
+              assignedAgentId: current.id,
+              retentionErasedAt: null,
+            },
+          })
+        : null;
+
+      if (source) {
+        const activeAgent = await tx.user.findFirst({
+          where: { id: current.id, ...receivingAgentWhere },
+          select: { id: true },
+        });
+
+        if (!activeAgent) {
+          throw new ForbiddenException(
+            "Only the assigned active Agent may forward this application.",
+          );
+        }
+
+        if (!publicApplication || source.id !== input.submissionId) {
+          throw new NotFoundException("Enrollment application not found.");
+        }
+
+        if (publicApplication.status === "CLOSED") {
+          throw new ConflictException("This application is already closed.");
+        }
+
+        if (
+          publicApplication.status === "RECEIVED" &&
+          publicApplication.version !== source.version
+        ) {
+          throw new ConflictException(
+            "This application changed. Reload it before forwarding.",
+          );
+        }
+      }
+
       const existing = await tx.enrollmentRequest.findUnique({
         where: { submissionId: input.submissionId },
       });
@@ -264,9 +349,15 @@ export class RoleWorkspaceService {
           email: string;
           phone: string;
           memberId?: string;
+          withdrawalId?: string;
+          policyVersion?: number;
+          fingerprint?: string;
         };
 
         if (
+          (source &&
+            (publicApplication?.status !== "FORWARDED" ||
+              publicApplication.enrollmentRequestId !== existing.id)) ||
           existing.submittedById !== user.id ||
           existing.batchId !== input.batchId ||
           applicant.name !== input.name ||
@@ -286,6 +377,12 @@ export class RoleWorkspaceService {
         };
       }
 
+      if (source && publicApplication?.status !== "RECEIVED") {
+        throw new ConflictException(
+          "This application has already been forwarded.",
+        );
+      }
+
       const batch = await tx.batch.findFirst({
         where: {
           id: input.batchId,
@@ -298,6 +395,23 @@ export class RoleWorkspaceService {
       if (!batch) {
         throw new NotFoundException(
           "Choose one of your assigned, open batches.",
+        );
+      }
+
+      if (
+        source &&
+        (!batch.managerId ||
+          !(await tx.user.findFirst({
+            where: {
+              id: batch.managerId,
+              active: true,
+              role: { in: ["BATCH_MANAGER", "GENERAL_MANAGER"] },
+            },
+            select: { id: true },
+          })))
+      ) {
+        throw new ConflictException(
+          "The selected batch needs an active assigned Batch Manager before forwarding.",
         );
       }
 
@@ -353,6 +467,31 @@ export class RoleWorkspaceService {
           applicant,
         },
       });
+
+      if (source) {
+        await tx.publicEnrollmentApplication.update({
+          where: { id: source.id },
+          data: {
+            status: "FORWARDED",
+            enrollmentRequestId: request.id,
+            reviewedContact: {
+              name: input.name,
+              email: input.email,
+              phone: input.phone,
+              ...(input.memberId ? { memberId: input.memberId } : {}),
+            },
+            version: { increment: 1 },
+          },
+        });
+
+        await applicationChanged(
+          tx,
+          source.id,
+          current.id,
+          "public_enrollment.forwarded",
+          { enrollmentRequestId: request.id, batchId: input.batchId },
+        );
+      }
 
       await tx.auditEntry.create({
         data: {
@@ -469,6 +608,9 @@ export class RoleWorkspaceService {
           email: string;
           phone: string;
           memberId?: string;
+          withdrawalId?: string;
+          policyVersion?: number;
+          fingerprint?: string;
         };
 
         let identity = {
@@ -520,14 +662,22 @@ export class RoleWorkspaceService {
           releaseStatus: "NOT_READY",
         });
 
-        clientId = (
-          await this.records.enrollApproved(
-            tx,
-            current,
-            member,
-            applicant.memberId,
-          )
-        ).id;
+        clientId = applicant.withdrawalId
+          ? await completeReplacement(
+              tx,
+              current,
+              request,
+              applicant as ReplacementApplicant,
+              identity,
+            )
+          : (
+              await this.records.enrollApproved(
+                tx,
+                current,
+                member,
+                applicant.memberId,
+              )
+            ).id;
       }
 
       const after = await tx.enrollmentRequest.update({
