@@ -27,8 +27,8 @@ export async function installmentEarnings(
       JOIN scope b ON b.id = c."batchId"
     ), schedules AS (
       SELECT s."clientId", COUNT(*) AS issued,
-        COUNT(*) FILTER (WHERE s."dueDate" BETWEEN ${range.dateFrom}::date AND ${range.dateTo}::date)::int AS installments,
-        COALESCE(SUM(s."expectedAmount") FILTER (WHERE s."dueDate" BETWEEN ${range.dateFrom}::date AND ${range.dateTo}::date), 0) AS amount
+        COUNT(*) FILTER (WHERE s."expectedAmount" > s."releasedAmount" AND s."dueDate" BETWEEN ${range.dateFrom}::date AND ${range.dateTo}::date)::int AS installments,
+        COALESCE(SUM(s."expectedAmount" - s."releasedAmount") FILTER (WHERE s."dueDate" BETWEEN ${range.dateFrom}::date AND ${range.dateTo}::date), 0) AS amount
       FROM "ScheduleItem" s JOIN clients c ON c.id = s."clientId"
       GROUP BY s."clientId"
     ), member_rows AS (

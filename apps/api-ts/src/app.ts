@@ -1,3 +1,5 @@
+import { WithdrawalsController } from "./withdrawals/withdrawals.controller";
+import { WithdrawalsService } from "./withdrawals/withdrawals.service";
 import { RoleWorkspaceController } from "./records/role-workspace.controller";
 import { RoleWorkspaceService } from "./records/role-workspace.service";
 import "reflect-metadata";
@@ -17,6 +19,8 @@ import { CONFIG, readConfig, type Config } from "./config";
 import { Database } from "./database";
 import { CatalogController } from "./catalog/catalog.controller";
 import { CatalogService } from "./catalog/catalog.service";
+import { EnrollmentFormsController } from "./enrollment-forms/enrollment-forms.controller";
+import { EnrollmentFormsService } from "./enrollment-forms/enrollment-forms.service";
 import { InquiriesController } from "./inquiries/inquiries.controller";
 import { InquiriesService } from "./inquiries/inquiries.service";
 import { RetentionController } from "./retention/retention.controller";
@@ -121,11 +125,13 @@ export async function createApp(config: Config = readConfig()) {
         RetentionController,
         CatalogController,
         InquiriesController,
+        EnrollmentFormsController,
         HealthController,
         AuthController,
         LegalController,
         RecordsController,
         RoleWorkspaceController,
+        WithdrawalsController,
         GcashHistoryController,
         AgentsController,
         FinanceController,
@@ -150,6 +156,7 @@ export async function createApp(config: Config = readConfig()) {
         WorkQueueService,
         CatalogService,
         InquiriesService,
+        EnrollmentFormsService,
         RetentionService,
         { provide: CONFIG, useValue: config },
         Database,
@@ -157,6 +164,7 @@ export async function createApp(config: Config = readConfig()) {
         LegalService,
         RecordsService,
         RoleWorkspaceService,
+        WithdrawalsService,
         GcashHistoryService,
         GcashPdfService,
         FinanceService,

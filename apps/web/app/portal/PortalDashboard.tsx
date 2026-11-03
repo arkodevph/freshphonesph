@@ -22,6 +22,8 @@ import MembershipDatesPanel from "./MembershipDatesPanel";
 import MembershipOverview from "./MembershipOverview";
 import MembershipRecord from "./MembershipRecord";
 import MembershipContext from "./MembershipContext";
+import PortalBatchOccupancy from "./PortalBatchOccupancy";
+import PortalApplicationSummary from "./PortalApplicationSummary";
 import {
   formatDate,
   formatMoney,
@@ -39,13 +41,16 @@ import PortalSupportWorkspace from "./PortalSupportWorkspace";
 import PortalTopbar from "./PortalTopbar";
 import VerifiedPaymentsWorkspace from "./VerifiedPaymentsWorkspace";
 import MembershipSelector from "./MembershipSelector";
+import { WithdrawalWorkspace } from "@/components/withdrawals/WithdrawalWorkspace";
 
 export type { PortalSection } from "./portal-view";
 
 export default function PortalDashboard({
   section,
+  withdrawalRequestId,
 }: {
   section: PortalSection;
+  withdrawalRequestId?: string;
 }) {
   const {
     portalTopbarProps,
@@ -289,6 +294,11 @@ export default function PortalDashboard({
             {section === "membership" && summary && (
               <>
                 <MembershipRecord summary={summary} schedule={schedule} />
+                <PortalBatchOccupancy
+                  key={summary.membership_id}
+                  membershipId={summary.membership_id ?? null}
+                  batchNumber={summary.batch_number}
+                />
                 <MembershipDatesPanel
                   {...membershipDatesPanelProps}
                   summary={summary}
@@ -429,6 +439,10 @@ export default function PortalDashboard({
           />
         )}
 
+        {section === "documents" && summary?.membership_id && (
+          <PortalApplicationSummary membershipId={summary.membership_id} />
+        )}
+
         {section === "documents" && (
           <section
             className={`${styles.sectionCard} ${styles.support}`}
@@ -446,6 +460,15 @@ export default function PortalDashboard({
 
         {section === "support" && (
           <PortalSupportWorkspace {...portalSupportWorkspaceProps} />
+        )}
+
+        {section === "withdrawals" && me?.client_id && (
+          <WithdrawalWorkspace
+            key={`${me.client_id}:${withdrawalRequestId ?? "all"}`}
+            customer
+            clientId={String(me.client_id)}
+            requestId={withdrawalRequestId}
+          />
         )}
 
         {section === "settings" && (

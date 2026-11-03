@@ -1,3 +1,4 @@
+import { withdrawalScope } from "../withdrawals/withdrawals.service";
 import { AbusePolicy } from "../abuse/policies";
 import { Controller, Get, Inject, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
@@ -153,6 +154,18 @@ export class RealtimeController {
         Boolean(
           await this.db.task.findFirst({
             where: { id: event.recordId, ...taskScope(user) },
+            select: { id: true },
+          }),
+        )
+      );
+    }
+
+    if (event.entity === "withdrawal_request") {
+      return (
+        allowed(user, "WITHDRAWAL_READ") &&
+        Boolean(
+          await this.db.withdrawalRequest.findFirst({
+            where: { id: event.recordId, ...withdrawalScope(user) },
             select: { id: true },
           }),
         )

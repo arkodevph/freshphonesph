@@ -28,6 +28,7 @@ import {
 import { philippineGreeting } from "@/lib/date";
 import { logoutSession } from "@/lib/auth";
 import { portalAttention } from "@/lib/portal-attention";
+import { portalMembershipDetails } from "@/lib/portal-membership";
 import { signInDestination } from "@/lib/support-entry";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { useMe } from "@/lib/useMe";
@@ -591,19 +592,17 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
           }
 
           setSummary({
+            membership_id: client.id,
             full_name: client.name,
             batch_number: client.batch.code,
             unit_model: client.unitModel || client.batch.model,
-            status: client.status.toLowerCase(),
+            ...portalMembershipDetails(client),
             total_due: balance.total_due,
             verified_paid: balance.verified_paid,
             remaining_balance: balance.remaining_balance,
             release_status: client.releaseStatus
               .toLowerCase()
               .replaceAll("_", " "),
-            joined_at: client.joinedAt,
-            batch_start_date: client.batch.startDate,
-            batch_end_date: client.batch.endDate,
           });
 
           setPayments(verifiedPayments.results);
@@ -622,6 +621,8 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
                 sequence_no: item.sequenceNo,
                 due_date: item.dueDate,
                 expected_amount: item.expectedAmount,
+                original_expected_amount: item.originalExpectedAmount,
+                released_amount: item.releasedAmount,
                 paid_applied: item.paidApplied ?? "0.00",
                 status: item.status?.toLowerCase() ?? "upcoming",
               };
@@ -823,8 +824,8 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
           `Current unit: ${summary.unit_model}`,
           `Batch: ${summary.batch_number}`,
           `Joined: ${summary.joined_at?.slice(0, 10) ?? "Not recorded"}`,
-          `Batch start: ${summary.batch_start_date?.slice(0, 10) ?? "Not recorded"}`,
-          `Planned batch end: ${summary.batch_end_date?.slice(0, 10) ?? "Not recorded"}`,
+          `${summary.individual_plan ? "Plan" : "Batch"} start: ${summary.batch_start_date?.slice(0, 10) ?? "Not recorded"}`,
+          `Planned ${summary.individual_plan ? "plan" : "batch"} end: ${summary.batch_end_date?.slice(0, 10) ?? "Not recorded"}`,
           `Customer correction: ${request}`,
         ].join("\n"),
       });

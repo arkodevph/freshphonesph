@@ -19,6 +19,10 @@ import {
   gcashHistoryQuerySchema,
   gcashHistoryReviewSchema,
   gcashHistoryUploadSchema,
+  gcashCorrectionSchema,
+  gcashArchiveSchema,
+  type GcashCorrection,
+  type GcashArchive,
   type GcashHistoryQuery,
   type GcashHistoryReview,
   type GcashHistoryUpload,
@@ -34,6 +38,10 @@ import { GcashHistoryService } from "./gcash-history.service";
 const pages = z
   .object({ page: z.coerce.number().int().min(1).max(100000).default(1) })
   .strict();
+
+const readingQuery = pages.extend({
+  source: z.enum(["current", "original"]).default("current"),
+});
 
 @Controller("gcash-history")
 export class GcashHistoryController {
@@ -70,9 +78,42 @@ export class GcashHistoryController {
   reading(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
+    @Query(new Validate(readingQuery)) query: z.infer<typeof readingQuery>,
+  ) {
+    return this.history.reading(user, id, query.page, query.source);
+  }
+
+  @Post("submissions/:id/corrections")
+  @HttpCode(200)
+  @Requires("GCASH_HISTORY_REVIEW")
+  correct(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new Validate(gcashCorrectionSchema)) input: GcashCorrection,
+  ) {
+    return this.history.correct(user, id, input);
+  }
+
+  @Get("submissions/:id/corrections")
+  @Header("Cache-Control", "private, no-store")
+  @Requires("GCASH_HISTORY_READ")
+  corrections(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
     @Query(new Validate(pages)) query: z.infer<typeof pages>,
   ) {
-    return this.history.reading(user, id, query.page);
+    return this.history.corrections(user, id, query.page);
+  }
+
+  @Post(":id/archive")
+  @HttpCode(200)
+  @Requires("GCASH_HISTORY_REVIEW")
+  archive(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new Validate(gcashArchiveSchema)) input: GcashArchive,
+  ) {
+    return this.history.archive(user, id, input);
   }
 
   @Get("submissions/:id/file")
@@ -115,6 +156,17 @@ export class GcashHistoryController {
     @Query(new Validate(pages)) query: z.infer<typeof pages>,
   ) {
     return this.history.submissions(user, id, query.page);
+  }
+
+  @Get(":id/activity")
+  @Header("Cache-Control", "private, no-store")
+  @Requires("GCASH_HISTORY_READ")
+  activity(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Query(new Validate(pages)) query: z.infer<typeof pages>,
+  ) {
+    return this.history.activity(user, id, query.page);
   }
 
   @Post(":id/review") @HttpCode(200) @Requires("GCASH_HISTORY_REVIEW") review(

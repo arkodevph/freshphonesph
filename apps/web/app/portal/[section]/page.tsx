@@ -10,6 +10,7 @@ const sections: PortalSection[] = [
   "release",
   "notifications",
   "support",
+  "withdrawals",
   "settings",
 ];
 

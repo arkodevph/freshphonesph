@@ -11,7 +11,12 @@ test("every business role has a matching workspace policy, including direct URL 
     CEO: ["/system/reports"],
     HR_PAYROLL: ["/system/personnel", "/system/tasks", "/system/recruitment"],
     KPI_OFFICER: ["/system/personnel", "/system/tasks", "/system/reports"],
-    AGENT: ["/system/agent-network", "/system/enrollments", "/system/tasks"],
+    AGENT: [
+      "/system/agent-network",
+      "/system/enrollments",
+      "/system/tasks",
+      "/system/withdrawals",
+    ],
     PIONEER_AGENT: [
       "/system/personnel",
       "/system/agent-network",
@@ -39,6 +44,7 @@ test("every business role has a matching workspace policy, including direct URL 
       "/system/tasks",
     ],
     FINANCE_OFFICER: [
+      "/system/withdrawals",
       "/system/records",
       "/system/clients",
       "/system/payments",

@@ -1,3 +1,4 @@
+import { requireOpenMembership } from "../withdrawals/withdrawal-tools";
 import {
   BadRequestException,
   ConflictException,
@@ -11,6 +12,7 @@ import type {
   AgentInput,
   BatchAssignmentInput,
   BatchInput,
+  BatchCreateInput,
   ClientInput,
   Permission,
   User,
@@ -33,10 +35,21 @@ import { historyChanges } from "./history";
 import { batchScope, clientScope, staffScope } from "./scope";
 import { notifyAccount } from "../staff/account-alerts";
 import { verifiedTotals } from "../finance/ledger";
+import { allocateBatchNumber } from "./batch-numbering";
+import { BATCH_REAL_MEMBER_CAPACITY } from "@freshphones/contracts";
+import {
+  countBatchMembers,
+  currentBatchPositionWhere,
+  requireBatchVacancy,
+} from "./batch-capacity";
+import { portalBatchSummary } from "./portal-batch-summary";
+import { portalApplicationSummary } from "./portal-application-summary";
 
 const batchInclude = {
   manager: { select: { id: true, name: true, active: true, role: true } },
-  _count: { select: { clients: true } },
+  _count: {
+    select: { clients: { where: currentBatchPositionWhere }, payments: true },
+  },
   handler: { select: { id: true, name: true, active: true, role: true } },
   agent: { select: { id: true, name: true, active: true } },
   clients: { where: { schedule: { some: {} } }, select: { id: true }, take: 1 },
@@ -96,17 +109,23 @@ const json = (value: unknown): Prisma.InputJsonValue => {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 };
 
-const batchJson = <T extends StoredBatch & { clients: { id: string }[] }>(
+const batchJson = <
+  T extends StoredBatch & {
+    clients: { id: string }[];
+    _count: { payments: number };
+  },
+>(
   batch: T,
 ) => {
   const { clients, ...record } = batch;
 
   return {
     ...record,
-    termsLocked: clients.length > 0,
+    termsLocked: clients.length > 0 || batch._count.payments > 0,
     startDate: batch.startDate.toISOString().slice(0, 10),
     endDate: batch.endDate.toISOString().slice(0, 10),
     contractPrice: batch.contractPrice?.toFixed(2) ?? null,
+    firstDueDate: batch.firstDueDate?.toISOString().slice(0, 10) ?? null,
   };
 };
 
@@ -223,15 +242,21 @@ export class RecordsService {
       pageSize,
     };
   }
-  async createBatch(user: User, input: BatchInput) {
+  async createBatch(user: User, input: BatchCreateInput) {
     this.validatePlan(input);
 
     return this.write(user, "BATCH_CREATE", async (tx, current) => {
+      const numbering = await allocateBatchNumber(tx, input.agentId);
+
       const result = await tx.batch.create({
         data: {
           ...input,
+          ...numbering,
           startDate: new Date(input.startDate),
           endDate: new Date(input.endDate),
+          firstDueDate: input.firstDueDate
+            ? new Date(input.firstDueDate)
+            : input.firstDueDate,
         },
         include: batchInclude,
       });
@@ -291,8 +316,8 @@ export class RecordsService {
       }),
       this.db.agent.findMany({
         where: global ? {} : { batches: { some: batchScope(user) } },
-        select: { id: true, name: true, active: true },
-        orderBy: { name: "asc" },
+        select: { id: true, name: true, active: true, code: true },
+        orderBy: [{ name: "asc" }, { id: "asc" }],
       }),
       this.db.user.findMany({
         where: {
@@ -306,7 +331,15 @@ export class RecordsService {
       }),
     ]);
 
-    return { handlers, agents, managers };
+    return {
+      handlers,
+      agents: allowed(user, "BATCH_CREATE")
+        ? agents
+        : agents.map(({ code, ...agent }) => {
+            return agent;
+          }),
+      managers,
+    };
   }
   async assignBatch(user: User, id: string, input: BatchAssignmentInput) {
     return this.write(user, "BATCH_ASSIGN", async (tx, current) => {
@@ -598,7 +631,9 @@ export class RecordsService {
     version: number,
   ) {
     return this.write(user, "BATCH_MANAGE", async (tx, current) => {
-      const before = await tx.batch.findUnique({ where: { id } });
+      const before = await tx.batch.findFirst({
+        where: { id, ...batchScope(current) },
+      });
 
       if (!before) {
         throw new NotFoundException("Batch not found.");
@@ -616,6 +651,12 @@ export class RecordsService {
         );
       }
 
+      if (before.numberingAgentId && input.code !== before.code) {
+        throw new BadRequestException(
+          "An assigned batch number cannot be changed.",
+        );
+      }
+
       const termsChanged =
         before.startDate.toISOString().slice(0, 10) !== input.startDate ||
         before.endDate.toISOString().slice(0, 10) !== input.endDate ||
@@ -624,14 +665,21 @@ export class RecordsService {
           !before.contractPrice?.equals(input.contractPrice)) ||
         (input.installmentCount !== undefined &&
           before.installmentCount !== input.installmentCount) ||
-        (input.cadence !== undefined && before.cadence !== input.cadence);
+        (input.cadence !== undefined && before.cadence !== input.cadence) ||
+        (input.firstDueDate !== undefined &&
+          (before.firstDueDate?.toISOString().slice(0, 10) ?? null) !==
+            input.firstDueDate) ||
+        (input.monthEnd !== undefined && before.monthEnd !== input.monthEnd);
 
       if (
         termsChanged &&
-        (await tx.scheduleItem.count({ where: { client: { batchId: id } } }))
+        ((await tx.scheduleItem.count({
+          where: { client: { batchId: id } },
+        })) ||
+          (await tx.payment.count({ where: { batchId: id } })))
       ) {
         throw new ConflictException(
-          "Plan terms are locked after schedules are issued. Create a new batch for a different plan.",
+          "Plan terms are locked after schedules or payments are recorded. Create a new batch for a different plan.",
         );
       }
 
@@ -641,6 +689,11 @@ export class RecordsService {
         installmentCount:
           input.installmentCount ?? before.installmentCount ?? undefined,
         cadence: input.cadence ?? before.cadence ?? undefined,
+        firstDueDate:
+          input.firstDueDate === undefined
+            ? before.firstDueDate?.toISOString().slice(0, 10)
+            : input.firstDueDate,
+        monthEnd: input.monthEnd ?? before.monthEnd,
       });
 
       const changed = await tx.batch.updateMany({
@@ -649,6 +702,9 @@ export class RecordsService {
           ...input,
           startDate: new Date(input.startDate),
           endDate: new Date(input.endDate),
+          firstDueDate: input.firstDueDate
+            ? new Date(input.firstDueDate)
+            : input.firstDueDate,
           version: { increment: 1 },
         },
       });
@@ -793,7 +849,13 @@ export class RecordsService {
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     });
   }
-  private validatePlan(input: BatchInput) {
+  async portalBatchSummary(user: User) {
+    return portalBatchSummary(this.db, user);
+  }
+  async portalApplicationSummary(user: User) {
+    return portalApplicationSummary(this.db, user);
+  }
+  private validatePlan(input: Omit<BatchInput, "code">) {
     if (
       input.contractPrice === undefined ||
       input.installmentCount === undefined ||
@@ -808,6 +870,8 @@ export class RecordsService {
       installmentCount: input.installmentCount,
       cadence: input.cadence,
       startDate: new Date(input.startDate),
+      firstDueDate: input.firstDueDate ? new Date(input.firstDueDate) : null,
+      monthEnd: input.monthEnd,
     });
 
     if (items[items.length - 1].dueDate > new Date(input.endDate)) {
@@ -843,7 +907,40 @@ export class RecordsService {
       );
     }
 
+    await requireBatchVacancy(tx, batchId);
+
     return batch;
+  }
+  private async activateFullBatch(
+    tx: Prisma.TransactionClient,
+    current: User,
+    batchId: string,
+  ) {
+    const before = await tx.batch.findUniqueOrThrow({
+      where: { id: batchId },
+    });
+
+    if (
+      before.status !== "PLANNED" ||
+      (await countBatchMembers(tx, batchId)) < BATCH_REAL_MEMBER_CAPACITY
+    ) {
+      return;
+    }
+
+    const after = await tx.batch.update({
+      where: { id: batchId },
+      data: { status: "ACTIVE", version: { increment: 1 } },
+    });
+
+    await this.record(
+      tx,
+      current.id,
+      "batch",
+      batchId,
+      "batch.activated",
+      before,
+      after,
+    );
   }
   async createClient(user: User, input: ClientInput) {
     return this.write(user, "CLIENT_MANAGE", (tx, current) => {
@@ -903,6 +1000,8 @@ export class RecordsService {
       { items: schedule },
     );
 
+    await this.activateFullBatch(tx, current, batch.id);
+
     await tx.changeEvent.create({
       data: { entity: "batch", recordId: batch.id },
     });
@@ -924,6 +1023,8 @@ export class RecordsService {
       if (!before || before.retentionErasedAt) {
         throw new NotFoundException("Client not found.");
       }
+
+      await requireOpenMembership(tx, id);
 
       if (before.version !== version) {
         throw new ConflictException(
@@ -1000,6 +1101,16 @@ export class RecordsService {
         before,
         after,
       );
+
+      if (before.batchId !== after.batchId) {
+        await this.activateFullBatch(tx, current, after.batchId);
+
+        for (const batchId of [before.batchId, after.batchId]) {
+          await tx.changeEvent.create({
+            data: { entity: "batch", recordId: batchId },
+          });
+        }
+      }
 
       if (identityChanged) {
         await this.record(
@@ -1173,7 +1284,7 @@ export class RecordsService {
 
     const totalDue = items
       .reduce((sum, item) => {
-        return sum.add(item.expectedAmount);
+        return sum.add(item.expectedAmount.sub(item.releasedAmount));
       }, new Prisma.Decimal(0))
       .toFixed(2);
 
@@ -1184,7 +1295,9 @@ export class RecordsService {
         id: item.id,
         sequenceNo: item.sequenceNo,
         dueDate: item.dueDate.toISOString().slice(0, 10),
-        expectedAmount: item.expectedAmount.toFixed(2),
+        expectedAmount: item.expectedAmount.sub(item.releasedAmount).toFixed(2),
+        originalExpectedAmount: item.expectedAmount.toFixed(2),
+        releasedAmount: item.releasedAmount.toFixed(2),
       };
     });
 
@@ -1208,6 +1321,8 @@ export class RecordsService {
       ) {
         throw new NotFoundException("Client not found.");
       }
+
+      await requireOpenMembership(tx, id);
 
       const client = await tx.client.findUnique({
         where: { id },

@@ -1,0 +1,181 @@
+.staged {
+  position: relative;
+  height: 100%;
+  color: #14266b;
+  scroll-margin-top: 7rem;
+}
+.staged > div:first-child {
+  position: absolute;
+  top: 4%;
+  left: 0;
+  max-width: 40rem;
+  margin: 0;
+  text-align: left;
+  animation: none;
+  opacity: clamp(0, calc(var(--reviews-reveal, 1) * 3), 1);
+  transform: translateY(calc((1 - var(--reviews-reveal, 1)) * 8rem));
+}
+.staged h2 {
+  max-width: 28rem;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1.12;
+}
+.cards {
+  position: absolute;
+  inset: 0;
+}
+.card {
+  --travel: clamp(
+    0,
+    calc((var(--reviews-reveal, 1) - var(--review-delay)) * 1.6),
+    1
+  );
+  --arrival: calc(var(--travel) * var(--travel) * (3 - 2 * var(--travel)));
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 27%;
+  min-width: 0;
+  height: auto;
+  transform: translate3d(
+      calc(
+        var(--stage-width, 1152px) *
+          (
+            var(--review-from-x) + (var(--review-to-x) - var(--review-from-x)) *
+              var(--arrival) - var(--reviews-pan, 0)
+          )
+      ),
+      calc(
+        var(--stage-height, 640px) *
+          (
+            var(--review-from-y) + (var(--review-to-y) - var(--review-from-y)) *
+              var(--arrival)
+          )
+      ),
+      0
+    )
+    rotate(
+      calc(
+        var(--review-from-angle) +
+          (var(--review-to-angle) - var(--review-from-angle)) * var(--arrival)
+      )
+    );
+  will-change: transform;
+  transform-origin: center center;
+}
+.card figure {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: 17rem;
+  padding: 1.5rem;
+  border: 1px solid rgb(20 38 107 / 8%);
+  border-radius: 1.25rem;
+  background: #fcfcfd;
+  box-shadow: 0 1rem 2.5rem rgb(20 38 107 / 9%);
+}
+.card:nth-child(4n + 2) figure,
+.card:nth-child(4n + 3) figure {
+  background: #14266b;
+  color: white;
+}
+.card:nth-child(4n + 2) :is(blockquote, figcaption p),
+.card:nth-child(4n + 3) :is(blockquote, figcaption p) {
+  color: white;
+}
+.card blockquote {
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+.card figcaption {
+  flex-wrap: nowrap;
+  margin-top: auto;
+  padding-top: 1.25rem;
+}
+.card figcaption > span {
+  flex-shrink: 0;
+}
+.card figcaption > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.card figcaption p:first-child {
+  font-size: 0.8125rem;
+}
+.link {
+  position: absolute;
+  bottom: -4rem;
+  inset-inline: 0;
+  text-align: center;
+  opacity: var(--reviews-reveal, 1);
+}
+@media (min-width: 901px) and (max-width: 1100px) {
+  .staged h2 {
+    font-size: 2rem;
+    max-width: 23rem;
+  }
+  .card figure {
+    padding: 1.25rem 1rem;
+  }
+  .card blockquote {
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+}
+@media (max-width: 900px),
+  (max-height: 739px),
+  (prefers-reduced-motion: reduce) {
+  .staged {
+    height: auto;
+  }
+  .staged > div:first-child {
+    position: static;
+    transform: none;
+    opacity: 1;
+  }
+  .cards {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .card {
+    position: static;
+    width: auto;
+    height: auto;
+    transform: none;
+    will-change: auto;
+  }
+  .card blockquote {
+    margin-top: 0.75rem;
+  }
+  .card figure {
+    min-height: 0;
+  }
+  .link {
+    position: static;
+    opacity: 1;
+    margin-top: 2rem;
+  }
+}
+@media (max-width: 480px) {
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sample {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-bottom: 0.875rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.025em;
+}

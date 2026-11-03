@@ -97,7 +97,7 @@ export default function InstallmentDetailsDialog({
         </div>
         <dl className={styles.dialogFigures}>
           <div>
-            <dt>Installment amount</dt>
+            <dt>Current installment obligation</dt>
             <dd>{money(selectedItem.expected_amount)}</dd>
           </div>
           <div>
@@ -109,10 +109,24 @@ export default function InstallmentDetailsDialog({
             <dd>{money(selectedState.remaining)}</dd>
           </div>
         </dl>
+        {Number(selectedItem.released_amount ?? 0) > 0 && (
+          <p>
+            Original amount:{" "}
+            {money(
+              selectedItem.original_expected_amount ??
+                selectedItem.expected_amount,
+            )}
+            . Unpaid amount handed over: {money(selectedItem.released_amount!)}.
+            The handover is not a payment or refund; Finance-verified receipts
+            remain in your own history.
+          </p>
+        )}
         <p id="schedule-detail-note">
-          {selectedState.payment === "Paid"
-            ? "This installment is fully covered by Finance-verified payments."
-            : "Staff-recorded payments do not reduce this amount until Finance verifies them."}
+          {Number(selectedItem.released_amount ?? 0) > 0
+            ? "This installment reflects the recorded replacement handover. Review the original and handed-over amounts above."
+            : selectedState.payment === "Paid"
+              ? "This installment is fully covered by Finance-verified payments."
+              : "Staff-recorded payments do not reduce this amount until Finance verifies them."}
         </p>
       </div>
       <footer className={styles.dialogFooter}>

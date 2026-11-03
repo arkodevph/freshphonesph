@@ -1,0 +1,166 @@
+.group {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.group > span {
+  position: absolute;
+  display: block;
+  width: 4rem;
+  height: 4rem;
+  transform: rotate(var(--tilt, -12deg));
+  filter: drop-shadow(0 2px 0 rgb(255 255 255 / 65%))
+    drop-shadow(0 8px 12px rgb(20 38 107 / 12%));
+}
+
+.icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.one {
+  --tilt: 12deg;
+}
+
+.group .two {
+  --tilt: -16deg;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.group .three {
+  --tilt: 16deg;
+  width: 3rem;
+  height: 3rem;
+}
+
+.choose .one {
+  top: -1.75rem;
+  right: -4.5rem;
+}
+
+.choose .two {
+  bottom: -5rem;
+  left: 0.5rem;
+}
+
+.choose .three {
+  right: -6.5rem;
+  bottom: -2.75rem;
+}
+
+.rhythm .one {
+  top: -1.25rem;
+  left: -5.25rem;
+}
+
+.rhythm .two {
+  right: 0.5rem;
+  bottom: -4.75rem;
+}
+
+.rhythm .three {
+  bottom: -3.25rem;
+  left: -4rem;
+}
+
+.finale .one {
+  top: 0;
+  left: -4.5rem;
+}
+
+.finale .two {
+  top: 1.5rem;
+  right: -4.25rem;
+}
+
+.finale .three {
+  bottom: 0;
+  left: -0.5rem;
+}
+
+@keyframes story-doodle-drift {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .group > span {
+    animation: story-doodle-drift 6s ease-in-out infinite;
+  }
+
+  .group .two {
+    animation-delay: -2s;
+    animation-duration: 7s;
+  }
+
+  .group .three {
+    animation-delay: -4s;
+    animation-duration: 6.5s;
+  }
+}
+
+@media (max-width: 1023px) {
+  .group {
+    inset: -3.5rem 0 auto;
+    height: 2.75rem;
+  }
+
+  .group .one,
+  .group .two,
+  .group .three {
+    inset: 0 auto auto;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .group .one {
+    left: 3%;
+  }
+
+  .group .two {
+    top: 0.25rem;
+    left: 44%;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .group .three {
+    right: 2%;
+    left: auto;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group {
+    position: relative;
+    inset: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    height: auto;
+    margin: 0 auto 1.5rem;
+  }
+
+  .group .one,
+  .group .two,
+  .group .three {
+    position: static;
+    inset: auto;
+    width: 3.5rem;
+    height: 3.5rem;
+    animation: none;
+    translate: none;
+  }
+}

@@ -68,8 +68,17 @@ export default function MembershipDatesPanel({
       <div className={styles.membershipGuidance}>
         <Info aria-hidden="true" />
         <p>
-          The planned batch end is not a collection appointment. Your collection
-          details appear in <Link href="/portal/release">release updates</Link>.
+          <strong>
+            About the planned {summary.individual_plan ? "plan" : "batch"} end
+          </strong>{" "}
+          This is the planned end of{" "}
+          {summary.individual_plan
+            ? "your agreed installment plan"
+            : "your batch"}
+          . It does not set a collection date for your unit.{" "}
+          <Link href="/portal/release">Check your release status</Link> for the
+          latest stage; Fresh Phones PH will coordinate collection when your
+          unit is ready.
         </p>
       </div>
       <div className={styles.correctionArea}>

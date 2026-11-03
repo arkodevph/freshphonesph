@@ -76,12 +76,12 @@ export class ReportsService {
       ],
       ["Period from", report.dateFrom, "Period to", report.dateTo],
       [
-        "Expected amounts from issued installment due dates. These figures are scheduled earnings, not collected payments or profit. Grouped by each member's current batch.",
+        "Effective issued amounts after replacement releases, grouped by installment due dates. Scheduled earnings differ from collected payments and profit. Membership counts include historical memberships; external refunds are tracked separately.",
       ],
       [
         "Batch",
         "Member",
-        "Members",
+        "Memberships including historical",
         "Installments due",
         "Scheduled amount (PHP)",
         "Members without issued schedule",
@@ -507,7 +507,7 @@ export class ReportsService {
           query.dateTo ?? "All later dates",
         ],
         [
-          "Balances use current issued schedules and verified credits including Finance adjustments, grouped by current client batch. Period credit uses the original payment date, not adjustment creation date.",
+          "Balances use effective issued obligations after replacement releases and verified credits including Finance adjustments. Membership counts include historical memberships. External refunds are tracked separately. Period credit uses the original payment date, not adjustment creation date.",
         ],
         [
           "Overpaid amounts are unapplied verified funds, including clients without schedules. They are not a refund authorization.",
@@ -515,10 +515,10 @@ export class ReportsService {
         [
           "Batch",
           "Status",
-          "Current clients",
+          "Memberships including historical",
           "With issued schedule",
           "Without issued schedule",
-          "Agreed / issued total (PHP)",
+          "Effective scheduled obligation (PHP)",
           "Verified overall (PHP)",
           "Pending overall (PHP)",
           "Remaining overall (PHP)",

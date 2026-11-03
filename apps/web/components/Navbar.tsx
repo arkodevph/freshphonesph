@@ -80,7 +80,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
             </span>
           </Link>
 
-          <ul className="hidden items-center gap-1 lg:flex">
+          <ul className="hidden items-center gap-1 xl:flex">
             {links.map((l) => {
               return (
                 <li key={l.href}>
@@ -96,6 +96,12 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
           </ul>
 
           <div className="flex shrink-0 items-center gap-2">
+            <a
+              href="/enroll"
+              className="hidden items-center justify-center rounded-full border border-blue/30 bg-white/80 px-4 py-2.5 text-sm font-700 text-blue-ink transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue xl:inline-flex"
+            >
+              Apply to join
+            </a>
             <Link
               href={loginHref ?? "#"}
               onClick={(event) => {
@@ -120,7 +126,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
               }}
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
-              className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-blue-ink lg:hidden"
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-blue-ink xl:hidden"
             >
               {open ? <X className="h-5 w-5" /> : <List className="h-5 w-5" />}
             </button>
@@ -128,8 +134,19 @@ export default function Navbar({ immersive = false }: { immersive?: boolean }) {
         </nav>
 
         {open && (
-          <div className="glass mx-auto mt-2 max-w-7xl rounded-3xl p-3 lg:hidden">
+          <div className="glass mx-auto mt-2 max-h-[calc(100dvh-6rem)] max-w-7xl overflow-y-auto overscroll-contain rounded-3xl !bg-white p-3 xl:hidden">
             <ul className="flex flex-col">
+              <li className="mb-1 px-1">
+                <a
+                  href="/enroll"
+                  onClick={() => {
+                    setOpen(false);
+                  }}
+                  className="btn-candy flex w-full items-center justify-center rounded-2xl px-4 py-3 font-700"
+                >
+                  Apply to join
+                </a>
+              </li>
               {links.map((l) => {
                 return (
                   <li key={l.href}>

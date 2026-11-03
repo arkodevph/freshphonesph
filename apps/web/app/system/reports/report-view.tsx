@@ -534,9 +534,9 @@ export function CollectionResults({
       <Metrics
         items={[
           {
-            label: "Clients in scoped batches",
+            label: "Membership records",
             value: totals.clients,
-            note: `${total} batches · ${totals.scheduledClients} clients with issued schedules`,
+            note: `${total} batches · ${totals.scheduledClients} issued schedules · includes historical memberships`,
           },
           {
             label: "Without issued schedule",
@@ -544,8 +544,9 @@ export function CollectionResults({
             note: "Agreed amounts are unknown until Records issues a schedule",
           },
           {
-            label: "Agreed / issued total",
+            label: "Issued installment obligation",
             value: currency(totals.agreedAmount),
+            note: "After recorded replacement releases",
           },
           { label: "Verified overall", value: currency(totals.verifiedAmount) },
           {
@@ -599,8 +600,8 @@ export function CollectionResults({
                   {[
                     "Batch",
                     "Status",
-                    "Clients",
-                    "Agreed / issued",
+                    "Membership records",
+                    "Issued obligation",
                     "Verified overall",
                     "Pending overall",
                     "Remaining overall",
@@ -678,10 +679,12 @@ export function CollectionResults({
         </>
       )}
       <p className={styles.help}>
-        Balances use issued schedule amounts and verified payments across all
-        dates. Each client belongs to their current batch. Overpayments cannot
+        Balances use issued obligations after recorded replacement releases and
+        verified payments across all dates. Membership counts include retained
+        history and do not measure current batch occupancy. Overpayments cannot
         offset another client’s balance. Overpaid amounts are not a refund
-        authorization.
+        authorization. External refund records are tracked separately and are
+        not deducted from incoming collections.
       </p>
       {live ? (
         <p className={styles.help}>

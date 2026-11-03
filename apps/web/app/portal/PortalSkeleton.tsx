@@ -15,6 +15,7 @@ type Section =
   | "release"
   | "notifications"
   | "support"
+  | "withdrawals"
   | "settings";
 
 const titles: Record<Section, string> = {
@@ -27,6 +28,7 @@ const titles: Record<Section, string> = {
   release: "Release status",
   notifications: "Notifications",
   support: "Support",
+  withdrawals: "Withdrawals",
   settings: "Settings",
 };
 
@@ -223,6 +225,7 @@ export default function PortalSkeleton({
           {(section === "documents" ||
             section === "notifications" ||
             section === "support" ||
+            section === "withdrawals" ||
             section === "settings") && (
             <Card rows={section === "documents" ? 4 : 3} />
           )}

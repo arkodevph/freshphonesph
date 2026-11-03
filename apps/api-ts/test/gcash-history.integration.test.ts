@@ -1370,3 +1370,676 @@ test("selected coverage mismatch is flagged and PDF reading never changes paymen
     before,
   );
 });
+
+async function workspaceFixture(day: number) {
+  const response = await upload("BATCH_HANDLER", {
+    periodStart: "2031-01-01",
+    periodEnd: `2031-01-${String(day).padStart(2, "0")}`,
+  });
+
+  assert.equal(response.status, 201);
+
+  const history = await response.json();
+
+  const reading = await (
+    await request(
+      "RECORDS",
+      `/gcash-history/submissions/${history.current.id}/reading`,
+    )
+  ).json();
+
+  const { page: _, warnings: __, ...row } = reading.items[0];
+
+  return {
+    history,
+    reading,
+    input: {
+      version: history.version,
+      correctionVersion: 0,
+      rowIndex: 0,
+      reason: "Compared with synthetic PDF",
+      row: {
+        ...row,
+        date: "2026-10-01",
+        time: "09:00",
+        description: "Synthetic manually corrected description",
+      },
+    },
+  };
+}
+
+test("manual correction preserves source bytes/extraction and prior review, reopens review and leaves financial rows unchanged", async () => {
+  const { history, input } = await workspaceFixture(1);
+
+  const before = await db.gcashPdfReading.findUniqueOrThrow({
+    where: { submissionId: history.current.id },
+  });
+
+  const bytes = Buffer.from(
+    await (
+      await request(
+        "RECORDS",
+        `/gcash-history/submissions/${history.current.id}/file`,
+      )
+    ).arrayBuffer(),
+  );
+
+  const financial = JSON.stringify([
+    await db.payment.findMany(),
+    await db.scheduleItem.findMany(),
+  ]);
+
+  assert.equal(
+    (
+      await request("RECORDS", `/gcash-history/${history.id}/review`, "POST", {
+        version: 1,
+        status: "REVIEWED",
+        note: "Earlier review preserved",
+      })
+    ).status,
+    200,
+  );
+
+  const response = await request(
+    "RECORDS",
+    `/gcash-history/submissions/${history.current.id}/corrections`,
+    "POST",
+    { ...input, version: 2 },
+  );
+
+  assert.equal(response.status, 200, await response.clone().text());
+
+  const saved = await response.json();
+
+  assert.equal(saved.status, "SUBMITTED");
+
+  assert.equal(saved.version, 3);
+
+  assert.equal(saved.current.reviewedAt, null);
+
+  const stored = await db.gcashPdfReading.findUniqueOrThrow({
+    where: { submissionId: history.current.id },
+  });
+
+  assert.deepEqual(stored.data, before.data);
+
+  assert.equal(stored.correctionVersion, 1);
+
+  const original = await (
+    await request(
+      "RECORDS",
+      `/gcash-history/submissions/${history.current.id}/reading?source=original`,
+    )
+  ).json();
+
+  assert.equal(
+    original.items[0].description,
+    (before.data as { rows: { description: string }[] }).rows[0].description,
+  );
+
+  assert.equal(original.editable, false);
+
+  const log = await (
+    await request(
+      "RECORDS",
+      `/gcash-history/submissions/${history.current.id}/corrections`,
+    )
+  ).json();
+
+  assert.equal(log.total, 1);
+
+  assert.equal(log.items[0].editor.id, people.get("RECORDS")!.id);
+
+  assert.equal(log.items[0].before.description, original.items[0].description);
+
+  assert.equal(log.items[0].after.description, input.row.description);
+
+  const audit = await db.auditEntry.findFirstOrThrow({
+    where: {
+      recordId: history.id,
+      action: "gcash_history.transaction_corrected",
+    },
+  });
+
+  assert.equal(
+    (audit.before as { current: { reviewNote: string } }).current.reviewNote,
+    "Earlier review preserved",
+  );
+
+  const activityResponse = await request(
+    "RECORDS",
+    `/gcash-history/${history.id}/activity`,
+  );
+
+  assert.equal(
+    activityResponse.headers.get("cache-control"),
+    "private, no-store",
+  );
+
+  const activity = await activityResponse.json();
+
+  assert.ok(
+    activity.items.some((item: { previousReview: { note: string } | null }) => {
+      return item.previousReview?.note === "Earlier review preserved";
+    }),
+  );
+
+  assert.doesNotMatch(
+    JSON.stringify(activity),
+    /storageKey|password|correctedData/,
+  );
+
+  assert.equal(
+    (await request("OTHER_HANDLER", `/gcash-history/${history.id}/activity`))
+      .status,
+    404,
+  );
+
+  assert.equal(
+    (await request("CEO", `/gcash-history/${history.id}/activity`)).status,
+    403,
+  );
+
+  assert.deepEqual(
+    Buffer.from(
+      await (
+        await request(
+          "RECORDS",
+          `/gcash-history/submissions/${history.current.id}/file`,
+        )
+      ).arrayBuffer(),
+    ),
+    bytes,
+  );
+
+  assert.equal(
+    JSON.stringify([
+      await db.payment.findMany(),
+      await db.scheduleItem.findMany(),
+    ]),
+    financial,
+  );
+});
+
+test("correction and archive mutations enforce the existing role matrix and private correction reads follow assignment", async () => {
+  const { history, input } = await workspaceFixture(2);
+
+  for (const role of roles) {
+    if (rolePermissions[role].includes("GCASH_HISTORY_REVIEW")) {
+      continue;
+    }
+
+    assert.equal(
+      (
+        await request(
+          role,
+          `/gcash-history/submissions/${history.current.id}/corrections`,
+          "POST",
+          input,
+        )
+      ).status,
+      403,
+      role,
+    );
+
+    assert.equal(
+      (
+        await request(role, `/gcash-history/${history.id}/archive`, "POST", {
+          version: 1,
+          reason: "Synthetic archive",
+          archived: true,
+        })
+      ).status,
+      403,
+      role,
+    );
+  }
+
+  assert.equal(
+    (
+      await request(
+        "OTHER_HANDLER",
+        `/gcash-history/submissions/${history.current.id}/corrections`,
+      )
+    ).status,
+    404,
+  );
+
+  assert.equal(
+    (
+      await request(
+        "CEO",
+        `/gcash-history/submissions/${history.current.id}/corrections`,
+      )
+    ).status,
+    403,
+  );
+
+  assert.equal(
+    (
+      await request(
+        null,
+        `/gcash-history/submissions/${history.current.id}/corrections`,
+      )
+    ).status,
+    401,
+  );
+
+  const handler = people.get("BATCH_HANDLER")!;
+
+  await db.batch.update({
+    where: { id: batchId },
+    data: { handlerId: people.get("OTHER_HANDLER")!.id },
+  });
+
+  try {
+    assert.equal(
+      (
+        await request(
+          "BATCH_HANDLER",
+          `/gcash-history/submissions/${history.current.id}/corrections`,
+        )
+      ).status,
+      404,
+    );
+  } finally {
+    await db.batch.update({
+      where: { id: batchId },
+      data: { handlerId: handler.id },
+    });
+  }
+
+  assert.equal(
+    (
+      await request(
+        "SYSTEM_ADMIN",
+        `/gcash-history/submissions/${history.current.id}/corrections`,
+        "POST",
+        input,
+      )
+    ).status,
+    200,
+  );
+});
+
+test("invalid corrections and empty archive reasons do not mutate evidence", async () => {
+  const { history, input } = await workspaceFixture(3);
+
+  for (const body of [
+    { ...input, reason: " " },
+    { ...input, row: { ...input.row, debit: "-1.00" } },
+    { ...input, row: { ...input.row, verified: true } },
+  ]) {
+    assert.equal(
+      (
+        await request(
+          "RECORDS",
+          `/gcash-history/submissions/${history.current.id}/corrections`,
+          "POST",
+          body,
+        )
+      ).status,
+      400,
+    );
+  }
+
+  assert.equal(
+    (
+      await request("RECORDS", `/gcash-history/${history.id}/archive`, "POST", {
+        version: 1,
+        reason: " ",
+        archived: true,
+      })
+    ).status,
+    400,
+  );
+
+  assert.equal(
+    (
+      await request(
+        "RECORDS",
+        `/gcash-history/submissions/${history.current.id}/corrections`,
+        "POST",
+        { ...input, rowIndex: 999 },
+      )
+    ).status,
+    400,
+  );
+
+  assert.equal(
+    await db.gcashReadingCorrection.count({
+      where: { submissionId: history.current.id },
+    }),
+    0,
+  );
+
+  assert.equal(
+    (await db.gcashHistory.findUniqueOrThrow({ where: { id: history.id } }))
+      .version,
+    1,
+  );
+});
+
+test("simultaneous corrections across API instances commit exactly once and reject stale review versions", async () => {
+  const { history, input } = await workspaceFixture(4);
+
+  const responses = await Promise.all(
+    [0, 1].map((server) => {
+      return request(
+        "RECORDS",
+        `/gcash-history/submissions/${history.current.id}/corrections`,
+        "POST",
+        input,
+        server,
+      );
+    }),
+  );
+
+  assert.deepEqual(
+    responses
+      .map((response) => {
+        return response.status;
+      })
+      .sort(),
+    [200, 409],
+  );
+
+  assert.equal(
+    await db.gcashReadingCorrection.count({
+      where: { submissionId: history.current.id },
+    }),
+    1,
+  );
+
+  assert.equal(
+    (
+      await request("RECORDS", `/gcash-history/${history.id}/review`, "POST", {
+        version: 1,
+        status: "REVIEWED",
+        note: "Stale review",
+      })
+    ).status,
+    409,
+  );
+
+  const reading = await (
+    await request(
+      "RECORDS",
+      `/gcash-history/submissions/${history.current.id}/reading`,
+    )
+  ).json();
+
+  assert.equal(reading.correctionVersion, 1);
+
+  assert.equal(reading.historyVersion, 2);
+});
+
+test("archive and restore preserve reviews, reserve duplicate keys, retain readable PDFs and block edits/uploads while archived", async () => {
+  const { history, input } = await workspaceFixture(5);
+
+  await request("RECORDS", `/gcash-history/${history.id}/review`, "POST", {
+    version: 1,
+    status: "REVIEWED",
+    note: "Retained review",
+  });
+
+  const response = await request(
+    "RECORDS",
+    `/gcash-history/${history.id}/archive`,
+    "POST",
+    { version: 2, reason: "Synthetic duplicate period", archived: true },
+  );
+
+  assert.equal(response.status, 200);
+
+  const archived = await response.json();
+
+  assert.ok(archived.archivedAt);
+
+  assert.equal(archived.archivedBy.id, people.get("RECORDS")!.id);
+
+  const queue = await (
+    await request("RECORDS", `/gcash-history?q=GC-${suffix}`)
+  ).json();
+
+  assert.ok(
+    queue.items.every((item: { id: string }) => {
+      return item.id !== history.id;
+    }),
+  );
+
+  const archive = await (
+    await request("RECORDS", `/gcash-history?archived=archived&q=GC-${suffix}`)
+  ).json();
+
+  assert.ok(
+    archive.items.some((item: { id: string }) => {
+      return item.id === history.id;
+    }),
+  );
+
+  assert.equal(
+    (
+      await request(
+        "BATCH_HANDLER",
+        `/gcash-history/submissions/${history.current.id}/file`,
+      )
+    ).status,
+    200,
+  );
+
+  assert.equal(
+    (
+      await request(
+        "RECORDS",
+        `/gcash-history/submissions/${history.current.id}/corrections`,
+        "POST",
+        { ...input, version: 3 },
+      )
+    ).status,
+    409,
+  );
+
+  assert.equal(
+    (
+      await request("RECORDS", `/gcash-history/${history.id}/review`, "POST", {
+        version: 3,
+        status: "REVIEWED",
+        note: "Blocked",
+      })
+    ).status,
+    409,
+  );
+
+  assert.equal(
+    (
+      await upload("BATCH_HANDLER", {
+        periodStart: "2031-01-01",
+        periodEnd: "2031-01-05",
+        expectedVersion: 3,
+      })
+    ).status,
+    409,
+  );
+
+  assert.equal(
+    (
+      await request("RECORDS", `/gcash-history/${history.id}/archive`, "POST", {
+        version: 2,
+        reason: "Stale restore",
+        archived: false,
+      })
+    ).status,
+    409,
+  );
+
+  const restored = await (
+    await request("RECORDS", `/gcash-history/${history.id}/archive`, "POST", {
+      version: 3,
+      reason: "Restore evidence",
+      archived: false,
+    })
+  ).json();
+
+  assert.equal(restored.archivedAt, null);
+
+  assert.equal(restored.status, "REVIEWED");
+
+  assert.equal(restored.current.reviewNote, "Retained review");
+
+  assert.equal(restored.version, 4);
+});
+
+test("historical revisions stay read-only, while their corrections and original extraction remain available", async () => {
+  const { history, input } = await workspaceFixture(6);
+
+  await request(
+    "RECORDS",
+    `/gcash-history/submissions/${history.current.id}/corrections`,
+    "POST",
+    input,
+  );
+
+  await request("RECORDS", `/gcash-history/${history.id}/review`, "POST", {
+    version: 2,
+    status: "NEEDS_CLARIFICATION",
+    note: "Replacement requested",
+  });
+
+  const replacement = await upload("BATCH_HANDLER", {
+    periodStart: "2031-01-01",
+    periodEnd: "2031-01-06",
+    expectedVersion: 3,
+  });
+
+  assert.equal(replacement.status, 201);
+
+  const reading = await (
+    await request(
+      "RECORDS",
+      `/gcash-history/submissions/${history.current.id}/reading`,
+    )
+  ).json();
+
+  assert.equal(reading.editable, false);
+
+  assert.equal(reading.correctionVersion, 1);
+
+  assert.equal(
+    (
+      await request(
+        "RECORDS",
+        `/gcash-history/submissions/${history.current.id}/corrections`,
+        "POST",
+        { ...input, version: 4, correctionVersion: 1 },
+      )
+    ).status,
+    409,
+  );
+
+  const log = await request(
+    "FINANCE_OFFICER",
+    `/gcash-history/submissions/${history.current.id}/corrections`,
+  );
+
+  assert.equal(log.headers.get("cache-control"), "private, no-store");
+
+  assert.equal((await log.json()).total, 1);
+});
+
+test("audit failure rolls back corrections, status and archival atomically", async () => {
+  const { history, input } = await workspaceFixture(7);
+
+  await db.$executeRawUnsafe(
+    `ALTER TABLE "AuditEntry" ADD CONSTRAINT "gcash_workspace_failure" CHECK (action NOT LIKE 'gcash_history.%') NOT VALID`,
+  );
+
+  try {
+    assert.equal(
+      (
+        await request(
+          "RECORDS",
+          `/gcash-history/submissions/${history.current.id}/corrections`,
+          "POST",
+          input,
+        )
+      ).status,
+      500,
+    );
+
+    assert.equal(
+      (
+        await request(
+          "RECORDS",
+          `/gcash-history/${history.id}/archive`,
+          "POST",
+          { version: 1, reason: "Will fail", archived: true },
+        )
+      ).status,
+      500,
+    );
+  } finally {
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "AuditEntry" DROP CONSTRAINT "gcash_workspace_failure"`,
+    );
+  }
+
+  assert.equal(
+    await db.gcashReadingCorrection.count({
+      where: { submissionId: history.current.id },
+    }),
+    0,
+  );
+
+  const stored = await db.gcashHistory.findUniqueOrThrow({
+    where: { id: history.id },
+  });
+
+  assert.equal(stored.version, 1);
+
+  assert.equal(stored.archivedAt, null);
+});
+
+test("correction authors remain protected from generic employee retention after review metadata resets", async () => {
+  const { history, input } = await workspaceFixture(8);
+
+  const editor = await db.user.create({
+    data: {
+      name: "Synthetic correction author",
+      email: `gcash-editor-${suffix}@example.test`,
+      role: "RECORDS",
+      passwordHash: "unused-synthetic-account",
+    },
+  });
+
+  await apps[0]
+    .get(GcashHistoryService)
+    .correct(safeUser(editor), history.current.id, input);
+
+  const manifest = await db.$transaction((tx) => {
+    return describe(
+      tx,
+      { scope: "EMPLOYEE", subjectId: editor.id },
+      people.get("SYSTEM_ADMIN")!.id,
+    );
+  });
+
+  assert.ok(
+    manifest.blockers.some((message) => {
+      return message.includes("Authored GCash history");
+    }),
+  );
+
+  await db.user.update({ where: { id: editor.id }, data: { role: "COO" } });
+
+  await assert.rejects(
+    apps[0]
+      .get(GcashHistoryService)
+      .correct(safeUser(editor), history.current.id, {
+        ...input,
+        version: 2,
+        correctionVersion: 1,
+      }),
+    /access has changed/,
+  );
+});

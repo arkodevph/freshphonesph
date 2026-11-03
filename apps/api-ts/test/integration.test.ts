@@ -125,6 +125,21 @@ const patch = (value: unknown): RequestInit => {
   return { method: "PATCH", body: JSON.stringify(value) };
 };
 
+async function batchCreationInput(input: {
+  code: string;
+  [key: string]: unknown;
+}) {
+  const { code, ...record } = input;
+
+  const agent = await db.agent.upsert({
+    where: { code },
+    create: { name: `Synthetic ${code}`, code },
+    update: {},
+  });
+
+  return { ...record, agentId: agent.id };
+}
+
 async function stream(session: Session, apiBase = base) {
   const controller = new AbortController();
 
@@ -851,7 +866,7 @@ test("wrong credentials, origin forgery, cookie flags and signed database-sessio
   );
 });
 
-test("batch writes audit atomically; duplicates, malformed input and stale edits are rejected", async () => {
+test("batch writes audit atomically; manual overrides, malformed input and stale edits are rejected", async () => {
   const owner = await new Session().login("SYSTEM_ADMIN");
 
   const finance = await new Session().login("FINANCE_OFFICER");
@@ -864,25 +879,40 @@ test("batch writes audit atomically; duplicates, malformed input and stale edits
     endDate: "2027-03-01",
   };
 
-  assert.equal((await finance.request("/batches", post(input))).status, 403);
+  const creationInput = await batchCreationInput(input);
 
   assert.equal(
-    (await owner.request("/batches", post({ ...input, endDate: "2020-01-01" })))
-      .status,
+    (await finance.request("/batches", post(creationInput))).status,
+    403,
+  );
+
+  assert.equal(
+    (
+      await owner.request(
+        "/batches",
+        post({ ...creationInput, endDate: "2020-01-01" }),
+      )
+    ).status,
     400,
   );
 
   assert.equal(
-    (await owner.request("/batches", post({ ...input, unexpected: true })))
-      .status,
+    (
+      await owner.request(
+        "/batches",
+        post({ ...creationInput, unexpected: true }),
+      )
+    ).status,
     400,
   );
 
-  const created = await owner.request("/batches", post(input));
+  const created = await owner.request("/batches", post(creationInput));
 
   assert.equal(created.status, 201);
 
   const batch = await created.json();
+
+  input.code = batch.code;
 
   assert.equal(
     await db.auditEntry.count({
@@ -893,7 +923,15 @@ test("batch writes audit atomically; duplicates, malformed input and stale edits
 
   const eventCount = await db.changeEvent.count();
 
-  assert.equal((await owner.request("/batches", post(input))).status, 409);
+  assert.equal(
+    (
+      await owner.request(
+        "/batches",
+        post({ ...creationInput, code: batch.code }),
+      )
+    ).status,
+    400,
+  );
 
   assert.equal(await db.changeEvent.count(), eventCount);
 
@@ -1218,11 +1256,15 @@ test("enrollment snapshots exact installments, freezes terms and rolls back inva
     cadence: "MONTHLY",
   };
 
-  const created = await owner.request("/batches", post(terms));
+  const creationInput = await batchCreationInput(terms);
+
+  const created = await owner.request("/batches", post(creationInput));
 
   assert.equal(created.status, 201);
 
   const batch = await created.json();
+
+  terms.code = batch.code;
 
   assert.equal(batch.contractPrice, "100.00");
 
@@ -1328,12 +1370,8 @@ test("enrollment snapshots exact installments, freezes terms and rolls back inva
     { endDate: "2026-02-01" },
   ]) {
     assert.equal(
-      (
-        await owner.request(
-          "/batches",
-          post({ ...terms, code: `BAD-${suffix}`, ...change }),
-        )
-      ).status,
+      (await owner.request("/batches", post({ ...creationInput, ...change })))
+        .status,
       400,
     );
   }
@@ -3901,7 +3939,11 @@ test("record details and history enforce role permissions, field minimization an
     cadence: "MONTHLY",
   };
 
-  const batch = await (await owner.request("/batches", post(input))).json();
+  const batch = await (
+    await owner.request("/batches", post(await batchCreationInput(input)))
+  ).json();
+
+  input.code = batch.code;
 
   assert.equal(batch.termsLocked, false);
 
@@ -4456,16 +4498,18 @@ test("batch assignments restrict every handler read and filter, preserve schedul
     ["one", "two", "three"].map(async (key) => {
       const result = await owner.request(
         "/batches",
-        post({
-          code: `ASSIGNED-${key}-${suffix}`,
-          model: "Assignment unit",
-          status: "ACTIVE",
-          startDate: "2026-09-01",
-          endDate: "2027-03-01",
-          contractPrice: "100.00",
-          installmentCount: 3,
-          cadence: "MONTHLY",
-        }),
+        post(
+          await batchCreationInput({
+            code: `ASSIGNED-${key}-${suffix}`,
+            model: "Assignment unit",
+            status: "ACTIVE",
+            startDate: "2026-09-01",
+            endDate: "2027-03-01",
+            contractPrice: "100.00",
+            installmentCount: 3,
+            cadence: "MONTHLY",
+          }),
+        ),
       );
 
       assert.equal(result.status, 201);
@@ -4609,7 +4653,12 @@ test("batch assignments restrict every handler read and filter, preserve schedul
       before: null,
       after: handlers[0].name,
     },
-    { field: "agentId", label: "Agent", before: null, after: agents[0].name },
+    {
+      field: "agentId",
+      label: "Agent",
+      before: batches[0].agent.name,
+      after: agents[0].name,
+    },
   ]);
 
   assert.doesNotMatch(
@@ -4844,16 +4893,18 @@ test("live events disclose only current assignments and invalidate the previous 
   const batch = await (
     await owner.request(
       "/batches",
-      post({
-        code: `STREAM-ASSIGNED-${suffix}`,
-        model: "Stream phone",
-        status: "ACTIVE",
-        startDate: "2026-09-01",
-        endDate: "2027-03-01",
-        contractPrice: "100.00",
-        installmentCount: 3,
-        cadence: "MONTHLY",
-      }),
+      post(
+        await batchCreationInput({
+          code: `STREAM-ASSIGNED-${suffix}`,
+          model: "Stream phone",
+          status: "ACTIVE",
+          startDate: "2026-09-01",
+          endDate: "2027-03-01",
+          contractPrice: "100.00",
+          installmentCount: 3,
+          cadence: "MONTHLY",
+        }),
+      ),
     )
   ).json();
 

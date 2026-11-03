@@ -1,270 +1,508 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { GcashReadingPage } from "@freshphones/contracts";
-import { getGcashReading } from "@/lib/api";
-import styles from "./reading.module.css";
+import dynamic from "next/dynamic";
+import type { GcashHistory, GcashSubmission } from "@freshphones/contracts";
+import { useReviewWorkspace } from "./useReviewWorkspace";
+import { CorrectionForm } from "./CorrectionForm";
+import { CorrectionHistory } from "./CorrectionHistory";
+import { ReviewDecision } from "./ReviewDecision";
+import { SubmissionActions } from "./SubmissionActions";
+import { ReviewHistory } from "./ReviewHistory";
+import styles from "./workspace.module.css";
 
-const money = (value: string | null | undefined) => {
-  return value == null
+const OriginalPdf = dynamic(
+  () => {
+    return import("./OriginalPdf");
+  },
+  {
+    ssr: false,
+    loading: () => {
+      return <p role="status">Loading PDF viewer…</p>;
+    },
+  },
+);
+
+const money = (value: string | null) => {
+  return value === null
     ? "Not read"
     : `₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 export function ReadingDialog({
-  id,
-  filename,
+  row,
+  submission,
+  canReview = false,
+  viewerId,
+  changed,
+  download,
   close,
 }: {
-  id: string;
-  filename: string;
+  row: GcashHistory;
+  submission: GcashSubmission;
+  canReview?: boolean;
+  viewerId?: string;
+  changed: (row: GcashHistory) => void;
+  download: (id: string, filename: string) => Promise<void>;
   close: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
-  const [page, setPage] = useState(1);
+  const [view, setView] = useState<"pdf" | "transactions">("transactions");
 
-  const [attempt, setAttempt] = useState(0);
+  const [pdfPage, setPdfPage] = useState(1);
 
-  const [result, setResult] = useState<GcashReadingPage | null>(null);
+  const [discard, setDiscard] = useState(false);
 
-  const [error, setError] = useState<string | null>(null);
+  const work = useReviewWorkspace(submission.id, row, changed);
 
-  const [loading, setLoading] = useState(true);
+  const { result, record } = work;
+
+  const current = record.current.id === submission.id;
+
+  const requestClose = () => {
+    if (work.saving) {
+      return;
+    }
+
+    if (work.edit !== null) {
+      setDiscard(true);
+    } else {
+      close();
+    }
+  };
 
   useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
+    const element = dialog.current;
 
-  useEffect(() => {
-    let active = true;
-
-    setLoading(true);
-
-    setError(null);
-
-    setResult(null);
-
-    void getGcashReading(id, page)
-      .then((value) => {
-        if (active) {
-          setResult(value);
-        }
-      })
-      .catch((failure: unknown) => {
-        if (active) {
-          setError(
-            failure instanceof Error
-              ? failure.message
-              : "Could not load extracted transactions.",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
-      });
+    element?.showModal();
 
     return () => {
-      active = false;
+      element?.close();
     };
-  }, [id, page, attempt]);
+  }, []);
 
   return (
     <dialog
       ref={dialog}
       className={styles.dialog}
-      aria-labelledby="gcash-reading-title"
-      onCancel={close}
+      aria-labelledby="gcash-workspace-title"
+      onCancel={(event) => {
+        event.preventDefault();
+
+        requestClose();
+      }}
     >
       <header className={styles.header}>
         <div>
-          <h2 id="gcash-reading-title">Extracted transactions</h2>
-          <p className={styles.help}>{filename}</p>
+          <span className={styles.eyebrow}>GCash statement review</span>
+          <h2 id="gcash-workspace-title">{record.batch.code}</h2>
+          <p>
+            {record.periodStart} — {record.periodEnd}{" "}
+            <span>· PDF revision {submission.revision}</span>
+          </p>
         </div>
-        <button type="button" onClick={close}>
-          Close transactions
-        </button>
-      </header>
-      <p className={styles.help}>
-        Check these values against the original PDF before recording your
-        review. Reading a statement does not verify payments or change balances.
-      </p>
-      {loading ? (
-        <p role="status">Loading extracted transactions…</p>
-      ) : error ? (
-        <p role="alert">
-          {error}{" "}
+        <div className={styles.toolbar}>
+          <span
+            className={styles.badge}
+            data-status={
+              record.archivedAt
+                ? "ARCHIVED"
+                : current
+                  ? record.status
+                  : submission.status
+            }
+          >
+            {record.archivedAt
+              ? "Archived"
+              : (current ? record.status : submission.status) === "SUBMITTED"
+                ? "Awaiting Records review"
+                : (current ? record.status : submission.status) === "REVIEWED"
+                  ? "Reviewed"
+                  : "Needs clarification"}
+          </span>
           <button
             type="button"
             onClick={() => {
-              return setAttempt((value) => {
-                return value + 1;
-              });
+              void download(submission.id, submission.fileName);
             }}
           >
-            Retry transactions
+            Download original
           </button>
+          {canReview && work.edit === null && !work.saving && (
+            <SubmissionActions row={record} changed={work.updated} />
+          )}
+          <button type="button" onClick={requestClose} disabled={work.saving}>
+            Close workspace
+          </button>
+        </div>
+      </header>
+      <p className={styles.boundary}>
+        Statement evidence only. Payments and member balances change through
+        Finance verification.
+      </p>
+      {record.archivedAt && (
+        <p className={styles.warning}>
+          Archived by {record.archivedBy?.name} · {record.archiveReason}.
+          Restore this period to make changes.
         </p>
-      ) : (
-        result && (
-          <>
-            <p className={styles.help}>
-              {result.transactionCount} transactions · {result.pages}{" "}
-              {result.pages === 1 ? "page" : "pages"} ·{" "}
-              {result.method === "TEXT"
-                ? "Read from PDF text"
-                : result.method === "OCR"
-                  ? "Read from scanned pages"
-                  : "Read from text and scanned pages"}
-            </p>
-            {result.warnings.length > 0 && (
-              <div className={styles.warning} aria-label="Reading warnings">
-                <strong>Check these items</strong>
-                <ul>
-                  {result.warnings.map((warning) => {
-                    return <li key={warning}>{warning}</li>;
-                  })}
-                </ul>
-              </div>
-            )}
-            <dl className={styles.totals}>
-              <div>
-                <dt>Opening balance</dt>
-                <dd>{money(result.openingBalance)}</dd>
-              </div>
-              <div>
-                <dt>Total debit read</dt>
-                <dd>{money(result.calculatedDebit)}</dd>
-              </div>
-              <div>
-                <dt>Total credit read</dt>
-                <dd>{money(result.calculatedCredit)}</dd>
-              </div>
-              <div>
-                <dt>Closing balance</dt>
-                <dd>{money(result.closingBalance)}</dd>
-              </div>
-            </dl>
-            <ul className={styles.checks}>
-              {[
-                ["Debit total", result.checks.debitTotalMatches],
-                ["Credit total", result.checks.creditTotalMatches],
-                ["Running balances", result.checks.runningBalancesMatch],
-                ["Closing balance", result.checks.closingBalanceMatches],
-              ].map(([label, value]) => {
-                return (
-                  <li key={String(label)}>
-                    {label}:{" "}
-                    {value === true
-                      ? "Matches"
-                      : value === false
-                        ? "Needs checking"
-                        : "Not checked"}
-                  </li>
-                );
-              })}
-            </ul>
-            {!result.total ? (
+      )}
+      {!current && (
+        <p className={styles.warning}>
+          Historical PDF revision. Corrections and decisions apply to the latest
+          revision.
+        </p>
+      )}
+      {discard && (
+        <div className={styles.warning} role="alert">
+          <p>Discard the unsaved correction and close?</p>
+          <div className={styles.toolbar}>
+            <button type="button" onClick={close}>
+              Discard and close
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDiscard(false);
+              }}
+            >
+              Keep editing
+            </button>
+          </div>
+        </div>
+      )}
+      {work.error && (
+        <div className={styles.warning} role="alert">
+          {work.error}
+          <button type="button" onClick={work.reload} disabled={work.saving}>
+            Discard draft and load latest submission
+          </button>
+        </div>
+      )}
+      {work.notice && (
+        <p className={styles.success} role="status">
+          {work.notice}
+        </p>
+      )}
+      <div
+        className={styles.mobileTabs}
+        role="group"
+        aria-label="Comparison view"
+      >
+        <button
+          type="button"
+          aria-pressed={view === "pdf"}
+          onClick={() => {
+            setView("pdf");
+          }}
+        >
+          Original PDF
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === "transactions"}
+          onClick={() => {
+            setView("transactions");
+          }}
+        >
+          Transactions
+        </button>
+      </div>
+      <div className={styles.comparison} data-view={view}>
+        <OriginalPdf
+          key={submission.id}
+          id={submission.id}
+          filename={submission.fileName}
+          page={pdfPage}
+          setPage={setPdfPage}
+        />
+        <section
+          className={styles.transactions}
+          aria-label="Statement transactions"
+        >
+          <header className={styles.panelHeader}>
+            <div>
+              <h3>Transactions</h3>
               <p>
-                No transaction table was identified. Use the original PDF for
-                the Records review.
+                {result
+                  ? `${result.total} rows · ${result.correctionVersion} manual corrections`
+                  : "Extracted from this PDF revision"}
               </p>
-            ) : (
-              <div
-                className={styles.tableWrap}
-                tabIndex={0}
-                role="region"
-                aria-label="Extracted GCash transaction table"
+            </div>
+            <label>
+              Reading version
+              <select
+                aria-label="Reading version"
+                disabled={work.edit !== null || work.saving}
+                value={work.source}
+                onChange={(event) => {
+                  work.setSource(event.target.value as "current" | "original");
+
+                  work.setPage(1);
+                }}
               >
-                <table>
-                  <thead>
-                    <tr>
-                      {[
-                        "Date / time",
-                        "Description",
-                        "Reference no.",
-                        "Debit",
-                        "Credit",
-                        "Balance",
-                        "Check",
-                      ].map((heading) => {
-                        return (
-                          <th key={heading} scope="col">
-                            {heading}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.items.map((row, index) => {
+                <option value="current">Current interpretation</option>
+                <option value="original">Original extraction</option>
+              </select>
+            </label>
+          </header>
+          <div className={styles.transactionBody}>
+            {work.loading ? (
+              <p role="status">Loading extracted transactions…</p>
+            ) : work.readingError ? (
+              <div className={styles.warning} role="alert">
+                <p>{work.readingError}</p>
+                <button type="button" onClick={work.reload}>
+                  Retry transactions
+                </button>
+                <p>The original PDF remains available for review.</p>
+              </div>
+            ) : (
+              result && (
+                <>
+                  <dl className={styles.totals}>
+                    {[
+                      ["Opening", result.openingBalance],
+                      ["Debit read", result.calculatedDebit],
+                      ["Credit read", result.calculatedCredit],
+                      ["Closing", result.closingBalance],
+                    ].map(([label, value]) => {
                       return (
-                        <tr key={`${page}-${index}`}>
-                          <td>
-                            {row.date}
-                            <br />
-                            {row.time}
-                            <small>PDF page {row.page}</small>
-                          </td>
-                          <td className={styles.description}>
-                            {row.description || "Not read"}
-                          </td>
-                          <td>{row.reference || "Not read"}</td>
-                          <td>{row.debit == null ? "—" : money(row.debit)}</td>
-                          <td>
-                            {row.credit == null ? "—" : money(row.credit)}
-                          </td>
-                          <td>{money(row.balance)}</td>
-                          <td>
-                            {row.warnings.length ? (
-                              <ul>
-                                {row.warnings.map((warning) => {
-                                  return <li key={warning}>{warning}</li>;
-                                })}
-                              </ul>
-                            ) : (
-                              "No reading flags"
-                            )}
-                          </td>
-                        </tr>
+                        <div key={label}>
+                          <dt>{label}</dt>
+                          <dd>{money(value)}</dd>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
+                  </dl>
+                  <div
+                    className={styles.checks}
+                    aria-label="Reconciliation checks"
+                  >
+                    {[
+                      ["Debit total", result.checks.debitTotalMatches],
+                      ["Credit total", result.checks.creditTotalMatches],
+                      ["Running balances", result.checks.runningBalancesMatch],
+                      ["Closing balance", result.checks.closingBalanceMatches],
+                    ].map(([label, value]) => {
+                      return (
+                        <span
+                          key={String(label)}
+                          data-check={value === true ? "match" : "check"}
+                        >
+                          {label}:{" "}
+                          {value === true
+                            ? "Matches"
+                            : value === false
+                              ? "Needs checking"
+                              : "Not checked"}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {result.warnings.length > 0 && (
+                    <details className={styles.warning}>
+                      <summary>
+                        {result.warnings.length} reading{" "}
+                        {result.warnings.length === 1 ? "warning" : "warnings"}{" "}
+                        — check against the PDF
+                      </summary>
+                      <ul>
+                        {result.warnings.map((warning) => {
+                          return <li key={warning}>{warning}</li>;
+                        })}
+                      </ul>
+                    </details>
+                  )}
+                  {work.edit !== null && result.items[work.edit] && (
+                    <CorrectionForm
+                      key={`${submission.id}-${work.page}-${work.edit}`}
+                      row={result.items[work.edit]}
+                      rowIndex={(work.page - 1) * result.pageSize + work.edit}
+                      reading={result}
+                      saving={work.saving}
+                      save={work.correct}
+                      cancel={() => {
+                        work.setEdit(null);
+                      }}
+                    />
+                  )}
+                  {!result.total ? (
+                    <p className={styles.message}>
+                      No transaction table was identified. Use the original PDF
+                      for the Records review.
+                    </p>
+                  ) : (
+                    <div
+                      className={styles.tableWrap}
+                      tabIndex={0}
+                      role="region"
+                      aria-label="Extracted GCash transaction table"
+                    >
+                      <table>
+                        <thead>
+                          <tr>
+                            {[
+                              "Date / source",
+                              "Description",
+                              "Reference",
+                              "Debit",
+                              "Credit",
+                              "Balance",
+                              "Actions",
+                            ].map((heading) => {
+                              return (
+                                <th key={heading} scope="col">
+                                  {heading}
+                                </th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.items.map((item, index) => {
+                            return (
+                              <tr
+                                key={`${work.page}-${index}`}
+                                data-editing={work.edit === index}
+                              >
+                                <td>
+                                  {item.date}
+                                  <small>{item.time}</small>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPdfPage(item.page);
+
+                                      setView("pdf");
+
+                                      requestAnimationFrame(() => {
+                                        dialog.current
+                                          ?.querySelector<HTMLElement>(
+                                            '[aria-label="PDF page viewer"]',
+                                          )
+                                          ?.focus();
+                                      });
+                                    }}
+                                  >
+                                    PDF page {item.page}
+                                  </button>
+                                </td>
+                                <td className={styles.description}>
+                                  {item.description || "Not read"}
+                                  {item.warnings.length > 0 && (
+                                    <details>
+                                      <summary>
+                                        Reading flags ({item.warnings.length})
+                                      </summary>
+                                      <ul>
+                                        {item.warnings.map((warning) => {
+                                          return (
+                                            <li key={warning}>{warning}</li>
+                                          );
+                                        })}
+                                      </ul>
+                                    </details>
+                                  )}
+                                </td>
+                                <td>{item.reference || "Not read"}</td>
+                                <td>
+                                  {item.debit === null
+                                    ? "—"
+                                    : money(item.debit)}
+                                </td>
+                                <td>
+                                  {item.credit === null
+                                    ? "—"
+                                    : money(item.credit)}
+                                </td>
+                                <td>{money(item.balance)}</td>
+                                <td>
+                                  {canReview && result.editable ? (
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        work.edit !== null || work.saving
+                                      }
+                                      onClick={() => {
+                                        work.setEdit(index);
+                                      }}
+                                    >
+                                      Correct row{" "}
+                                      {index +
+                                        1 +
+                                        (work.page - 1) * result.pageSize}
+                                    </button>
+                                  ) : (
+                                    "Read only"
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <nav
+                    className={styles.pagination}
+                    aria-label="Extracted transaction pages"
+                  >
+                    <button
+                      type="button"
+                      disabled={
+                        work.page === 1 || work.edit !== null || work.saving
+                      }
+                      onClick={() => {
+                        work.setPage(work.page - 1);
+                      }}
+                    >
+                      Previous transactions
+                    </button>
+                    <span>
+                      Page {work.page} of{" "}
+                      {Math.max(1, Math.ceil(result.total / result.pageSize))}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={
+                        work.page * result.pageSize >= result.total ||
+                        work.edit !== null ||
+                        work.saving
+                      }
+                      onClick={() => {
+                        work.setPage(work.page + 1);
+                      }}
+                    >
+                      Next transactions
+                    </button>
+                  </nav>
+                </>
+              )
             )}
-            <nav
-              className={styles.pagination}
-              aria-label="Extracted transaction pages"
-            >
-              <button
-                type="button"
-                disabled={page === 1}
-                onClick={() => {
-                  return setPage(page - 1);
-                }}
-              >
-                Previous transactions
-              </button>
-              <span>
-                Page {page} of{" "}
-                {Math.max(1, Math.ceil(result.total / result.pageSize))}
-              </span>
-              <button
-                type="button"
-                disabled={page * result.pageSize >= result.total}
-                onClick={() => {
-                  return setPage(page + 1);
-                }}
-              >
-                Next transactions
-              </button>
-            </nav>
-          </>
-        )
+            <CorrectionHistory id={submission.id} refresh={work.attempt} />
+          </div>
+        </section>
+      </div>
+      {current &&
+        canReview &&
+        !record.archivedAt &&
+        record.status === "SUBMITTED" &&
+        record.current.uploadedBy.id !== viewerId && (
+          <ReviewDecision
+            key={record.version}
+            row={record}
+            disabled={work.saving || work.edit !== null}
+            save={work.review}
+          />
+        )}
+      {current && record.current.reviewNote && (
+        <p className={styles.reviewNote}>
+          <strong>Records review</strong> · {record.current.reviewedBy?.name}:{" "}
+          {record.current.reviewNote}
+        </p>
       )}
+      <ReviewHistory id={record.id} refresh={work.attempt} />
     </dialog>
   );
 }

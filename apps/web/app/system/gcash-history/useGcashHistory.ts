@@ -1,17 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  GcashHistory,
-  GcashHistoryReview,
-  GcashHistoryStatus,
-} from "@freshphones/contracts";
+import type { GcashHistory, GcashHistoryStatus } from "@freshphones/contracts";
 import {
   listGcashBatchChoices,
   listGcashHistories,
-  getGcashHistory,
   uploadGcashHistory,
-  reviewGcashHistory,
   downloadGcashSubmission,
   gcashPdfError,
   type GcashBatchChoice,
@@ -51,6 +45,8 @@ export function useGcashHistory() {
 
   const [status, setStatus] = useState<GcashHistoryStatus | "">("");
 
+  const [archived, setArchived] = useState<"active" | "archived">("active");
+
   const [loading, setLoading] = useState(true);
 
   const [listError, setListError] = useState<string | null>(null);
@@ -81,8 +77,6 @@ export function useGcashHistory() {
   const [inputKey, setInputKey] = useState(0);
 
   const [correcting, setCorrecting] = useState<GcashHistory | null>(null);
-
-  const [reviewing, setReviewing] = useState<GcashHistory | null>(null);
 
   const [choices, setChoices] = useState<GcashBatchChoice[]>([]);
 
@@ -129,8 +123,6 @@ export function useGcashHistory() {
 
     setChoices([]);
 
-    setReviewing(null);
-
     setError(null);
 
     setNotice(null);
@@ -167,6 +159,7 @@ export function useGcashHistory() {
       const result = await listGcashHistories({
         page,
         q: query,
+        archived,
         ...(status ? { status } : {}),
       });
 
@@ -200,7 +193,7 @@ export function useGcashHistory() {
         setLoading(false);
       }
     }
-  }, [me?.id, canRead, page, query, status, clear]);
+  }, [me?.id, canRead, page, query, status, archived, clear]);
 
   useEffect(() => {
     void load();
@@ -362,51 +355,6 @@ export function useGcashHistory() {
     }
   }
 
-  async function review(input: GcashHistoryReview) {
-    if (!reviewing || mutation.current) {
-      return;
-    }
-
-    const token = access.current;
-
-    mutation.current = true;
-
-    setSaving(true);
-
-    setError(null);
-
-    setNotice(null);
-
-    try {
-      const saved = await reviewGcashHistory(reviewing.id, input);
-
-      if (token !== access.current) {
-        return;
-      }
-
-      setReviewing(null);
-
-      const message =
-        saved.status === "REVIEWED"
-          ? "Records review saved. Payments still require Finance verification."
-          : "Clarification requested. The Handler can submit a corrected PDF.";
-
-      setNotice(message);
-
-      announce("success", "Review saved", message);
-
-      await load();
-    } catch (error) {
-      if (token === access.current) {
-        failure(error);
-      }
-    } finally {
-      setSaving(false);
-
-      mutation.current = false;
-    }
-  }
-
   async function download(id: string, filename: string) {
     const token = access.current;
 
@@ -448,6 +396,8 @@ export function useGcashHistory() {
     setQuery,
     status,
     setStatus,
+    archived,
+    setArchived,
     loading,
     listError,
     error,
@@ -467,8 +417,6 @@ export function useGcashHistory() {
     },
     selectFile,
     correcting,
-    reviewing,
-    setReviewing,
     choices,
     choicesError,
     retryChoices: () => {
@@ -479,7 +427,6 @@ export function useGcashHistory() {
     resetDraft,
     load,
     submit,
-    review,
     download,
     correct: (row: GcashHistory) => {
       setCorrecting(row);
@@ -507,29 +454,6 @@ export function useGcashHistory() {
       setFeedback(null);
 
       window.scrollTo({ top: 0, behavior: "auto" });
-    },
-    refreshReview: async () => {
-      if (!reviewing) {
-        return;
-      }
-
-      const token = access.current;
-
-      try {
-        const latest = await getGcashHistory(reviewing.id);
-
-        if (token !== access.current) {
-          return;
-        }
-
-        setReviewing(latest);
-
-        setError(null);
-      } catch (error) {
-        if (token === access.current) {
-          failure(error);
-        }
-      }
     },
   };
 }

@@ -123,6 +123,36 @@
     background 0.2s ease;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 1.75rem;
+}
+
+.actions .cta {
+  margin-top: 0;
+}
+
+.apply {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  border: 1px solid var(--color-blue-ink);
+  border-radius: 999px;
+  padding: 10px 20px;
+  color: var(--color-blue-ink);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.apply:focus-visible {
+  outline: 3px solid var(--color-blue-ink);
+  outline-offset: 4px;
+}
+
 .cta svg {
   width: 1.125rem;
   height: 1.125rem;

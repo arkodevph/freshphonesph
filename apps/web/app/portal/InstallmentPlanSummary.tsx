@@ -54,8 +54,12 @@ export default function InstallmentPlanSummary({
           <div className={styles.planMain}>
             <div className={styles.planBalance}>
               <p>
-                {featuredState.payment === "Paid"
-                  ? "All installments settled"
+                {featuredState.remaining === 0
+                  ? items.some((item) => {
+                      return Number(item.released_amount ?? 0) > 0;
+                    })
+                    ? "Replacement handover recorded"
+                    : "All installments settled"
                   : `Installment ${featured.sequence_no} remaining`}
               </p>
               <strong>{money(featuredState.remaining)}</strong>

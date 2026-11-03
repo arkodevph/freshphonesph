@@ -202,8 +202,24 @@ export default function FinancialDocumentPage() {
             <>
               <h2>Account balance</h2>
               <dl className={styles.totals}>
+                {Number(document.balance.releasedDue ?? 0) > 0 && (
+                  <>
+                    <div>
+                      <dt>Originally issued installment obligation</dt>
+                      <dd>
+                        {document.balance.originalDue
+                          ? money(document.balance.originalDue)
+                          : "Not captured"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Unpaid obligation released at replacement</dt>
+                      <dd>{money(document.balance.releasedDue!)}</dd>
+                    </div>
+                  </>
+                )}
                 <div>
-                  <dt>Total due</dt>
+                  <dt>Current installment obligation</dt>
                   <dd>{money(document.balance.totalDue)}</dd>
                 </div>
                 <div>
@@ -215,6 +231,14 @@ export default function FinancialDocumentPage() {
                   <dd>{money(document.balance.remainingBalance)}</dd>
                 </div>
               </dl>
+              {Number(document.balance.releasedDue ?? 0) > 0 && (
+                <p>
+                  The replacement handover released the unpaid obligation shown
+                  above. This release is not a payment or refund. Original
+                  incoming payments remain in your history; refund decisions and
+                  external refund records are tracked separately.
+                </p>
+              )}
               <h2>Verified payments</h2>
               {document.verifiedPayments.length ? (
                 <table>

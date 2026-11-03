@@ -234,6 +234,8 @@ export const toBatch = (batch: Batch) => {
     created_at: batch.createdAt,
     version: batch.version,
     terms_locked: batch.termsLocked,
+    first_due_date: batch.firstDueDate ?? null,
+    month_end: batch.monthEnd ?? false,
     handler_name: batch.handler?.name ?? null,
     agent_name: batch.agent?.name ?? null,
     handler_available: Boolean(
@@ -269,6 +271,8 @@ export const toSchedule = (schedule: ClientSchedule) => {
       sequence_no: item.sequenceNo,
       due_date: item.dueDate,
       expected_amount: item.expectedAmount,
+      original_expected_amount: item.originalExpectedAmount,
+      released_amount: item.releasedAmount,
     };
   });
 };

@@ -10,10 +10,16 @@ export function HistoryDialog({
   row,
   close,
   download,
+  changed,
+  canReview,
+  viewerId,
 }: {
   row: GcashHistory;
   close: () => void;
   download: (id: string, filename: string) => Promise<void>;
+  changed: (row: GcashHistory) => void;
+  canReview: boolean;
+  viewerId?: string;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -125,7 +131,7 @@ export function HistoryDialog({
                     Records: {item.reviewNote} · {item.reviewedBy?.name}
                   </p>
                 )}
-                {item.reading && (
+                {
                   <button
                     type="button"
                     className={styles.secondary}
@@ -133,9 +139,9 @@ export function HistoryDialog({
                       setReading(item);
                     }}
                   >
-                    Read revision {item.revision}
+                    Open revision {item.revision}
                   </button>
-                )}
+                }
                 <button
                   type="button"
                   className={styles.secondary}
@@ -176,8 +182,18 @@ export function HistoryDialog({
       {reading && (
         <ReadingDialog
           key={reading.id}
-          id={reading.id}
-          filename={reading.fileName}
+          row={row}
+          submission={reading}
+          canReview={canReview}
+          viewerId={viewerId}
+          changed={(value) => {
+            changed(value);
+
+            setAttempt((current) => {
+              return current + 1;
+            });
+          }}
+          download={download}
           close={() => {
             setReading(null);
           }}

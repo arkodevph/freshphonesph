@@ -129,7 +129,20 @@ export default function PaymentScheduleLogs({
                     >
                       <th scope="row">Installment {item.sequence_no}</th>
                       <td>{dueDate(item.due_date)}</td>
-                      <td>{money(item.expected_amount)}</td>
+                      <td>
+                        {money(item.expected_amount)}
+                        {Number(item.released_amount ?? 0) > 0 && (
+                          <small className={styles.muted}>
+                            <br />
+                            Original{" "}
+                            {money(
+                              item.original_expected_amount ??
+                                item.expected_amount,
+                            )}{" "}
+                            · {money(item.released_amount!)} handed over
+                          </small>
+                        )}
+                      </td>
                       <td>{money(item.paid_applied)}</td>
                       <td>{money(state.remaining)}</td>
                       <td>

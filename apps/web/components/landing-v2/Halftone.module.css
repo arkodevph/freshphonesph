@@ -1,0 +1,43 @@
+.surface {
+  isolation: isolate;
+}
+
+.text {
+  --halftone-image: radial-gradient(circle, #000 1.8px, transparent 2px);
+  --halftone-size: 14px 14px;
+  --halftone-position: left top;
+  --halftone-opacity: 0.1;
+}
+
+.card {
+  --halftone-image: radial-gradient(circle, #000 2.6px, transparent 2.8px);
+  --halftone-size: 12px 12px;
+  --halftone-position: left top;
+  --halftone-opacity: 0.26;
+}
+
+.pattern {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: none;
+  border-radius: inherit;
+  background-color: var(--halftone-color, #3155a6);
+  -webkit-mask-image: var(--halftone-image);
+  mask-image: var(--halftone-image);
+  -webkit-mask-size: var(--halftone-size, min(100%, 24rem));
+  mask-size: var(--halftone-size, min(100%, 24rem));
+  -webkit-mask-position: var(--halftone-position, center);
+  mask-position: var(--halftone-position, center);
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  opacity: var(--halftone-opacity, 0.1);
+  pointer-events: none;
+}
+
+@supports (mask-image: linear-gradient(#000, #000)) or
+  (-webkit-mask-image: linear-gradient(#000, #000)) {
+  .pattern {
+    display: block;
+  }
+}

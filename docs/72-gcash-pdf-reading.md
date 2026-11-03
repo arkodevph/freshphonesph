@@ -2,9 +2,9 @@
 
 Jaycee requested reading uploaded GCash statements and adding a PDF-password field. This extends the integrated GCash history workspace in the main local demo.
 
-## Planned review workspace improvements — deferred
+## Review workspace improvements — resumed October 29
 
-**Recorded October 29, 2026. Status: plan only; implementation deferred at Jaycee's explicit request.** Jaycee said he is content with the current iteration and asked to save the next improvements in Markdown. The screenshot of the current submission queue is the starting point. This plan does not authorize building these additions now.
+**Current status:** Jaycee explicitly resumed all four additions on October 29 with “lets do it now.” They are implemented locally on `feature/gcash-review-workspace` with 452 automated checks and ten browser groups passing. See [the current workspace guide](73-gcash-review-workspace.md) for the chosen permissions, correction/review rules, archive semantics and validation. The bullets below preserve the original planning record; the earlier implementation hold is superseded.
 
 ### 1. Expand the review design
 
@@ -42,19 +42,19 @@ Jaycee requested reading uploaded GCash statements and adding a PDF-password fie
 - [ ] Agree the expanded layout and original-PDF viewing/unlock behavior.
 - [ ] Confirm editable fields, editor/reviewer permissions and the correction approval flow.
 - [ ] Confirm deletion versus archival semantics, eligibility, recovery and approval rules.
-- [ ] Implement only after Jaycee explicitly resumes this plan.
+- [x] Jaycee explicitly resumed this plan on October 29; implementation is local.
 - [ ] Verify same-revision PDF comparison, password handling, mobile access, edit validation/history, stale edits, removal/restore behavior, duplicate handling and unchanged financial balances.
 
-All four additions are unimplemented future work. The existing PDF upload/reading, password eye, feedback and Records review behavior remain the current completed baseline.
+All four additions are now implemented locally under the resumed scope. The original PDF upload/reading, password eye and feedback remain part of the workspace. User/client acceptance remains separate.
 
 ## Use the main demo
 
 1. Open [main login](http://localhost:3000/login) → **Preview a workspace → Batch handler → GCash history**.
 2. Select the assigned batch and covered dates, then select the complete GCash PDF.
 3. If the PDF is encrypted, enter **PDF password (if required)**. Submit the PDF to Records. A missing or incorrect password gives an actionable error and preserves the selected file and date draft. Re-enter the password after a failed attempt.
-4. Select **View extracted transactions** on the submitted period. The reader displays date/time, description, reference number, debit, credit and balance, with source-page numbers and reading warnings.
+4. Select **Open submission** / **Review submission** on the submitted period. The reader displays date/time, description, reference number, debit, credit and balance, with source-page numbers and reading warnings.
 5. Records opens the same extracted table from **Review submission** and compares it with the original PDF before choosing Reviewed or Needs clarification.
-6. After correction, **PDF history → Read revision 1 / Read revision 2** opens each revision's own extraction. Earlier bytes, rows and review notes remain intact.
+6. After correction, **PDF history → Open revision 1 / Open revision 2** opens each revision's own extraction. Earlier bytes, rows and review notes remain intact.
 
 Finance and COO can read extracted evidence under their existing GCash permissions. Owner / CEO, customers, unrelated Handlers and other ungranted roles cannot read it. Current batch reassignment immediately changes access. Reading a PDF never creates payment claims, verifies funds or changes customer balances.
 

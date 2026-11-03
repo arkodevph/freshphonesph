@@ -21,6 +21,7 @@ type Props = {
     | "release"
     | "notifications"
     | "support"
+    | "withdrawals"
     | "settings";
   notifications: PortalNotification[];
   startTour: (event?: MouseEvent<HTMLButtonElement>) => void;

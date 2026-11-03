@@ -32,8 +32,9 @@ export default function InstallmentEarnings() {
       >
         <h2 id="earnings-filters-title">Scheduled installment earnings</h2>
         <p className={styles.help}>
-          Expected installment amounts for each batch and member, calculated
-          from issued schedule due dates.
+          Expected installment obligations for each batch and membership,
+          calculated from issued schedule due dates after recorded replacement
+          releases.
         </p>
         <form onSubmit={state.apply}>
           <fieldset disabled={Boolean(busy)} className={styles.filters}>
@@ -220,15 +221,17 @@ export default function InstallmentEarnings() {
                   <p>All batches in the selected scope</p>
                 </div>
                 <div>
-                  <dt>Members</dt>
+                  <dt>Membership records</dt>
                   <dd>{report.totals.members}</dd>
-                  <p>All members in the selected scope</p>
+                  <p>Includes retained historical memberships</p>
                 </div>
               </dl>
               <p className={styles.help}>
-                Scheduled earnings show expected installments, not payments
-                received or profit. Totals cover every page. Members and batches
-                with no amount due remain visible.
+                Scheduled earnings show issued obligations after recorded
+                replacement releases. Incoming payments and external refund
+                records are separate; these figures do not show profit. Totals
+                cover every page. Historical memberships remain visible and
+                their count does not measure current batch occupancy.
               </p>
               {report.totals.membersWithoutSchedule > 0 && (
                 <p className={styles.warning}>
@@ -263,7 +266,7 @@ export default function InstallmentEarnings() {
                           )}
                           <th scope="col">Batch</th>
                           {report.groupBy === "batches" && (
-                            <th scope="col">Members</th>
+                            <th scope="col">Membership records</th>
                           )}
                           <th scope="col">Installments due</th>
                           <th scope="col">Scheduled earnings</th>
