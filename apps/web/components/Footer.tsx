@@ -1,11 +1,13 @@
 import Image from "next/image";
-import Link from "next/link";
 import {
   ArrowRight,
   FacebookLogo,
   MessengerLogo,
 } from "@phosphor-icons/react/dist/ssr";
 import styles from "./Footer.module.css";
+import scene from "./LandingContent.module.css";
+import { landingV2Font } from "./font";
+import typography from "./typography.module.css";
 
 const groups = [
   {
@@ -43,9 +45,15 @@ const socials = [
   },
 ];
 
-export default function Footer() {
+export default function Footer({
+  standalone = true,
+}: {
+  standalone?: boolean;
+}) {
   return (
-    <footer className={`landing-footer ${styles.footer}`}>
+    <footer
+      className={`landing-footer ${styles.footer} ${landingV2Font.variable} ${typography.root} ${standalone ? scene.footerScene : ""}`}
+    >
       <div className={styles.inner}>
         <div>
           <div className={styles.grid}>
@@ -98,9 +106,9 @@ export default function Footer() {
                     {group.links.map((l) => {
                       return (
                         <li key={l.href}>
-                          <Link href={l.href} className={styles.navLink}>
+                          <a href={l.href} className={styles.navLink}>
                             {l.label}
-                          </Link>
+                          </a>
                         </li>
                       );
                     })}

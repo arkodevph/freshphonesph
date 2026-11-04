@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowRight } from "@phosphor-icons/react";
+import DoodleIcon from "./DoodleIcon";
 import StoryDepth from "./StoryDepth";
+import StoryDoodles from "./StoryDoodles";
 
 const TOTAL_FRAMES = 115;
 
@@ -31,7 +32,7 @@ export default function ScrollPhoneStory() {
     const frames: HTMLImageElement[] = [];
 
     const framePath = (index: number) => {
-      return `/video/cloud-phone-scroll-v2/frame-${String(index + 1).padStart(3, "0")}.webp`;
+      return `/video/iphone-scroll-clean/frame-${String(index + 1).padStart(3, "0")}.webp`;
     };
 
     let raf = 0;
@@ -185,21 +186,28 @@ export default function ScrollPhoneStory() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="scroll-phone-story relative h-[380vh]">
+    <section
+      id="phone-story"
+      ref={sectionRef}
+      className="scroll-phone-story relative h-[380vh]"
+    >
       <div className="sticky top-0 h-screen overflow-hidden bg-[#c1e4f4] px-4 pt-24">
         <StoryDepth />
-        <div className="relative mx-auto h-full w-full max-w-7xl">
+        <div className="relative isolate mx-auto h-full w-full max-w-7xl">
           <canvas
             ref={canvasRef}
-            width={1600}
-            height={900}
+            width={1280}
+            height={720}
             role="img"
-            aria-label="Cloud mascot floating toward an iPhone"
+            aria-label="Character reaching toward an iPhone"
             className="story-frame-canvas pointer-events-none absolute left-1/2 top-[39%] z-10 h-auto w-[1280px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_16px_22px_rgba(20,38,107,.12)]"
           />
-          <div className="story-beat story-beat-one absolute left-0 top-10 z-20 max-w-xs text-blue-ink sm:top-14">
+          <div
+            className={`story-beat story-beat-one absolute left-0 top-10 z-0 max-w-xs text-blue-ink sm:top-14`}
+          >
+            <StoryDoodles stage="choose" />
             <p className="text-xs font-800 uppercase tracking-[.2em] text-[#3155a6]">
-              01 · Choose your unit
+              Choose your unit
             </p>
             <h2 className="mt-3 font-display text-3xl font-700 leading-tight sm:text-4xl">
               The iPhone you&apos;ve been reaching for.
@@ -209,9 +217,12 @@ export default function ScrollPhoneStory() {
               commit.
             </p>
           </div>
-          <div className="story-beat story-beat-two absolute right-0 top-10 z-20 max-w-sm text-right text-blue-ink sm:top-14">
+          <div
+            className={`story-beat story-beat-two absolute right-0 top-10 z-0 max-w-sm text-right text-blue-ink sm:top-14`}
+          >
+            <StoryDoodles stage="rhythm" />
             <p className="text-xs font-800 uppercase tracking-[.2em] text-[#3155a6]">
-              02 · Pick your rhythm
+              Pick your rhythm
             </p>
             <h2 className="mt-3 font-display text-3xl font-700 leading-tight sm:text-4xl">
               A schedule that feels manageable.
@@ -229,7 +240,10 @@ export default function ScrollPhoneStory() {
               })}
             </div>
           </div>
-          <div className="story-finale absolute inset-x-0 bottom-7 z-20 mx-auto max-w-3xl text-center text-blue-ink sm:bottom-10">
+          <div
+            className={`story-finale absolute inset-x-0 bottom-7 z-0 mx-auto max-w-3xl text-center text-blue-ink sm:bottom-10`}
+          >
+            <StoryDoodles stage="finale" />
             <p className="text-xs font-800 uppercase tracking-[.22em] text-[#3155a6]">
               Closer with every scroll
             </p>
@@ -244,16 +258,9 @@ export default function ScrollPhoneStory() {
               href="#units"
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-800 text-blue-ink shadow-lg transition-transform hover:-translate-y-0.5"
             >
-              View Available Units <ArrowRight weight="bold" />
+              <DoodleIcon name="phone-heart" size={28} />
+              View Available Units
             </a>
-          </div>
-          <div className="absolute right-0 top-1/2 z-30 hidden h-52 -translate-y-1/2 items-center gap-3 text-blue-ink/60 lg:flex">
-            <span className="text-[10px] font-800 tracking-[.2em] [writing-mode:vertical-rl]">
-              SCROLL STORY
-            </span>
-            <span className="h-full w-px overflow-hidden bg-blue-ink/20">
-              <span className="story-progress block h-full origin-top bg-[#3155a6]" />
-            </span>
           </div>
         </div>
       </div>

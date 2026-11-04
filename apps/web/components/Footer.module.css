@@ -1,7 +1,5 @@
 .footer {
-  padding: 4rem 1.25rem 1.5rem;
-  border-top: 1px solid #e3e7ec;
-  background: #f7f9fa;
+  padding: clamp(1.5rem, 3vh, 4rem) 1.25rem 1.5rem;
   color: #14266b;
 }
 .inner {
@@ -22,7 +20,7 @@
 .description {
   max-width: 17rem;
   margin-top: 1.25rem;
-  color: #53617e;
+  color: #344c73;
   font-size: 0.8125rem;
   line-height: 1.75;
 }
@@ -31,7 +29,7 @@
   align-items: center;
   min-height: 2.75rem;
   margin-top: 0.375rem;
-  color: #53617e;
+  color: #344c73;
   font-size: 0.8125rem;
 }
 .socials {
@@ -45,7 +43,7 @@
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  color: #53617e;
+  color: #344c73;
   transition:
     background 150ms,
     color 150ms;
@@ -69,7 +67,7 @@
 .navLink {
   display: inline-block;
   padding-block: 0.25rem;
-  color: #53617e;
+  color: #344c73;
   font-size: 0.8125rem;
   line-height: 1.5;
 }
@@ -121,14 +119,17 @@
   justify-content: space-between;
   gap: 0.75rem 2rem;
   margin-top: 3rem;
-  border-top: 1px solid #e3e7ec;
+  border-top: 1px solid rgba(52, 76, 115, 0.2);
   padding-top: 1.5rem;
 }
 .credits {
   margin-top: 1rem;
-  color: #53617e;
+  color: #344c73;
   font-size: 0.6875rem;
   line-height: 1.8;
+}
+.bottom p {
+  color: #344c73;
 }
 .footer a:focus-visible {
   outline: 3px solid #3154c9;
@@ -156,5 +157,15 @@
   }
   .description {
     max-width: 20rem;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 860px) {
+  .footer {
+    padding-block: 0.75rem;
+  }
+
+  .bottom {
+    margin-top: 1.5rem;
   }
 }

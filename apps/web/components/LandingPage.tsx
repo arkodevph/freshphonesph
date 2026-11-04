@@ -9,26 +9,32 @@ import {
   RequirementsAndPayments,
 } from "@/components/RecentLandingSections";
 import ScrollPhoneStory from "@/components/ScrollPhoneStory";
-import CloudDivider from "@/components/CloudDivider";
 import LandingLoader from "@/components/LandingLoader";
-import "../app/landing.css";
+import { landingV2Font } from "./font";
+import scene from "./LandingContent.module.css";
+import typography from "./typography.module.css";
+import "./landing-v2.css";
 
-export default function Home() {
+export default function LandingPageV2() {
   return (
-    <>
+    <div
+      data-landing-version="2"
+      className={`${landingV2Font.variable} ${typography.root}`}
+    >
       <LandingLoader />
-      <Navbar immersive />
+      <Navbar />
       <main className="landing-page">
         <Hero />
-        <CloudDivider />
         <ScrollPhoneStory />
         <Models />
         <Process />
         <RequirementsAndPayments />
         <Faq />
-        <CtaJoin />
       </main>
-      <Footer />
-    </>
+      <div className={scene.footerScene}>
+        <CtaJoin />
+        <Footer standalone={false} />
+      </div>
+    </div>
   );
 }

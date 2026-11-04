@@ -16,12 +16,10 @@ export default function CatalogBreakdown({
   item,
   plan,
   onClose,
-  variant = "public",
 }: {
   item: PublicCatalogItem;
   plan: CatalogPlan;
   onClose: () => void;
-  variant?: "public" | "portal";
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -63,7 +61,7 @@ export default function CatalogBreakdown({
   return (
     <dialog
       ref={dialog}
-      className={`${styles.dialog} ${variant === "portal" ? styles.portal : ""}`}
+      className={styles.dialog}
       aria-labelledby="catalog-breakdown-title"
       onCancel={(event) => {
         event.preventDefault();

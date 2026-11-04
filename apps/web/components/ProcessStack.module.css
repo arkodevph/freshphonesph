@@ -72,6 +72,11 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+.panelLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+}
 .counter {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.05em;
@@ -208,7 +213,8 @@
   inset: 0;
   z-index: 0;
   margin: 0;
-  opacity: 1;
+  /* Keep the entire reviews stage hidden until its scroll reveal begins. */
+  opacity: clamp(0, calc(var(--reviews-reveal, 0) * 3), 1);
   pointer-events: none;
 }
 .track[data-animated="true"] .reviews:has(:focus-visible) {

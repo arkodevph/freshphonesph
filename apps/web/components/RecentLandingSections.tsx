@@ -4,13 +4,13 @@ import {
   CheckCircle,
   IdentificationCard,
   ShieldCheck,
-  Wallet,
 } from "@phosphor-icons/react/dist/ssr";
 import SectionHeading from "./SectionHeading";
 import AgentVerification from "./AgentVerification";
 import ProcessStack from "./ProcessStack";
 import Testimonials from "./Testimonials";
 import styles from "./LandingContent.module.css";
+import DoodleIcon from "./DoodleIcon";
 
 export function Process() {
   return (
@@ -46,11 +46,7 @@ export function RequirementsAndPayments() {
       />
       <div className={styles.preparation}>
         <article className={styles.panel}>
-          <IdentificationCard
-            weight="duotone"
-            className={styles.icon}
-            aria-hidden="true"
-          />
+          <DoodleIcon name="id-heart" className={styles.icon} size={36} />
           <h3>Application requirements</h3>
           <p>
             Prepare these common items. Final requirements may vary after
@@ -71,7 +67,7 @@ export function RequirementsAndPayments() {
           </p>
         </article>
         <article className={styles.panel}>
-          <Wallet weight="duotone" className={styles.icon} aria-hidden="true" />
+          <DoodleIcon name="wallet-heart" className={styles.icon} size={36} />
           <h3>Payments &amp; your records</h3>
           <p>
             Payments are coordinated through Fresh Phones PH&apos;s authorized

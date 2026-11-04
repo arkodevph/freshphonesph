@@ -1,29 +1,20 @@
-# Landing page V2
+# Public landing page
 
-Independent starting copy of the current landing page, created on 2026-11-02 at
-Jaycee's request. The visual redesign will be directed in subsequent changes.
+V2 is the sole public landing implementation at `/` in both apps. Components
+live directly in `apps/web/components/`; the original landing implementation
+and its stylesheet have been removed. `/v2` permanently redirects to `/`.
+The portal catalog has its own `PortalCatalog` component and styles.
 
-- Current version: V2 at `/` on both the integrated site and standalone landing app.
-- Compatibility preview: `/v2` on both apps renders the same V2 implementation,
-  retaining its preview title and no-index metadata. The homepage inherits public metadata.
-- Edit presentation components and CSS in this folder to work on V2. Original
-  components and `apps/web/app/landing.css` remain available in source.
-- `landing-v2.css` scopes every selector to `[data-landing-version="2"]` and uses
-  separate animation names. The copied CSS Modules are independent too.
-- Navigation to homepage sections uses `/`; enrollment, inquiries, login,
-  support and other existing destination pages remain connected.
-- Brand assets, global design tokens and API/catalog helpers are shared.
-  Add new V2 assets under a separate path rather than overwriting existing ones.
 - V2 pairs locally hosted Sono for headings/navigation/actions with Nunito for
   supporting paragraphs, descriptions, quotes, requirements and input text.
   `font.ts` and `typography.module.css` scope the pairing, including the custom 404. Explicit `font-display` paragraphs (prices and author names) keep Sono.
-  V1 retains Nunito. Font provenance/license is in `fonts/`.
+  Font provenance/license is in `fonts/`.
 - The V2 route has its own title and asks search engines not to index it.
 - `StoryDoodles` adds floating pastel SVG accents to the three unnumbered
   phone-story beats. Their text, doodles, schedule chips and CTA sit behind
   the transparent scroll canvas so the mascot/phone stay in front. The vertical
   Scroll story marker is removed. Smaller screens use a compact doodle strip;
-  reduced motion uses static rows. Direct preview: `/v2#phone-story`. See guide87.
+  reduced motion uses static rows. Direct preview: `/#phone-story`. See guide87.
 - `DoodleIcon` supplies the original rounded/heart SVG artwork for V2 buttons
   and selected details. Master, standalone SVGs and vector preview are in
   `public/brand/v2/doodles/`; see that folder's README and guide86.
@@ -66,10 +57,8 @@ Jaycee's request. The visual redesign will be directed in subsequent changes.
   Missing URLs (for example `/v`) offer recovery to `/`, units and support.
   The root `not-found.tsx` files also re-export the component's error metadata.
 
-Local preview: <http://localhost:3001/v2> runs protected Webpack development
-mode for live visual updates. <http://localhost:3000/v2> is the integrated
-optimized preview and requires a rebuild for source changes, as described in
-the root README.
+Local landing preview: <http://localhost:3001/>. The integrated site and login
+run at <http://localhost:3000/>. Both use the same public components.
 
 - The agent-verification card uses reference-led clear glass with an edge
   displacement map, bright curved rim and sharp navy text over a shared landscape

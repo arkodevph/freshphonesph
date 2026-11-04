@@ -5,10 +5,12 @@ import { useRef } from "react";
 import { useProcessStack } from "@/lib/useProcessStack";
 import styles from "./ProcessStack.module.css";
 import type { ReactNode } from "react";
+import DoodleIcon from "./DoodleIcon";
 
 const panels = [
   {
     label: "Choose & prepare",
+    icon: "phone-heart",
     title: "Find your next favourite.",
     description:
       "Find the iPhone or iPad that fits you. Then get ready for your application, with a little help from our team.",
@@ -29,6 +31,7 @@ const panels = [
   },
   {
     label: "Meet your team",
+    icon: "chat-heart",
     title: "Real people. Clear answers.",
     description:
       "Get guidance from the Fresh Phones PH team before joining a batch.",
@@ -49,6 +52,7 @@ const panels = [
   },
   {
     label: "Plan & track",
+    icon: "calendar-heart",
     title: "A plan you can follow.",
     description:
       "Know what to pay and when it is due. Follow your agreed schedule and see your verified payment progress.",
@@ -69,6 +73,7 @@ const panels = [
   },
   {
     label: "Complete & collect",
+    icon: "package-check",
     title: "Your next phone. Finally yours.",
     description:
       "Finish your agreed payments, confirm your release requirements, and let the team guide you through the handover.",
@@ -121,7 +126,10 @@ export default function ProcessStack({ children }: { children?: ReactNode }) {
                 style={{ zIndex: panels.length - index }}
               >
                 <div className={styles.topline}>
-                  <span>{panel.label}</span>
+                  <span className={styles.panelLabel}>
+                    <DoodleIcon name={panel.icon} size={32} />
+                    {panel.label}
+                  </span>
                   <span className={styles.counter}>
                     {String(index + 1).padStart(2, "0")} <span>/ 04</span>
                   </span>

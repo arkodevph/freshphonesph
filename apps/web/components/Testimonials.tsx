@@ -115,7 +115,7 @@ export default function Testimonials({ staged = false }: { staged?: boolean }) {
       >
         {reviews.map((r, i) => {
           const card = (
-            <figure className="glass relative h-full rounded-[1.75rem] p-6">
+            <figure className={`glass relative h-full rounded-[1.75rem] p-6`}>
               {r.sample && (
                 <span className={styles.sample}>
                   Sample review · preview only

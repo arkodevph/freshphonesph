@@ -262,3 +262,30 @@
     padding: 9px 4px;
   }
 }
+.portal {
+  background: var(--portal-surface-alt, #f7f8fc);
+  border-color: var(--portal-border, #dfe4f8);
+  color: var(--portal-text, #17265d);
+}
+.portal .card,
+.portal button,
+.portal input {
+  background: var(--portal-surface, #fff);
+  border-color: var(--portal-border, #dfe4ef);
+  color: inherit;
+}
+.portal
+  :is(
+    .intro,
+    .note,
+    .dateHelp,
+    .header p,
+    .summary dt,
+    .date span,
+    .scheduleHeading > span
+  ) {
+  color: var(--portal-muted, #536086);
+}
+.portal :is(th, td, .summary > div:first-child, .scheduleHeading > span) {
+  border-color: var(--portal-border, #dfe4ef);
+}

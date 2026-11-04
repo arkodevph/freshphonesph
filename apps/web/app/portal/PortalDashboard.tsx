@@ -36,7 +36,7 @@ import PortalMoreSheet from "./PortalMoreSheet";
 import PortalNotificationsWorkspace from "./PortalNotificationsWorkspace";
 import PortalSettingsWorkspace from "./PortalSettingsWorkspace";
 import PortalSidebar from "./PortalSidebar";
-import Models from "@/components/Models";
+import Models from "@/components/PortalCatalog";
 import PortalSupportWorkspace from "./PortalSupportWorkspace";
 import PortalTopbar from "./PortalTopbar";
 import VerifiedPaymentsWorkspace from "./VerifiedPaymentsWorkspace";
