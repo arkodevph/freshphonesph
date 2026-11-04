@@ -199,6 +199,7 @@ export default function Faq() {
                 {entry ? (
                   <>
                     <div
+                      key={entry.id}
                       className={styles.answerCopy}
                       aria-live="polite"
                       aria-atomic="true"

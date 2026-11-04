@@ -3,13 +3,14 @@
 Independent starting copy of the current landing page, created on 2026-11-02 at
 Jaycee's request. The visual redesign will be directed in subsequent changes.
 
-- Current version: `/` on both the integrated site and standalone landing app.
-- V2: `/v2` on both apps. Both routes render this same V2 implementation.
+- Current version: V2 at `/` on both the integrated site and standalone landing app.
+- Compatibility preview: `/v2` on both apps renders the same V2 implementation,
+  retaining its preview title and no-index metadata. The homepage inherits public metadata.
 - Edit presentation components and CSS in this folder to work on V2. Original
-  components and `apps/web/app/landing.css` continue to serve the current page.
+  components and `apps/web/app/landing.css` remain available in source.
 - `landing-v2.css` scopes every selector to `[data-landing-version="2"]` and uses
   separate animation names. The copied CSS Modules are independent too.
-- Navigation to homepage sections stays on `/v2`; enrollment, inquiries, login,
+- Navigation to homepage sections uses `/`; enrollment, inquiries, login,
   support and other existing destination pages remain connected.
 - Brand assets, global design tokens and API/catalog helpers are shared.
   Add new V2 assets under a separate path rather than overwriting existing ones.
@@ -40,9 +41,15 @@ Jaycee's request. The visual redesign will be directed in subsequent changes.
   5–6px lift, slight enlargement, brighter glass/rim glow, tilted doodles and
   a press-down state. Hover movement requires a fine pointer; reduced-motion
   settings suppress button/icon movement. Scoped to these V2 CSS Modules.
-- Halftones are limited to the opening hero: evenly tiled dots behind its copy
-  and stronger dots without fading inside the three highlights. Mobile cards
-  share aligned edges. The remaining sections have no halftone treatment.
+- Hero dots cover the left 30% of the background with a soft radial fade.
+  Below 960px the dots stop above the mascot. Headline letters and highlight cards have clean
+  solid fills. This supersedes the earlier inset texture following Jaycee's
+  correction on 2026-11-03; no dots are clipped into letters or card outlines.
+- The blue/white base uses one pink accent family for enrollment actions and the
+  rotating device word. Source: niki.aroca / averlo.co Instagram reel
+  `https://www.instagram.com/p/DfGEE7DIvjU/`. Analysis, full local video and
+  storyboard are retained in the Obsidian Design Brain; implementation guide:
+  `docs/92-landing-v2-accent-and-inset-dots.md`.
 - The agent-verification section continues a light-blue sky into the V2 nature
   footer, using matching sky colors at their shared edge. The original grassy
   hills, cyan lake and clouds show at full color below a top-only blend, with
@@ -56,10 +63,17 @@ Jaycee's request. The visual redesign will be directed in subsequent changes.
   disclosures remain. This supersedes the earlier edge-wide variant. Reference:
   `Smartway Finance v2/dist/faq-topics.css` and `faq-topics.js` (read-only).
 - `NotFoundPage` and its CSS Module supply the shared custom 404 for both apps.
-  Missing URLs (for example `/v`) offer recovery to `/v2`, units and support.
+  Missing URLs (for example `/v`) offer recovery to `/`, units and support.
   The root `not-found.tsx` files also re-export the component's error metadata.
 
 Local preview: <http://localhost:3001/v2> runs protected Webpack development
 mode for live visual updates. <http://localhost:3000/v2> is the integrated
 optimized preview and requires a rebuild for source changes, as described in
 the root README.
+
+- The agent-verification card uses reference-led clear glass with an edge
+  displacement map, bright curved rim and sharp navy text over a shared landscape
+  backdrop. Reduced transparency and missing blur have opaque fallbacks. The
+  first gradient-card attempt was rejected. See guide94 and retained references.
+- FAQ topics expand/collapse with coordinated 560ms size, radius and text
+  transitions; answer paging uses a 440ms reveal. Reduced motion is supported.

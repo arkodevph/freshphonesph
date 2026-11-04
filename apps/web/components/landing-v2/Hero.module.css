@@ -54,6 +54,27 @@
   );
 }
 
+.dots {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #3155a6 1.4px, transparent 1.7px);
+  background-size: 16px 16px;
+  opacity: 0.2;
+  -webkit-mask-image: radial-gradient(
+    ellipse 110% 65% at 0% 50%,
+    #000 25%,
+    transparent 90%
+  );
+  mask-image: radial-gradient(
+    ellipse 110% 65% at 0% 50%,
+    #000 25%,
+    transparent 90%
+  );
+}
+
 .copy {
   position: relative;
   z-index: 2;
@@ -173,6 +194,18 @@
   font-size: 14px;
   font-weight: 800;
   line-height: 1.5;
+}
+
+.actions .apply {
+  background: var(--landing-accent);
+  color: #14266b;
+  border-color: #ffd2ed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .actions .apply:hover {
+    background: var(--landing-accent-hover);
+  }
 }
 
 .apply:focus-visible {
@@ -426,6 +459,10 @@
 }
 
 @media (max-width: 960px) {
+  .dots {
+    bottom: 60%;
+  }
+
   .frame {
     min-height: max(100svh, 44rem);
     align-items: flex-start;

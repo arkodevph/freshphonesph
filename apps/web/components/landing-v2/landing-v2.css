@@ -1,3 +1,9 @@
+[data-landing-version="2"] {
+  --landing-accent: #f28dcc;
+  --landing-accent-hover: #ffb1de;
+  --landing-accent-ink: #a51b68;
+}
+
 @keyframes v2-landing-loader-dismiss {
   to {
     visibility: hidden;

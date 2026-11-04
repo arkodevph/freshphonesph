@@ -18,7 +18,7 @@ export default function NotFoundPage() {
       className={`${styles.page} ${landingV2Font.variable} ${typography.root}`}
     >
       <header className={styles.header}>
-        <a href="/v2" className={styles.brand}>
+        <a href="/" className={styles.brand}>
           <Image
             src="/brand/fresh-phones-logo.png"
             alt=""
@@ -49,11 +49,11 @@ export default function NotFoundPage() {
             might be a little off. Let’s get you back to fresh finds.
           </p>
           <div className={styles.actions}>
-            <a href="/v2" className={styles.primary}>
+            <a href="/" className={styles.primary}>
               <House weight="bold" aria-hidden="true" />
               Back to home
             </a>
-            <a href="/v2#units" className={styles.secondary}>
+            <a href="/#units" className={styles.secondary}>
               Browse available units
               <ArrowRight weight="bold" aria-hidden="true" />
             </a>

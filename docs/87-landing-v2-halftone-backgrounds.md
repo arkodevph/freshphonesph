@@ -1,5 +1,9 @@
 # V2 hero halftone accents
 
+Superseded on 2026-11-03 by `92-landing-v2-accent-and-inset-dots.md` and guide93:
+dots cover the left 30% of the hero background with a soft fade. Headline letters
+and cards have clean fills. The treatments below are historical.
+
 Current scope after Jaycee’s correction: **only the opening V2 hero**. Dots
 spread evenly behind its full text block; the three highlight cards use larger,
 stronger dots with no fade. Mobile cards share aligned outer edges. All wiring

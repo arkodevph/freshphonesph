@@ -312,7 +312,7 @@ export default function Models() {
                       alt={m.imageAlt ?? `${m.name} product view`}
                       fill
                       unoptimized={item.hasImage}
-                      sizes="(max-width: 639px) calc(100vw - 2.5rem), (max-width: 1023px) 50vw, (max-width: 1480px) 33vw, 480px"
+                      sizes="(max-width: 639px) calc(50vw - 2.75rem), (max-width: 1023px) 50vw, (max-width: 1480px) 33vw, 480px"
                       className="object-contain transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none"
                     />
                   ) : (

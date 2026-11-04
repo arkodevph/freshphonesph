@@ -8,13 +8,13 @@ import styles from "./Navbar.module.css";
 import DoodleIcon from "./DoodleIcon";
 
 const primaryLinks = [
-  { href: "/v2#units", label: "Units" },
+  { href: "/#units", label: "Units" },
   { href: "/about", label: "About" },
   { href: "/inquire", label: "Inquire" },
 ];
 
 const exploreLinks = [
-  { href: "/v2#how", label: "How it works", icon: "calendar-heart" },
+  { href: "/#how", label: "How it works", icon: "calendar-heart" },
   { href: "/careers", label: "Careers", icon: "id-heart" },
   { href: "/support", label: "Support", icon: "chat-heart" },
 ] as const;
@@ -248,7 +248,7 @@ export default function Navbar() {
       <header className={styles.header} data-scrolled={scrolled}>
         <nav className={styles.nav} aria-label="Main navigation">
           <a
-            href="/v2#top"
+            href="/#top"
             className={styles.brand}
             aria-label="Fresh Phones PH home"
             onClick={closeMenus}

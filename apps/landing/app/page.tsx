@@ -1,1 +1,1 @@
-export { default } from "../../web/components/LandingPage";
+export { default } from "../../web/components/landing-v2/LandingPage";

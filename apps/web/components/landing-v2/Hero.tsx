@@ -2,8 +2,6 @@ import DoodleIcon from "./DoodleIcon";
 import HeroLoop from "./HeroLoop";
 import HeroDeviceWord from "./HeroDeviceWord";
 import styles from "./Hero.module.css";
-import Halftone from "./Halftone";
-import decoration from "./Halftone.module.css";
 
 export default function Hero() {
   return (
@@ -15,11 +13,9 @@ export default function Hero() {
       <div className={`landing-hero-frame ${styles.frame}`}>
         <HeroLoop />
         <div className={styles.shade} aria-hidden="true" />
+        <div className={styles.dots} aria-hidden="true" />
 
-        <div
-          className={`${styles.copy} ${decoration.surface} ${decoration.text}`}
-        >
-          <Halftone />
+        <div className={styles.copy}>
           <span className={styles.eyebrow}>
             <DoodleIcon name="shield-heart" size={20} />
             DTI registered iPhone &amp; iPad paluwagan
@@ -55,29 +51,20 @@ export default function Hero() {
         aria-label="Fresh Phones service highlights"
       >
         <ul className={styles.facts}>
-          <li
-            className={`${styles.glassCard} ${styles.interest} ${decoration.surface} ${decoration.card}`}
-          >
-            <Halftone />
+          <li className={`${styles.glassCard} ${styles.interest}`}>
             <strong>
               0% <span>interest</span>
             </strong>
             <p>On approved paluwagan batches</p>
           </li>
-          <li
-            className={`${styles.glassCard} ${styles.schedule} ${decoration.surface} ${decoration.card}`}
-          >
-            <Halftone />
+          <li className={`${styles.glassCard} ${styles.schedule}`}>
             <DoodleIcon name="calendar-heart" size={24} />
             <div>
               <strong>Clear schedules</strong>
               <p>Know each expected due date</p>
             </div>
           </li>
-          <li
-            className={`${styles.glassCard} ${styles.support} ${decoration.surface} ${decoration.card}`}
-          >
-            <Halftone />
+          <li className={`${styles.glassCard} ${styles.support}`}>
             <DoodleIcon name="chat-heart" size={24} />
             <div>
               <strong>Human support</strong>

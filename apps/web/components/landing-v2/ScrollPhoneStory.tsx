@@ -32,7 +32,7 @@ export default function ScrollPhoneStory() {
     const frames: HTMLImageElement[] = [];
 
     const framePath = (index: number) => {
-      return `/video/cloud-phone-scroll-v2/frame-${String(index + 1).padStart(3, "0")}.webp`;
+      return `/video/iphone-scroll-clean/frame-${String(index + 1).padStart(3, "0")}.webp`;
     };
 
     let raf = 0;
@@ -196,10 +196,10 @@ export default function ScrollPhoneStory() {
         <div className="relative isolate mx-auto h-full w-full max-w-7xl">
           <canvas
             ref={canvasRef}
-            width={1600}
-            height={900}
+            width={1280}
+            height={720}
             role="img"
-            aria-label="Cloud mascot floating toward an iPhone"
+            aria-label="Character reaching toward an iPhone"
             className="story-frame-canvas pointer-events-none absolute left-1/2 top-[39%] z-10 h-auto w-[1280px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_16px_22px_rgba(20,38,107,.12)]"
           />
           <div

@@ -11,6 +11,7 @@ import {
 import ScrollPhoneStory from "@/components/landing-v2/ScrollPhoneStory";
 import LandingLoader from "@/components/landing-v2/LandingLoader";
 import { landingV2Font } from "./font";
+import scene from "./LandingContent.module.css";
 import typography from "./typography.module.css";
 import "./landing-v2.css";
 
@@ -29,9 +30,11 @@ export default function LandingPageV2() {
         <Process />
         <RequirementsAndPayments />
         <Faq />
-        <CtaJoin />
       </main>
-      <Footer />
+      <div className={scene.footerScene}>
+        <CtaJoin />
+        <Footer />
+      </div>
     </div>
   );
 }

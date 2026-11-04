@@ -10,7 +10,7 @@ const groups = [
   {
     title: "Company",
     links: [
-      { href: "/v2", label: "Home" },
+      { href: "/", label: "Home" },
       { href: "/about", label: "About us" },
       { href: "/careers", label: "Careers" },
       { href: "/privacy", label: "Privacy notices" },
@@ -20,10 +20,10 @@ const groups = [
   {
     title: "Explore",
     links: [
-      { href: "/v2#units", label: "Available units" },
-      { href: "/v2#how", label: "How it works" },
+      { href: "/#units", label: "Available units" },
+      { href: "/#how", label: "How it works" },
       { href: "/about#verify", label: "Verify an agent" },
-      { href: "/v2#faq", label: "FAQs" },
+      { href: "/#faq", label: "FAQs" },
       { href: "/support", label: "Customer support" },
     ],
   },
