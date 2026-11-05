@@ -171,16 +171,22 @@ test("shared enrollment dates are grouped in the summary while preserving both c
     batch_start_date: "2026-10-01",
     batch_end_date: "2027-01-21",
   });
+
   const grouped = groupedMembershipMilestones(dates);
+
   assert.equal(grouped.length, 2);
+
   assert.equal(grouped[0].label, "Joined & batch start");
+
   assert.equal(
-    membershipCalendarEvents(dates, []).filter(
-      (event) => event.date === "2026-10-01",
-    ).length,
+    membershipCalendarEvents(dates, []).filter((event) => {
+      return event.date === "2026-10-01";
+    }).length,
     2,
   );
+
   assert.equal(dates.length, 3);
+
   assert.equal(
     groupedMembershipMilestones(
       membershipMilestones({
@@ -191,6 +197,7 @@ test("shared enrollment dates are grouped in the summary while preserving both c
     ).length,
     3,
   );
+
   assert.equal(
     groupedMembershipMilestones(
       membershipMilestones({

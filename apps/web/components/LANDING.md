@@ -22,6 +22,10 @@ The portal catalog has its own `PortalCatalog` component and styles.
   on the left at every screen size, as requested by Jaycee.
   Match the drawing to the action: `application` for Apply to join and
   `package-check` for Complete & collect; keep decorative style subordinate to meaning.
+  Catalog inquiry links use the solid pastel-pink `heart`, following Jaycee's
+  correction of the earlier arrow; each still opens the selected device inquiry.
+  Hover fills the entire catalog heart, including its outline, red; leaving
+  restores the pastel-pink/lavender colors.
 - The decorative cloud divider is omitted in V2. The hero flows directly into
   the existing phone story; its two calls to action use matching glass surfaces.
 - Explore links use calendar/job-badge/chat doodles on the left, including
@@ -32,6 +36,10 @@ The portal catalog has its own `PortalCatalog` component and styles.
   5–6px lift, slight enlargement, brighter glass/rim glow, tilted doodles and
   a press-down state. Hover movement requires a fine pointer; reduced-motion
   settings suppress button/icon movement. Scoped to these V2 CSS Modules.
+- Navbar Log in/Apply and Explore doodles give one brief 520ms shake on hover,
+  using small rotation/translation offsets over their existing hover pose.
+  The shake requires a fine pointer and normal motion; it does not loop while
+  hovered, and disabled Log in stays still.
 - Hero dots cover the left 30% of the background with a soft radial fade.
   Below 960px the dots stop above the mascot. Headline letters and highlight cards have clean
   solid fills. This supersedes the earlier inset texture following Jaycee's
@@ -53,6 +61,18 @@ The portal catalog has its own `PortalCatalog` component and styles.
   utility row below. Six answers, paging, keyboard navigation and native no-JS
   disclosures remain. This supersedes the earlier edge-wide variant. Reference:
   `Smartway Finance v2/dist/faq-topics.css` and `faq-topics.js` (read-only).
+- `/enroll` and retained `/v2/enroll` follow Smartway's multi-step application
+  composition: a centered intro, rounded card, numbered progress bars, paired
+  contact fields, editable review and pill actions. The page reuses the cloud
+  artwork and footer sky base, with Fresh Phones' own pastel doodles. Public
+  questions remain staff-editable; the middle step is skipped when none exist.
+  Back/Edit preserve answers, errors focus the right stage, and Enter advances
+  early stages. Final consent, intake submission, retries and updated-form
+  review still use the existing enrollment contract and hook.
+  Desktop contact/review rows use three columns and text questions share a row;
+  tighter card spacing and a shorter heading on low-height desktop viewports
+  keep the current form's main action visible. Inputs remain 16px and longer
+  published forms or phone layouts scroll naturally.
 - `NotFoundPage` and its CSS Module supply the shared custom 404 for both apps.
   Missing URLs (for example `/v`) offer recovery to `/`, units and support.
   The root `not-found.tsx` files also re-export the component's error metadata.
@@ -60,9 +80,52 @@ The portal catalog has its own `PortalCatalog` component and styles.
 Local landing preview: <http://localhost:3001/>. The integrated site and login
 run at <http://localhost:3000/>. Both use the same public components.
 
+- Navbar links use `PublicNavigationLink` for client navigation and shared
+  `PublicNavigationLoader` feedback in both root layouts. Page changes reuse the
+  existing full-screen Fresh Phones PH / Gadget Center loader and five sliding
+  sky panels. It holds until the destination commits, then reveals that page;
+  returning home skips a duplicate intro. Same-page anchors, already selected
+  pages and modified/new-tab clicks skip feedback. Cross-origin Log in keeps
+  native navigation. Reduced motion uses the same static brand without sliding.
+  Initial homepage loading reuses the shared artwork and its original timing.
+
 - The agent-verification card uses reference-led clear glass with an edge
   displacement map, bright curved rim and sharp navy text over a shared landscape
   backdrop. Reduced transparency and missing blur have opaque fallbacks. The
   first gradient-card attempt was rejected. See guide94 and retained references.
 - FAQ topics expand/collapse with coordinated 560ms size, radius and text
   transitions; answer paging uses a 440ms reveal. Reduced motion is supported.
+
+## Local refinements retained during the November 4 merge
+
+The November 4 transition correction restores the shared `--landing-sky`
+background across the story, units, process/reviews, preparation and FAQ.
+Decorative story clouds fade before the catalog boundary. Verification and the
+footer share one landscape with a sky-blue top fade; the verification wrapper
+allows the glass-card shadow to extend naturally across the footer boundary.
+
+The promoted shared components retain local catalog clouds, pastel product
+platforms and studio lighting; process clouds; review readability and the glass
+Facebook link; the lilac payments panel and peeking mascot; and the wider frosted
+footer. The incoming FAQ motion, mobile catalog, portal catalog separation and
+continuous verification/footer landscape remain.
+
+The requirements/payment cards follow Jaycee's Huntly reference with asymmetric
+outer corners, a slight desktop rotation and overlap, and raised hover states.
+The existing white/lilac fills, pastel icons, copy and sky remain; the mascot
+moves with the payment card. Mobile cards stack without transforms. Reduced
+motion removes the stagger and movement; animated hover requires a fine pointer.
+These remain informational articles without added button semantics or tab stops.
+
+About's four promises use shared `AboutPromises` markup on canonical and retained
+routes. It adapts Smartway V2's click-to-expand story cards: the first card starts
+wide, selection trades the 2.12fr column over 650ms, and all desktop explanations
+stay visible. Below 1200px it becomes a single-open accordion. Native title
+buttons support Enter/Space, arrow keys, Home/End and visible focus; reduced
+motion switches immediately, and no JavaScript leaves all copy readable.
+Existing colors, icon drawings and words remain; geometric decoration sits above
+the copy and the counters stay on one line.
+
+The existing secondary `/v2/...` pages reuse `PublicPageShell` from this directory
+and keep their form queries, privacy links and noindex metadata. Canonical header
+and homepage links use the promoted routes at `/`; `/v2` redirects to `/`.

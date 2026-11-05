@@ -14,7 +14,9 @@ function PortalWorkspaceContent({ children }: { children: ReactNode }) {
   const sectionId =
     pathname === "/portal" ? "overview" : pathname.split("/")[2];
 
-  const section = portalNav.find((item) => item.id === sectionId);
+  const section = portalNav.find((item) => {
+    return item.id === sectionId;
+  });
 
   if (!section) {
     return children;

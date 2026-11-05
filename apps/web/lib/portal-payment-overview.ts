@@ -24,7 +24,9 @@ export function verifiedPaymentPercent(
 
 export function installmentProgress(items: PortalScheduleItem[]) {
   const installments = [...items]
-    .sort((a, b) => a.sequence_no - b.sequence_no)
+    .sort((a, b) => {
+      return a.sequence_no - b.sequence_no;
+    })
     .map((item) => {
       const expected = cents(item.expected_amount);
 
@@ -44,8 +46,12 @@ export function installmentProgress(items: PortalScheduleItem[]) {
 
   return {
     installments,
-    completed: installments.filter((item) => item.complete).length,
-    next: installments.find((item) => !item.complete),
+    completed: installments.filter((item) => {
+      return item.complete;
+    }).length,
+    next: installments.find((item) => {
+      return !item.complete;
+    }),
   };
 }
 

@@ -1,13 +1,18 @@
 .requirements {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
   scroll-margin-top: 6rem;
-  background: #edf3fd;
+  background: var(--landing-sky, #c1e4f4);
 }
 .preparation {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
   max-width: 72rem;
-  margin: 2.5rem auto 0;
+  margin: 3.5rem auto 2rem;
 }
 .panel {
   min-width: 0;
@@ -16,6 +21,50 @@
   padding: clamp(1.5rem, 3vw, 2.5rem);
   background: #fff;
   color: #14266b;
+}
+.requirementsPanel {
+  position: relative;
+  z-index: 1;
+  border-radius: 4.25rem 1.125rem 1.125rem 1.5rem;
+  box-shadow: 0 22px 48px -26px rgb(38 16 84 / 28%);
+}
+.paymentsCard {
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
+  min-width: 0;
+}
+.paymentPanel {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  border-color: #d9c8e9;
+  border-radius: 1.125rem 5.125rem 1.5rem 1.125rem;
+  background: #eee6fa;
+  box-shadow: 0 28px 56px -28px rgb(38 16 84 / 32%);
+}
+.paymentsCard .paymentPanel p {
+  color: #455273;
+}
+.paymentPanel .record {
+  border-color: #d4c1e5;
+}
+.paymentMascot {
+  position: absolute;
+  top: -6rem;
+  right: -4rem;
+  z-index: 0;
+  width: 14rem;
+  height: 9rem;
+  overflow: hidden;
+  transform: rotate(9deg);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  pointer-events: none;
+}
+.paymentMascot img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 .icon {
   width: 2.25rem;
@@ -71,17 +120,111 @@
 .record p {
   font-size: 0.875rem;
 }
+
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .preparation {
+    gap: 0;
+  }
+
+  .requirementsPanel {
+    transform: rotate(-1deg);
+  }
+
+  .paymentsCard {
+    transform: translate(-1.5rem, 1.5rem) rotate(0.7deg);
+  }
+}
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .paymentsCard {
+    transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .requirementsPanel {
+    transition:
+      transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 320ms ease;
+  }
+
+  .paymentPanel {
+    transition: box-shadow 320ms ease;
+  }
+
+  .requirementsPanel:hover {
+    z-index: 3;
+    transform: translateY(-0.75rem) rotate(0deg);
+    box-shadow: 0 34px 64px -24px rgb(38 16 84 / 35%);
+  }
+
+  .paymentsCard:hover {
+    z-index: 3;
+    transform: translate(-1.5rem, 0.5rem) rotate(0deg);
+  }
+
+  .paymentsCard:hover .paymentPanel {
+    box-shadow: 0 38px 68px -24px rgb(38 16 84 / 38%);
+  }
+}
+
 .footerScene {
-  background: #a1dcfa url("/brand/v2/footer/nature-ground-v1.webp") center /
-    cover no-repeat;
-  background-position: center bottom;
-  background-size: auto calc(100% + 32rem);
+  background-color: var(--landing-sky, #c1e4f4);
+  background-image:
+    linear-gradient(
+      to bottom,
+      var(--landing-sky, #c1e4f4),
+      rgb(193 228 244 / 0%) clamp(12rem, 20vw, 20rem)
+    ),
+    url("/brand/v2/footer/nature-ground-v1.webp");
+  background-position:
+    center top,
+    center bottom;
+  background-size:
+    100% 100%,
+    auto calc(100% + 32rem);
+  background-repeat: no-repeat;
 }
 
 .join {
+  position: relative;
+  isolation: isolate;
   padding: clamp(3rem, 6vw, 5rem) 1.25rem clamp(1.25rem, 3vh, 3.5rem);
-  background: linear-gradient(180deg, #f7f9fa, transparent 6rem);
   scroll-margin-top: 6rem;
+}
+.requirements::before,
+.requirements::after,
+.join::before,
+.join::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  width: 100%;
+  height: clamp(14rem, 28vw, 22rem);
+  background: url("/brand/cloud-section-divider-v2.webp") center /
+    max(76rem, 120%) auto no-repeat;
+  filter: blur(1px);
+  pointer-events: none;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 24%,
+    #000 72%,
+    transparent
+  );
+}
+.join::before {
+  top: 0;
+  opacity: 0.72;
+}
+.requirements::before {
+  top: 0;
+  opacity: 0.6;
+}
+.requirements::after,
+.join::after {
+  bottom: 0;
+  opacity: 0.5;
+  transform: scaleX(-1);
 }
 .joinCard {
   position: relative;
@@ -204,15 +347,43 @@
 }
 @media (max-width: 767px) {
   .footerScene {
-    background-size: auto calc(100% + 60rem);
+    background-size:
+      100% 100%,
+      auto calc(100% + 60rem);
   }
 
+  .paymentsCard {
+    margin-top: 5rem;
+  }
+  .requirementsPanel {
+    border-top-left-radius: 2.625rem;
+  }
+  .paymentPanel {
+    border-top-right-radius: 3.375rem;
+  }
   .joinCard {
     min-height: 25rem;
     padding: 3rem 1.25rem;
   }
   .preparation {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 1399px) {
+  .paymentMascot {
+    right: 0;
+  }
+}
+@media (max-width: 1199px) {
+  .paymentMascot {
+    top: -4.75rem;
+    width: 11rem;
+    height: 7rem;
+  }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .preparation {
+    margin-top: 6.5rem;
   }
 }
 

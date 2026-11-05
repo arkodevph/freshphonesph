@@ -72,7 +72,10 @@ export default function QuestionFields({
     };
 
     return (
-      <div className={styles.field}>
+      <div
+        className={styles.field}
+        data-enrollment-question-type={question.type}
+      >
         <label className={styles.label} htmlFor={id}>
           {label}
         </label>
@@ -93,6 +96,7 @@ export default function QuestionFields({
 
   return (
     <fieldset
+      data-enrollment-question-type={question.type}
       id={id}
       tabIndex={-1}
       className={styles.choices}

@@ -52,6 +52,7 @@ export default function PaymentScheduleLogs({
           <ol className={styles.installmentList} aria-label="All installments">
             {items.map((item) => {
               const state = installmentState(item, today);
+
               return (
                 <li
                   key={item.sequence_no}

@@ -191,24 +191,26 @@ export default function PaymentOverview({
                   }}
                   aria-label="Finance-verified installment progress"
                 >
-                  {progress.installments.map((item) => (
-                    <li key={item.sequence}>
-                      <span
-                        className={styles.installmentStep}
-                        aria-hidden="true"
-                        title={`Installment ${item.sequence}: ${money(item.verified)} verified of ${money(item.expected)}`}
-                      >
-                        <span style={{ width: `${item.percentage}%` }} />
-                      </span>
-                      <span className={styles.srOnly}>
-                        Installment {item.sequence}: {money(item.verified)}{" "}
-                        verified of {money(item.expected)} scheduled.
-                        {item.complete
-                          ? " Fully paid."
-                          : ` ${money(item.remaining)} remaining.`}
-                      </span>
-                    </li>
-                  ))}
+                  {progress.installments.map((item) => {
+                    return (
+                      <li key={item.sequence}>
+                        <span
+                          className={styles.installmentStep}
+                          aria-hidden="true"
+                          title={`Installment ${item.sequence}: ${money(item.verified)} verified of ${money(item.expected)}`}
+                        >
+                          <span style={{ width: `${item.percentage}%` }} />
+                        </span>
+                        <span className={styles.srOnly}>
+                          Installment {item.sequence}: {money(item.verified)}{" "}
+                          verified of {money(item.expected)} scheduled.
+                          {item.complete
+                            ? " Fully paid."
+                            : ` ${money(item.remaining)} remaining.`}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ol>
                 <div className={styles.installmentLegend} aria-hidden="true">
                   <span>

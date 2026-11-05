@@ -58,10 +58,12 @@ export default function MembershipContext({
   updatesStatus: LoadStatus;
   onRetryUpdates: () => void;
 }) {
-  const approved = documents.filter(
-    (item) => item.status === "APPROVED",
-  ).length;
+  const approved = documents.filter((item) => {
+    return item.status === "APPROVED";
+  }).length;
+
   const release = releaseCopy[summary?.release_status ?? ""];
+
   const latest = updates[0];
 
   return (
@@ -99,21 +101,23 @@ export default function MembershipContext({
           </p>
         ) : (
           <ul className={styles.documentList}>
-            {documents.map((item) => (
-              <li key={item.key}>
-                <Link href={`/portal/documents#document-${item.key}`}>
-                  <span>
-                    <strong>{item.label}</strong>
-                    <span>{documentLabels[item.status]}</span>
-                    {item.status === "NEEDS_CLARIFICATION" &&
-                      item.latest?.clarification && (
-                        <small>{item.latest.clarification}</small>
-                      )}
-                  </span>
-                  <ArrowRight aria-hidden="true" />
-                </Link>
-              </li>
-            ))}
+            {documents.map((item) => {
+              return (
+                <li key={item.key}>
+                  <Link href={`/portal/documents#document-${item.key}`}>
+                    <span>
+                      <strong>{item.label}</strong>
+                      <span>{documentLabels[item.status]}</span>
+                      {item.status === "NEEDS_CLARIFICATION" &&
+                        item.latest?.clarification && (
+                          <small>{item.latest.clarification}</small>
+                        )}
+                    </span>
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
         <p className={styles.caption}>

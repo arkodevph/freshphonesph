@@ -43,40 +43,55 @@ test("verified progress uses the verified balance and handles missing totals and
 });
 
 test("installment progress includes the entire plan and preserves partial verified payments", () => {
-  const plan: PortalScheduleItem[] = Array.from({ length: 24 }, (_, index) => ({
-    sequence_no: index + 1,
-    due_date: "2026-10-30",
-    expected_amount: "5000.25",
-    paid_applied: index < 5 ? "5000.25" : index === 5 ? "1020.10" : "0.00",
-    status: "upcoming",
-  }));
+  const plan: PortalScheduleItem[] = Array.from({ length: 24 }, (_, index) => {
+    return {
+      sequence_no: index + 1,
+      due_date: "2026-10-30",
+      expected_amount: "5000.25",
+      paid_applied: index < 5 ? "5000.25" : index === 5 ? "1020.10" : "0.00",
+      status: "upcoming",
+    };
+  });
 
   const progress = installmentProgress([...plan].reverse());
 
   assert.equal(progress.installments.length, 24);
+
   assert.equal(progress.completed, 5);
+
   assert.equal(progress.next?.sequence, 6);
+
   assert.equal(progress.next?.remaining, 3980.15);
+
   assert.equal(progress.next?.verified, 1020.1);
+
   assert.equal(progress.next?.dueDate, "2026-10-30");
+
   assert.ok(progress.next!.percentage > 20 && progress.next!.percentage < 21);
+
   assert.equal(progress.installments[23].percentage, 0);
+
   assert.equal(plan[0].sequence_no, 1);
 
   const paid = installmentProgress(
-    plan.map((item) => ({
-      ...item,
-      paid_applied: "6000.00",
-    })),
+    plan.map((item) => {
+      return {
+        ...item,
+        paid_applied: "6000.00",
+      };
+    }),
   );
 
   assert.equal(paid.completed, 24);
+
   assert.equal(paid.next, undefined);
+
   assert.ok(
-    paid.installments.every(
-      (item) => item.percentage === 100 && item.remaining === 0,
-    ),
+    paid.installments.every((item) => {
+      return item.percentage === 100 && item.remaining === 0;
+    }),
   );
+
   assert.deepEqual(installmentProgress([]), {
     installments: [],
     completed: 0,
@@ -96,7 +111,9 @@ test("installment completion is based on verified allocations rather than a stat
   ]);
 
   assert.equal(progress.completed, 0);
+
   assert.equal(progress.next?.remaining, 2000);
+
   assert.equal(progress.next?.percentage, 0);
 });
 

@@ -1,0 +1,81 @@
+.page {
+  min-height: 100svh;
+  background: var(--landing-sky, #c1e4f4);
+  color: #14266b;
+  overflow-wrap: anywhere;
+}
+
+.main {
+  position: relative;
+  isolation: isolate;
+  padding-top: 6.5rem;
+  background: var(--landing-sky, #c1e4f4);
+}
+
+.main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("/brand/cloud-section-divider-v2.webp") center top /
+    max(76rem, 120vw) auto repeat-y;
+  opacity: 0.5;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 4rem,
+    #000 calc(100% - 4rem),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.main > section:first-child > [aria-hidden="true"] {
+  max-width: 90%;
+}
+
+.contact {
+  padding-top: clamp(3rem, 6vw, 5rem);
+  padding-bottom: clamp(3rem, 6vw, 5rem);
+}
+
+.contactCard {
+  min-height: 27rem;
+}
+
+.contact .messenger {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.messenger svg {
+  flex-shrink: 0;
+}
+
+.contact .eyebrow {
+  margin: 0 0 1.5rem;
+  color: #344c73;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 639px) {
+  .main {
+    padding-top: 6rem;
+  }
+
+  .contactCard {
+    min-height: 0;
+    padding: 3rem 1.25rem;
+  }
+
+  .contact .messenger {
+    padding-inline: 0.75rem;
+  }
+
+  .contact h2 {
+    font-size: clamp(1.75rem, 7vw, 2rem);
+  }
+}

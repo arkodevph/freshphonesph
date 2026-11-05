@@ -2,6 +2,8 @@ import type { CSSProperties } from "react";
 
 export type DoodleName =
   | "application"
+  | "arrow-up-right"
+  | "heart"
   | "package-check"
   | "phone-heart"
   | "join-heart"
@@ -38,7 +40,7 @@ export default function DoodleIcon({
       focusable="false"
       data-doodle={name}
     >
-      <use href={`/brand/v2/doodles/icons.svg?v=pastel-pink-1#${name}`} />
+      <use href={`/brand/v2/doodles/icons.svg?v=pastel-pink-heart-1#${name}`} />
     </svg>
   );
 }

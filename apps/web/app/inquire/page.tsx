@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import InquiryPage from "@/components/InquiryPage";
+import PublicPageShell from "@/components/PublicPageShell";
 export const metadata: Metadata = {
   title: "Ask about a device · Fresh Phones PH",
   description:
@@ -18,5 +19,9 @@ export default async function Page({
       ? device.trim()
       : undefined;
 
-  return <InquiryPage deviceName={name} />;
+  return (
+    <PublicPageShell>
+      <InquiryPage deviceName={name} />
+    </PublicPageShell>
+  );
 }

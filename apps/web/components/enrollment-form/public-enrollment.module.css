@@ -1,111 +1,356 @@
 .page {
-  min-height: 100dvh;
-  padding: 112px 20px 64px;
-  background: #f5f7fb;
-  color: #202b43;
+  --enrollment-text: #203154;
+  --enrollment-muted: #50627e;
+  --enrollment-border: #7f93b0;
+  --enrollment-surface: #fff;
+  --enrollment-accent: #4b4387;
+  --enrollment-error: #a12442;
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  padding: 7rem 1.25rem 3.5rem;
+  background: var(--landing-sky, #c1e4f4);
+  color: var(--enrollment-text);
+  overflow-wrap: anywhere;
+}
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("/brand/cloud-section-divider-v2.webp") center top /
+    max(76rem, 120vw) auto repeat-y;
+  opacity: 0.48;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 4rem,
+    #000 calc(100% - 4rem),
+    transparent
+  );
+  pointer-events: none;
 }
 .shell {
   display: grid;
-  width: min(100%, 1120px);
-  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
-  align-items: start;
-  gap: clamp(24px, 5vw, 64px);
-  margin: 0 auto;
+  width: min(100%, 66.25rem);
+  gap: 1.5rem;
+  margin-inline: auto;
 }
 .intro {
-  padding-top: 12px;
+  max-width: 56rem;
+  margin-inline: auto;
+  text-align: center;
 }
-.intro h2 {
-  margin: 14px 0;
-  color: #18233a;
-  font-size: clamp(32px, 4.5vw, 48px);
+.intro h1 {
+  margin: 0.5rem 0 0.75rem;
+  color: #14266b;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: clamp(2rem, 3.4vw, 2.5rem);
   font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 1.1;
+  letter-spacing: -0.055em;
+  line-height: 1.16;
 }
-.intro > p,
-.intro li {
-  margin: 14px 0;
-  color: #59657a;
-  font-size: 16px;
-  line-height: 1.65;
+.intro h1 > span {
+  display: block;
 }
-.intro ol {
-  margin: 26px 0;
-  padding-left: 22px;
+.intro h1 em {
+  color: #694182;
+  font-style: normal;
 }
-.intro a {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  color: #285fc7;
-  font-size: 14px;
-  font-weight: 700;
-  text-underline-offset: 4px;
+.intro > p:last-child {
+  max-width: 50rem;
+  margin: 0 auto;
+  color: #344c73;
+  font-size: 0.9375rem;
+  line-height: 1.6;
 }
 .eyebrow {
   margin: 0;
-  color: #285fc7;
-  font-size: 12px;
+  color: #4b4387;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
-  line-height: 1.5;
+  letter-spacing: 0.14em;
+  line-height: 1.6;
   text-transform: uppercase;
 }
 .formCard,
 .success {
   display: grid;
   min-width: 0;
-  gap: 24px;
-  border: 1px solid #dce2ec;
-  border-radius: 22px;
-  padding: clamp(20px, 4vw, 34px);
-  background: #fff;
+  gap: 1rem;
+  border: 1px solid rgb(255 255 255 / 90%);
+  border-radius: 1.75rem;
+  padding: 1.5rem 2rem;
+  background: #f7fbff;
+  color: var(--enrollment-text);
+  box-shadow:
+    0 22px 55px -28px rgb(33 65 111 / 30%),
+    inset 0 1px 0 #fff;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  scroll-margin-top: 7rem;
 }
-.formCard h1,
-.success h1 {
-  margin: 0;
-  font-size: clamp(26px, 3.5vw, 34px);
+.progressMeta {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #50627e;
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  text-transform: uppercase;
 }
-.formHeader > p:last-child {
-  margin: 12px 0 0;
-  color: #59657a;
-  font-size: 15px;
-  line-height: 1.65;
+.progressMeta > span:first-child {
+  flex-shrink: 0;
+}
+.progressMeta > span:last-child {
+  min-width: 0;
+  text-align: right;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(var(--enrollment-steps, 3), minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: -0.5rem 0 0;
+  border-bottom: 1px solid #d4e1ec;
+  padding: 0 0 0.5rem;
+  list-style: none;
+}
+.steps li {
+  min-width: 0;
+}
+.steps button {
+  position: relative;
+  display: flex;
+  align-items: start;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.25rem;
+  padding: 1rem 0.25rem 0.25rem 0;
+  background: transparent;
+  color: #5b6e88;
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+}
+.steps button::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  border-radius: 999px;
+  background: #d2e0ec;
+}
+.steps button > span:first-child {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  line-height: 1.8;
+}
+.steps button[aria-current="step"] {
+  color: #14266b;
+  font-weight: 800;
+}
+.steps button[aria-current="step"]::before {
+  background: #c13e92;
+}
+.steps li[data-complete="true"] button {
+  color: #4b4387;
+}
+.steps li[data-complete="true"] button::before {
+  background: #c4aadf;
+}
+.steps button:disabled {
+  cursor: default;
+}
+.formHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+.formHeader > div {
+  min-width: 0;
+}
+.formHeader h2,
+.success h2 {
+  margin: 0.625rem 0 0;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: clamp(1.5rem, 2.2vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.22;
+  scroll-margin-top: 8rem;
+}
+.formHeader h2:focus {
+  outline: none;
+}
+.formHeader p:last-child:not(.eyebrow) {
+  max-width: 46rem;
+  margin: 0.5rem 0 0;
+  color: #50627e;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.stepIcon,
+.successIcon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid #ead9ef;
+  border-radius: 1.25rem;
+  background: #f3e6f6;
+}
+.stepPanel {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+}
+.stepPanel[hidden] {
+  display: none;
+}
+.formCard [data-enrollment-fields] {
+  gap: 0.875rem;
+}
+.formCard [data-enrollment-fields="contact"] > fieldset {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.formCard [data-enrollment-contact="name"] {
+  grid-column: 1 / -1;
+}
+.formCard [data-enrollment-fields] > fieldset > legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.formCard [data-enrollment-contact] > label,
+.formCard [data-enrollment-question-type] > label {
+  order: 1;
+  color: #203154;
+}
+.formCard [data-enrollment-contact] > :is(input, textarea),
+.formCard [data-enrollment-question-type] > :is(input, textarea) {
+  order: 2;
+}
+.formCard [data-enrollment-contact] > p,
+.formCard [data-enrollment-question-type] > p {
+  order: 3;
+}
+.formCard input:not([type="checkbox"]):not([type="radio"]),
+.formCard textarea {
+  min-height: 3rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  scroll-margin-top: 9rem;
+}
+.formCard textarea {
+  min-height: 8rem;
+}
+.formCard
+  [data-enrollment-question-type]:is(
+    [data-enrollment-question-type="single_choice"],
+    [data-enrollment-question-type="multiple_choice"]
+  )
+  > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.formCard [data-enrollment-question-type] > div > label {
+  border-width: 2px;
+  border-radius: 1rem;
+  padding: 1rem;
+}
+.formCard [data-enrollment-question-type] > div > label:has(input:checked) {
+  border-color: #b6428c;
+  background: #fff1fa;
+}
+.review {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 2rem;
+  margin: 0;
+  border-top: 1px solid #d4e1ec;
+}
+.reviewRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.25rem 1rem;
+  min-width: 0;
+  border-bottom: 1px solid #d4e1ec;
+  padding: 1rem 0;
+}
+.reviewRow dt {
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+.reviewRow dd {
+  grid-row: 2;
+  min-width: 0;
+  margin: 0;
+  color: #50627e;
+  font-size: 0.9375rem;
+  line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.formHeader .eyebrow {
-  margin-bottom: 12px;
+.reviewRow button {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0 0.5rem 0.5rem;
+  background: transparent;
+  color: #4b4387;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
 }
 .errorSummary,
 .updateNotice,
 .previous {
-  border: 1px solid #dce2ec;
-  border-radius: 12px;
-  padding: 16px;
-  background: #f7f9fd;
-  font-size: 14px;
-  line-height: 1.6;
+  min-width: 0;
+  border: 1px solid #c6d8e8;
+  border-radius: 0.875rem;
+  padding: 1rem;
+  background: #edf4fc;
+  font-size: 0.875rem;
+  line-height: 1.65;
 }
 .errorSummary {
-  border-color: #e2b4bf;
-  background: #fff5f7;
-  color: #8d203a;
+  border-color: #d8a0b3;
+  background: #fff2f7;
+  color: #8b2445;
+  scroll-margin-top: 8rem;
 }
-.errorSummary h2,
-.previous h2 {
-  margin: 0 0 9px;
-  font-size: 16px;
+.errorSummary h3,
+.previous h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
   font-weight: 800;
 }
 .errorSummary ul {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 1.25rem;
 }
 .errorSummary a,
 .privacy a,
@@ -117,9 +362,9 @@
 .error,
 .help {
   margin: 0;
-  color: #59657a;
-  font-size: 14px;
-  line-height: 1.6;
+  color: #50627e;
+  font-size: 0.8125rem;
+  line-height: 1.7;
   overflow-wrap: anywhere;
 }
 .error {
@@ -127,29 +372,27 @@
 }
 .previous p,
 .updateNotice p {
-  margin: 0 0 12px;
+  margin: 0 0 0.75rem;
 }
 .previous dl {
   display: grid;
-  gap: 14px;
+  gap: 0.875rem;
   margin: 0;
 }
 .previous dt {
-  font-weight: 700;
+  font-weight: 800;
 }
 .previous dd {
-  margin: 3px 0 0;
+  margin: 0.25rem 0 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .privacy {
   display: grid;
-  gap: 15px;
-  border-top: 1px solid #dce2ec;
-  padding-top: 22px;
-  color: #59657a;
-  font-size: 14px;
-  line-height: 1.6;
+  gap: 1rem;
+  color: #50627e;
+  font-size: 0.875rem;
+  line-height: 1.65;
 }
 .privacy p {
   margin: 0;
@@ -157,68 +400,352 @@
 .acknowledgment {
   display: flex;
   align-items: flex-start;
-  gap: 11px;
+  gap: 0.75rem;
+  border: 1px solid #c5d7e8;
+  border-radius: 0.875rem;
+  padding: 1rem;
+  background: #edf4fc;
   cursor: pointer;
 }
 .acknowledgment input {
-  width: 19px;
-  height: 19px;
-  flex: 0 0 19px;
-  margin-top: 2px;
-  accent-color: #285fc7;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  margin-top: 0.125rem;
+  accent-color: #a73782;
+  scroll-margin-top: 9rem;
+}
+.formActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-top: 1px solid #d4e1ec;
+  padding-top: 1rem;
+}
+.actionHint {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0;
+  color: #50627e;
+  font-size: 0.8125rem;
 }
 .submit,
-.button {
+.button,
+.back {
   display: inline-flex;
-  min-height: 48px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #285fc7;
-  border-radius: 11px;
-  padding: 12px 18px;
-  background: #285fc7;
-  color: #fff;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 800;
+  gap: 0.625rem;
+  min-height: 3rem;
+  max-width: 100%;
+  border: 1px solid #b8cce1;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  background: #edf4fc;
+  color: #203154;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.5;
   cursor: pointer;
+}
+.submit {
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-width: min(100%, 14rem);
+  min-height: 3.5rem;
+  margin-left: auto;
+  border-color: rgb(255 255 255 / 70%);
+  padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+  background: var(--landing-accent, #ff64cb);
+  color: #142044;
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+.actionArrow {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #fff;
 }
 .button {
   justify-self: start;
 }
 .submit:disabled,
-.button:disabled {
+.button:disabled,
+.back:disabled,
+.reviewRow button:disabled {
   opacity: 0.6;
   cursor: default;
 }
 .page :focus-visible,
 .formCard :focus-visible,
 .success:focus-visible {
-  outline: 2px solid #285fc7;
+  outline: 3px solid #4b4387;
   outline-offset: 4px;
+}
+.help {
+  border-top: 1px solid #d4e1ec;
+  padding-top: 0.75rem;
+  font-size: 0.75rem;
+}
+.success {
+  justify-items: start;
 }
 .success p {
   margin: 0;
-  color: #59657a;
-  font-size: 15px;
-  line-height: 1.65;
+  color: #50627e;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.successIcon {
+  width: 5rem;
+  height: 5rem;
 }
 .reference {
-  border-radius: 10px;
-  padding: 14px;
-  background: #eff5ff;
-  overflow-wrap: anywhere;
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #edf4fc;
 }
-@media (max-width: 800px) {
+.loadingFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+.loadingFields span {
+  height: 3.25rem;
+  border: 1px solid #d4e1ec;
+  border-radius: 0.75rem;
+  background: #edf4fc;
+}
+.loadingFields span:first-child {
+  grid-column: 1 / -1;
+}
+.afterForm h2 {
+  margin: 0 0 1.25rem;
+  color: #203154;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.afterForm ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.afterForm li {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  display: flex;
+  align-items: start;
+  gap: 0.875rem;
+  color: #344c73;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+.afterForm li svg {
+  flex: 0 0 auto;
+}
+.afterForm strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #203154;
+  font-weight: 800;
+}
+.afterForm > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  margin-top: 1.5rem;
+  color: #4b4387;
+  font-size: 0.875rem;
+  font-weight: 800;
+  text-underline-offset: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .submit:enabled:hover {
+    background: #ff83d7;
+    box-shadow: 0 8px 22px rgb(143 57 125 / 18%);
+  }
+  .back:enabled:hover,
+  .button:enabled:hover {
+    background: #e2edf9;
+  }
+}
+@media (min-width: 960px) {
+  :global([data-v2-public="true"]) .page {
+    padding-top: 0.5rem;
+  }
+  .formCard [data-enrollment-fields="contact"] > fieldset,
+  .review {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .formCard [data-enrollment-contact="name"] {
+    grid-column: auto;
+  }
+  .formCard [data-enrollment-fields="questions"] > fieldset {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 1rem 1.5rem;
+  }
+  .formCard [data-enrollment-fields="questions"] > fieldset > fieldset,
+  .formCard
+    [data-enrollment-fields="questions"]
+    > fieldset
+    > :last-child:nth-child(even) {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 960px) and (max-height: 860px) {
+  :global([data-v2-public="true"]) .page {
+    padding-top: 0;
+  }
+  .page {
+    padding-top: 6rem;
+  }
   .shell {
+    gap: 1rem;
+  }
+  .intro h1 {
+    margin: 0.375rem 0 0.5rem;
+    font-size: 1.75rem;
+  }
+  .intro h1 > span {
+    display: inline;
+  }
+  .intro > p:last-child {
+    font-size: 0.875rem;
+  }
+  .formCard,
+  .success {
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+  }
+  .steps {
+    padding-bottom: 0.25rem;
+  }
+  .steps button {
+    min-height: 2.5rem;
+  }
+  .formHeader h2 {
+    margin-top: 0.375rem;
+  }
+  .formCard [data-enrollment-fields] > p {
+    display: none;
+  }
+  .reviewRow {
+    padding-block: 0.5rem;
+  }
+  .privacy {
+    gap: 0.5rem;
+  }
+  .acknowledgment {
+    padding: 0.5rem 0.75rem;
+  }
+  .formActions {
+    padding-top: 0.75rem;
+  }
+  .help {
+    padding-top: 0.5rem;
+  }
+}
+@media (max-width: 640px) {
+  .page {
+    padding: 7rem 1rem 2.5rem;
+  }
+  .shell {
+    gap: 1.75rem;
+  }
+  .intro h1 {
+    font-size: clamp(1.75rem, 6.5vw, 2rem);
+  }
+  .intro > p:last-child {
+    font-size: 0.9375rem;
+  }
+  .formCard,
+  .success {
+    border-radius: 1.375rem;
+    padding: 1.25rem;
+    gap: 1.25rem;
+  }
+  .steps {
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+  }
+  .steps button {
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+  }
+  .progressMeta {
+    font-size: 0.625rem;
+  }
+  .formHeader {
+    align-items: start;
+    gap: 0.75rem;
+  }
+  .stepIcon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.875rem;
+  }
+  .stepIcon svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .formHeader h2 {
+    font-size: 1.375rem;
+  }
+  .formHeader p:last-child:not(.eyebrow) {
+    font-size: 0.875rem;
+  }
+  .formCard [data-enrollment-fields="contact"] > fieldset,
+  .formCard
+    [data-enrollment-question-type]:is(
+      [data-enrollment-question-type="single_choice"],
+      [data-enrollment-question-type="multiple_choice"]
+    )
+    > div,
+  .review,
+  .afterForm ol {
     grid-template-columns: minmax(0, 1fr);
   }
-  .intro ol {
-    margin: 16px 0;
+  .review {
+    gap: 0;
+  }
+  .formActions {
+    gap: 0.75rem;
+  }
+  .submit {
+    flex-basis: 100%;
+    width: 100%;
+    margin: 0;
+    gap: 0.75rem;
+  }
+  .afterForm ol {
+    gap: 1rem;
   }
 }
-@media (max-width: 400px) {
+@media (max-width: 359px) {
   .page {
-    padding-inline: 12px;
+    padding-inline: 0.75rem;
+  }
+  .formCard,
+  .success {
+    padding-inline: 1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .submit {
+    transition: none;
   }
 }

@@ -245,11 +245,13 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
   const notificationTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!window.location.hash)
+    if (!window.location.hash) {
       portalContentRef.current?.scrollTo({ top: 0, left: 0 });
+    }
   }, [section]);
 
   const scrolledHash = useRef<string | null>(null);
+
   const portalContentRef = useRef<HTMLDivElement>(null);
 
   const themeTransitioning = useRef(false);

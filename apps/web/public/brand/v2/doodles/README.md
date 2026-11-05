@@ -1,16 +1,18 @@
 # Fresh Phones doodles
 
-Eleven original SVG illustrations authored for Jaycee's Fresh Phones V2 request,
-2026-11-02. The four supplied icon sheets inform the rounded, slightly irregular
-linework and heart accents. These are newly drawn phone/business motifs; no
+Thirteen original SVG illustrations authored for Jaycee's Fresh Phones V2 request,
+beginning 2026-11-02. The catalog arrow was added on 2026-11-05 to match the
+existing package and shield drawings, then superseded for catalog inquiries by
+a filled heart later that day. The supplied icon sheets inform the rounded,
+slightly irregular linework and heart accents. These are newly drawn phone/business motifs; no
 reference artwork or upstream icon paths were traced or copied.
 
-`icons.svg` is the master: eleven symbols on a 40 × 40 grid, with rounded caps/joins,
+`icons.svg` is the master: thirteen symbols on a 40 × 40 grid, with rounded caps/joins,
 roughly 3.2-unit outlines and slightly lighter interior details. All outlines use
 `currentColor`; separate native fill paths color the silhouettes. There is no
 raster image, font dependency, script or filter effect.
 
-Use `DoodleIcon` from the V2 components folder to render a named symbol:
+Use `DoodleIcon` from `apps/web/components/` to render a named symbol:
 
 ```tsx
 <DoodleIcon name="phone-heart" size={24} />
@@ -26,7 +28,13 @@ their familiar existing glyphs.
 
 Available names: `phone-heart`, `join-heart`, `lock-heart`, `calendar-heart`,
 `chat-heart`, `shield-heart`, `id-heart`, `wallet-heart`, `gift`, `application`,
-`package-check`.
+`package-check`, `arrow-up-right`, `heart`.
+
+Catalog inquiry links now use `heart`: a solid pastel-pink heart with the
+family's rounded lavender outline. This supersedes the arrow following Jaycee's
+2026-11-05 correction. The action still opens the selected device's inquiry;
+it is not a favorite toggle. The arrow remains available elsewhere.
+The sprite cache version is `pastel-pink-heart-1`; existing symbol artwork is unchanged.
 
 Choose artwork that matches the adjacent action: Apply to join uses `application`
 (form and pencil), and Complete & collect uses `package-check`. The original

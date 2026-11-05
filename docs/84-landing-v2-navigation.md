@@ -19,7 +19,7 @@ one visually dominant action. No separate ui-landing-patterns package is
 installed; the supplied screenshot and local Smartway navigation implementation
 provide the concrete composition.
 
-**Current direction after Jaycee's top-state correction:** the desktop header
+**Restored current direction after Jaycee's November 5 text-only correction:** the desktop header
 starts expanded to 1280px with a fully transparent background, like the second
 Smartway screenshot. It contracts to a centered 960px frosted pill after roughly
 80px of scroll, and expands again at the top. Dark blue text suits the lighter
@@ -95,3 +95,30 @@ and How it works were visually reviewed; zero browser page exceptions. All 35
 original V1 hashes match. Both previews are updated. This is a color/surface-only
 refinement; the earlier 26-group behavior pass is historical verification of the
 same navigation logic. Evidence: .local/v2-navbar-light-blue/. Local only.
+
+
+## Top text highlight — 2026-11-05
+
+Jaycee rejected the added top capsule and clarified that only the lettering
+should be highlighted. Restored the original transparent top, original font
+sizes and link padding, and the existing 24% glass surface after scrolling.
+The only implementation addition is a soft white text shadow on the wordmark
+and primary labels while data-scrolled="false". It adds a light rim/halo around
+the lettering without a panel or change to layout. The previous 82% capsule,
+larger labels and stronger scrolled surface are reverted.
+
+This supersedes the first November 5 attempt; its screenshots/build evidence in
+.local/navbar-readability-20261105/ are historical evidence of the rejected
+implementation. Current evidence is .local/navbar-text-highlight-20261105/.
+Both local previews now use the existing protected development launchers, so
+source changes are reflected directly. Earlier optimized artifacts are stale
+and must be rebuilt before optimized preview use. No commit or deployment.
+
+Validation of the text-only correction: eight live browser groups pass across
+both development previews at 1440/1024/390/320px. Computed styles confirm a fully
+transparent expanded top, no panel shadow/border/blur, a highlight on lettering,
+original font sizes, and original 24% scrolled fill. Return to top, non-overlapping
+controls, mobile keyboard menus, Escape/focus return and no page errors pass.
+Desktop/mobile screenshots reviewed. CSS formatting and Git whitespace pass.
+A source comparison confirms the six-line highlight rule is the only change
+from the original header CSS.

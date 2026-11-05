@@ -13,11 +13,16 @@ import {
   UsersThree,
 } from "@phosphor-icons/react";
 import { getCareers, type JobOpening } from "@/lib/api";
+import { publicSiteHref, type PublicSiteBase } from "@/lib/public-site-links";
 import styles from "./careers.module.css";
 
 type LoadState = "loading" | "ready" | "error";
 
-export default function CareersBoard() {
+export default function CareersBoard({
+  siteBasePath = "",
+}: {
+  siteBasePath?: PublicSiteBase;
+}) {
   const [jobs, setJobs] = useState<JobOpening[]>([]);
 
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -272,7 +277,10 @@ export default function CareersBoard() {
                         Human-reviewed
                       </span>
                       <Link
-                        href={`/careers/apply?job=${encodeURIComponent(String(job.id))}`}
+                        href={publicSiteHref(
+                          `/careers/apply?job=${encodeURIComponent(String(job.id))}`,
+                          siteBasePath,
+                        )}
                       >
                         Apply <ArrowRight weight="bold" aria-hidden="true" />
                       </Link>

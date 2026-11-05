@@ -4,25 +4,44 @@
     inset 0 1px 0 rgb(255 255 255 / 95%), inset 0 -1px 0 rgb(255 255 255 / 36%),
     inset 1px 0 0 rgb(255 255 255 / 58%), inset -1px 0 0 rgb(255 255 255 / 58%);
   --landing-gutter: max(1.25rem, calc((100vw - 90rem) / 2));
-  background:
-    radial-gradient(
-      38rem 27rem at 8% 58%,
-      rgb(255 210 235 / 52%),
-      transparent 72%
-    ),
-    radial-gradient(
-      42rem 30rem at 94% 44%,
-      rgb(165 208 255 / 58%),
-      transparent 72%
-    ),
-    radial-gradient(
-      40rem 30rem at 68% 92%,
-      rgb(198 189 246 / 46%),
-      transparent 72%
-    ),
-    linear-gradient(180deg, #eff6fe 0%, #e8f3fd 46%, #dbeafa 100%);
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background: var(--landing-sky, #c1e4f4);
   color: var(--color-blue-ink, #14266b);
   scroll-margin-top: 6rem;
+}
+
+.section::before,
+.section::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  width: 100%;
+  height: clamp(14rem, 28vw, 25rem);
+  background: url("/brand/cloud-section-divider-v2.webp") center /
+    max(70rem, 115%) auto no-repeat;
+  filter: blur(2px);
+  pointer-events: none;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 24%,
+    #000 72%,
+    transparent
+  );
+}
+
+.section::before {
+  top: 0;
+  opacity: 0.55;
+}
+
+.section::after {
+  bottom: 0;
+  opacity: 0.4;
+  transform: scaleX(-1);
 }
 
 .section [hidden] {

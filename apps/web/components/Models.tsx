@@ -11,7 +11,7 @@ import {
 import { getPublicCatalog } from "@/lib/api";
 import { catalogPhoto, catalogPrice } from "@/lib/catalog";
 import { SAMPLE_CATALOG_MODE, sampleCatalog } from "@/lib/sample-catalog";
-import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import DoodleIcon from "./DoodleIcon";
 import SectionHeading from "./SectionHeading";
 import Reveal from "./Reveal";
 import CatalogBreakdown from "./CatalogBreakdown";
@@ -360,7 +360,7 @@ export default function Models() {
                       className={styles.inquire}
                       aria-label={`Ask about ${m.name}`}
                     >
-                      <ArrowUpRight weight="bold" className="h-5 w-5" />
+                      <DoodleIcon name="heart" size={32} />
                     </a>
                   </div>
                   {item.installmentPlan ? (

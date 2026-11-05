@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 288" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="beam" x1="0" y1="0" x2="0.35" y2="1">
+      <stop stop-color="#fff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="halo">
+      <stop stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#fff" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-20%" width="160%" height="140%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <ellipse cx="220" cy="143" rx="160" ry="132" fill="url(#halo)"/>
+  <g filter="url(#soft)">
+    <path d="M18-24H76L284 262H100Z" fill="url(#beam)" opacity="0.6"/>
+    <path d="M364-24H406L314 262H176Z" fill="url(#beam)" opacity="0.4"/>
+  </g>
+  <g fill="none" stroke="#fff" stroke-width="1">
+    <path d="M108 165C76 112 130 54 204 49" opacity="0.3"/>
+    <path d="M286 65C362 87 370 154 326 187" opacity="0.25"/>
+  </g>
+  <g fill="#fff">
+    <path d="M76 48L79 58L87 61L79 64L76 74L73 64L65 61L73 58Z" opacity="0.9"/>
+    <path d="M360 104L362 111L369 113L362 115L360 122L358 115L351 113L358 111Z" opacity="0.8"/>
+    <path d="M103 153L105 158L110 160L105 162L103 167L101 162L96 160L101 158Z" opacity="0.65"/>
+    <circle cx="334" cy="53" r="2.5" opacity="0.65"/>
+    <circle cx="112" cy="98" r="2" opacity="0.5"/>
+    <circle cx="321" cy="179" r="1.5" opacity="0.55"/>
+  </g>
+</svg>

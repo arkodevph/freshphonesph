@@ -36,7 +36,7 @@ def portable_artwork(node):
 def exports():
     source = ET.parse(ASSETS / "icons.svg").getroot()
     symbols = list(source)
-    assert len(symbols) == 11
+    assert len(symbols) == 13
     assert len({symbol.attrib["id"] for symbol in symbols}) == len(symbols)
     output = {}
     sheet = element(

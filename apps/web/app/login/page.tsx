@@ -1,6 +1,7 @@
 "use client";
 
 import { landingHref } from "@/lib/site-links";
+import { publicSiteHref, type PublicSiteBase } from "@/lib/public-site-links";
 import { fetchMe, login, MfaChallenge } from "@/lib/api";
 import {
   roleLabels,
@@ -62,6 +63,10 @@ export default function LoginPage() {
 
   const [supportEntry, setSupportEntry] = useState(false);
 
+  const [websiteBase, setWebsiteBase] = useState<PublicSiteBase>("");
+
+  const websiteHref = publicSiteHref(landingHref, websiteBase);
+
   const [focusedField, setFocusedField] = useState<
     "username" | "password" | null
   >(null);
@@ -77,6 +82,12 @@ export default function LoginPage() {
           : "idle";
 
   useEffect(() => {
+    setWebsiteBase(
+      new URLSearchParams(window.location.search).get("site") === "v2"
+        ? "/v2"
+        : "",
+    );
+
     setSupportEntry(
       Boolean(
         safeSupportReturn(
@@ -254,7 +265,7 @@ export default function LoginPage() {
       <div className={styles.card}>
         <section className={styles.story} aria-label="Fresh Phones PH">
           <Link
-            href={landingHref}
+            href={websiteHref}
             className={styles.brand}
             aria-label="Fresh Phones PH home"
           >
@@ -276,7 +287,7 @@ export default function LoginPage() {
 
         <section className={styles.panel} aria-labelledby="login-title">
           <Link
-            href={landingHref}
+            href={websiteHref}
             className={styles.backLink}
             aria-label="Back to website"
           >
@@ -569,13 +580,24 @@ export default function LoginPage() {
             )}
 
             <p className={styles.helpLinks}>
-              <Link href="/support#contact">Need help signing in?</Link>
+              <Link href={publicSiteHref("/support#contact", websiteBase)}>
+                Need help signing in?
+              </Link>
             </p>
             <p className={styles.legalLinks}>
               Review the{" "}
-              <Link href="/privacy/customer">customer privacy notice</Link>,{" "}
-              <Link href="/privacy/employee">employee privacy notice</Link> and{" "}
-              <Link href="/terms">portal terms</Link>.
+              <Link href={publicSiteHref("/privacy/customer", websiteBase)}>
+                customer privacy notice
+              </Link>
+              ,{" "}
+              <Link href={publicSiteHref("/privacy/employee", websiteBase)}>
+                employee privacy notice
+              </Link>{" "}
+              and{" "}
+              <Link href={publicSiteHref("/terms", websiteBase)}>
+                portal terms
+              </Link>
+              .
             </p>
           </div>
           <p className={styles.footer}>

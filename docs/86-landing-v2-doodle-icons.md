@@ -157,3 +157,57 @@ Asset sync and hot reload update port 3001. All 32 rendered doodles use the new
 ink/sprite version; live SVG HTTP200, mobile bounds, zero page exceptions,
 export consistency and scoped formatting pass. Desktop/mobile screenshots in
 `.local/v2-pastel-icons/`. Local only; no optimized rebuild for this color pass.
+
+## Catalog inquiry arrow — 2026-11-05
+
+Jaycee clarified that the catalog arrow should match the existing package and
+shield doodles. The standard geometric arrow is superseded by an original
+`arrow-up-right` symbol in the same native SVG family: pastel-pink silhouette,
+lavender rounded outline and a solid pink face. Catalog links render it
+through `DoodleIcon` at 32px on desktop and 28px on mobile, retaining 44px targets
+and each device's accessible inquiry label and destination. The control stays
+free of a filled circular background.
+
+The master/typed family now has twelve symbols. Existing symbol artwork remains
+unchanged. Regenerated the standalone arrow and vector contact sheet, synced the
+landing assets, and changed the sprite cache version to `pastel-pink-arrow-2`.
+The new drawing was compared beside `package-check` and `shield-heart`, then
+reviewed in desktop/mobile product cards on both local previews.
+
+Four live groups pass across ports 3000/3001 at 1440/320px: the branded symbol
+renders with its correct palette and size, 44px targets and inquiry labels/URLs
+remain, and no overflow or page errors occur. TypeScript, SVG export consistency,
+scoped formatting and whitespace checks pass. Evidence and the three-icon style
+comparison: `.local/catalog-doodle-arrow-20261105/`.
+
+### Solid arrow fill correction
+
+Jaycee rejected the first arrow and clarified that it looked hollow. Removed
+its white inset and glint, filled the entire arrow pastel pink, and softened
+the silhouette corners. The sprite cache is now `pastel-pink-arrow-2`. Existing
+other icon drawings, catalog targets and destinations remain. Master/export
+checks, scoped formatting and four live desktop/mobile renders pass; the new
+fill was reviewed beside the package/shield and on the product card. Evidence:
+`.local/catalog-doodle-arrow-20261105/filled-v2/`. User visual acceptance remains pending.
+
+
+## Catalog inquiry heart — 2026-11-05
+
+Jaycee rejected the arrow's appearance and requested a heart instead. Catalog
+inquiry controls now use a solid pastel-pink `heart` in the same native family:
+rounded lavender outline, slightly irregular lobes and no white center. This
+supersedes all catalog arrow revisions above; `arrow-up-right` remains available
+as an unused family symbol. The heart remains a link to the selected device's
+inquiry, with the existing accessible name and 44px target. No favorite state
+or extra action was introduced. Sizes stay 32px desktop/28px mobile. Fine-pointer
+hover gives a small lift/scale; reduced motion stays static.
+
+Added the thirteenth master/typed symbol, regenerated the standalone heart and
+contact sheet, synced landing assets and bumped the sprite query to
+`pastel-pink-heart-1`. The other twelve drawings are unchanged.
+
+Six desktop/mobile viewport checks across ports3000/3001 pass at1440,390 and
+320px: heart sprite/cache, artwork sizing,44px target, transparent surface,
+keyboard focus and selected-device inquiry navigation. No overflow or browser
+errors. Export consistency, scoped formatting and whitespace checks pass.
+Evidence: `.local/catalog-heart-20261105/`. Local/uncommitted; no deployment.

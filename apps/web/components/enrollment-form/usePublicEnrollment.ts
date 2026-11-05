@@ -282,6 +282,16 @@ export function usePublicEnrollment() {
     }
   }
 
+  function clearFieldErrors(keys: string[]) {
+    setErrors((current) => {
+      return Object.fromEntries(
+        Object.entries(current).filter(([key]) => {
+          return !keys.includes(key);
+        }),
+      );
+    });
+  }
+
   return {
     form,
     contact,
@@ -291,6 +301,7 @@ export function usePublicEnrollment() {
     acknowledged,
     setAcknowledged,
     errors,
+    clearFieldErrors,
     error,
     loading,
     pending,

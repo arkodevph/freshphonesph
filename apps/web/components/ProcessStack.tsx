@@ -116,6 +116,7 @@ export default function ProcessStack({ children }: { children?: ReactNode }) {
       </header>
       <div ref={trackRef} className={styles.track}>
         <div className={styles.stage}>
+          <div className={styles.processClouds} aria-hidden="true" />
           {panels.map((panel, index) => {
             return (
               <article

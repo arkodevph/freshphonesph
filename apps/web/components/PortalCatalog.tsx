@@ -79,6 +79,7 @@ export default function Models({
   variant?: "public" | "portal";
 }) {
   const inPortal = variant === "portal";
+
   const [items, setItems] = useState<PublicCatalogItem[]>([]);
 
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");

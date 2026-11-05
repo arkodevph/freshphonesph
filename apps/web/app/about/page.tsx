@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import {
-  CheckCircle,
-  Heart,
-  MessengerLogo,
-  ShieldCheck,
-  Sparkle,
-  UsersThree,
-} from "@phosphor-icons/react/dist/ssr";
+import { Sparkle } from "@phosphor-icons/react/dist/ssr";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { VerifyAndBenefits } from "@/components/RecentLandingSections";
+import AboutContactCard from "@/components/AboutContactCard";
+import AboutPromises from "@/components/AboutPromises";
+import styles from "@/components/about-page.module.css";
+import { landingV2Font } from "@/components/font";
+import typography from "@/components/typography.module.css";
+import "@/components/landing-v2.css";
 
 export const metadata: Metadata = {
   title: "About Us · Fresh Phones PH",
@@ -18,45 +17,23 @@ export const metadata: Metadata = {
     "Meet Dale John Garcia Tambong, owner of Fresh Phones PH and FP Gadget Center, and learn what guides the business.",
 };
 
-const commitments = [
-  {
-    icon: ShieldCheck,
-    eyebrow: "Legit & accountable",
-    title: "A registered local business",
-    body: "Fresh Phones PH operates under the DTI-registered business name FP Gadget Center, giving customers a clear business identity behind every transaction.",
-    className: "bg-[#3157c8] text-white",
-  },
-  {
-    icon: UsersThree,
-    eyebrow: "Customer-first",
-    title: "Support that stays human",
-    body: "Questions are welcome. From choosing a unit to understanding a payment schedule, our goal is to make every next step easy to follow.",
-    className: "bg-[#67d2f1] text-blue-ink",
-  },
-  {
-    icon: CheckCircle,
-    eyebrow: "Clear process",
-    title: "No confusing surprises",
-    body: "We share unit details, requirements, payment options, and availability clearly before a customer commits to a paluwagan plan.",
-    className: "bg-[#c7a6ff] text-blue-ink",
-  },
-  {
-    icon: Heart,
-    eyebrow: "The Fresh Phones way",
-    title: "Gadgets made manageable",
-    body: "The business is built around a simple purpose: help more Filipinos work toward a quality iPhone or iPad through manageable payment options.",
-    className: "bg-[#ff92c8] text-blue-ink",
-  },
-];
-
 export default function AboutPage() {
   return (
-    <>
+    <div
+      data-landing-version="2"
+      className={`${styles.page} ${landingV2Font.variable} ${typography.root}`}
+    >
       <Navbar />
-      <main id="top" className="overflow-hidden pt-24">
+      <main id="top" className={styles.main}>
         <section className="relative px-4 pb-10 pt-4 sm:px-6 sm:pb-16">
-          <div className="pointer-events-none absolute left-[3%] top-[8%] h-52 w-52 rounded-full bg-bubblegum/20 blur-3xl" />
-          <div className="pointer-events-none absolute right-[5%] top-0 h-72 w-72 rounded-full bg-cyan/20 blur-3xl" />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-[3%] top-[8%] h-52 w-52 rounded-full bg-cyan/20 blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-[5%] top-0 h-72 w-72 rounded-full bg-cyan/20 blur-3xl"
+          />
           <div className="relative mx-auto max-w-7xl">
             <div className="relative z-10 grid min-h-[720px] items-center gap-8 lg:grid-cols-[.9fr_1.1fr]">
               <div className="max-w-xl py-4 lg:pl-3">
@@ -151,107 +128,15 @@ export default function AboutPage() {
               </h2>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {commitments.map((item, index) => {
-                return (
-                  <article
-                    key={item.title}
-                    className={`${item.className} relative flex min-h-[440px] flex-col overflow-hidden rounded-[2rem] p-7 sm:min-h-[480px] sm:p-8`}
-                  >
-                    {index === 0 && (
-                      <>
-                        <div className="absolute -bottom-24 -right-20 h-72 w-72 rounded-full border-[38px] border-white/16" />
-                        <div className="absolute bottom-24 right-7 h-20 w-20 rounded-full bg-cyan/25" />
-                      </>
-                    )}
-                    {index === 1 && (
-                      <>
-                        <div className="absolute -bottom-28 -left-20 h-72 w-72 rotate-45 rounded-[4rem] bg-white/14" />
-                        <div className="absolute bottom-28 right-5 h-24 w-12 rotate-[35deg] rounded-full bg-blue/20" />
-                        <div className="absolute bottom-40 right-20 h-16 w-9 rotate-[35deg] rounded-full bg-white/25" />
-                      </>
-                    )}
-                    {index === 2 && (
-                      <>
-                        <div className="absolute -bottom-16 left-1/2 h-52 w-52 -translate-x-1/2 rotate-45 rounded-[2.5rem] border-[28px] border-white/18" />
-                        <div className="absolute bottom-36 left-8 h-14 w-14 rotate-45 bg-blue/12" />
-                      </>
-                    )}
-                    {index === 3 && (
-                      <>
-                        <div className="absolute -bottom-16 -right-10 h-64 w-64 rounded-[48%_52%_0_0] bg-white/15" />
-                        <div className="absolute bottom-16 left-0 h-20 w-full -rotate-6 bg-hotpink/22" />
-                      </>
-                    )}
-                    <div className="relative z-10">
-                      <div className="flex items-start justify-between">
-                        <p className="text-xs font-800 uppercase tracking-[.16em] opacity-80">
-                          {item.eyebrow}
-                        </p>
-                        <span className="text-5xl font-800 opacity-20">
-                          0{index + 1}
-                        </span>
-                      </div>
-                      <h3 className="mt-8 font-display text-3xl font-700 leading-[1.05]">
-                        {item.title}
-                      </h3>
-                      <p className="mt-5 font-600 leading-relaxed opacity-85">
-                        {item.body}
-                      </p>
-                    </div>
-                    <div
-                      className={`relative z-10 mt-auto flex ${
-                        index === 0
-                          ? "justify-start"
-                          : index === 1
-                            ? "justify-end"
-                            : index === 2
-                              ? "justify-center"
-                              : "justify-start"
-                      }`}
-                    >
-                      <item.icon
-                        weight={index === 1 ? "fill" : "duotone"}
-                        className={`${index === 3 ? "h-24 w-24" : "h-20 w-20"} ${index === 1 ? "rounded-full bg-white/30 p-4" : ""}`}
-                      />
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+            <AboutPromises />
           </div>
         </section>
 
         <VerifyAndBenefits />
 
-        <section className="px-4 py-12 sm:px-6 sm:py-20">
-          <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2.75rem] bg-blue-ink px-7 py-14 text-white sm:px-12 sm:py-20">
-            <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full border-[56px] border-cyan/15" />
-            <div className="relative z-10 max-w-3xl">
-              <p className="text-xs font-800 uppercase tracking-[.22em] text-cyan">
-                Talk to the official page
-              </p>
-              <h2 className="mt-4 font-display text-4xl font-700 leading-tight sm:text-6xl">
-                Ready to ask about your next device?
-              </h2>
-              <p className="mt-5 max-w-2xl text-lg font-600 leading-relaxed text-white/75">
-                Message Fresh Phones PH directly for current units, plan
-                requirements, and available payment schedules.
-              </p>
-              <a
-                href="https://m.me/FreshPhonesPh"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-800 text-blue-ink transition-transform hover:-translate-y-0.5"
-              >
-                <MessengerLogo weight="fill" className="h-5 w-5" /> Open
-                Messenger
-              </a>
-            </div>
-          </div>
-        </section>
+        <AboutContactCard />
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

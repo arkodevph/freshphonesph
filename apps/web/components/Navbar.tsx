@@ -6,6 +6,7 @@ import { ArrowUpRight, CaretDown, List, X } from "@phosphor-icons/react";
 import { systemHref } from "@/lib/site-links";
 import styles from "./Navbar.module.css";
 import DoodleIcon from "./DoodleIcon";
+import PublicNavigationLink from "./PublicNavigationLink";
 import { landingV2Font } from "./font";
 import typography from "./typography.module.css";
 import "./landing-v2.css";
@@ -221,7 +222,7 @@ export default function Navbar() {
   }
 
   const login = (
-    <a
+    <PublicNavigationLink
       href={loginHref ?? undefined}
       role="link"
       aria-disabled={!loginHref}
@@ -231,14 +232,18 @@ export default function Navbar() {
     >
       <DoodleIcon name="lock-heart" size={24} />
       Log in
-    </a>
+    </PublicNavigationLink>
   );
 
   const apply = (
-    <a href="/enroll" className={styles.apply} onClick={closeMenus}>
+    <PublicNavigationLink
+      href="/enroll"
+      className={styles.apply}
+      onClick={closeMenus}
+    >
       <DoodleIcon name="application" size={24} />
       Apply to join
-    </a>
+    </PublicNavigationLink>
   );
 
   return (
@@ -254,7 +259,7 @@ export default function Navbar() {
         data-landing-version="2"
       >
         <nav className={styles.nav} aria-label="Main navigation">
-          <a
+          <PublicNavigationLink
             href="/#top"
             className={styles.brand}
             aria-label="Fresh Phones PH home"
@@ -272,15 +277,19 @@ export default function Navbar() {
             <span className={styles.wordmark}>
               Fresh Phones <span>PH</span>
             </span>
-          </a>
+          </PublicNavigationLink>
 
           <ul className={styles.primary}>
             {primaryLinks.map((link) => {
               return (
                 <li key={link.href}>
-                  <a href={link.href} className={styles.navLink}>
+                  <PublicNavigationLink
+                    href={link.href}
+                    className={styles.navLink}
+                    onClick={closeMenus}
+                  >
                     {link.label}
-                  </a>
+                  </PublicNavigationLink>
                 </li>
               );
             })}
@@ -306,10 +315,13 @@ export default function Navbar() {
                   {exploreLinks.map((link) => {
                     return (
                       <li key={link.href}>
-                        <a href={link.href} onClick={closeMenus}>
+                        <PublicNavigationLink
+                          href={link.href}
+                          onClick={closeMenus}
+                        >
                           <DoodleIcon name={link.icon} size={28} />
                           {link.label}
-                        </a>
+                        </PublicNavigationLink>
                       </li>
                     );
                   })}
@@ -334,14 +346,17 @@ export default function Navbar() {
                   {[...primaryLinks, ...exploreLinks].map((link) => {
                     return (
                       <li key={link.href}>
-                        <a href={link.href} onClick={closeMenus}>
+                        <PublicNavigationLink
+                          href={link.href}
+                          onClick={closeMenus}
+                        >
                           {"icon" in link ? (
                             <DoodleIcon name={link.icon} size={28} />
                           ) : (
                             <ArrowUpRight aria-hidden="true" />
                           )}
                           {link.label}
-                        </a>
+                        </PublicNavigationLink>
                       </li>
                     );
                   })}

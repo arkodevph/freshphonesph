@@ -19,6 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import { applyToJob, getCareers, type JobOpening } from "@/lib/api";
 import { legalDocuments } from "@freshphones/contracts";
+import { publicSiteHref, type PublicSiteBase } from "@/lib/public-site-links";
 import styles from "./careers.module.css";
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -32,7 +33,11 @@ const ACCEPTED_ATTACHMENT_TYPES = [
 
 type LoadState = "loading" | "ready" | "error";
 
-export default function ApplyForm() {
+export default function ApplyForm({
+  siteBasePath = "",
+}: {
+  siteBasePath?: PublicSiteBase;
+}) {
   const [jobs, setJobs] = useState<JobOpening[]>([]);
 
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -190,7 +195,10 @@ export default function ApplyForm() {
   return (
     <section className={styles.applyPage} aria-labelledby="application-title">
       <div className={styles.applyShell}>
-        <Link href="/careers" className={styles.backLink}>
+        <Link
+          href={publicSiteHref("/careers", siteBasePath)}
+          className={styles.backLink}
+        >
           <ArrowLeft aria-hidden="true" /> Back to open roles
         </Link>
 
@@ -240,7 +248,10 @@ export default function ApplyForm() {
                   <strong>Applicant privacy</strong>
                   <span>
                     Read the{" "}
-                    <Link href="/privacy/applicant" target="_blank">
+                    <Link
+                      href={publicSiteHref("/privacy/applicant", siteBasePath)}
+                      target="_blank"
+                    >
                       Applicant Privacy Notice
                     </Link>{" "}
                     before sharing your details.
@@ -259,7 +270,10 @@ export default function ApplyForm() {
             <div className={styles.privacyNotice}>
               <p>
                 Before applying, read the{" "}
-                <Link href="/privacy/applicant" target="_blank">
+                <Link
+                  href={publicSiteHref("/privacy/applicant", siteBasePath)}
+                  target="_blank"
+                >
                   Applicant Privacy Notice
                 </Link>
                 .
