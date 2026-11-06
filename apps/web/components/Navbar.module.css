@@ -8,11 +8,12 @@
 }
 
 .header {
-  position: fixed;
-  inset: 1.5rem 1rem auto;
+  position: sticky;
+  top: 0;
+  padding: 1rem;
+  background: var(--landing-sky, #c1e4f4);
   z-index: 50;
   color: #102447;
-  transition: top 360ms ease;
 }
 
 .nav {
@@ -38,10 +39,6 @@
     background-color 240ms ease,
     border-color 240ms ease,
     box-shadow 240ms ease;
-}
-
-.header[data-scrolled="true"] {
-  top: 1rem;
 }
 
 .header[data-scrolled="true"] .nav {
@@ -514,7 +511,7 @@
 
 @media (max-width: 25rem) {
   .header {
-    inset: 0.75rem 0.5rem auto;
+    padding: 0.75rem 0.5rem;
   }
 
   .nav {

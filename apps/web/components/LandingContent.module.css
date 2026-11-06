@@ -232,9 +232,9 @@
   place-items: center;
   overflow: hidden;
   max-width: 64rem;
-  min-height: clamp(20rem, 40vh, 29rem);
+  min-height: clamp(20rem, 34vh, 27rem);
   margin-inline: auto;
-  padding: clamp(2.5rem, 4.5vh, 4rem) 1.5rem;
+  padding: 2rem 1.5rem;
   border: 1px solid rgb(255 255 255 / 42%);
   border-radius: 2rem;
   background: rgb(255 255 255 / 9%);

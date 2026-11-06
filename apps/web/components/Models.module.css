@@ -38,6 +38,41 @@
   opacity: 0.5;
   transform: scaleX(-1);
 }
+.section:has([role="combobox"][aria-expanded="true"]) {
+  z-index: 10;
+  overflow: visible;
+}
+.availabilityField {
+  --portal-text: #14266b;
+  --portal-muted: #53617e;
+  --portal-border: rgb(49 84 201 / 22%);
+  --portal-surface: #f6fbff;
+  --portal-accent: #3154c9;
+  --portal-accent-soft: #e5efff;
+  --select-safe-top: 110px;
+  --select-safe-bottom: 16px;
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  color: #14266b;
+  font-size: 14px;
+  font-weight: 600;
+}
+.availabilityField :global([role="combobox"]) {
+  border-radius: 16px;
+  background: rgb(255 255 255 / 80%);
+  font-family: var(--font-body), sans-serif;
+}
+.availabilityField :global([role="listbox"]) {
+  border-radius: 16px;
+  box-shadow:
+    0 16px 40px -12px rgb(20 38 107 / 25%),
+    inset 0 1px 0 #fff;
+  font-family: var(--font-body), sans-serif;
+}
+.availabilityField :global([role="option"]) {
+  border-radius: 10px;
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

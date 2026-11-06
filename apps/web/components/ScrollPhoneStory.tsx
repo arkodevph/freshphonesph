@@ -9,6 +9,10 @@ const TOTAL_FRAMES = 115;
 
 const LAST_FRAME = TOTAL_FRAMES - 1;
 
+// The opening source frames cut off the shoes at the image's left edge.
+// Frame 13 is the first frame with the entire character inside the image.
+const FIRST_FRAME = 12;
+
 const clamp = (value: number) => {
   return Math.min(1, Math.max(0, value));
 };
@@ -37,9 +41,9 @@ export default function ScrollPhoneStory() {
 
     let raf = 0;
 
-    let current = 0; // eased frame currently painted (float)
+    let current = FIRST_FRAME; // eased frame currently painted (float)
 
-    let target = 0; // frame the scroll position wants (float)
+    let target = FIRST_FRAME; // frame the scroll position wants (float)
 
     // Draw the requested frame, or the nearest already-decoded frame so the
     // canvas is never blank while later frames are still loading.
@@ -51,8 +55,10 @@ export default function ScrollPhoneStory() {
       let image = frames[index];
 
       if (!image?.complete || !image.naturalWidth) {
-        for (let step = 1; step <= LAST_FRAME; step += 1) {
-          const near = frames[index - step] ?? frames[index + step];
+        for (let step = 1; step <= LAST_FRAME - FIRST_FRAME; step += 1) {
+          const near =
+            (index - step >= FIRST_FRAME ? frames[index - step] : undefined) ??
+            frames[index + step];
 
           if (near?.complete && near.naturalWidth) {
             image = near;
@@ -71,7 +77,7 @@ export default function ScrollPhoneStory() {
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
     };
 
-    for (let index = 0; index < TOTAL_FRAMES; index += 1) {
+    for (let index = FIRST_FRAME; index < TOTAL_FRAMES; index += 1) {
       const image = new Image();
 
       image.decoding = "async";
@@ -79,7 +85,7 @@ export default function ScrollPhoneStory() {
       image.onload = () => {
         // Paint the first frame immediately, and repaint if the frame we
         // currently want just finished decoding.
-        if (index === 0 || index === Math.round(current)) {
+        if (index === Math.round(current)) {
           drawFrame(index);
         }
       };
@@ -100,7 +106,9 @@ export default function ScrollPhoneStory() {
 
       const progress = clamp(-rect.top / distance);
 
-      target = motion.matches ? LAST_FRAME : progress * LAST_FRAME;
+      target = motion.matches
+        ? LAST_FRAME
+        : FIRST_FRAME + progress * (LAST_FRAME - FIRST_FRAME);
 
       section.style.setProperty("--story-progress", String(progress));
 
@@ -156,7 +164,7 @@ export default function ScrollPhoneStory() {
 
     readProgress();
 
-    drawFrame(0);
+    drawFrame(FIRST_FRAME);
 
     motion.addEventListener("change", onScroll);
 

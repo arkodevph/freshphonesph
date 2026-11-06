@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { landingV2Font } from "./font";
 import styles from "./LandingLoader.module.css";
+import LandingCloudIntro from "./LandingCloudIntro";
 
 type Props = {
   phase?: "intro" | "pending" | "leaving";
@@ -22,6 +23,10 @@ export default function LandingLoader({ phase = "intro" }: Props) {
 
   if (intro && skipIntro) {
     return null;
+  }
+
+  if (intro) {
+    return <LandingCloudIntro />;
   }
 
   return (
