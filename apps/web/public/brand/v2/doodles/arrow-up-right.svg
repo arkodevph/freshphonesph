@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" color="#82678f" role="img" aria-label="Arrow Up Right">
+  <g stroke="none" data-paint="fill">
+    <path d="M18.3 6.8C23.1 6.4 28 6.1 32.4 6.3C33.8 6.4 34.2 6.8 34.1 8.3L33.5 21.6C33.4 23.2 32.3 23.5 31.1 22.4L27.6 19L14 32.5C12.9 33.6 11.9 33.5 10.9 32.5L7.7 29.2C6.6 28.1 6.7 27.1 7.8 26L21.1 12.8L17.8 9.6C16.4 8.3 16.7 6.9 18.3 6.8Z" fill="#f3c5df" />
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" data-paint="outline">
+    <path d="M18.3 6.8C23.1 6.4 28 6.1 32.4 6.3C33.8 6.4 34.2 6.8 34.1 8.3L33.5 21.6C33.4 23.2 32.3 23.5 31.1 22.4L27.6 19L14 32.5C12.9 33.6 11.9 33.5 10.9 32.5L7.7 29.2C6.6 28.1 6.7 27.1 7.8 26L21.1 12.8L17.8 9.6C16.4 8.3 16.7 6.9 18.3 6.8Z" />
+  </g>
+</svg>

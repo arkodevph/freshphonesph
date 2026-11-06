@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   catalogAvailability,
   catalogAvailabilityLabels,
@@ -11,11 +11,20 @@ import {
 import { getPublicCatalog } from "@/lib/api";
 import { catalogPhoto, catalogPrice } from "@/lib/catalog";
 import { SAMPLE_CATALOG_MODE, sampleCatalog } from "@/lib/sample-catalog";
-import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import DoodleIcon from "./DoodleIcon";
 import SectionHeading from "./SectionHeading";
 import Reveal from "./Reveal";
 import CatalogBreakdown from "./CatalogBreakdown";
+import Select from "./Select";
 import styles from "./Models.module.css";
+
+const availabilityOptions = [
+  { value: "", label: "All availability" },
+  ...catalogAvailability.map((value) => ({
+    value,
+    label: catalogAvailabilityLabels[value],
+  })),
+];
 
 type Model = {
   name: string;
@@ -73,6 +82,10 @@ function FlatDevicePreview({
 }
 
 export default function Models() {
+  const availabilityId = useId();
+
+  const availabilityLabelId = `${availabilityId}-label`;
+
   const [items, setItems] = useState<PublicCatalogItem[]>([]);
 
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -209,7 +222,7 @@ export default function Models() {
         </p>
       )}
 
-      <div className="mx-auto mt-8 grid max-w-6xl gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(210px,auto)]">
+      <div className="mx-auto mt-8 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(210px,auto)]">
         <label className="grid min-w-0 gap-1 text-sm font-600 text-blue-ink">
           Search units
           <input
@@ -224,27 +237,24 @@ export default function Models() {
             placeholder="Phone or tablet model"
           />
         </label>
-        <label className="grid min-w-0 gap-1 text-sm font-600 text-blue-ink">
-          Availability
-          <select
+        <div className={styles.availabilityField}>
+          <label id={availabilityLabelId} htmlFor={availabilityId}>
+            Availability
+          </label>
+          <Select
+            id={availabilityId}
+            labelId={availabilityLabelId}
             value={availability}
-            onChange={(event) => {
-              setAvailability(event.target.value);
+            options={availabilityOptions}
+            fitViewport
+            animate
+            onValueChange={(value) => {
+              setAvailability(value);
 
               setPage(1);
             }}
-            className="min-w-0 w-full rounded-2xl border border-blue/20 bg-white/80 px-4 py-3"
-          >
-            <option value="">All availability</option>
-            {catalogAvailability.map((value) => {
-              return (
-                <option key={value} value={value}>
-                  {catalogAvailabilityLabels[value]}
-                </option>
-              );
-            })}
-          </select>
-        </label>
+          />
+        </div>
       </div>
       {state === "loading" && (
         <p
@@ -312,7 +322,7 @@ export default function Models() {
                       alt={m.imageAlt ?? `${m.name} product view`}
                       fill
                       unoptimized={item.hasImage}
-                      sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) 50vw, 33vw"
+                      sizes="(max-width: 639px) calc(50vw - 2.75rem), (max-width: 1023px) 50vw, (max-width: 1480px) 33vw, 480px"
                       className="object-contain transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none"
                     />
                   ) : (
@@ -360,7 +370,7 @@ export default function Models() {
                       className={styles.inquire}
                       aria-label={`Ask about ${m.name}`}
                     >
-                      <ArrowUpRight weight="bold" className="h-5 w-5" />
+                      <DoodleIcon name="heart" size={32} />
                     </a>
                   </div>
                   {item.installmentPlan ? (

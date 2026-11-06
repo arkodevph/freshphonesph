@@ -41,6 +41,8 @@ export function useProcessStack(
 
     let initialized = false;
 
+    let centerOffset = 0;
+
     const draw = (time: number) => {
       frame = 0;
 
@@ -57,6 +59,13 @@ export function useProcessStack(
       if (Math.abs(target - position) < 0.0001) {
         position = target;
       }
+
+      const finalFlip = clamp((position - (count - 1) - 0.42) / 0.36);
+
+      stage.style.setProperty(
+        "--process-offset",
+        `${centerOffset * (1 - finalFlip)}px`,
+      );
 
       cards.forEach((card, index) => {
         const phase = position - index;
@@ -105,6 +114,14 @@ export function useProcessStack(
 
       const top = Number.parseFloat(getComputedStyle(stage).top);
 
+      const cardHeight = cards[0]?.offsetHeight ?? 0;
+
+      centerOffset = Math.max(
+        0,
+        (innerHeight + top - cardHeight) / 2 -
+          stage.getBoundingClientRect().top,
+      );
+
       const travel = Math.max(1, track.offsetHeight - stage.offsetHeight);
 
       target =
@@ -146,6 +163,8 @@ export function useProcessStack(
 
         initialized = false;
 
+        centerOffset = 0;
+
         cards.forEach((card) => {
           card.style.removeProperty("visibility");
         });
@@ -153,6 +172,8 @@ export function useProcessStack(
         stage.style.removeProperty("--reviews-reveal");
 
         stage.style.removeProperty("--reviews-pan");
+
+        stage.style.removeProperty("--process-offset");
       }
 
       schedule();

@@ -1,9 +1,4 @@
-import {
-  ArrowRight,
-  CalendarCheck,
-  ChatCircleDots,
-  ShieldCheck,
-} from "@phosphor-icons/react/dist/ssr";
+import DoodleIcon from "./DoodleIcon";
 import HeroLoop from "./HeroLoop";
 import HeroDeviceWord from "./HeroDeviceWord";
 import styles from "./Hero.module.css";
@@ -18,10 +13,11 @@ export default function Hero() {
       <div className={`landing-hero-frame ${styles.frame}`}>
         <HeroLoop />
         <div className={styles.shade} aria-hidden="true" />
+        <div className={styles.dots} aria-hidden="true" />
 
         <div className={styles.copy}>
           <span className={styles.eyebrow}>
-            <ShieldCheck weight="fill" aria-hidden="true" />
+            <DoodleIcon name="shield-heart" size={20} />
             DTI registered iPhone &amp; iPad paluwagan
           </span>
           <h1
@@ -38,10 +34,16 @@ export default function Hero() {
             Find your iPhone or iPad. Follow a clear paluwagan schedule, with
             real people to guide you from application to release.
           </p>
-          <a href="#units" className={styles.cta}>
-            View available units
-            <ArrowRight weight="bold" aria-hidden="true" />
-          </a>
+          <div className={styles.actions}>
+            <a href="#units" className={styles.cta}>
+              <DoodleIcon name="phone-heart" size={28} />
+              View available units
+            </a>
+            <a href="/inquire" className={styles.apply}>
+              <DoodleIcon name="application" size={28} />
+              Apply to join
+            </a>
+          </div>
         </div>
       </div>
       <aside
@@ -56,14 +58,14 @@ export default function Hero() {
             <p>On approved paluwagan batches</p>
           </li>
           <li className={`${styles.glassCard} ${styles.schedule}`}>
-            <CalendarCheck weight="duotone" aria-hidden="true" />
+            <DoodleIcon name="calendar-heart" size={24} />
             <div>
               <strong>Clear schedules</strong>
               <p>Know each expected due date</p>
             </div>
           </li>
           <li className={`${styles.glassCard} ${styles.support}`}>
-            <ChatCircleDots weight="duotone" aria-hidden="true" />
+            <DoodleIcon name="chat-heart" size={24} />
             <div>
               <strong>Human support</strong>
               <p>From application to release</p>
