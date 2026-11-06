@@ -3,7 +3,13 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  mask-image: linear-gradient(to bottom, transparent, #000 22%);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 22%,
+    #000 calc(100% - 4rem),
+    transparent
+  );
 }
 
 .light {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import PublicNavigationLoader from "@/components/PublicNavigationLoader";
 import { PresentationNotice } from "@/components/PresentationNotice";
 import { PRESENTATION_MODE } from "@/lib/presentation";
 
@@ -55,6 +56,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full overflow-x-hidden">
+        <PublicNavigationLoader />
         {children}
         <PresentationNotice />
       </body>

@@ -1,16 +1,17 @@
+import Image from "next/image";
 import {
   CalendarCheck,
   ChatCircleDots,
   CheckCircle,
   IdentificationCard,
   ShieldCheck,
-  Wallet,
 } from "@phosphor-icons/react/dist/ssr";
 import SectionHeading from "./SectionHeading";
 import AgentVerification from "./AgentVerification";
 import ProcessStack from "./ProcessStack";
 import Testimonials from "./Testimonials";
 import styles from "./LandingContent.module.css";
+import DoodleIcon from "./DoodleIcon";
 
 export function Process() {
   return (
@@ -45,12 +46,8 @@ export function RequirementsAndPayments() {
         subtitle="Review the requirements and payment process before deciding to join."
       />
       <div className={styles.preparation}>
-        <article className={styles.panel}>
-          <IdentificationCard
-            weight="duotone"
-            className={styles.icon}
-            aria-hidden="true"
-          />
+        <article className={`${styles.panel} ${styles.requirementsPanel}`}>
+          <DoodleIcon name="id-heart" className={styles.icon} size={36} />
           <h3>Application requirements</h3>
           <p>
             Prepare these common items. Final requirements may vary after
@@ -70,28 +67,39 @@ export function RequirementsAndPayments() {
             Sensitive documents are never uploaded through the public website.
           </p>
         </article>
-        <article className={styles.panel}>
-          <Wallet weight="duotone" className={styles.icon} aria-hidden="true" />
-          <h3>Payments &amp; your records</h3>
-          <p>
-            Payments are coordinated through Fresh Phones PH&apos;s authorized
-            channels and official Messenger group chats.
-          </p>
-          <div className={styles.record}>
-            <h4>Your customer portal</h4>
-            <p>
-              Check payment records, verification status, remaining balance, due
-              dates, and paluwagan progress.
-            </p>
+        <div className={styles.paymentsCard}>
+          <div className={styles.paymentMascot} aria-hidden="true">
+            <Image
+              src="/brand/mascot/cloud-boy-guidance-v1.png"
+              alt=""
+              width={1254}
+              height={1254}
+              sizes="(max-width: 1199px) 176px, 224px"
+            />
           </div>
-          <div className={styles.record}>
-            <h4>Statement of Account</h4>
+          <article className={`${styles.panel} ${styles.paymentPanel}`}>
+            <DoodleIcon name="wallet-heart" className={styles.icon} size={36} />
+            <h3>Payments &amp; your records</h3>
             <p>
-              Review amounts due and verified payments. Statements are for
-              account reference and are not official BIR invoices.
+              Payments are coordinated through Fresh Phones PH&apos;s authorized
+              channels and official Messenger group chats.
             </p>
-          </div>
-        </article>
+            <div className={styles.record}>
+              <h4>Your customer portal</h4>
+              <p>
+                Check payment records, verification status, remaining balance,
+                due dates, and paluwagan progress.
+              </p>
+            </div>
+            <div className={styles.record}>
+              <h4>Statement of Account</h4>
+              <p>
+                Review amounts due and verified payments. Statements are for
+                account reference and are not official BIR invoices.
+              </p>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
   );

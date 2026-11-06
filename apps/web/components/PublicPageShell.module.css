@@ -1,0 +1,48 @@
+.shell {
+  min-height: 100svh;
+  background: #c1e4f4;
+  color: #14266b;
+  overflow-wrap: anywhere;
+}
+.content {
+  position: relative;
+  isolation: isolate;
+  min-height: 70svh;
+  padding-top: 0;
+}
+.content::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: clamp(18rem, 32vw, 32rem);
+  background: url("/brand/cloud-section-divider-v2.webp") center /
+    max(76rem, 120%) auto no-repeat;
+  opacity: 0.45;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 25%,
+    #000 70%,
+    transparent
+  );
+  pointer-events: none;
+}
+.content > :global(main) {
+  min-height: 0;
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+  background: transparent;
+}
+.content > :global(main) > :global(section:first-child) {
+  padding-top: 2rem;
+  background: transparent;
+}
+.content :global(.holo-text) {
+  background: none;
+  color: #4b4387;
+  -webkit-text-fill-color: currentColor;
+}
+.content :where(article, section, aside) {
+  min-width: 0;
+}

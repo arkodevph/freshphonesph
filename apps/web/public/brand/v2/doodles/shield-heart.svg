@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" color="#82678f" role="img" aria-label="Shield Heart">
+  <g stroke="none" data-paint="fill">
+    <path d="M20.1 4.7C16 7.6 11.6 9.1 6.5 9.5C5.8 21.5 10.6 30.1 20.4 35.5C29.5 30.8 34.2 21.6 33.6 9.1C28.9 9.1 24.1 7.2 20.1 4.7Z" fill="#f3c5df" />
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" data-paint="outline">
+    <path d="M20.1 4.7C16 7.6 11.6 9.1 6.5 9.5C5.8 21.5 10.6 30.1 20.4 35.5C29.5 30.8 34.2 21.6 33.6 9.1C28.9 9.1 24.1 7.2 20.1 4.7Z" />
+    <path d="M20.1 25.7C17.4 23.4 13.8 21.3 14 18.5C14.3 15.5 18.1 14.4 20.1 17.3C22.2 14.4 26.1 15.7 25.8 18.8C25.5 21.6 22.5 23.9 20.1 25.7Z" stroke-width="2.8" fill="#fff1f8" />
+  </g>
+</svg>

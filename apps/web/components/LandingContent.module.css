@@ -1,13 +1,18 @@
 .requirements {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
   scroll-margin-top: 6rem;
-  background: #edf3fd;
+  background: var(--landing-sky, #c1e4f4);
 }
 .preparation {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
   max-width: 72rem;
-  margin: 2.5rem auto 0;
+  margin: 3.5rem auto 2rem;
 }
 .panel {
   min-width: 0;
@@ -17,9 +22,53 @@
   background: #fff;
   color: #14266b;
 }
+.requirementsPanel {
+  position: relative;
+  z-index: 1;
+  border-radius: 4.25rem 1.125rem 1.125rem 1.5rem;
+  box-shadow: 0 22px 48px -26px rgb(38 16 84 / 28%);
+}
+.paymentsCard {
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
+  min-width: 0;
+}
+.paymentPanel {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  border-color: #d9c8e9;
+  border-radius: 1.125rem 5.125rem 1.5rem 1.125rem;
+  background: #eee6fa;
+  box-shadow: 0 28px 56px -28px rgb(38 16 84 / 32%);
+}
+.paymentsCard .paymentPanel p {
+  color: #455273;
+}
+.paymentPanel .record {
+  border-color: #d4c1e5;
+}
+.paymentMascot {
+  position: absolute;
+  top: -6rem;
+  right: -4rem;
+  z-index: 0;
+  width: 14rem;
+  height: 9rem;
+  overflow: hidden;
+  transform: rotate(9deg);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  pointer-events: none;
+}
+.paymentMascot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
 .icon {
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   color: #3154c9;
 }
 .panel h3 {
@@ -39,6 +88,7 @@
   display: grid;
   gap: 0.875rem;
   margin: 1.5rem 0;
+  font-family: var(--font-body);
 }
 .checklist li {
   display: flex;
@@ -70,37 +120,185 @@
 .record p {
   font-size: 0.875rem;
 }
+
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .preparation {
+    gap: 0;
+  }
+
+  .requirementsPanel {
+    transform: rotate(-1deg);
+  }
+
+  .paymentsCard {
+    transform: translate(-1.5rem, 1.5rem) rotate(0.7deg);
+  }
+}
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .paymentsCard {
+    transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .requirementsPanel {
+    transition:
+      transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 320ms ease;
+  }
+
+  .paymentPanel {
+    transition: box-shadow 320ms ease;
+  }
+
+  .requirementsPanel:hover {
+    z-index: 3;
+    transform: translateY(-0.75rem) rotate(0deg);
+    box-shadow: 0 34px 64px -24px rgb(38 16 84 / 35%);
+  }
+
+  .paymentsCard:hover {
+    z-index: 3;
+    transform: translate(-1.5rem, 0.5rem) rotate(0deg);
+  }
+
+  .paymentsCard:hover .paymentPanel {
+    box-shadow: 0 38px 68px -24px rgb(38 16 84 / 38%);
+  }
+}
+
+.footerScene {
+  background-color: var(--landing-sky, #c1e4f4);
+  background-image:
+    linear-gradient(
+      to bottom,
+      var(--landing-sky, #c1e4f4),
+      rgb(193 228 244 / 0%) clamp(12rem, 20vw, 20rem)
+    ),
+    url("/brand/v2/footer/nature-ground-v1.webp");
+  background-position:
+    center top,
+    center bottom;
+  background-size:
+    100% 100%,
+    auto calc(100% + 32rem);
+  background-repeat: no-repeat;
+}
+
 .join {
-  padding: clamp(3rem, 6vw, 5rem) 1.25rem;
-  background: #f7f9fa;
+  position: relative;
+  isolation: isolate;
+  padding: clamp(3rem, 6vw, 5rem) 1.25rem clamp(1.25rem, 3vh, 3.5rem);
   scroll-margin-top: 6rem;
+}
+.requirements::before,
+.requirements::after,
+.join::before,
+.join::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  width: 100%;
+  height: clamp(14rem, 28vw, 22rem);
+  background: url("/brand/cloud-section-divider-v2.webp") center /
+    max(76rem, 120%) auto no-repeat;
+  filter: blur(1px);
+  pointer-events: none;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 24%,
+    #000 72%,
+    transparent
+  );
+}
+.join::before {
+  top: 0;
+  opacity: 0.72;
+}
+.requirements::before {
+  top: 0;
+  opacity: 0.6;
+}
+.requirements::after,
+.join::after {
+  bottom: 0;
+  opacity: 0.5;
+  transform: scaleX(-1);
 }
 .joinCard {
   position: relative;
   display: grid;
   place-items: center;
-  isolation: isolate;
   overflow: hidden;
   max-width: 64rem;
-  min-height: 29rem;
+  min-height: clamp(20rem, 34vh, 27rem);
   margin-inline: auto;
-  padding: 4rem 1.5rem;
-  border: 1px solid #3152a1;
-  border-radius: 1.5rem;
-  background: #14266b;
-  color: #fff;
+  padding: 2rem 1.5rem;
+  border: 1px solid rgb(255 255 255 / 42%);
+  border-radius: 2rem;
+  background: rgb(255 255 255 / 9%);
+  color: #14266b;
+  box-shadow:
+    0 28px 56px -24px rgb(19 55 79 / 32%),
+    0 6px 16px -8px rgb(16 44 67 / 22%);
   text-align: center;
 }
-.joinArt {
+.glassRefraction {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  width: 100%;
-  height: 100%;
-  opacity: 0.65;
+  border-radius: inherit;
   pointer-events: none;
+  -webkit-backdrop-filter: blur(8px) saturate(125%);
+  backdrop-filter: blur(8px) saturate(125%);
 }
+
+.joinCard > svg {
+  position: absolute;
+}
+
+.joinCard::before,
+.joinCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.joinCard::before {
+  box-shadow:
+    inset 0 2px 2px -1px rgb(255 255 255 / 95%),
+    inset 0 -2px 2px -1px rgb(255 255 255 / 80%),
+    inset 2px 0 3px -2px rgb(19 55 79 / 35%),
+    inset -2px 0 3px -2px rgb(19 55 79 / 35%),
+    inset 0 14px 16px -16px #fff,
+    inset 0 -14px 16px -16px #fff;
+}
+
+.joinCard::after {
+  padding: 2px;
+  background: linear-gradient(
+    165deg,
+    #fff 0%,
+    rgb(255 255 255 / 8%) 25%,
+    rgb(255 255 255 / 5%) 65%,
+    rgb(255 255 255 / 90%) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
 .joinInner {
+  position: relative;
+  z-index: 2;
   max-width: 38rem;
   margin: auto;
 }
@@ -113,7 +311,7 @@
 .join p {
   max-width: 34rem;
   margin: 1.5rem auto 0;
-  color: #f2f5ff;
+  color: #344c73;
   font-size: 0.9375rem;
   line-height: 1.7;
 }
@@ -126,24 +324,43 @@
   margin-top: 2rem;
   padding: 0.75rem 1.5rem;
   border-radius: 999px;
-  background: #fff;
+  border: 1px solid rgb(255 255 255 / 85%);
+  background: rgb(255 255 255 / 65%);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 6px 18px -10px rgb(32 77 129 / 30%);
   color: #14266b;
   font-weight: 800;
   font-size: 0.875rem;
   transition: background 150ms;
 }
 .primary:hover {
-  background: #e4eafa;
+  background: rgb(255 255 255 / 88%);
 }
 .primary svg {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.75rem;
+  height: 1.75rem;
 }
 .join :is(a, button):focus-visible {
-  outline: 3px solid #fff;
+  outline: 3px solid #14266b;
   outline-offset: 4px;
 }
 @media (max-width: 767px) {
+  .footerScene {
+    background-size:
+      100% 100%,
+      auto calc(100% + 60rem);
+  }
+
+  .paymentsCard {
+    margin-top: 5rem;
+  }
+  .requirementsPanel {
+    border-top-left-radius: 2.625rem;
+  }
+  .paymentPanel {
+    border-top-right-radius: 3.375rem;
+  }
   .joinCard {
     min-height: 25rem;
     padding: 3rem 1.25rem;
@@ -152,8 +369,56 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+@media (max-width: 1399px) {
+  .paymentMascot {
+    right: 0;
+  }
+}
+@media (max-width: 1199px) {
+  .paymentMascot {
+    top: -4.75rem;
+    width: 11rem;
+    height: 7rem;
+  }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .preparation {
+    margin-top: 6.5rem;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 860px) {
+  .join {
+    padding-bottom: 0.75rem;
+  }
+
+  .joinCard {
+    min-height: 0;
+    padding-block: 1.5rem;
+  }
+}
 
 .checklist span {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .joinCard {
+    background: #d8f0fd;
+  }
+}
+
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .joinCard {
+    background: #d8f0fd;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glassRefraction {
+    display: none;
+  }
 }

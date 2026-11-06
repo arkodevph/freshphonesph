@@ -1,15 +1,63 @@
 .section {
-  padding: var(--landing-section-space, 6rem) var(--landing-gutter, 1.25rem)
-    10rem;
+  position: relative;
+  isolation: isolate;
+  padding: clamp(2rem, 4vw, 3rem) var(--landing-gutter, 1.25rem) 10rem;
   scroll-margin-top: 6rem;
   overflow: clip;
-  background: #edf3fd;
+  background: var(--landing-sky, #c1e4f4);
   color: var(--color-blue-ink);
 }
 .heading {
+  position: relative;
+  isolation: isolate;
   max-width: 52rem;
   margin: 0 auto 3rem;
   text-align: center;
+}
+.section::before,
+.processClouds::before,
+.processClouds::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: calc((100% - 100vw) / 2);
+  width: 100vw;
+  height: clamp(14rem, 28vw, 24rem);
+  background: url("/brand/cloud-section-divider-v2.webp") center /
+    max(76rem, 120%) auto no-repeat;
+  filter: blur(1px);
+  pointer-events: none;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 24%,
+    #000 72%,
+    transparent
+  );
+}
+.section::before {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: clamp(20rem, 36vw, 32rem);
+  opacity: 0.5;
+  transform: scaleX(-1);
+}
+.processClouds {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: clamp(0, calc(1 - var(--reviews-reveal, 0) * 3), 1);
+}
+.processClouds::before {
+  top: -3rem;
+  opacity: 0.65;
+}
+.processClouds::after {
+  bottom: -5rem;
+  opacity: 0.5;
+  transform: scaleX(-1);
 }
 .heading > span {
   font-size: 0.6875rem;
@@ -37,6 +85,8 @@
   margin: auto;
 }
 .stage {
+  position: relative;
+  isolation: isolate;
   display: grid;
   gap: 1.5rem;
 }
@@ -71,6 +121,11 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+.panelLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
 }
 .counter {
   font-variant-numeric: tabular-nums;
@@ -185,13 +240,14 @@
 .track[data-animated="true"] .card {
   position: absolute;
   inset: 0 0 auto;
+  top: var(--process-offset, 0px);
   width: min(100%, 64rem);
   height: min(30rem, 100%);
   margin-inline: auto;
   transform-origin: center center;
   transform: translate3d(
       0,
-      calc(var(--depth) * 2.25rem - var(--flip) * 66% - var(--clear) * 55%),
+      calc(var(--depth) * 1.5rem - var(--flip) * 66% - var(--clear) * 55%),
       0
     )
     rotateX(calc(var(--flip) * 58deg)) scale(calc(1 - var(--depth) * 0.035));
@@ -208,7 +264,8 @@
   inset: 0;
   z-index: 0;
   margin: 0;
-  opacity: 1;
+  /* Keep the entire reviews stage hidden until its scroll reveal begins. */
+  opacity: clamp(0, calc(var(--reviews-reveal, 0) * 3), 1);
   pointer-events: none;
 }
 .track[data-animated="true"] .reviews:has(:focus-visible) {
@@ -224,6 +281,80 @@
 }
 .track[data-animated="true"] .scene {
   height: clamp(12rem, 25svh, 14rem);
+}
+
+@media (min-width: 901px) {
+  .section {
+    padding-top: clamp(1rem, 2svh, 1.5rem);
+    scroll-margin-top: 6.5rem;
+  }
+
+  .heading {
+    margin-bottom: clamp(1rem, 2.4svh, 1.5rem);
+  }
+
+  .heading h2 {
+    margin-top: 0.5rem;
+    font-size: clamp(2rem, 4svh, 2.5rem);
+  }
+
+  .heading p {
+    margin-top: 0.5rem;
+  }
+
+  .card {
+    padding: clamp(1rem, 2svh, 1.5rem);
+  }
+
+  .panelLabel > svg {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .progress {
+    margin-top: 0.5rem;
+  }
+
+  .main h3 {
+    font-size: clamp(1.75rem, 3.8svh, 2.25rem);
+  }
+
+  .main p {
+    margin-top: 0.75rem;
+  }
+
+  .scene,
+  .track[data-animated="true"] .scene {
+    height: clamp(8rem, 18svh, 10rem);
+  }
+
+  .steps {
+    gap: 1.25rem;
+    padding-top: 0.75rem;
+  }
+
+  .note {
+    margin-top: 0.625rem;
+  }
+
+  .track[data-animated="true"] .card {
+    height: clamp(25rem, 48svh, 28rem);
+  }
+}
+
+@media (max-width: 900px),
+  (max-height: 739px),
+  (prefers-reduced-motion: reduce) {
+  .processClouds {
+    bottom: auto;
+    height: 40rem;
+  }
+  .processClouds::before {
+    top: 0;
+  }
+  .processClouds::after {
+    bottom: 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .track[data-animated="true"] {
@@ -242,6 +373,7 @@
   }
   .track[data-animated="true"] .card {
     position: relative;
+    top: auto;
     height: auto;
     transform: none;
     opacity: 1;
@@ -264,7 +396,7 @@
 }
 @media (max-width: 640px) {
   .section {
-    padding: 4rem 1rem 3rem;
+    padding: 2rem 1rem 3rem;
   }
   .heading {
     margin-bottom: 2rem;

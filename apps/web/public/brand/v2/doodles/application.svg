@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" color="#82678f" role="img" aria-label="Application">
+  <g stroke="none" data-paint="fill">
+    <path d="M10.7 5.3L25.4 4.9C28.3 4.9 29.6 6.4 29.5 9.2L29.2 30.7C29.2 33.5 27.7 34.9 24.6 35L10.5 35.1C7.8 35.1 6.4 33.6 6.5 30.9L6.2 9.7C6.1 6.8 7.8 5.3 10.7 5.3Z" fill="#f3c5df" />
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" data-paint="outline">
+    <path d="M15.1 35L10.5 35.1C7.8 35.1 6.4 33.6 6.5 30.9L6.2 9.7C6.1 6.8 7.8 5.3 10.7 5.3L25.4 4.9C28.3 4.9 29.6 6.4 29.5 9.2L29.4 13.6" />
+    <path d="M12.1 12L23 11.8M12.2 18.4L20.7 18.2M12.4 24.7L16.4 24.6" stroke-width="2.6" />
+    <path d="M21.1 29.8L30.9 19.7L35.2 23.6L25 34L19.3 35.3ZM30.9 19.7L32.8 17.8C34 16.5 35.1 16.7 36.4 17.9C37.7 19.1 37.6 20.3 36.5 21.5L35.2 23.6" fill="#fff1f8" />
+  </g>
+</svg>

@@ -1,12 +1,22 @@
 import Link from "next/link";
 import type { LegalDocument } from "@freshphones/contracts";
+import { publicSiteHref, type PublicSiteBase } from "@/lib/public-site-links";
 import styles from "./legal-document.module.css";
 
-export function LegalDocumentPage({ document }: { document: LegalDocument }) {
+export function LegalDocumentPage({
+  document,
+  siteBasePath = "",
+}: {
+  document: LegalDocument;
+  siteBasePath?: PublicSiteBase;
+}) {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <Link className={styles.back} href="/privacy">
+        <Link
+          className={styles.back}
+          href={publicSiteHref("/privacy", siteBasePath)}
+        >
           ← Privacy and terms
         </Link>
         <header className={styles.header}>
@@ -57,8 +67,12 @@ export function LegalDocumentPage({ document }: { document: LegalDocument }) {
           </section>
         )}
         <footer className={styles.footer}>
-          <Link href="/privacy">All notices</Link>
-          <Link href="/support">Contact Fresh Phones PH</Link>
+          <Link href={publicSiteHref("/privacy", siteBasePath)}>
+            All notices
+          </Link>
+          <Link href={publicSiteHref("/support", siteBasePath)}>
+            Contact Fresh Phones PH
+          </Link>
         </footer>
       </div>
     </main>
