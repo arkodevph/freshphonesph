@@ -1,18 +1,25 @@
 [data-landing-version="2"] {
   --landing-sky: #c1e4f4;
+  --landing-nav-clearance: 7rem;
   --landing-accent: #f28dcc;
   --landing-accent-hover: #ffb1de;
   --landing-accent-ink: #a51b68;
 }
 
-@keyframes v2-landing-hero-unveil {
+@keyframes v2-landing-loader-dismiss {
   from {
-    opacity: 0.5;
-    translate: 0 1rem;
+    opacity: 1;
+    visibility: visible;
   }
   to {
-    opacity: 1;
-    translate: 0 0;
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes v2-landing-loader-content-exit {
+  to {
+    opacity: 0;
+    transform: translateY(-0.75rem) scale(0.98);
   }
 }
 @keyframes v2-hero-doodle-float {
@@ -304,12 +311,71 @@
   display: none;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  [data-landing-version="2"] .landing-loader ~ main .landing-hero h1,
-  [data-landing-version="2"] .landing-loader ~ main .landing-hero h1 + p {
-    animation: v2-landing-hero-unveil 650ms 700ms cubic-bezier(0.16, 1, 0.3, 1)
-      both;
-  }
+/* Keep the recorded cloud-to-dots choreography; apply Freshphones' sky,
+   blue/pink palette and existing display typography. */
+[data-landing-version="2"] .landing-cloud-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  overflow: hidden;
+  background: #eaf4ff;
+  animation: v2-landing-loader-dismiss 800ms 4333ms
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-landing-version="2"] .landing-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(calc(100% - 2.5rem), 24rem);
+  text-align: center;
+  animation: v2-landing-loader-content-exit 600ms 4180ms
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-landing-version="2"] .landing-loader-shape {
+  position: relative;
+  width: clamp(12rem, 24vw, 15rem);
+  aspect-ratio: 1;
+  margin-bottom: -2.25rem;
+}
+[data-landing-version="2"] .landing-loader-brand {
+  color: #14266b;
+  font-family: var(--font-display), monospace;
+  font-size: clamp(1.125rem, 3vw, 1.375rem);
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: -0.04em;
+}
+[data-landing-version="2"] .landing-loader-brand > span {
+  color: #a51b68;
+}
+[data-landing-version="2"] .landing-loader-caption {
+  margin-top: 0.5rem;
+  color: #53617e;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+[data-landing-version="2"] .landing-loader-cloud,
+[data-landing-version="2"] .landing-loader-still {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+[data-landing-version="2"] .landing-loader-cloud {
+  opacity: 0;
+}
+[data-landing-version="2"] .landing-loader-cloud[data-ready="true"] {
+  opacity: 1;
+}
+[data-landing-version="2"]
+  .landing-loader-cloud[data-ready="true"]
+  + .landing-loader-still {
+  opacity: 0;
 }
 
 [data-landing-version="2"] .scroll-phone-story {
@@ -431,8 +497,8 @@
   }
   [data-landing-version="2"] .scroll-phone-story .story-frame-canvas {
     top: 43%;
-    width: 155vw;
-    max-width: none;
+    width: 100%;
+    max-width: 100%;
     aspect-ratio: 16 / 9;
   }
   [data-landing-version="2"] .scroll-phone-story .story-beat {
@@ -469,6 +535,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-landing-version="2"] .landing-cloud-intro {
+    display: none;
+    animation: none;
+  }
+  [data-landing-version="2"] .landing-loader-content {
+    animation: none;
+  }
   [data-landing-version="2"] .landing-hero-doodle {
     animation: none;
   }
@@ -600,4 +673,28 @@
     > .relative {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+@keyframes v2-landing-hero-unveil {
+  from {
+    opacity: 0.5;
+    translate: 0 1rem;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-landing-version="2"] .landing-loader ~ main .landing-hero h1,
+  [data-landing-version="2"] .landing-loader ~ main .landing-hero h1 + p {
+    animation: v2-landing-hero-unveil 800ms 4333ms cubic-bezier(0.16, 1, 0.3, 1)
+      both;
+  }
+}
+
+/* Anchor targets keep a gap below the sticky navigation band. */
+[data-landing-version="2"] :where(main [id], section[id], article[id]) {
+  scroll-margin-top: var(--landing-nav-clearance);
 }

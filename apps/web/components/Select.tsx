@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { CaretDown, Check } from "@phosphor-icons/react";
 import styles from "./Select.module.css";
 
@@ -13,6 +20,8 @@ type Props = {
   options: readonly Option[];
   onValueChange: (value: string) => void;
   disabled?: boolean;
+  fitViewport?: boolean;
+  animate?: boolean;
 };
 
 /** Shared single-value dropdown with listbox keyboard navigation. */
@@ -23,6 +32,8 @@ export default function Select({
   options,
   onValueChange,
   disabled = false,
+  fitViewport = false,
+  animate = false,
 }: Props) {
   const listId = useId();
 
@@ -36,11 +47,66 @@ export default function Select({
 
   const [active, setActive] = useState(0);
 
+  const [placement, setPlacement] = useState({ side: "bottom", height: 240 });
+
   const selected = options.findIndex((option) => {
     return option.value === value;
   });
 
   const expanded = open && !disabled && options.length > 0;
+
+  useLayoutEffect(() => {
+    if (!expanded || !fitViewport) {
+      return;
+    }
+
+    const position = () => {
+      if (!root.current || !trigger.current) {
+        return;
+      }
+
+      const rect = trigger.current.getBoundingClientRect();
+
+      const css = getComputedStyle(root.current);
+
+      const top = parseFloat(css.getPropertyValue("--select-safe-top")) || 12;
+
+      const bottom =
+        parseFloat(css.getPropertyValue("--select-safe-bottom")) || 16;
+
+      const below = innerHeight - rect.bottom - bottom - 8;
+
+      const above = rect.top - top - 8;
+
+      const side =
+        below < Math.min(240, options.length * 44 + 12) && above > below
+          ? "top"
+          : "bottom";
+
+      const height = Math.max(
+        44,
+        Math.min(240, side === "top" ? above : below),
+      );
+
+      setPlacement((previous) => {
+        return previous.side === side && previous.height === height
+          ? previous
+          : { side, height };
+      });
+    };
+
+    position();
+
+    window.addEventListener("resize", position);
+
+    document.addEventListener("scroll", position, true);
+
+    return () => {
+      window.removeEventListener("resize", position);
+
+      document.removeEventListener("scroll", position, true);
+    };
+  }, [expanded, fitViewport, options.length]);
 
   useEffect(() => {
     if (!expanded) {
@@ -191,12 +257,18 @@ export default function Select({
           className={expanded ? styles.rotated : undefined}
         />
       </button>
-      {expanded && (
+      {(expanded || animate) && (
         <div
           id={listId}
           role="listbox"
+          hidden={!expanded}
+          aria-hidden={!expanded || undefined}
+          inert={!expanded}
+          data-motion={animate || undefined}
           aria-labelledby={labelId}
           className={styles.menu}
+          data-placement={fitViewport ? placement.side : undefined}
+          style={fitViewport ? { maxHeight: placement.height } : undefined}
         >
           {options.map((option, index) => {
             return (

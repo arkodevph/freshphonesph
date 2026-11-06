@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   catalogAvailability,
   catalogAvailabilityLabels,
@@ -15,7 +15,18 @@ import DoodleIcon from "./DoodleIcon";
 import SectionHeading from "./SectionHeading";
 import Reveal from "./Reveal";
 import CatalogBreakdown from "./CatalogBreakdown";
+import Select from "./Select";
 import styles from "./Models.module.css";
+
+const availabilityOptions = [
+  { value: "", label: "All availability" },
+  ...catalogAvailability.map((value) => {
+    return {
+      value,
+      label: catalogAvailabilityLabels[value],
+    };
+  }),
+];
 
 type Model = {
   name: string;
@@ -73,6 +84,10 @@ function FlatDevicePreview({
 }
 
 export default function Models() {
+  const availabilityId = useId();
+
+  const availabilityLabelId = `${availabilityId}-label`;
+
   const [items, setItems] = useState<PublicCatalogItem[]>([]);
 
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -224,27 +239,24 @@ export default function Models() {
             placeholder="Phone or tablet model"
           />
         </label>
-        <label className="grid min-w-0 gap-1 text-sm font-600 text-blue-ink">
-          Availability
-          <select
+        <div className={styles.availabilityField}>
+          <label id={availabilityLabelId} htmlFor={availabilityId}>
+            Availability
+          </label>
+          <Select
+            id={availabilityId}
+            labelId={availabilityLabelId}
             value={availability}
-            onChange={(event) => {
-              setAvailability(event.target.value);
+            options={availabilityOptions}
+            fitViewport
+            animate
+            onValueChange={(value) => {
+              setAvailability(value);
 
               setPage(1);
             }}
-            className="min-w-0 w-full rounded-2xl border border-blue/20 bg-white/80 px-4 py-3"
-          >
-            <option value="">All availability</option>
-            {catalogAvailability.map((value) => {
-              return (
-                <option key={value} value={value}>
-                  {catalogAvailabilityLabels[value]}
-                </option>
-              );
-            })}
-          </select>
-        </label>
+          />
+        </div>
       </div>
       {state === "loading" && (
         <p
