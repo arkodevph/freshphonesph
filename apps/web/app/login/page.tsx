@@ -20,7 +20,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { safeSupportReturn, signInDestination } from "@/lib/support-entry";
@@ -269,7 +269,7 @@ export default function LoginPage() {
             className={styles.brand}
             aria-label="Fresh Phones PH home"
           >
-            <span className={styles.brandMark}>
+            <span className={styles.brandMark} data-landing-logo>
               <Image
                 src="/brand/fresh-phones-logo.png"
                 alt=""

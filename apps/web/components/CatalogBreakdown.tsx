@@ -10,7 +10,7 @@ import {
 import { catalogPrice } from "@/lib/catalog";
 import { catalogSampleDate, catalogSampleDateLabel } from "@/lib/catalog-plan";
 import styles from "./CatalogBreakdown.module.css";
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 
 export default function CatalogBreakdown({
   item,

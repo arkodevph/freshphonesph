@@ -1,128 +1,134 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
-import frames from "./landing-cloud-frames.json";
+import { useId } from "react";
+import { cloudCircles, useCloudIntro } from "./useCloudIntro";
+import styles from "./LandingCloudIntro.module.css";
 
-const LOOP_MS = frames[frames.length - 1].t;
+type Props = {
+  navigation?: boolean;
+  ready?: boolean;
+  onComplete?: () => void;
+};
 
-const INTRO_MS = 5200;
+export default function LandingCloudIntro({
+  navigation = false,
+  ready = true,
+  onComplete,
+}: Props) {
+  const id = useId();
 
-export default function LandingCloudIntro() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const {
+    introRef,
+    cloudRef,
+    backdropRef,
+    baseRef,
+    orbitRef,
+    particleRefs,
+    initialParticleRefs,
+    finished,
+    skip,
+  } = useCloudIntro({ navigation, ready, onComplete });
 
-  const gradientId = useId();
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    if (!canvas || motion.matches) {
-      return;
-    }
-
-    const context = canvas.getContext("2d");
-
-    if (!context) {
-      return;
-    }
-
-    const scale = Math.min(window.devicePixelRatio || 1, 2);
-
-    canvas.width = Math.round(240 * scale);
-
-    canvas.height = Math.round(240 * scale);
-
-    context.scale(scale, scale);
-
-    const fill = context.createLinearGradient(45, 60, 185, 180);
-
-    fill.addColorStop(0, "#4f86ff");
-
-    fill.addColorStop(0.6, "#9398e9");
-
-    fill.addColorStop(1, "#f28dcc");
-
-    const paths = frames.map((frame) => {
-      return new Path2D(frame.d);
-    });
-
-    const started = performance.now();
-
-    let raf = 0;
-
-    const render = (now: number) => {
-      const elapsed = now - started;
-
-      const phase = elapsed % LOOP_MS;
-
-      let index = 0;
-
-      while (index < frames.length - 2 && frames[index + 1].t <= phase) {
-        index += 1;
-      }
-
-      context.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Keep the recording's actual poses and intervals. Cross-fading poses
-      // creates ghost dots that are absent from the reference.
-      context.fillStyle = fill;
-
-      context.fill(paths[index]);
-
-      canvas.dataset.ready = "true";
-
-      if (elapsed < INTRO_MS && !motion.matches) {
-        raf = requestAnimationFrame(render);
-      }
-    };
-
-    raf = requestAnimationFrame(render);
-
-    return () => {
-      cancelAnimationFrame(raf);
-    };
-  }, []);
+  if (finished) {
+    return null;
+  }
 
   return (
-    <div className="landing-loader landing-cloud-intro" aria-hidden="true">
-      <div className="landing-loader-content">
-        <div className="landing-loader-shape">
-          <canvas
-            ref={canvasRef}
-            className="landing-loader-cloud"
-            width={240}
-            height={240}
-          />
-          <svg
-            className="landing-loader-still"
-            viewBox="0 0 240 240"
-            focusable="false"
-          >
+    <>
+      {!navigation && (
+        <noscript>
+          <style>
+            {
+              ".landing-cloud-intro:not([data-public-navigation-loader]){display:none!important}"
+            }
+          </style>
+        </noscript>
+      )}
+      <div
+        ref={introRef}
+        className={`landing-cloud-intro ${styles.intro}`}
+        data-public-navigation-loader={navigation ? "" : undefined}
+      >
+        {navigation && (
+          <span className={styles.srOnly} role="status" aria-live="polite">
+            Loading page…
+          </span>
+        )}
+        <div ref={backdropRef} className={styles.backdrop} aria-hidden="true" />
+        <div className={styles.edges} aria-hidden="true">
+          {cloudCircles.map((circle, index) => {
+            return (
+              <span
+                key={index}
+                ref={(element) => {
+                  initialParticleRefs.current[index] = element;
+                }}
+                className={styles.edgeParticle}
+                style={{
+                  left: circle.left,
+                  top: circle.top,
+                  width: `calc(var(--cloud-size) * ${(circle.r * 1.8) / 240})`,
+                  background: circle.color,
+                }}
+              />
+            );
+          })}
+        </div>
+        <div
+          ref={cloudRef}
+          className={styles.cloud}
+          data-cloud-shape
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 240 150" focusable="false" aria-hidden="true">
             <defs>
               <linearGradient
-                id={gradientId}
-                x1="45"
-                y1="60"
-                x2="185"
-                y2="180"
+                id={id}
                 gradientUnits="userSpaceOnUse"
+                x1="20"
+                y1="110"
+                x2="220"
+                y2="50"
               >
-                <stop stopColor="#4f86ff" />
-                <stop offset="0.6" stopColor="#9398e9" />
+                <stop stopColor="#5ca9f7" />
+                <stop offset="0.52" stopColor="#9c8fe3" />
                 <stop offset="1" stopColor="#f28dcc" />
               </linearGradient>
             </defs>
-            <path d={frames[0].d} fill={`url(#${gradientId})`} />
+            <rect
+              ref={baseRef}
+              className={styles.base}
+              x="46"
+              y="88"
+              width="148"
+              height="57"
+              rx="28.5"
+              fill={`url(#${id})`}
+            />
+            <g ref={orbitRef} className={styles.orbit} data-cloud-orbit>
+              {cloudCircles.map((circle, index) => {
+                return (
+                  <circle
+                    key={index}
+                    ref={(element) => {
+                      particleRefs.current[index] = element;
+                    }}
+                    className={styles.particle}
+                    data-cloud-particle
+                    cx={circle.cx}
+                    cy={circle.cy}
+                    r={circle.r}
+                    fill={`url(#${id})`}
+                  />
+                );
+              })}
+            </g>
           </svg>
         </div>
-        <span className="landing-loader-brand">
-          Fresh Phones <span>PH</span>
-        </span>
-        <span className="landing-loader-caption">
-          iPhone &amp; iPad paluwagan
-        </span>
+        <button type="button" className={styles.skip} onClick={skip}>
+          {navigation ? "Skip animation" : "Skip intro"}
+        </button>
       </div>
-    </div>
+    </>
   );
 }

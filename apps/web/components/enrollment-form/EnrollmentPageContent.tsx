@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 import DoodleIcon from "../DoodleIcon";
 import { landingV2Font } from "../font";
 import typography from "../typography.module.css";

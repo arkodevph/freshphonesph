@@ -1,4 +1,5 @@
 import DoodleIcon from "./DoodleIcon";
+import PublicNavigationLink from "./PublicNavigationLink";
 import HeroLoop from "./HeroLoop";
 import HeroDeviceWord from "./HeroDeviceWord";
 import styles from "./Hero.module.css";
@@ -39,10 +40,10 @@ export default function Hero() {
               <DoodleIcon name="phone-heart" size={28} />
               View available units
             </a>
-            <a href="/enroll" className={styles.apply}>
+            <PublicNavigationLink href="/enroll" className={styles.apply}>
               <DoodleIcon name="application" size={28} />
               Apply to join
-            </a>
+            </PublicNavigationLink>
           </div>
         </div>
       </div>

@@ -6,132 +6,142 @@ import {
   publicNavigationEvent,
   publicNavigationResetEvent,
 } from "@/lib/public-navigation";
-import LandingLoader from "./LandingLoader";
+import LandingCloudIntro from "./LandingCloudIntro";
 
 function NavigationFeedback() {
   const pathname = usePathname();
 
   const search = useSearchParams().toString();
 
-  const [phase, setPhase] = useState<"idle" | "pending" | "leaving">("idle");
+  const [active, setActive] = useState(false);
+
+  const [ready, setReady] = useState(false);
 
   const [attempt, setAttempt] = useState(0);
 
-  const started = useRef<number | null>(null);
+  const pending = useRef(false);
 
-  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previousRoute = useRef(`${pathname}?${search}`);
+
+  const historyRoute = useRef(`${pathname}?${search}`);
+
+  const awaitingRoute = useRef(false);
 
   const recoveryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const reset = useCallback(() => {
-    if (dismissTimer.current) {
-      clearTimeout(dismissTimer.current);
-    }
-
     if (recoveryTimer.current) {
       clearTimeout(recoveryTimer.current);
     }
 
-    if (exitTimer.current) {
-      clearTimeout(exitTimer.current);
-    }
+    pending.current = false;
 
-    started.current = null;
-
-    setPhase("idle");
+    setActive(false);
   }, []);
 
   useEffect(() => {
-    function begin() {
-      if (dismissTimer.current) {
-        clearTimeout(dismissTimer.current);
-      }
-
+    function begin(committed = false) {
       if (recoveryTimer.current) {
         clearTimeout(recoveryTimer.current);
       }
 
-      if (exitTimer.current) {
-        clearTimeout(exitTimer.current);
-      }
+      pending.current = true;
 
-      started.current = performance.now();
+      awaitingRoute.current = !committed;
+
+      document.documentElement.dataset.publicNavigationStarted = "true";
+
+      setReady(committed);
 
       setAttempt((current) => {
         return current + 1;
       });
 
-      setPhase("pending");
+      setActive(true);
 
-      // Clear abandoned feedback if a navigation fails to commit.
+      // Release the page if routing fails to commit.
       recoveryTimer.current = setTimeout(reset, 15000);
     }
 
-    window.addEventListener(publicNavigationEvent, begin);
+    function onBegin() {
+      begin();
+    }
+
+    function onPopState() {
+      const route = `${window.location.pathname}?${window.location.search.slice(1)}`;
+
+      const privateRoute = /^\/(?:system|portal)(?:\/|\?|$)/;
+
+      if (
+        route !== historyRoute.current &&
+        !privateRoute.test(route) &&
+        !privateRoute.test(historyRoute.current)
+      ) {
+        historyRoute.current = route;
+
+        begin(previousRoute.current === route);
+      }
+    }
+
+    window.addEventListener(publicNavigationEvent, onBegin);
 
     window.addEventListener(publicNavigationResetEvent, reset);
+
+    // Start before Next updates the route snapshot for a history navigation.
+    window.addEventListener("popstate", onPopState, true);
 
     window.addEventListener("pageshow", reset);
 
     window.addEventListener("pagehide", reset);
 
     return () => {
-      window.removeEventListener(publicNavigationEvent, begin);
+      window.removeEventListener(publicNavigationEvent, onBegin);
 
       window.removeEventListener(publicNavigationResetEvent, reset);
+
+      window.removeEventListener("popstate", onPopState, true);
 
       window.removeEventListener("pageshow", reset);
 
       window.removeEventListener("pagehide", reset);
 
-      if (dismissTimer.current) {
-        clearTimeout(dismissTimer.current);
-      }
-
       if (recoveryTimer.current) {
         clearTimeout(recoveryTimer.current);
-      }
-
-      if (exitTimer.current) {
-        clearTimeout(exitTimer.current);
       }
     };
   }, [reset]);
 
   useEffect(() => {
-    if (started.current === null) {
-      return;
-    }
+    const route = `${pathname}?${search}`;
 
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    const remaining = Math.max(
-      0,
-      (reducedMotion ? 320 : 620) - (performance.now() - started.current),
-    );
-
-    dismissTimer.current = setTimeout(() => {
-      started.current = null;
-
-      if (recoveryTimer.current) {
-        clearTimeout(recoveryTimer.current);
+    if (route !== previousRoute.current) {
+      if (pending.current) {
+        setReady(true);
       }
 
-      setPhase("leaving");
+      // Preserve the source for popstate even if React commits before the event.
+      if (pending.current || awaitingRoute.current) {
+        historyRoute.current = route;
 
-      exitTimer.current = setTimeout(reset, reducedMotion ? 0 : 840);
-    }, remaining);
-  }, [pathname, search, reset]);
+        awaitingRoute.current = false;
+      }
+    }
 
-  if (phase === "idle") {
+    previousRoute.current = route;
+  }, [pathname, search]);
+
+  if (!active) {
     return null;
   }
 
-  return <LandingLoader key={attempt} phase={phase} />;
+  return (
+    <LandingCloudIntro
+      key={attempt}
+      navigation
+      ready={ready}
+      onComplete={reset}
+    />
+  );
 }
 
 export default function PublicNavigationLoader() {

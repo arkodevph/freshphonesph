@@ -265,7 +265,7 @@ export default function Navbar() {
             aria-label="Fresh Phones PH home"
             onClick={closeMenus}
           >
-            <span className={styles.logo}>
+            <span className={styles.logo} data-landing-logo>
               <Image
                 src="/brand/fresh-phones-logo.png"
                 alt=""

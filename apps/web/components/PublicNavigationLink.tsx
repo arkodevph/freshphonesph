@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { type LinkProps } from "next/link";
 import type { AnchorHTMLAttributes, MouseEvent } from "react";
 import {
   publicNavigationKind,
@@ -8,12 +8,18 @@ import {
   publicNavigationResetEvent,
 } from "@/lib/public-navigation";
 
+type Props = AnchorHTMLAttributes<HTMLAnchorElement> &
+  Pick<LinkProps, "prefetch" | "replace" | "scroll">;
+
 export default function PublicNavigationLink({
   href,
   onClick,
   children,
+  prefetch,
+  replace,
+  scroll,
   ...props
-}: AnchorHTMLAttributes<HTMLAnchorElement>) {
+}: Props) {
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     onClick?.(event);
 
@@ -51,7 +57,14 @@ export default function PublicNavigationLink({
   }
 
   return (
-    <Link {...props} href={href} onClick={handleClick}>
+    <Link
+      {...props}
+      href={href}
+      prefetch={prefetch}
+      replace={replace}
+      scroll={scroll}
+      onClick={handleClick}
+    >
       {children}
     </Link>
   );

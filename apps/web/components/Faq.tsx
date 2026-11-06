@@ -1,5 +1,6 @@
 "use client";
 
+import PublicNavigationLink from "./PublicNavigationLink";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { CaretLeft, CaretRight, MagnifyingGlass } from "@phosphor-icons/react";
 import { faqs, faqTopics, filterFaqs, type FaqTopic } from "@/lib/faq";
@@ -256,10 +257,13 @@ export default function Faq() {
                     <br />
                     From application to release.
                   </p>
-                  <a href="/support" className={styles.contact}>
+                  <PublicNavigationLink
+                    href="/support"
+                    className={styles.contact}
+                  >
                     <DoodleIcon name="chat-heart" size={24} />
                     Let&apos;s talk
-                  </a>
+                  </PublicNavigationLink>
                 </div>
               </div>
             );
@@ -268,7 +272,7 @@ export default function Faq() {
       </div>
 
       <div className={styles.utilities} hidden={!enhanced}>
-        <a href="/support" className={styles.helpIntro}>
+        <PublicNavigationLink href="/support" className={styles.helpIntro}>
           <span className={styles.helpIcon}>
             <DoodleIcon name="chat-heart" size={32} />
           </span>
@@ -276,7 +280,7 @@ export default function Faq() {
             <strong>Prefer a conversation?</strong>
             <span>Our team can help you get started.</span>
           </span>
-        </a>
+        </PublicNavigationLink>
         <div className={styles.search} hidden={!enhanced} role="search">
           <label htmlFor="faq-search">Search FAQs</label>
           <div className={styles.searchField}>
@@ -318,7 +322,11 @@ export default function Faq() {
           );
         })}
         <p>
-          Still need help? <a href="/support">Visit Help &amp; Support</a>.
+          Still need help?{" "}
+          <PublicNavigationLink href="/support">
+            Visit Help &amp; Support
+          </PublicNavigationLink>
+          .
         </p>
       </div>
     </section>

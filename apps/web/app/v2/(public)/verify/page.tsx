@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 import AgentVerification from "@/components/AgentVerification";
 export const metadata: Metadata = {
   title: "Verify an agent · Fresh Phones PH",

@@ -1,0 +1,362 @@
+.section {
+  max-width: 90rem;
+  margin-inline: auto;
+  padding: clamp(3.5rem, 7vw, 6rem) clamp(1rem, 3vw, 2.5rem);
+  scroll-margin-top: 6rem;
+  color: #14266b;
+}
+
+.intro {
+  max-width: 48rem;
+  margin: 0 auto 2.75rem;
+  text-align: center;
+}
+
+.section .eyebrow,
+.card .eyebrow {
+  color: #14266b;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  line-height: 1.6;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin-top: 1rem;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: clamp(2rem, 3.5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.title span {
+  color: var(--landing-accent-ink, #a51b68);
+}
+
+.subtitle {
+  margin-top: 1.25rem;
+  color: #455273;
+  font-family: var(--font-body), sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.75;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  max-width: 78rem;
+  margin-inline: auto;
+  align-items: stretch;
+}
+
+.card {
+  min-width: 0;
+  border: 1px solid rgb(255 255 255 / 85%);
+  border-radius: 3.5rem 1.25rem 1.25rem 1.25rem;
+  padding: clamp(1.75rem, 3vw, 3rem);
+  background: #f4faff;
+  color: #14266b;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 20px 44px -32px rgb(38 16 84 / 35%);
+  overflow-wrap: anywhere;
+}
+
+@supports (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .card {
+    background: rgb(248 252 255 / 80%);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+}
+
+.cardHeading > svg {
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.cardHeading h3 {
+  margin-top: 0.5rem;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.cardDescription {
+  margin-top: 0.75rem;
+  color: #455273;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.form {
+  margin-top: 2rem;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.input {
+  flex: 1 1 13rem;
+  min-width: 0;
+  width: 100%;
+  min-height: 3.5rem;
+  border: 1px solid #b4bfd1;
+  border-radius: 999px;
+  padding: 0.875rem 1rem;
+  background: #fff;
+  color: #14266b;
+  font-family: var(--font-body), sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.input::placeholder {
+  color: #66738c;
+  opacity: 1;
+}
+
+.input:focus-visible {
+  border-color: #3154c9;
+  outline: 2px solid #3154c9;
+  outline-offset: 3px;
+}
+
+.input:disabled {
+  background: #eaf1f7;
+}
+
+.card .submit {
+  flex: 1 0 auto;
+  justify-content: center;
+  margin-top: 0;
+  padding-inline: 1.125rem;
+  font-family: var(--font-display), ui-monospace, monospace;
+  cursor: pointer;
+}
+
+.card .submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.card .submit:disabled svg {
+  transform: none;
+}
+
+.privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid #dce4ef;
+  padding-top: 1.25rem;
+  color: #455273;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.privacy span {
+  display: block;
+}
+
+.assurances {
+  min-width: 0;
+  border-radius: 1.25rem 4rem 1.25rem 1.25rem;
+  padding: clamp(1.75rem, 3vw, 3rem);
+  background: #eee6fa;
+}
+
+.assurancesTitle {
+  margin-top: 0.75rem;
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.benefits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.75rem 1.5rem;
+  margin-top: 2rem;
+}
+
+.benefit {
+  min-width: 0;
+}
+
+.benefit > svg {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.benefit h4 {
+  font-family: var(--font-display), ui-monospace, monospace;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: -0.035em;
+}
+
+.benefit p {
+  margin-top: 0.5rem;
+  color: #455273;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  margin-top: 1.25rem;
+  border: 1px solid currentColor;
+  border-radius: 1rem;
+  padding: 1rem;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.feedback > div {
+  min-width: 0;
+}
+
+.positive {
+  background: #edf8f2;
+  color: #1b6245;
+}
+
+.negative {
+  background: #fff0f5;
+  color: #962846;
+}
+
+.feedbackIcon {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.agentName {
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.agentCode {
+  margin-top: 0.25rem;
+}
+
+.status {
+  display: inline-block;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.625rem;
+  background: rgb(255 255 255 / 70%);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 44rem;
+  }
+
+  .card {
+    border-radius: 3rem 1.25rem 1.25rem 1.25rem;
+  }
+
+  .assurances {
+    border-radius: 1.25rem 3rem 1.25rem 1.25rem;
+  }
+
+  .assurancesTitle br {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .intro {
+    margin-bottom: 2rem;
+  }
+
+  .desktopBreak {
+    display: none;
+  }
+
+  .card,
+  .assurances {
+    padding: 1.5rem;
+  }
+
+  .searchRow {
+    flex-direction: column;
+  }
+
+  .input {
+    flex-basis: auto;
+  }
+
+  .benefits {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .benefit {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    column-gap: 0.875rem;
+    align-items: start;
+  }
+
+  .benefit > svg {
+    grid-row: span 2;
+    margin-bottom: 0;
+  }
+
+  .benefit p {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .card {
+    background: #f4faff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

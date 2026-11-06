@@ -1,4 +1,5 @@
 import Image from "next/image";
+import PublicNavigationLink from "./PublicNavigationLink";
 import type { Metadata } from "next";
 import { ArrowRight, House, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import { landingV2Font } from "./font";
@@ -18,18 +19,19 @@ export default function NotFoundPage() {
       className={`${styles.page} ${landingV2Font.variable} ${typography.root}`}
     >
       <header className={styles.header}>
-        <a href="/" className={styles.brand}>
+        <PublicNavigationLink href="/" className={styles.brand}>
           <Image
             src="/brand/fresh-phones-logo.png"
             alt=""
             width={44}
             height={44}
             className={styles.logo}
+            data-landing-logo
           />
           <span>
             Fresh Phones <span className={styles.brandAccent}>PH</span>
           </span>
-        </a>
+        </PublicNavigationLink>
         <span className={styles.headerNote}>A little lost. Still fresh.</span>
       </header>
 
@@ -49,14 +51,14 @@ export default function NotFoundPage() {
             might be a little off. Let’s get you back to fresh finds.
           </p>
           <div className={styles.actions}>
-            <a href="/" className={styles.primary}>
+            <PublicNavigationLink href="/" className={styles.primary}>
               <House weight="bold" aria-hidden="true" />
               Back to home
-            </a>
-            <a href="/#units" className={styles.secondary}>
+            </PublicNavigationLink>
+            <PublicNavigationLink href="/#units" className={styles.secondary}>
               Browse available units
               <ArrowRight weight="bold" aria-hidden="true" />
-            </a>
+            </PublicNavigationLink>
           </div>
         </div>
 
@@ -80,7 +82,10 @@ export default function NotFoundPage() {
       <footer className={styles.footer}>
         <span>A fresh start is just a click away.</span>
         <p>
-          Still a little lost? <a href="/support">Contact support</a>
+          Still a little lost?{" "}
+          <PublicNavigationLink href="/support">
+            Contact support
+          </PublicNavigationLink>
         </p>
       </footer>
     </div>

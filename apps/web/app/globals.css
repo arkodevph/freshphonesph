@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+[data-landing-logo] {
+  transition: opacity 180ms ease;
+}
+
+html[data-cloud-intro] [data-landing-logo] {
+  opacity: 0;
+}
+
+html[data-cloud-intro="docking"] [data-landing-logo] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-landing-logo] {
+    transition: none;
+  }
+}
+
 /* ============================================================
    Fresh Phones PH - Y2K / Modern blue design tokens
    ============================================================ */

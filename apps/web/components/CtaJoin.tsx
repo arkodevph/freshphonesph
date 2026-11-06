@@ -1,6 +1,6 @@
 import VerificationGlass from "./VerificationGlass";
 import DoodleIcon from "./DoodleIcon";
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 import styles from "./LandingContent.module.css";
 
 export default function CtaJoin() {

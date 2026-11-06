@@ -441,39 +441,6 @@
   transition-duration: 100ms;
 }
 
-@keyframes icon-shake {
-  0%,
-  100% {
-    rotate: 0deg;
-    translate: 0 0;
-  }
-  20% {
-    rotate: -8deg;
-    translate: -1px 0;
-  }
-  40% {
-    rotate: 7deg;
-    translate: 1px 0;
-  }
-  60% {
-    rotate: -5deg;
-    translate: -0.5px 0;
-  }
-  80% {
-    rotate: 3deg;
-    translate: 0.5px 0;
-  }
-}
-
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .login[href]:hover > svg[data-doodle],
-  .apply:hover > svg[data-doodle],
-  .explorePanel a:hover > svg[data-doodle],
-  .mobileLinks a:hover > svg[data-doodle] {
-    animation: icon-shake 520ms ease-in-out;
-  }
-}
-
 .login[href]:active > svg,
 .apply:active > svg {
   transform: scale(0.95);
