@@ -17,6 +17,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 import {
+  paymentOperationalReviewSchema,
   paymentCorrectionSchema,
   paymentAdjustmentSchema,
   paymentDecisionSchema,
@@ -145,6 +146,18 @@ export class FinanceController {
     body: z.infer<typeof paymentCorrectionSchema>,
   ) {
     return this.finance.correct(user, id, body.record, body.version);
+  }
+
+  @Post("payments/:id/operational-review")
+  @HttpCode(200)
+  @RequiresAny("PAYMENT_COMPLETENESS_REVIEW", "PAYMENT_MANAGER_REVIEW")
+  operationalReview(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new Validate(paymentOperationalReviewSchema))
+    body: z.infer<typeof paymentOperationalReviewSchema>,
+  ) {
+    return this.finance.operationalReview(user, id, body);
   }
 
   @Post("payments/:id/verify")

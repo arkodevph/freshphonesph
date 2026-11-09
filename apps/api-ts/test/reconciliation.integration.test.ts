@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { prepareFinanceReview } from "./helpers/payment-workflow";
 import { after, before, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -232,13 +233,15 @@ before(async () => {
     schedules[0].id,
   );
 
+  const reviewed = await prepareFinanceReview(db, recorded.id);
+
   const verified = await request(
     "FINANCE_OFFICER",
     `/payments/${recorded.id}/verify`,
     {
       decision: "VERIFIED",
       notes: "Synthetic Finance review",
-      version: recorded.version,
+      version: reviewed.version,
     },
   );
 

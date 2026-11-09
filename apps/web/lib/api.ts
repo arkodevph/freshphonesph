@@ -276,6 +276,7 @@ export type Payment = {
   adjustment_revision?: number;
   adjustments?: import("@freshphones/contracts").PaymentAdjustment[];
   duplicate_reference?: boolean;
+  workflow?: import("@freshphones/contracts").PaymentWorkflow;
 };
 
 export type Paginated<T> = {
@@ -325,6 +326,7 @@ const toPayment = (payment: TsPayment): Payment => {
     verified_at: payment.verifiedAt,
     version: payment.version,
     duplicate_reference: payment.duplicateReference,
+    workflow: payment.workflow,
   };
 };
 
@@ -436,6 +438,16 @@ export function findDuplicatePayments(
   }
 
   return tsRequest<PaymentDuplicateMatch[]>(`/payments/duplicates?${query}`);
+}
+
+export function reviewPaymentOperations(
+  id: RecordId,
+  input: import("@freshphones/contracts").PaymentOperationalReviewInput,
+) {
+  return tsRequest<TsPayment>(`/payments/${id}/operational-review`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  }).then(toPayment);
 }
 
 export function decidePayment(

@@ -3,6 +3,7 @@
 import {
   createPayment,
   decidePayment,
+  reviewPaymentOperations,
   findDuplicatePayments,
   getBalance,
   getProofUrl,
@@ -32,6 +33,15 @@ export function usePaymentsWorkspace() {
   const canVerify = can(me, "PAYMENT_VERIFY");
 
   const canRead = can(me, "PAYMENT_READ");
+
+  const reviewStage: "RECORDS" | "MANAGER" | "FINANCE" = can(
+    me,
+    "PAYMENT_COMPLETENESS_REVIEW",
+  )
+    ? "RECORDS"
+    : can(me, "PAYMENT_MANAGER_REVIEW")
+      ? "MANAGER"
+      : "FINANCE";
 
   const [payments, setPayments] = useState<Payment[]>([]);
 
@@ -683,7 +693,7 @@ export function usePaymentsWorkspace() {
     const reviewNote = reviewNotes[paymentId]?.trim() ?? "";
 
     if (reviewNote.length < 2) {
-      setReviewError("Add a Finance review note before deciding.");
+      setReviewError("Add a review note before deciding.");
 
       financeNoteInput.current?.focus();
 
@@ -695,14 +705,27 @@ export function usePaymentsWorkspace() {
     setReviewSaving(true);
 
     try {
-      await decidePayment(
-        reviewPayment.id,
-        reviewDecision,
-        reviewPayment.version,
-        reviewNote,
-      );
+      if (reviewStage === "FINANCE") {
+        await decidePayment(
+          reviewPayment.id,
+          reviewDecision,
+          reviewPayment.version,
+          reviewNote,
+        );
+      } else {
+        await reviewPaymentOperations(reviewPayment.id, {
+          stage: reviewStage,
+          decision: reviewDecision === "verified" ? "APPROVED" : "RETURNED",
+          notes: reviewNote,
+          version: reviewPayment.version!,
+        });
+      }
 
-      flash(`Payment ${reviewDecision.replace("_", " ")}.`);
+      flash(
+        reviewStage === "FINANCE"
+          ? `Payment ${reviewDecision.replace("_", " ")}.`
+          : "Operational review saved.",
+      );
 
       setReviewNotes((current) => {
         const next = { ...current };
@@ -801,6 +824,7 @@ export function usePaymentsWorkspace() {
       form,
     },
     financeReviewDialogProps: {
+      reviewStage,
       financeDialog,
       setReviewPayment,
       setReviewDecision,
@@ -821,6 +845,7 @@ export function usePaymentsWorkspace() {
       viewProof,
     },
     paymentListPanelProps: {
+      reviewStage,
       focusedPayment,
       setFocusedPayment,
       setFilter,

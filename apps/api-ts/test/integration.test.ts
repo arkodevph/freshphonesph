@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { prepareFinanceReview } from "./helpers/payment-workflow";
 import { after, before, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -71,6 +72,26 @@ let batchId: string;
 const suffix = randomUUID().slice(0, 8);
 
 class Session {
+  async reviewedRequest(
+    path: string,
+    options: RequestInit = {},
+    apiBase = base,
+  ) {
+    const id = path.match(/^\/payments\/([0-9a-f-]+)\/verify$/)?.[1];
+
+    if (id && typeof options.body === "string") {
+      const body = JSON.parse(options.body);
+
+      const payment = await db.payment.findUnique({ where: { id } });
+
+      if (payment?.status === "PENDING" && payment.version === body.version) {
+        await prepareFinanceReview(db, id);
+      }
+    }
+
+    return this.request(path, options, apiBase);
+  }
+
   cookies = new Map<string, string>();
   async request(path: string, options: RequestInit = {}, apiBase = base) {
     const response = await fetch(`${apiBase}/api${path}`, {
@@ -1648,8 +1669,14 @@ test("Finance verification alone moves balances and customer-visible history", a
   assert.equal(
     (await recorder.upload(`/payments/${payment.id}/proof`, duplicateProof))
       .status,
-    409,
+    201,
   );
+
+  paymentWithProof.version = (
+    await db.payment.findUniqueOrThrow({ where: { id: payment.id } })
+  ).version;
+
+  assert.equal(paymentWithProof.version, 3);
 
   const duplicate = await (
     await recorder.request("/payments", post(input))
@@ -1698,7 +1725,7 @@ test("Finance verification alone moves balances and customer-visible history", a
   );
 
   const decisions = await Promise.all([
-    finance.request(
+    finance.reviewedRequest(
       `/payments/${payment.id}/verify`,
       post({
         decision: "VERIFIED",
@@ -1706,7 +1733,7 @@ test("Finance verification alone moves balances and customer-visible history", a
         version: paymentWithProof.version,
       }),
     ),
-    finance.request(
+    finance.reviewedRequest(
       `/payments/${payment.id}/verify`,
       post({
         decision: "VERIFIED",
@@ -1800,7 +1827,7 @@ test("Finance verification alone moves balances and customer-visible history", a
     200,
   );
 
-  const clarification = await finance.request(
+  const clarification = await finance.reviewedRequest(
     `/payments/${duplicate.id}/verify`,
     post({
       decision: "NEEDS_CLARIFICATION",
@@ -1848,7 +1875,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 
   assert.equal(
     await db.auditEntry.count({ where: { recordId: payment.id } }),
-    3,
+    4,
   );
 
   const overpayment = await (
@@ -1864,7 +1891,7 @@ test("Finance verification alone moves balances and customer-visible history", a
 
   assert.equal(
     (
-      await finance.request(
+      await finance.reviewedRequest(
         `/payments/${overpayment.id}/verify`,
         post({
           decision: "VERIFIED",
@@ -3230,7 +3257,7 @@ test("staff work queues show only authorized, actionable records and open exact 
 
   assert.equal(
     (
-      await finance.request(
+      await finance.reviewedRequest(
         `/payments/${newPayment.id}/verify`,
         post({
           decision: "NEEDS_CLARIFICATION",
@@ -4185,7 +4212,7 @@ test("client edits reject stale concurrent drafts and preserve schedules and ver
 
   assert.equal(
     (
-      await finance.request(
+      await finance.reviewedRequest(
         `/payments/${claim.id}/verify`,
         post({
           version: claim.version,
@@ -5482,7 +5509,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
 
   assert.equal(
     (
-      await finance.request(
+      await finance.reviewedRequest(
         `/payments/${payment.id}/verify`,
         post({
           version: 3,
@@ -5538,7 +5565,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
 
   assert.equal(
     (
-      await finance.request(
+      await finance.reviewedRequest(
         `/payments/${payment.id}/verify`,
         post({
           version: 5,
@@ -5577,7 +5604,7 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
 
   assert.equal(
     (
-      await finance.request(
+      await finance.reviewedRequest(
         `/payments/${rejected.id}/verify`,
         post({
           version: 1,
@@ -6603,7 +6630,11 @@ async function recordedResultPayment(
 
   assert.equal(response.status, 201);
 
-  return { payment: await response.json(), input };
+  const payment = await response.json();
+
+  await prepareFinanceReview(db, payment.id);
+
+  return { payment, input };
 }
 
 const decideResult = (
@@ -6614,7 +6645,7 @@ const decideResult = (
   notes = "Checked external payment evidence.",
   apiBase = base,
 ) => {
-  return session.request(
+  return session.reviewedRequest(
     `/payments/${id}/verify`,
     post({ decision, version, notes }),
     apiBase,
@@ -9062,11 +9093,13 @@ test("staff email outbox failures roll back task assignments and Finance decisio
     results.length,
   );
 
-  await db.payment.delete({ where: { id: payment.id } });
+  await assert.rejects(db.payment.delete({ where: { id: payment.id } }));
 
   assert.equal(
-    await db.staffEmail.count({ where: { paymentId: payment.id } }),
-    0,
+    await db.staffEmail.count({
+      where: { paymentId: payment.id, kind: "PAYMENT_VERIFIED" },
+    }),
+    results.length,
   );
 });
 
