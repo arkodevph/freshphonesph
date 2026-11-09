@@ -109,6 +109,8 @@ export const permissions = [
   "PAYMENT_READ",
   "PAYMENT_RECORD",
   "PAYMENT_VERIFY",
+  "PAYMENT_COMPLETENESS_REVIEW",
+  "PAYMENT_MANAGER_REVIEW",
   "SUPPORT_MANAGE",
   "REPORT_VIEW",
   "REPORT_WRITE",
@@ -151,6 +153,7 @@ const ownWork: Permission[] = ["TASK_READ", "TASK_SUBMIT", "NOTIFICATION_READ"];
 const records: Permission[] = ["BATCH_READ", "CLIENT_READ"];
 
 const batchManager: Permission[] = [
+  "PAYMENT_MANAGER_REVIEW",
   ...records,
   "BATCH_MANAGE",
   "CLIENT_MANAGE",
@@ -190,6 +193,8 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
   SYSTEM_ADMIN: permissions.filter((permission) => {
     return ![
       "PAYMENT_VERIFY",
+      "PAYMENT_COMPLETENESS_REVIEW",
+      "PAYMENT_MANAGER_REVIEW",
       "WITHDRAWAL_SUBMIT",
       "WITHDRAWAL_AGENT_REVIEW",
       "WITHDRAWAL_DECIDE",
@@ -233,6 +238,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
   BATCH_MANAGER: batchManager,
   GENERAL_MANAGER: batchManager,
   RECORDS: [
+    "PAYMENT_COMPLETENESS_REVIEW",
     "ENROLLMENT_FORM_MANAGE",
     "GCASH_HISTORY_READ",
     "GCASH_HISTORY_REVIEW",
@@ -777,6 +783,35 @@ export const paymentDecisionSchema = z
   })
   .strict();
 
+export const paymentOperationalReviewSchema = z
+  .object({
+    stage: z.enum(["RECORDS", "MANAGER"]),
+    decision: z.enum(["APPROVED", "RETURNED"]),
+    notes: z.string().trim().min(2).max(1000),
+    version: z.number().int().positive(),
+  })
+  .strict();
+
+export type PaymentOperationalReviewInput = z.infer<
+  typeof paymentOperationalReviewSchema
+>;
+
+export interface PaymentWorkflow {
+  evidenceVersion: number;
+  recordsApproved: boolean;
+  managerApproved: boolean;
+  managerId: string | null;
+  history: {
+    id: string;
+    stage: string;
+    decision: string;
+    notes: string;
+    evidenceVersion: number;
+    reviewer: { id: string; name: string };
+    createdAt: string;
+  }[];
+}
+
 export const paymentCorrectionSchema = z
   .object({
     record: paymentSchema,
@@ -1155,6 +1190,7 @@ export interface Payment extends Omit<
   adjustmentAmount?: string;
   adjustmentRevision?: number;
   adjustments?: PaymentAdjustment[];
+  workflow?: PaymentWorkflow;
 }
 
 export interface ClientBalance {

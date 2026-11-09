@@ -138,6 +138,7 @@ enum StaffEmailStatus {
   SKIPPED
 }
 model User {
+  paymentOperationalReviews PaymentOperationalReview[]
   enrollmentFormDrafts EnrollmentFormConfig[] @relation("EnrollmentFormReceivingAgent")
   enrollmentFormRevisions EnrollmentFormRevision[] @relation("EnrollmentRevisionReceivingAgent")
   assignedPublicApplications PublicEnrollmentApplication[] @relation("PublicApplicationAgent")
@@ -528,6 +529,8 @@ model ScheduleItem {
   @@unique([clientId, sequenceNo])
 }
 model Payment {
+  evidenceVersion Int @default(1)
+  operationalReviews PaymentOperationalReview[]
   id String @id @default(uuid()) @db.Uuid
   clientId String @db.Uuid
   client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
@@ -1415,4 +1418,20 @@ model WithdrawalScheduleRelease {
   paidAtCutover Decimal @db.Decimal(12, 2)
   createdAt DateTime @default(now())
   @@index([withdrawalId])
+}
+
+model PaymentOperationalReview {
+  id String @id @default(uuid()) @db.Uuid
+  paymentId String @db.Uuid
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  reviewerId String @db.Uuid
+  reviewer User @relation(fields: [reviewerId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  stage String @db.VarChar(16)
+  decision String @db.VarChar(16)
+  notes String @db.VarChar(1000)
+  evidenceVersion Int
+  paymentVersion Int
+  batchVersion Int
+  createdAt DateTime @default(now())
+  @@unique([paymentId, paymentVersion, stage])
 }

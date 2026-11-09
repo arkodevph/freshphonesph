@@ -6,6 +6,7 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import { REVIEW_ACTIONS, ReviewDecision } from "./payment-view";
 
 type Props = {
+  reviewStage: "RECORDS" | "MANAGER" | "FINANCE";
   financeDialog: RefObject<HTMLDialogElement | null>;
   setReviewPayment: Dispatch<SetStateAction<Payment | null>>;
   setReviewDecision: Dispatch<SetStateAction<ReviewDecision | null>>;
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export default function FinanceReviewDialog({
+  reviewStage,
   financeDialog,
   setReviewPayment,
   setReviewDecision,
@@ -34,6 +36,26 @@ export default function FinanceReviewDialog({
   reviewDecision,
   reviewError,
 }: Props) {
+  const title =
+    reviewStage === "RECORDS"
+      ? "Records completeness review"
+      : reviewStage === "MANAGER"
+        ? "Manager cross-check"
+        : "Finance review";
+
+  const actions =
+    reviewStage === "FINANCE"
+      ? REVIEW_ACTIONS
+      : REVIEW_ACTIONS.filter((action) => {
+          return action.value !== "rejected";
+        }).map((action) => {
+          return {
+            ...action,
+            label:
+              action.value === "verified" ? "Approve" : "Return for correction",
+          };
+        });
+
   return (
     <dialog
       ref={financeDialog}
@@ -68,7 +90,7 @@ export default function FinanceReviewDialog({
           <header className="finance-review-heading">
             <div>
               <p>Payment decision</p>
-              <h2 id="finance-review-title">Finance review</h2>
+              <h2 id="finance-review-title">{title}</h2>
             </div>
             <button
               type="button"
@@ -76,7 +98,7 @@ export default function FinanceReviewDialog({
                 return financeDialog.current?.close();
               }}
               disabled={reviewSaving}
-              aria-label="Close Finance review"
+              aria-label={`Close ${title}`}
             >
               <X weight="bold" />
             </button>
@@ -106,7 +128,7 @@ export default function FinanceReviewDialog({
               className="finance-review-note"
               htmlFor="finance-review-note"
             >
-              <span>Finance review note</span>
+              <span>{title} note</span>
               <textarea
                 ref={financeNoteInput}
                 id="finance-review-note"
@@ -135,7 +157,7 @@ export default function FinanceReviewDialog({
             <fieldset className="finance-review-choices">
               <legend>Decision</legend>
               <div>
-                {REVIEW_ACTIONS.map(({ value, label, Icon }) => {
+                {actions.map(({ value, label, Icon }) => {
                   return (
                     <button
                       key={value}
@@ -146,7 +168,15 @@ export default function FinanceReviewDialog({
                         return setReviewDecision(value);
                       }}
                       aria-pressed={reviewDecision === value}
-                      disabled={reviewSaving}
+                      disabled={
+                        reviewSaving ||
+                        (value === "verified" &&
+                          (reviewStage === "RECORDS"
+                            ? reviewPayment.workflow?.recordsApproved
+                            : reviewStage === "MANAGER"
+                              ? reviewPayment.workflow?.managerApproved
+                              : false))
+                      }
                     >
                       <Icon weight="fill" aria-hidden="true" /> {label}
                     </button>
@@ -175,7 +205,7 @@ export default function FinanceReviewDialog({
                 ? "Saving…"
                 : reviewDecision
                   ? `Confirm ${
-                      REVIEW_ACTIONS.find(({ value }) => {
+                      actions.find(({ value }) => {
                         return value === reviewDecision;
                       })?.label
                     }`

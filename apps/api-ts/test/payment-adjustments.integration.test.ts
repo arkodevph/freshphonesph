@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { prepareFinanceReview } from "./helpers/payment-workflow";
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -81,10 +82,16 @@ async function verified(amount = "10.00", clientId = linkedClientId) {
     },
   });
 
+  const reviewed = await prepareFinanceReview(db, row.id);
+
   const response = await request(
     "FINANCE_OFFICER",
     `/payments/${row.id}/verify`,
-    { decision: "VERIFIED", version: 1, notes: "Synthetic receipt checked." },
+    {
+      decision: "VERIFIED",
+      version: reviewed.version,
+      notes: "Synthetic receipt checked.",
+    },
   );
 
   assert.equal(response.status, 200);
@@ -214,11 +221,13 @@ test("only Finance can verify payments or use the receipt review queue, includin
       },
     });
 
+    const reviewed = await prepareFinanceReview(db, pending.id);
+
     const permitted = role === "FINANCE_OFFICER";
 
     const response = await request(role, `/payments/${pending.id}/verify`, {
       decision: "VERIFIED",
-      version: 1,
+      version: reviewed.version,
       notes: "Checked by the permitted financial reviewer.",
     });
 
@@ -705,12 +714,14 @@ test("all live report/export totals reconcile to net credit; original claims and
     },
   });
 
+  const reviewed = await prepareFinanceReview(db, pending.id);
+
   assert.equal(
     (
       await request("FINANCE_OFFICER", `/payments/${pending.id}/verify`, {
         decision: "VERIFIED",
         notes: "Synthetic Finance review.",
-        version: 1,
+        version: reviewed.version,
       })
     ).status,
     200,
