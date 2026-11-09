@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowUpRight, CaretDown, List, X } from "@phosphor-icons/react";
+import { CaretDown, List, X } from "@phosphor-icons/react";
 import { systemHref } from "@/lib/site-links";
 import styles from "./Navbar.module.css";
 import DoodleIcon from "./DoodleIcon";
@@ -12,10 +12,10 @@ import typography from "./typography.module.css";
 import "./landing-v2.css";
 
 const primaryLinks = [
-  { href: "/#units", label: "Units" },
-  { href: "/about", label: "About" },
-  { href: "/inquire", label: "Inquire" },
-];
+  { href: "/#units", label: "Units", icon: "phone-heart" },
+  { href: "/about", label: "About", icon: "heart" },
+  { href: "/inquire", label: "Inquire", icon: "chat-heart" },
+] as const;
 
 const exploreLinks = [
   { href: "/#how", label: "How it works", icon: "calendar-heart" },
@@ -33,6 +33,8 @@ export default function Navbar() {
   const exploreAnimation = useRef<Animation | null>(null);
 
   const mobileDisclosure = useRef<HTMLDetailsElement>(null);
+
+  const mobileAnimation = useRef<Animation | null>(null);
 
   const loginHref = systemHref("/login");
 
@@ -116,6 +118,86 @@ export default function Navbar() {
     };
   }, []);
 
+  const animateMobile = useCallback((open: boolean, immediate = false) => {
+    const disclosure = mobileDisclosure.current;
+
+    const panel = disclosure?.querySelector<HTMLElement>("[data-mobile-panel]");
+
+    if (
+      !disclosure ||
+      !panel ||
+      (!open &&
+        (!disclosure.open ||
+          (!immediate && disclosure.dataset.closing === "true")))
+    ) {
+      return;
+    }
+
+    const current = disclosure.open ? getComputedStyle(panel) : null;
+
+    const from = {
+      opacity: current?.opacity ?? "0",
+      transform: current?.transform ?? "translateY(-14px) scale(0.98, 0.94)",
+    };
+
+    mobileAnimation.current?.cancel();
+
+    disclosure.open = true;
+
+    disclosure.dataset.closing = String(!open);
+
+    panel.inert = !open;
+
+    if (
+      immediate ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      !panel.animate
+    ) {
+      disclosure.open = open;
+
+      delete disclosure.dataset.closing;
+
+      mobileAnimation.current = null;
+
+      return;
+    }
+
+    const animation = panel.animate(
+      [
+        from,
+        {
+          opacity: open ? "1" : "0",
+          transform: open
+            ? "translateY(0) scale(1)"
+            : "translateY(-10px) scale(0.98, 0.96)",
+        },
+      ],
+      {
+        duration: open ? 340 : 220,
+        easing: open
+          ? "cubic-bezier(0.16, 1, 0.3, 1)"
+          : "cubic-bezier(0.4, 0, 1, 1)",
+        fill: "both",
+      },
+    );
+
+    mobileAnimation.current = animation;
+
+    animation.onfinish = () => {
+      if (mobileAnimation.current !== animation) {
+        return;
+      }
+
+      disclosure.open = open;
+
+      delete disclosure.dataset.closing;
+
+      animation.cancel();
+
+      mobileAnimation.current = null;
+    };
+  }, []);
+
   useEffect(() => {
     const marker = scrollMarker.current;
 
@@ -139,6 +221,8 @@ export default function Navbar() {
 
     const desktop = window.matchMedia("(min-width: 64rem)");
 
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
     function dismissOutside(event: Event) {
       for (const disclosure of disclosures) {
         if (
@@ -149,7 +233,7 @@ export default function Navbar() {
           if (disclosure === desktopDisclosure.current) {
             animateExplore(false);
           } else {
-            disclosure.open = false;
+            animateMobile(false);
           }
         }
       }
@@ -165,7 +249,7 @@ export default function Navbar() {
           if (disclosure === desktopDisclosure.current) {
             animateExplore(false);
           } else {
-            disclosure.open = false;
+            animateMobile(false);
           }
 
           disclosure.querySelector("summary")?.focus();
@@ -179,9 +263,17 @@ export default function Navbar() {
           if (disclosure === desktopDisclosure.current) {
             animateExplore(false);
           } else {
-            disclosure.open = false;
+            animateMobile(false, true);
           }
         }
+      }
+    }
+
+    function settleReducedMotion() {
+      const disclosure = mobileDisclosure.current;
+
+      if (motion.matches && disclosure?.open) {
+        animateMobile(disclosure.dataset.closing !== "true", true);
       }
     }
 
@@ -193,6 +285,8 @@ export default function Navbar() {
 
     desktop.addEventListener("change", dismissOnResize);
 
+    motion.addEventListener("change", settleReducedMotion);
+
     return () => {
       document.removeEventListener("pointerdown", dismissOutside);
 
@@ -202,9 +296,13 @@ export default function Navbar() {
 
       desktop.removeEventListener("change", dismissOnResize);
 
+      motion.removeEventListener("change", settleReducedMotion);
+
       exploreAnimation.current?.cancel();
+
+      mobileAnimation.current?.cancel();
     };
-  }, [animateExplore]);
+  }, [animateExplore, animateMobile]);
 
   function closeMenus() {
     for (const disclosure of [
@@ -215,7 +313,7 @@ export default function Navbar() {
         if (disclosure === desktopDisclosure.current) {
           animateExplore(false);
         } else {
-          disclosure.open = false;
+          animateMobile(false);
         }
       }
     }
@@ -337,11 +435,20 @@ export default function Navbar() {
               <summary
                 className={styles.menuToggle}
                 aria-label="Navigation menu"
+                onClick={(event) => {
+                  event.preventDefault();
+
+                  const disclosure = mobileDisclosure.current;
+
+                  animateMobile(
+                    !disclosure?.open || disclosure.dataset.closing === "true",
+                  );
+                }}
               >
                 <List className={styles.menuIcon} aria-hidden="true" />
                 <X className={styles.closeIcon} aria-hidden="true" />
               </summary>
-              <div className={styles.mobilePanel}>
+              <div className={styles.mobilePanel} data-mobile-panel>
                 <ul className={styles.mobileLinks}>
                   {[...primaryLinks, ...exploreLinks].map((link) => {
                     return (
@@ -350,11 +457,7 @@ export default function Navbar() {
                           href={link.href}
                           onClick={closeMenus}
                         >
-                          {"icon" in link ? (
-                            <DoodleIcon name={link.icon} size={28} />
-                          ) : (
-                            <ArrowUpRight aria-hidden="true" />
-                          )}
+                          <DoodleIcon name={link.icon} size={28} />
                           {link.label}
                         </PublicNavigationLink>
                       </li>

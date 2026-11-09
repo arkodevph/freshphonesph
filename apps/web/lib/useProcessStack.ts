@@ -165,9 +165,11 @@ export function useProcessStack(
 
         centerOffset = 0;
 
-        cards.forEach((card) => {
-          card.style.removeProperty("visibility");
-        });
+        if (track.dataset.mobileStack !== "true") {
+          cards.forEach((card) => {
+            card.style.removeProperty("visibility");
+          });
+        }
 
         stage.style.removeProperty("--reviews-reveal");
 

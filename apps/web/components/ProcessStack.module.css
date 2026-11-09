@@ -90,6 +90,10 @@
   display: grid;
   gap: 1.5rem;
 }
+.mobileTrack,
+.deck {
+  display: contents;
+}
 .card {
   --flip: 0;
   --clear: 0;
@@ -451,6 +455,106 @@
 .topline {
   flex-wrap: wrap;
 }
+
+@media (max-width: 900px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .progress {
+    margin-top: 0.625rem;
+  }
+
+  .main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-block: 1rem;
+  }
+
+  .main > div:first-child {
+    flex: 1 1 12rem;
+  }
+
+  .main h3 {
+    font-size: clamp(1.5rem, 6.8vw, 1.875rem);
+  }
+
+  .scene {
+    flex: 0 0 5.5rem;
+    width: 5.5rem;
+    height: 5.5rem;
+    margin-inline: auto;
+  }
+
+  .steps {
+    gap: 0.875rem;
+    padding-top: 0.875rem;
+  }
+
+  .deck {
+    max-height: calc(100svh - var(--mobile-safe-top, 6rem) - 1.5rem);
+  }
+
+  .track[data-mobile-stack="true"] .stage {
+    display: block;
+  }
+
+  .track[data-mobile-stack="true"] .mobileTrack {
+    display: block;
+    height: calc(
+      var(--mobile-card-height) + var(--mobile-step-distance) *
+        var(--mobile-step-count)
+    );
+  }
+
+  .track[data-mobile-stack="true"] .deck {
+    position: sticky;
+    top: var(--mobile-stack-top);
+    display: block;
+    height: var(--mobile-card-height);
+    perspective: 1000px;
+    isolation: isolate;
+  }
+
+  .track[data-mobile-stack="true"] .card {
+    position: absolute;
+    inset: 0;
+    height: var(--mobile-card-height);
+    transform-origin: center top;
+    transform: translate3d(
+        0,
+        calc(var(--mobile-depth, 0) * 0.75rem - var(--mobile-flip, 0) * 108%),
+        0
+      )
+      rotateX(calc(var(--mobile-flip, 0) * -8deg))
+      scale(calc(1 - var(--mobile-depth, 0) * 0.012));
+    backface-visibility: hidden;
+  }
+
+  .track[data-mobile-stack="true"] .reviews {
+    margin-top: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track[data-mobile-stack="true"] .mobileTrack,
+  .track[data-mobile-stack="true"] .deck,
+  .track[data-mobile-stack="true"] .card {
+    position: static;
+    height: auto;
+    max-height: none;
+    transform: none;
+    opacity: 1;
+    visibility: visible !important;
+  }
+
+  .track[data-mobile-stack="true"] .deck {
+    display: grid;
+    gap: 1.5rem;
+  }
+}
+
 @media (max-width: 640px) {
   .main,
   .steps {

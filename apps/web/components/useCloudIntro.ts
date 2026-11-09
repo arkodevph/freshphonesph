@@ -3,24 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const cloudCircles = [
-  { cx: 55, cy: 101, r: 38, left: "-8px", top: "68%", color: "#6ba4f0" },
-  { cx: 118, cy: 57, r: 51, left: "35%", top: "-8px", color: "#9d8fe2" },
-  {
-    cx: 169,
-    cy: 80,
-    r: 43,
-    left: "calc(100% + 8px)",
-    top: "25%",
-    color: "#c48ed9",
-  },
-  {
-    cx: 193,
-    cy: 109,
-    r: 32,
-    left: "65%",
-    top: "calc(100% + 8px)",
-    color: "#de8dd1",
-  },
+  { cx: 55, cy: 101, r: 38 },
+  { cx: 118, cy: 57, r: 51 },
+  { cx: 169, cy: 80, r: 43 },
+  { cx: 193, cy: 109, r: 32 },
 ] as const;
 
 type Options = {
@@ -87,6 +73,8 @@ export function useCloudIntro({
 
     const html = document.documentElement;
 
+    const viewportWidth = html.clientWidth;
+
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const animations: Animation[] = [];
@@ -136,7 +124,11 @@ export function useCloudIntro({
         intro.hidden = true;
       }
 
-      window.removeEventListener("resize", finish);
+      if (navigation) {
+        cloud?.style.removeProperty("top");
+      }
+
+      window.removeEventListener("resize", onResize);
 
       window.removeEventListener("scroll", finish);
 
@@ -174,6 +166,13 @@ export function useCloudIntro({
 
     function onMotionChange() {
       if (motion.matches) {
+        finish();
+      }
+    }
+
+    function onResize() {
+      // Browser chrome and simulators can resize height during a page change.
+      if (!navigation || html.clientWidth !== viewportWidth) {
         finish();
       }
     }
@@ -268,7 +267,7 @@ export function useCloudIntro({
 
     document.addEventListener("visibilitychange", onVisibilityChange);
 
-    window.addEventListener("resize", finish);
+    window.addEventListener("resize", onResize);
 
     if (!navigation) {
       window.addEventListener("scroll", finish, { passive: true });
@@ -302,6 +301,11 @@ export function useCloudIntro({
         void fade.finished.then(finish).catch(finish);
 
         return;
+      }
+
+      if (navigation) {
+        // Keep the flight origin stable if the address bar changes height.
+        cloud.style.top = getComputedStyle(cloud).top;
       }
 
       const from = cloud.getBoundingClientRect();

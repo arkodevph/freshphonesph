@@ -176,6 +176,7 @@ export default function Testimonials({ staged = false }: { staged?: boolean }) {
           return staged ? (
             <div
               key={r.name}
+              data-mobile-review
               data-sample={r.sample || undefined}
               className={styles.card}
               style={

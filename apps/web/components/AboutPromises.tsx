@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import { useId } from "react";
+import { useExpandingCards } from "@/lib/useExpandingCards";
 import DoodleIcon from "./DoodleIcon";
 import styles from "./AboutPromises.module.css";
 
@@ -71,107 +71,8 @@ function PromiseArtwork({ index }: { index: number }) {
 export default function AboutPromises() {
   const id = useId();
 
-  const [active, setActive] = useState(0);
-
-  const [ready, setReady] = useState(false);
-
-  const [compact, setCompact] = useState(false);
-
-  const cards = useRef<Array<HTMLElement | null>>([]);
-
-  const toggles = useRef<Array<HTMLButtonElement | null>>([]);
-
-  const userSelection = useRef(false);
-
-  useEffect(() => {
-    const query = window.matchMedia("(max-width: 1199px)");
-
-    function syncLayout() {
-      setCompact(query.matches);
-    }
-
-    syncLayout();
-
-    setReady(true);
-
-    query.addEventListener("change", syncLayout);
-
-    return () => {
-      query.removeEventListener("change", syncLayout);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!compact) {
-      userSelection.current = false;
-
-      return;
-    }
-
-    if (!userSelection.current) {
-      return;
-    }
-
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    const timer = setTimeout(
-      () => {
-        userSelection.current = false;
-
-        const card = cards.current[active];
-
-        const top = card?.getBoundingClientRect().top;
-
-        if (
-          top !== undefined &&
-          (top < 100 || top > window.innerHeight - 100)
-        ) {
-          card?.scrollIntoView({
-            block: "start",
-            behavior: motion.matches ? "instant" : "smooth",
-          });
-        }
-      },
-      motion.matches ? 0 : 680,
-    );
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [active, compact]);
-
-  function select(index: number) {
-    if (!ready || index === active) {
-      return;
-    }
-
-    userSelection.current = compact;
-
-    setActive(index);
-  }
-
-  function handleKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    const next =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? commitments.length - 1
-          : ["ArrowRight", "ArrowDown"].includes(event.key)
-            ? (index + 1) % commitments.length
-            : ["ArrowLeft", "ArrowUp"].includes(event.key)
-              ? (index + commitments.length - 1) % commitments.length
-              : null;
-
-    if (next === null) {
-      return;
-    }
-
-    event.preventDefault();
-
-    toggles.current[next]?.focus({ preventScroll: true });
-
-    select(next);
-  }
+  const { active, ready, compact, cards, toggles, select, handleKey } =
+    useExpandingCards(4, "(max-width: 1199px)");
 
   return (
     <div

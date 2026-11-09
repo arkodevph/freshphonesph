@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef } from "react";
 import { useProcessStack } from "@/lib/useProcessStack";
+import { useMobileCardMotion } from "@/lib/useMobileCardMotion";
 import styles from "./ProcessStack.module.css";
 import type { ReactNode } from "react";
 import DoodleIcon from "./DoodleIcon";
@@ -99,6 +100,8 @@ export default function ProcessStack({ children }: { children?: ReactNode }) {
 
   useProcessStack(trackRef, panels.length);
 
+  useMobileCardMotion(trackRef, panels.length);
+
   return (
     <section
       id="how"
@@ -116,67 +119,74 @@ export default function ProcessStack({ children }: { children?: ReactNode }) {
       </header>
       <div ref={trackRef} className={styles.track}>
         <div className={styles.stage}>
-          <div className={styles.processClouds} aria-hidden="true" />
-          {panels.map((panel, index) => {
-            return (
-              <article
-                key={panel.title}
-                className={styles.card}
-                data-panel={index}
-                aria-labelledby={`process-card-${index}`}
-                style={{ zIndex: panels.length - index }}
-              >
-                <div className={styles.topline}>
-                  <span className={styles.panelLabel}>
-                    <DoodleIcon name={panel.icon} size={32} />
-                    {panel.label}
-                  </span>
-                  <span className={styles.counter}>
-                    {String(index + 1).padStart(2, "0")} <span>/ 04</span>
-                  </span>
-                </div>
-                <div className={styles.progress} aria-hidden="true">
-                  {panels.map((item, marker) => {
-                    return (
-                      <span key={item.label} data-reached={marker <= index} />
-                    );
-                  })}
-                </div>
-                <div className={styles.main}>
-                  <div>
-                    <h3 id={`process-card-${index}`}>{panel.title}</h3>
-                    <p>{panel.description}</p>
-                  </div>
-                  <div className={styles.scene}>
-                    <Image
-                      src={panel.image}
-                      alt={panel.imageAlt}
-                      width={1254}
-                      height={1254}
-                      sizes="(max-width: 640px) calc(100vw - 80px), (max-width: 1024px) 40vw, 420px"
-                      className={styles.visual}
-                    />
-                  </div>
-                </div>
-                <ol start={index * 2 + 1} className={styles.steps}>
-                  {panel.steps.map(([title, description], step) => {
-                    return (
-                      <li key={title}>
-                        <span>
-                          {String(index * 2 + step + 1).padStart(2, "0")}
-                        </span>
-                        <div>
-                          <h4>{title}</h4>
-                          <p>{description}</p>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-                <p className={styles.note}>{panel.note}</p>
-              </article>
-            );
-          })}
+          <div className={styles.mobileTrack} data-mobile-process-track>
+            <div className={styles.deck} data-process-deck>
+              <div className={styles.processClouds} aria-hidden="true" />
+              {panels.map((panel, index) => {
+                return (
+                  <article
+                    key={panel.title}
+                    className={styles.card}
+                    data-panel={index}
+                    aria-labelledby={`process-card-${index}`}
+                    style={{ zIndex: panels.length - index }}
+                  >
+                    <div className={styles.topline}>
+                      <span className={styles.panelLabel}>
+                        <DoodleIcon name={panel.icon} size={32} />
+                        {panel.label}
+                      </span>
+                      <span className={styles.counter}>
+                        {String(index + 1).padStart(2, "0")} <span>/ 04</span>
+                      </span>
+                    </div>
+                    <div className={styles.progress} aria-hidden="true">
+                      {panels.map((item, marker) => {
+                        return (
+                          <span
+                            key={item.label}
+                            data-reached={marker <= index}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className={styles.main}>
+                      <div>
+                        <h3 id={`process-card-${index}`}>{panel.title}</h3>
+                        <p>{panel.description}</p>
+                      </div>
+                      <div className={styles.scene}>
+                        <Image
+                          src={panel.image}
+                          alt={panel.imageAlt}
+                          width={1254}
+                          height={1254}
+                          sizes="(max-width: 900px) 5.5rem, (max-width: 1024px) 40vw, 420px"
+                          className={styles.visual}
+                        />
+                      </div>
+                    </div>
+                    <ol start={index * 2 + 1} className={styles.steps}>
+                      {panel.steps.map(([title, description], step) => {
+                        return (
+                          <li key={title}>
+                            <span>
+                              {String(index * 2 + step + 1).padStart(2, "0")}
+                            </span>
+                            <div>
+                              <h4>{title}</h4>
+                              <p>{description}</p>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                    <p className={styles.note}>{panel.note}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
           <div className={styles.reviews}>{children}</div>
         </div>
       </div>

@@ -2,6 +2,7 @@
   --landing-gutter: max(1.25rem, calc((100vw - 90rem) / 2));
   padding: clamp(1.5rem, 3vh, 4rem) var(--landing-gutter) 1.5rem;
   color: #14266b;
+  overflow-wrap: anywhere;
 }
 .inner {
   max-width: 90rem;
@@ -193,6 +194,7 @@
 }
 .contactButton {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -270,11 +272,18 @@
     padding-top: 2.5rem;
   }
   .grid {
+    display: flex;
+    flex-wrap: wrap;
     gap: 2rem 1.5rem;
   }
+
+  .grid > nav {
+    flex: 1 1 6rem;
+  }
+
   .grid > div:first-child,
   .contact {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
   }
   .description {
     max-width: 20rem;

@@ -316,8 +316,11 @@
   }
   .staged > div:first-child {
     position: static;
+    min-width: 0;
+    width: 100%;
     transform: none;
     opacity: 1;
+    overflow-wrap: anywhere;
   }
   :global([data-landing-version="2"])
     .staged
