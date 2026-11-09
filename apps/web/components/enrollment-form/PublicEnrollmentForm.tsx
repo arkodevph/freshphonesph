@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 import { ArrowLeft, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import type { CSSProperties } from "react";
 import { publicSiteHref, type PublicSiteBase } from "@/lib/public-site-links";

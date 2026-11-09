@@ -20,10 +20,12 @@ import styles from "./Models.module.css";
 
 const availabilityOptions = [
   { value: "", label: "All availability" },
-  ...catalogAvailability.map((value) => ({
-    value,
-    label: catalogAvailabilityLabels[value],
-  })),
+  ...catalogAvailability.map((value) => {
+    return {
+      value,
+      label: catalogAvailabilityLabels[value],
+    };
+  }),
 ];
 
 type Model = {

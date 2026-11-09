@@ -66,35 +66,44 @@ export default function Select({
       }
 
       const rect = trigger.current.getBoundingClientRect();
+
       const css = getComputedStyle(root.current);
+
       const top = parseFloat(css.getPropertyValue("--select-safe-top")) || 12;
+
       const bottom =
         parseFloat(css.getPropertyValue("--select-safe-bottom")) || 16;
+
       const below = innerHeight - rect.bottom - bottom - 8;
+
       const above = rect.top - top - 8;
+
       const side =
         below < Math.min(240, options.length * 44 + 12) && above > below
           ? "top"
           : "bottom";
+
       const height = Math.max(
         44,
         Math.min(240, side === "top" ? above : below),
       );
 
-      setPlacement((previous) =>
-        previous.side === side && previous.height === height
+      setPlacement((previous) => {
+        return previous.side === side && previous.height === height
           ? previous
-          : { side, height },
-      );
+          : { side, height };
+      });
     };
 
     position();
 
     window.addEventListener("resize", position);
+
     document.addEventListener("scroll", position, true);
 
     return () => {
       window.removeEventListener("resize", position);
+
       document.removeEventListener("scroll", position, true);
     };
   }, [expanded, fitViewport, options.length]);

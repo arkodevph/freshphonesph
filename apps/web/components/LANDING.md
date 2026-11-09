@@ -36,10 +36,12 @@ The portal catalog has its own `PortalCatalog` component and styles.
   5–6px lift, slight enlargement, brighter glass/rim glow, tilted doodles and
   a press-down state. Hover movement requires a fine pointer; reduced-motion
   settings suppress button/icon movement. Scoped to these V2 CSS Modules.
-- Navbar Log in/Apply and Explore doodles give one brief 520ms shake on hover,
-  using small rotation/translation offsets over their existing hover pose.
+- Public icon buttons and links share one brief 520ms shake from
+  `landing-v2.css`, using small rotation/translation offsets over their existing
+  hover pose. Doodle SVGs participate automatically; other action icons use
+  `data-button-icon` (support phone/socials, About Messenger and footer actions).
   The shake requires a fine pointer and normal motion; it does not loop while
-  hovered, and disabled Log in stays still.
+  hovered. Disabled controls stay still, and standard menu carets are preserved.
 - Hero dots cover the left 30% of the background with a soft radial fade.
   Below 960px the dots stop above the mascot. Headline letters and highlight cards have clean
   solid fills. This supersedes the earlier inset texture following Jaycee's
@@ -80,19 +82,28 @@ The portal catalog has its own `PortalCatalog` component and styles.
 Local landing preview: <http://localhost:3001/>. The integrated site and login
 run at <http://localhost:3000/>. Both use the same public components.
 
-- Navbar links use `PublicNavigationLink` for client navigation and shared
-  `PublicNavigationLoader` feedback in both root layouts. Page changes reuse the
-  existing full-screen Fresh Phones PH / Gadget Center loader and five sliding
-  sky panels. It holds until the destination commits, then reveals that page;
-  returning home skips a duplicate intro. Same-page anchors, already selected
-  pages and modified/new-tab clicks skip feedback. Cross-origin Log in keeps
-  native navigation. Reduced motion uses the same static brand without sliding.
-  Initial homepage loading reuses the shared artwork and its original timing.
+- Public navbar, footer, FAQ, application, support and legal links use
+  `PublicNavigationLink` and the shared `PublicNavigationLoader` in both root
+  layouts. Four large edge circles form a ring, circle once, then merge into a
+  gradient cloud. The cloud waits for the destination to commit before shrinking
+  into its measured logo as the page appears. Pages without a visible logo use
+  a short fade. Public browser back/forward uses the same transition; homepage
+  returns skip a duplicate opening intro, including after an animation is skipped.
+  Same-page anchors, already selected pages and modified/new-tab clicks retain
+  their normal behavior. Cross-origin links keep native navigation.
+- Initial homepage loading shares the four-circle sequence (about 3.6 seconds
+  after hydration). Skip intro/Skip animation, Escape, reduced motion and
+  interrupted playback release the page. No JavaScript keeps native navigation.
+  Failed page transitions recover within 15 seconds; new destination content
+  stays inert only while the optional animation is visible.
 
-- The agent-verification card uses reference-led clear glass with an edge
-  displacement map, bright curved rim and sharp navy text over a shared landscape
-  backdrop. Reduced transparency and missing blur have opaque fallbacks. The
-  first gradient-card attempt was rejected. See guide94 and retained references.
+- About's agent verification uses a centered Sono heading with a solid rose
+  accent, a larger frosted lookup panel, and a lilac panel with four distinct
+  benefits. Asymmetric rounded corners and shared pastel doodles match the
+  preparation cards. The labeled 16px search field, glass capsule action,
+  privacy note and expanding status/error feedback stack naturally on phones.
+  The retained `/v2/verify` page shares the same lookup form. Reduced
+  transparency and missing blur have opaque fallbacks.
 - FAQ topics expand/collapse with coordinated 560ms size, radius and text
   transitions; answer paging uses a 440ms reveal. Reduced motion is supported.
 
@@ -123,8 +134,9 @@ wide, selection trades the 2.12fr column over 650ms, and all desktop explanation
 stay visible. Below 1200px it becomes a single-open accordion. Native title
 buttons support Enter/Space, arrow keys, Home/End and visible focus; reduced
 motion switches immediately, and no JavaScript leaves all copy readable.
-Existing colors, icon drawings and words remain; geometric decoration sits above
-the copy and the counters stay on one line.
+Existing colors and words remain; geometric decoration sits above the copy.
+The bottom artwork uses the shared pastel `shield-heart`, `chat-heart`,
+`application` and `phone-heart` doodles at 64px. The cards have no number counters.
 
 The existing secondary `/v2/...` pages reuse `PublicPageShell` from this directory
 and keep their form queries, privacy links and noindex metadata. Canonical header

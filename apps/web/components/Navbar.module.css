@@ -8,12 +8,11 @@
 }
 
 .header {
-  position: sticky;
-  top: 0;
-  padding: 1rem;
-  background: var(--landing-sky, #c1e4f4);
+  position: fixed;
+  inset: 1.5rem 1rem auto;
   z-index: 50;
   color: #102447;
+  transition: top 360ms ease;
 }
 
 .nav {
@@ -39,6 +38,10 @@
     background-color 240ms ease,
     border-color 240ms ease,
     box-shadow 240ms ease;
+}
+
+.header[data-scrolled="true"] {
+  top: 1rem;
 }
 
 .header[data-scrolled="true"] .nav {
@@ -438,39 +441,6 @@
   transition-duration: 100ms;
 }
 
-@keyframes icon-shake {
-  0%,
-  100% {
-    rotate: 0deg;
-    translate: 0 0;
-  }
-  20% {
-    rotate: -8deg;
-    translate: -1px 0;
-  }
-  40% {
-    rotate: 7deg;
-    translate: 1px 0;
-  }
-  60% {
-    rotate: -5deg;
-    translate: -0.5px 0;
-  }
-  80% {
-    rotate: 3deg;
-    translate: 0.5px 0;
-  }
-}
-
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .login[href]:hover > svg[data-doodle],
-  .apply:hover > svg[data-doodle],
-  .explorePanel a:hover > svg[data-doodle],
-  .mobileLinks a:hover > svg[data-doodle] {
-    animation: icon-shake 520ms ease-in-out;
-  }
-}
-
 .login[href]:active > svg,
 .apply:active > svg {
   transform: scale(0.95);
@@ -511,7 +481,7 @@
 
 @media (max-width: 25rem) {
   .header {
-    padding: 0.75rem 0.5rem;
+    inset: 0.75rem 0.5rem auto;
   }
 
   .nav {

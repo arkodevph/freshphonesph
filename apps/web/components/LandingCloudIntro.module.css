@@ -1,0 +1,129 @@
+.intro {
+  --cloud-size: clamp(10rem, 24vw, 15rem);
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  overflow: hidden;
+  animation: fail-safe 1ms 8000ms forwards;
+}
+
+.intro[data-phase] {
+  animation: none;
+}
+
+.intro[data-public-navigation-loader] {
+  z-index: 10000;
+}
+
+.intro[hidden] {
+  display: none;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: #eaf4ff;
+}
+
+.edges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.edgeParticle {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.intro[data-phase] .edges {
+  visibility: hidden;
+}
+
+.cloud {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  width: var(--cloud-size);
+  aspect-ratio: 240 / 150;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.cloud svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.intro:is([data-phase="formed"], [data-phase="flying"], [data-phase="docking"])
+  .cloud {
+  filter: drop-shadow(0 12px 20px rgb(49 85 166 / 16%));
+}
+
+.particle {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.orbit {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+
+.base {
+  opacity: 0;
+}
+
+.skip {
+  position: absolute;
+  right: max(1.25rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  display: none;
+  min-height: 2.75rem;
+  border: 1px solid rgb(255 255 255 / 90%);
+  border-radius: 999px;
+  padding: 0.625rem 1rem;
+  background: #f4faff;
+  color: #344c73;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.intro[data-phase] .skip {
+  display: block;
+}
+
+.skip:focus-visible {
+  outline: 3px solid #3154c9;
+  outline-offset: 4px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes fail-safe {
+  to {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro {
+    display: none;
+  }
+}
