@@ -8,8 +8,15 @@
 }
 
 .header {
+  --nav-gutter: 1rem;
   position: fixed;
-  inset: 1.5rem 1rem auto;
+  inset: max(1.5rem, env(safe-area-inset-top))
+    max(var(--nav-gutter), env(safe-area-inset-right)) auto
+    max(var(--nav-gutter), env(safe-area-inset-left));
+  max-width: calc(
+    100vw - max(var(--nav-gutter), env(safe-area-inset-left)) -
+      max(var(--nav-gutter), env(safe-area-inset-right))
+  );
   z-index: 50;
   color: #102447;
   transition: top 360ms ease;
@@ -41,7 +48,7 @@
 }
 
 .header[data-scrolled="true"] {
-  top: 1rem;
+  top: max(1rem, env(safe-area-inset-top));
 }
 
 .header[data-scrolled="true"] .nav {
@@ -306,15 +313,29 @@
   width: 1.25rem;
   height: 1.25rem;
   grid-area: 1 / 1;
+  transition:
+    opacity 180ms ease,
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.closeIcon,
-.mobileDisclosure[open] .menuIcon {
-  display: none;
+.menuIcon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
 }
 
-.mobileDisclosure[open] .closeIcon {
-  display: block;
+.closeIcon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+
+.mobileDisclosure[open]:not([data-closing="true"]) .menuIcon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.6);
+}
+
+.mobileDisclosure[open]:not([data-closing="true"]) .closeIcon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
 }
 
 .mobilePanel {
@@ -324,6 +345,52 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.625rem;
+  transform-origin: top right;
+}
+
+.mobileDisclosure[data-closing="true"] .mobilePanel {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mobileDisclosure[open]:not([data-closing="true"]) .mobileLinks li {
+    animation: mobile-row-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .mobileLinks li:nth-child(2) {
+    animation-delay: 24ms;
+  }
+
+  .mobileLinks li:nth-child(3) {
+    animation-delay: 48ms;
+  }
+
+  .mobileLinks li:nth-child(4) {
+    animation-delay: 72ms;
+  }
+
+  .mobileLinks li:nth-child(5) {
+    animation-delay: 96ms;
+  }
+
+  .mobileLinks li:nth-child(6) {
+    animation-delay: 120ms;
+  }
+
+  .mobileDisclosure[open]:not([data-closing="true"]) .mobileActions {
+    animation: mobile-row-in 300ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes mobile-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .mobileLinks {
@@ -452,6 +519,40 @@
   }
 }
 
+@media (max-width: 960px) {
+  .brand {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .wordmark {
+    white-space: normal;
+  }
+
+  .logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .menuToggle {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .mobileActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mobileActions .login,
+  .mobileActions .apply {
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
 @media (min-width: 64rem) {
   .nav {
     display: grid;
@@ -481,7 +582,10 @@
 
 @media (max-width: 25rem) {
   .header {
-    inset: 0.75rem 0.5rem auto;
+    --nav-gutter: 0.5rem;
+    inset: max(0.75rem, env(safe-area-inset-top))
+      max(var(--nav-gutter), env(safe-area-inset-right)) auto
+      max(var(--nav-gutter), env(safe-area-inset-left));
   }
 
   .nav {
@@ -509,6 +613,10 @@
   .explorePanel a > svg,
   .login > svg,
   .apply > svg {
+    transition: none;
+  }
+
+  .menuToggle > svg {
     transition: none;
   }
 

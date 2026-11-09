@@ -51,6 +51,14 @@ The portal catalog has its own `PortalCatalog` component and styles.
   `https://www.instagram.com/p/DfGEE7DIvjU/`. Analysis, full local video and
   storyboard are retained in the Obsidian Design Brain; implementation guide:
   `docs/92-landing-v2-accent-and-inset-dots.md`.
+- `ProcessStack` keeps its desktop flip/review sequence. At widths up to 900px,
+  `useMobileCardMotion` measures all four compact cards against the small viewport
+  below navigation. When every card fits, a separate sticky deck lifts each card
+  away as the visitor scrolls, with visible backing layers and reverse scrolling.
+  Reviews follow in normal flow and lift/fade in once per card, without the
+  desktop scatter/pan. Short screens, enlarged text that no longer fits, reduced
+  motion and no-JavaScript use natural process lists. Review cards remain visible
+  without animation; motion/viewport changes cancel active mobile entrances.
 - The agent-verification section continues a light-blue sky into the V2 nature
   footer, using matching sky colors at their shared edge. The original grassy
   hills, cyan lake and clouds show at full color below a top-only blend, with
@@ -91,6 +99,14 @@ run at <http://localhost:3000/>. Both use the same public components.
   returns skip a duplicate opening intro, including after an animation is skipped.
   Same-page anchors, already selected pages and modified/new-tab clicks retain
   their normal behavior. Cross-origin links keep native navigation.
+- Mobile View compatibility preserves its recognized `_mvua` device marker on
+  same-origin public links after hydration. This prevents its capture handler
+  from rewriting the click into a full document reload before Next can navigate.
+  Same-document preview anchors use native hashes; ordinary and external URLs
+  do not acquire preview metadata. Server and initial client markup stay equal.
+- Navigation animations survive unchanged-width resize events, including changes
+  to browser chrome height. Their flight origin stays fixed until the logo handoff.
+  Width changes and homepage-intro resizes still release the page immediately.
 - Initial homepage loading shares the four-circle sequence (about 3.6 seconds
   after hydration). Skip intro/Skip animation, Escape, reduced motion and
   interrupted playback release the page. No JavaScript keeps native navigation.
@@ -141,3 +157,21 @@ The bottom artwork uses the shared pastel `shield-heart`, `chat-heart`,
 The existing secondary `/v2/...` pages reuse `PublicPageShell` from this directory
 and keep their form queries, privacy links and noindex metadata. Canonical header
 and homepage links use the promoted routes at `/`; `/v2` redirects to `/`.
+
+Careers uses the same Sono/Nunito typography, sky/cloud scene, doodles and
+meet-team mascot on both apps and retained routes. `CareersBoard.module.css`
+owns the responsive board independently of the existing application form's
+stylesheet. `useCareersBoard` retains live API loading, search, employment and
+location filters, retries and selected-job application links. Filters appear
+when openings exist; an actual empty list shows an honest no-openings state
+with an About link. A compact live status announces result counts without
+making the whole interactive board a live region. The openings anchor is
+focusable and clears the fixed header. Loading, error/retry, no-match, noJS and
+reduced-motion states are covered. The three preparation steps use number-free
+expanding cards with Careers-specific pale surfaces and doodles. They share
+`useExpandingCards` with About: selected desktop tracks expand to 2.12fr over
+650ms, while Careers uses a compact accordion below 900px. Keyboard, reduced
+motion and no-JavaScript paths remain. The contact action is a rose pill linking
+to the existing contact section. Copy explains the existing application flow
+without inventing hiring timelines or benefits; About's artwork/colors are
+independent of the Careers cards.

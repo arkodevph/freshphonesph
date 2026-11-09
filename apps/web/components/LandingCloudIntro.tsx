@@ -56,7 +56,7 @@ export default function LandingCloudIntro({
         )}
         <div ref={backdropRef} className={styles.backdrop} aria-hidden="true" />
         <div className={styles.edges} aria-hidden="true">
-          {cloudCircles.map((circle, index) => {
+          {cloudCircles.map((_, index) => {
             return (
               <span
                 key={index}
@@ -64,12 +64,6 @@ export default function LandingCloudIntro({
                   initialParticleRefs.current[index] = element;
                 }}
                 className={styles.edgeParticle}
-                style={{
-                  left: circle.left,
-                  top: circle.top,
-                  width: `calc(var(--cloud-size) * ${(circle.r * 1.8) / 240})`,
-                  background: circle.color,
-                }}
               />
             );
           })}
