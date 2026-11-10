@@ -1,7 +1,11 @@
 "use client";
 
 import type { Me } from "@/lib/api";
-import { Compass, SignOut, X } from "@phosphor-icons/react";
+import {
+  Compass,
+  Logout as SignOut,
+  Close as X,
+} from "@/components/SolarIcons";
 import Link from "next/link";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { type MouseEvent } from "react";
@@ -49,7 +53,7 @@ export default function PortalMoreSheet({
             return setMoreOpen(false);
           }}
         >
-          <X weight="bold" aria-hidden="true" />
+          <X aria-hidden="true" />
         </button>
       </div>
       <div className={styles.moreAccount}>
@@ -81,7 +85,7 @@ export default function PortalMoreSheet({
                 }}
               >
                 <span className={styles.moreToolIcon}>
-                  <Icon weight="regular" aria-hidden="true" />
+                  <Icon aria-hidden="true" />
                 </span>
                 <span>
                   <strong>{item.label}</strong>
@@ -108,7 +112,7 @@ export default function PortalMoreSheet({
         <span aria-hidden="true">→</span>
       </button>
       <button type="button" className={styles.moreLogout} onClick={logout}>
-        <SignOut weight="regular" aria-hidden="true" />
+        <SignOut aria-hidden="true" />
         <span>Log out</span>
         <span aria-hidden="true">→</span>
       </button>

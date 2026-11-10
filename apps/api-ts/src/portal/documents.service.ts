@@ -1,3 +1,6 @@
+import { allowed, requireCurrentUser } from "../auth/access";
+import { clientScope } from "../records/scope";
+import { safeUser } from "../auth/auth.service";
 import {
   BadRequestException,
   ConflictException,
@@ -50,14 +53,19 @@ export class DocumentsService {
   ) {}
 
   private staff(user: Pick<User, "role">) {
-    return user.role === "OWNER" || user.role === "RECORDS";
+    return allowed(user, "DOCUMENT_READ");
   }
-  private check(user: User, clientId: string) {
+  private async check(user: User, clientId: string) {
     if (user.role === "CUSTOMER" && user.clientId === clientId) {
       return;
     }
 
-    if (this.staff(user)) {
+    if (
+      this.staff(user) &&
+      (await this.db.client.count({
+        where: { id: clientId, ...clientScope(user) },
+      }))
+    ) {
       return;
     }
 
@@ -76,7 +84,7 @@ export class DocumentsService {
   }
 
   async list(user: User, clientId: string) {
-    this.check(user, clientId);
+    await this.check(user, clientId);
 
     if (
       !(await this.db.client.findUnique({
@@ -119,7 +127,7 @@ export class DocumentsService {
     key: string,
     upload?: PrivateUpload,
   ) {
-    this.check(user, clientId);
+    await this.check(user, clientId);
 
     if (!requirement(key)) {
       throw new BadRequestException("Unknown requirement.");
@@ -133,20 +141,19 @@ export class DocumentsService {
       return await this.db.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
-        const current = await tx.user.findUnique({ where: { id: user.id } });
+        const current = await requireCurrentUser(tx, user);
 
         if (
-          !current?.active ||
-          (current.role === "CUSTOMER"
+          current.role === "CUSTOMER"
             ? current.clientId !== clientId
-            : !this.staff(current))
+            : !allowed(current, "DOCUMENT_UPLOAD")
         ) {
           throw new ForbiddenException("Your access has changed.");
         }
 
         if (
-          !(await tx.client.findUnique({
-            where: { id: clientId },
+          !(await tx.client.findFirst({
+            where: { id: clientId, ...clientScope(safeUser(current)) },
             select: { id: true },
           }))
         ) {
@@ -210,7 +217,7 @@ export class DocumentsService {
     id: string,
     input: { status: DocumentStatus; clarification?: string; version: number },
   ) {
-    if (!this.staff(user)) {
+    if (!allowed(user, "DOCUMENT_REVIEW")) {
       throw new ForbiddenException("Records access required.");
     }
 
@@ -219,7 +226,7 @@ export class DocumentsService {
 
       const current = await tx.user.findUnique({ where: { id: user.id } });
 
-      if (!current?.active || !this.staff(current)) {
+      if (!current?.active || !allowed(current, "DOCUMENT_REVIEW")) {
         throw new ForbiddenException("Your access has changed.");
       }
 
@@ -307,7 +314,7 @@ export class DocumentsService {
       throw new NotFoundException("Document not found.");
     }
 
-    this.check(user, row.clientId);
+    await this.check(user, row.clientId);
 
     return {
       data: await this.storage.read(row.file.storageKey),

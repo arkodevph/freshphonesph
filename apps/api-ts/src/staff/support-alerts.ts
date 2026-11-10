@@ -76,25 +76,25 @@ export async function notifySupport(
 
 async function triageRecipients(tx: Prisma.TransactionClient) {
   const heads = await tx.user.findMany({
-    where: { active: true, role: "CS_HEAD" },
+    where: { active: true, role: { in: ["CSR", "CS_HEAD"] } },
     select: { id: true },
   });
 
   return heads.length
     ? heads
     : tx.user.findMany({
-        where: { active: true, role: "OWNER" },
+        where: { active: true, role: "SYSTEM_ADMIN" },
         select: { id: true },
       });
 }
 
 // Treat an inactive/no-longer-authorized assignee as a triage case without changing its record.
 export function supportAlertVisibleSql(userId: string) {
-  return Prisma.sql`r."userId" = ${userId}::uuid AND u.active AND u.role IN ('OWNER', 'CS_HEAD', 'CS_TEAM')
+  return Prisma.sql`r."userId" = ${userId}::uuid AND u.active AND u.role IN ('SYSTEM_ADMIN', 'COO', 'CSR', 'CS_HEAD', 'CS_TEAM')
     AND r."handledAt" IS NULL AND c.status NOT IN ('RESOLVED', 'CLOSED') AND (
       c."assignedStaffId" = r."userId" OR (
-        (c."assignedStaffId" IS NULL OR NOT EXISTS (SELECT 1 FROM "User" a WHERE a.id = c."assignedStaffId" AND a.active AND a.role IN ('OWNER', 'CS_HEAD', 'CS_TEAM')))
-        AND (u.role = 'CS_HEAD' OR (u.role = 'OWNER' AND NOT EXISTS (SELECT 1 FROM "User" h WHERE h.active AND h.role = 'CS_HEAD')))
+        (c."assignedStaffId" IS NULL OR NOT EXISTS (SELECT 1 FROM "User" a WHERE a.id = c."assignedStaffId" AND a.active AND a.role IN ('SYSTEM_ADMIN', 'COO', 'CSR', 'CS_HEAD', 'CS_TEAM')))
+        AND (u.role IN ('CSR', 'CS_HEAD') OR (u.role = 'SYSTEM_ADMIN' AND NOT EXISTS (SELECT 1 FROM "User" h WHERE h.active AND h.role IN ('CSR', 'CS_HEAD'))))
       )
     )`;
 }

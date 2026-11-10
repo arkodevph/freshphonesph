@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" color="#82678f" role="img" aria-label="Heart">
+  <g stroke="none" data-paint="fill">
+    <path d="M20.1 34.6C15.1 30.9 5.2 23.9 4.9 15.1C4.7 9.7 8.3 6.7 12.4 7C15.8 7.2 18.1 9.1 20 12.1C22.2 8.7 24.6 6.5 28.4 6.8C32.9 7.1 35.4 10.8 35.1 15.4C34.7 23.5 25.1 30.4 20.1 34.6Z" fill="#f3c5df" />
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" data-paint="outline">
+    <path d="M20.1 34.6C15.1 30.9 5.2 23.9 4.9 15.1C4.7 9.7 8.3 6.7 12.4 7C15.8 7.2 18.1 9.1 20 12.1C22.2 8.7 24.6 6.5 28.4 6.8C32.9 7.1 35.4 10.8 35.1 15.4C34.7 23.5 25.1 30.4 20.1 34.6Z" />
+  </g>
+</svg>

@@ -35,9 +35,16 @@ ENV PORT=4100
 
 WORKDIR /app
 
+COPY apps/api-ts/scripts/gcash_pdf_requirements.txt /tmp/gcash_pdf_requirements.txt
+
+ENV GCASH_PYTHON_BIN=/opt/gcash-pdf/bin/python
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates openssl python3 python3-pil tesseract-ocr tesseract-ocr-eng \
+    && apt-get install -y --no-install-recommends ca-certificates openssl python3 python3-venv python3-pil poppler-utils tesseract-ocr tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/gcash-pdf \
+    && /opt/gcash-pdf/bin/pip install --no-cache-dir -r /tmp/gcash_pdf_requirements.txt \
+    && rm /tmp/gcash_pdf_requirements.txt \
     && mkdir -p /app/.local \
     && chown node:node /app/.local
 

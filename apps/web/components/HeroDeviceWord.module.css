@@ -8,6 +8,7 @@
 
 .word {
   grid-area: 1 / 1;
+  color: var(--landing-accent-ink);
   text-align: left;
   opacity: 0;
 }

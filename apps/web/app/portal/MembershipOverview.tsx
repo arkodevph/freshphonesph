@@ -2,10 +2,11 @@
 
 import type { PortalSection } from "./portal-view";
 import { type PortalSummary } from "@/lib/api";
-import { ArrowRight, Package } from "@phosphor-icons/react";
+import { ArrowRight, Box as Package } from "@/components/SolarIcons";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./portal.module.css";
+import cardStyles from "./membership-card.module.css";
 import { displayModelName, formatMoney } from "./portal-view";
 
 type Props = {
@@ -25,50 +26,10 @@ export default function MembershipOverview({
       aria-label="Membership overview"
     >
       <div
-        className={`${styles.membership} ${styles.membershipDashboard} ${deviceImage ? styles.membershipWithArt : ""}`}
+        data-portal-material="membership"
+        data-membership-card=""
+        className={`${styles.membership} ${styles.membershipDashboard} ${cardStyles.card} ${deviceImage ? styles.membershipWithArt : ""}`}
       >
-        <div className={styles.membershipSky} aria-hidden="true">
-          <Image
-            src="/brand/doodles/cloud-soft.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="(max-width: 700px) 120px, 220px"
-            className={`${styles.membershipCloud} ${styles.membershipCloudOne}`}
-          />
-          <Image
-            src="/brand/doodles/cloud-round.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="(max-width: 700px) 144px, 210px"
-            className={`${styles.membershipCloud} ${styles.membershipCloudTwo}`}
-          />
-          <Image
-            src="/brand/doodles/bird-flight.png"
-            alt=""
-            width={1024}
-            height={1024}
-            sizes="(max-width: 700px) 55px, 86px"
-            className={styles.membershipBird}
-          />
-          <Image
-            src="/about/glossy-heart.webp"
-            alt=""
-            width={1248}
-            height={1248}
-            sizes="(max-width: 700px) 28px, 60px"
-            className={styles.membershipHeart}
-          />
-          <Image
-            src="/about/glass-bubble.webp"
-            alt=""
-            width={1248}
-            height={1248}
-            sizes="(max-width: 700px) 22px, 38px"
-            className={styles.membershipBubble}
-          />
-        </div>
         <div className={styles.membershipTop}>
           <dl className={styles.membershipMobileSummary}>
             <div>
@@ -82,11 +43,8 @@ export default function MembershipOverview({
               </dd>
             </div>
           </dl>
-          <span className={styles.heroIcon}>
-            <Package weight="duotone" aria-hidden="true" />
-          </span>
-          <span className={styles.membershipStatus}>
-            {summary?.status ?? "Loading"}
+          <span className={`${styles.heroIcon} ${cardStyles.icon}`}>
+            <Package aria-hidden="true" />
           </span>
         </div>
         <div className={styles.membershipCopy}>
@@ -96,7 +54,7 @@ export default function MembershipOverview({
               ? displayModelName(summary.unit_model)
               : "Loading your unit…"}
           </h2>
-          <span className={styles.batch}>
+          <span className={`${styles.batch} ${cardStyles.badge}`}>
             Batch {summary?.batch_number ?? "—"}
           </span>
         </div>
@@ -109,21 +67,19 @@ export default function MembershipOverview({
               href="/portal/membership"
               className={styles.membershipDetails}
             >
-              View details <ArrowRight weight="bold" aria-hidden="true" />
+              View details <ArrowRight aria-hidden="true" />
             </Link>
           )}
         </div>
-        {deviceImage && (
-          <Image
-            src={deviceImage}
-            alt=""
-            width={1024}
-            height={1536}
-            sizes="(max-width: 700px) 120px, 230px"
-            loading="eager"
-            className={`${styles.deviceArt} ${/ipad/i.test(summary?.unit_model ?? "") ? styles.tabletArt : ""}`}
-          />
-        )}
+        <Image
+          src="/portal/mascot/task-boy-payments.webp"
+          alt=""
+          width={768}
+          height={512}
+          sizes="(max-width: 700px) 140px, 280px"
+          loading="eager"
+          className={styles.membershipMascot}
+        />
       </div>
     </section>
   );

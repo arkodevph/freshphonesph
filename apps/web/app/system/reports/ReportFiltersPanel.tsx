@@ -100,7 +100,7 @@ export default function ReportFiltersPanel({
         {kind === "reconciliation"
           ? "Dates use recorded payment dates and current payment status. Batches use the payment’s recorded batch. This compares internal records and verification audits; external bank statements have not been matched."
           : kind === "collections"
-            ? "Dates filter verified collections and pending payments by recorded payment date. Client counts, issued agreements and overall balances show current totals, grouped by each client’s current batch."
+            ? "Dates filter incoming collections and pending payments by recorded payment date. Membership counts include retained history. Issued obligations reflect recorded replacement releases; overall balances show current totals. External refunds are tracked separately."
             : kind === "payments"
               ? "Dates use the recorded payment date. Pending, rejected and clarification records are shown separately; only verified payments affect balances."
               : "Dates use UTC creation dates for tasks or cases. Batch filters apply to payment and collection reports."}

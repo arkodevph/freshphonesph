@@ -25,12 +25,14 @@ import {
   createSupportConversation,
   type SupportConversationState,
 } from "@/lib/support-conversation";
+import { philippineGreeting } from "@/lib/date";
 import { logoutSession } from "@/lib/auth";
 import { portalAttention } from "@/lib/portal-attention";
+import { portalMembershipDetails } from "@/lib/portal-membership";
 import { signInDestination } from "@/lib/support-entry";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { useMe } from "@/lib/useMe";
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight } from "@/components/SolarIcons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -180,6 +182,26 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
+  const [greeting, setGreeting] = useState("Hello");
+
+  useEffect(() => {
+    const updateGreeting = () => {
+      setGreeting(philippineGreeting());
+    };
+
+    updateGreeting();
+
+    const timer = window.setInterval(updateGreeting, 60_000);
+
+    window.addEventListener("focus", updateGreeting);
+
+    return () => {
+      window.clearInterval(timer);
+
+      window.removeEventListener("focus", updateGreeting);
+    };
+  }, []);
+
   const [searchOpen, setSearchOpen] = useState(false);
 
   const [profileOpen, setProfileOpen] = useState(false);
@@ -222,7 +244,15 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
 
   const notificationTriggerRef = useRef<HTMLButtonElement>(null);
 
+  useEffect(() => {
+    if (!window.location.hash) {
+      portalContentRef.current?.scrollTo({ top: 0, left: 0 });
+    }
+  }, [section]);
+
   const scrolledHash = useRef<string | null>(null);
+
+  const portalContentRef = useRef<HTMLDivElement>(null);
 
   const themeTransitioning = useRef(false);
 
@@ -497,7 +527,10 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
   }, [section]);
 
   const loadReleaseUpdates = useCallback(() => {
-    if (!me?.client_id || !["overview", "release"].includes(section)) {
+    if (
+      !me?.client_id ||
+      !["overview", "membership", "release"].includes(section)
+    ) {
       return;
     }
 
@@ -513,15 +546,20 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
   }, [me?.client_id, section]);
 
   const loadAttention = useCallback(() => {
-    if (section !== "overview") {
+    if (!["overview", "membership"].includes(section)) {
       return;
     }
 
-    void Promise.all([getCustomerDocuments(), getPortalSupport()])
+    void Promise.all([
+      getCustomerDocuments(),
+      section === "overview" ? getPortalSupport() : Promise.resolve([]),
+    ])
       .then(([documents, supportCases]) => {
         setAttentionDocuments(documents);
 
-        setAttentionCases(supportCases);
+        if (section === "overview") {
+          setAttentionCases(supportCases);
+        }
 
         setAttentionStatus("ready");
       })
@@ -556,19 +594,17 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
           }
 
           setSummary({
+            membership_id: client.id,
             full_name: client.name,
             batch_number: client.batch.code,
             unit_model: client.unitModel || client.batch.model,
-            status: client.status.toLowerCase(),
+            ...portalMembershipDetails(client),
             total_due: balance.total_due,
             verified_paid: balance.verified_paid,
             remaining_balance: balance.remaining_balance,
             release_status: client.releaseStatus
               .toLowerCase()
               .replaceAll("_", " "),
-            joined_at: client.joinedAt,
-            batch_start_date: client.batch.startDate,
-            batch_end_date: client.batch.endDate,
           });
 
           setPayments(verifiedPayments.results);
@@ -587,6 +623,8 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
                 sequence_no: item.sequenceNo,
                 due_date: item.dueDate,
                 expected_amount: item.expectedAmount,
+                original_expected_amount: item.originalExpectedAmount,
+                released_amount: item.releasedAmount,
                 paid_applied: item.paidApplied ?? "0.00",
                 status: item.status?.toLowerCase() ?? "upcoming",
               };
@@ -654,8 +692,48 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
       return;
     }
 
-    refresh();
-  }, [section, refresh, loadSupport, me?.id, me?.account_type]);
+    loadRecords();
+  }, [loadRecords, me?.id, me?.account_type]);
+
+  useEffect(() => {
+    if (me?.account_type !== "customer") {
+      return;
+    }
+
+    loadNotifications();
+  }, [loadNotifications, me?.id, me?.account_type]);
+
+  useEffect(() => {
+    if (me?.account_type !== "customer") {
+      return;
+    }
+
+    setMenuOpen(false);
+
+    setMoreOpen(false);
+
+    setNotificationsOpen(false);
+
+    scrolledHash.current = null;
+
+    loadAttention();
+
+    loadPending();
+
+    loadReleaseUpdates();
+
+    if (section === "support" || section === "membership") {
+      loadSupport();
+    }
+  }, [
+    section,
+    loadAttention,
+    loadPending,
+    loadReleaseUpdates,
+    loadSupport,
+    me?.id,
+    me?.account_type,
+  ]);
 
   useEffect(() => {
     if (reportOpen) {
@@ -748,8 +826,8 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
           `Current unit: ${summary.unit_model}`,
           `Batch: ${summary.batch_number}`,
           `Joined: ${summary.joined_at?.slice(0, 10) ?? "Not recorded"}`,
-          `Batch start: ${summary.batch_start_date?.slice(0, 10) ?? "Not recorded"}`,
-          `Planned batch end: ${summary.batch_end_date?.slice(0, 10) ?? "Not recorded"}`,
+          `${summary.individual_plan ? "Plan" : "Batch"} start: ${summary.batch_start_date?.slice(0, 10) ?? "Not recorded"}`,
+          `Planned ${summary.individual_plan ? "plan" : "batch"} end: ${summary.batch_end_date?.slice(0, 10) ?? "Not recorded"}`,
           `Customer correction: ${request}`,
         ].join("\n"),
       });
@@ -1108,7 +1186,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
             return setNotificationsOpen(false);
           }}
         >
-          View more <ArrowRight weight="bold" aria-hidden="true" />
+          View more <ArrowRight aria-hidden="true" />
         </Link>
       </section>
     );
@@ -1148,6 +1226,14 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
       startTour,
     },
     membershipOverviewProps: { deviceImage, summary, section },
+    membershipContextProps: {
+      documents: attentionDocuments,
+      documentsStatus: attentionStatus,
+      onRetryDocuments: loadAttention,
+      updates: releaseUpdates,
+      updatesStatus: releaseUpdatesStatus,
+      onRetryUpdates: loadReleaseUpdates,
+    },
     membershipDatesPanelProps: {
       summary,
       schedule,
@@ -1241,6 +1327,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     releaseDetails,
     releaseStatus,
     releaseUpdates,
+    portalContentRef,
     featuredInstallment,
     schedule,
     refresh,
@@ -1258,5 +1345,6 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     loadPending,
     moreTriggerRef,
     customerTourOverlay,
+    greeting,
   };
 }

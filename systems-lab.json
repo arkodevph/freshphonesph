@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "name": "fresh-phones-ph",
+  "entry": "web",
+  "routes": [
+    {
+      "path": "/api/",
+      "service": "api"
+    },
+    {
+      "path": "/",
+      "service": "web"
+    }
+  ],
+  "services": {
+    "api": {
+      "kind": "app",
+      "label": "NestJS API",
+      "role": "api",
+      "enabled": true,
+      "dockerfile": "apps/api-ts/Dockerfile",
+      "evidence": [
+        {
+          "file": "apps/api-ts/package.json",
+          "line": 32,
+          "reason": "Declared runtime / build configuration"
+        },
+        {
+          "file": "apps/api-ts/Dockerfile",
+          "line": 1,
+          "reason": "Application Dockerfile"
+        }
+      ],
+      "environment": {
+        "NODE_ENV": "development",
+        "HOST": "0.0.0.0",
+        "PORT": "4100",
+        "DATABASE_URL": "postgresql://lab:${LAB_SECRET}@postgres:5432/freshphones_lab",
+        "REDIS_URL": "redis://:${LAB_SECRET}@redis:6379/0",
+        "REDIS_NAMESPACE": "systems-lab",
+        "BETTER_AUTH_SECRET": "${LAB_SECRET}",
+        "BETTER_AUTH_URL": "${LAB_ENTRY_ORIGIN}/api/auth",
+        "WEB_ORIGIN": "${LAB_ENTRY_ORIGIN}",
+        "PUBLIC_SITE_ORIGIN": "${LAB_ENTRY_ORIGIN}",
+        "AUTH_REQUIRE_STAFF_MFA": "false",
+        "PRIVATE_STORAGE_PROVIDER": "local",
+        "PRIVATE_STORAGE_DIR": "/app/.local/private"
+      },
+      "volumes": [
+        "privatefiles:/app/.local"
+      ],
+      "dependsOn": [
+        "migrate",
+        "redis"
+      ],
+      "port": 4100
+    },
+    "web": {
+      "kind": "app",
+      "label": "Next.js web",
+      "role": "web",
+      "enabled": true,
+      "dockerfile": "apps/web/Dockerfile",
+      "evidence": [
+        {
+          "file": "apps/web/package.json",
+          "line": 17,
+          "reason": "Declared runtime / build configuration"
+        },
+        {
+          "file": "apps/web/Dockerfile",
+          "line": 1,
+          "reason": "Application Dockerfile"
+        }
+      ],
+      "buildArgs": {
+        "NEXT_PUBLIC_API_URL": "${LAB_ENTRY_ORIGIN}",
+        "NEXT_PUBLIC_LANDING_URL": "${LAB_ENTRY_ORIGIN}",
+        "API_PROXY_URL": "http://api:4100"
+      },
+      "environment": {
+        "API_PROXY_URL": "http://api:4100",
+        "NEXT_PUBLIC_API_URL": "${LAB_ENTRY_ORIGIN}",
+        "PORT": "3000"
+      },
+      "dependsOn": [
+        "api"
+      ],
+      "port": 3000
+    },
+    "worker": {
+      "kind": "app",
+      "label": "BullMQ worker",
+      "role": "worker",
+      "enabled": true,
+      "dockerfile": "apps/api-ts/Dockerfile",
+      "evidence": [
+        {
+          "file": "apps/api-ts/package.json",
+          "line": 24,
+          "reason": "Explicit worker:start command and BullMQ runtime dependency"
+        },
+        {
+          "file": "apps/api-ts/Dockerfile",
+          "line": 1,
+          "reason": "Application Dockerfile"
+        }
+      ],
+      "environment": {
+        "NODE_ENV": "development",
+        "HOST": "0.0.0.0",
+        "PORT": "4100",
+        "DATABASE_URL": "postgresql://lab:${LAB_SECRET}@postgres:5432/freshphones_lab",
+        "REDIS_URL": "redis://:${LAB_SECRET}@redis:6379/0",
+        "REDIS_NAMESPACE": "systems-lab",
+        "BETTER_AUTH_SECRET": "${LAB_SECRET}",
+        "BETTER_AUTH_URL": "${LAB_ENTRY_ORIGIN}/api/auth",
+        "WEB_ORIGIN": "${LAB_ENTRY_ORIGIN}",
+        "PUBLIC_SITE_ORIGIN": "${LAB_ENTRY_ORIGIN}",
+        "AUTH_REQUIRE_STAFF_MFA": "false",
+        "PRIVATE_STORAGE_PROVIDER": "local",
+        "PRIVATE_STORAGE_DIR": "/app/.local/private"
+      },
+      "command": [
+        "node",
+        "dist/worker.js"
+      ],
+      "volumes": [
+        "privatefiles:/app/.local"
+      ],
+      "dependsOn": [
+        "migrate",
+        "redis"
+      ]
+    },
+    "migrate": {
+      "kind": "app",
+      "label": "Database migrations",
+      "role": "migration",
+      "enabled": true,
+      "dockerfile": "apps/api-ts/Dockerfile",
+      "evidence": [
+        {
+          "file": "apps/api-ts/package.json",
+          "line": 17,
+          "reason": "Declared runtime / build configuration"
+        },
+        {
+          "file": "apps/api-ts/Dockerfile",
+          "line": 1,
+          "reason": "Explicit migrations Dockerfile target"
+        }
+      ],
+      "target": "migrations",
+      "environment": {
+        "DATABASE_URL": "postgresql://lab:${LAB_SECRET}@postgres:5432/freshphones_lab"
+      },
+      "dependsOn": [
+        "postgres"
+      ],
+      "oneShot": true
+    },
+    "postgres": {
+      "kind": "postgres",
+      "enabled": true,
+      "evidence": [
+        {
+          "file": "docker-compose.yml",
+          "line": 21,
+          "reason": "PostgreSQL image declared by project"
+        }
+      ]
+    },
+    "redis": {
+      "kind": "redis",
+      "enabled": true,
+      "evidence": [
+        {
+          "file": "docker-compose.yml",
+          "line": 7,
+          "reason": "Redis image declared by project"
+        }
+      ]
+    },
+    "nginx": {
+      "kind": "nginx",
+      "enabled": true,
+      "origin": "lab-adapter",
+      "evidence": [
+        {
+          "file": "systems-lab.json",
+          "reason": "Explicit optional lab gateway, retained from the existing test setup; not detected in application source"
+        }
+      ]
+    }
+  }
+}

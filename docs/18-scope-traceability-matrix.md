@@ -3,13 +3,13 @@
 > **2026-10-08 architecture update (documentation only):** Neon PostgreSQL and Better Auth
 > replace the planned Supabase database/Auth stack. On 2026-10-09 the user reaffirmed Redis
 > for live events and background workers; Redis Streams/BullMQ and Better Auth/MFA are
-> implemented locally. Production provisioning, distributed rate limiting and private
-> object storage selection remain open. See [the decision record](20-v6-architecture-decision.md)
+> implemented locally, together with shared abuse rate limiting. Production provisioning,
+> proxy/quota acceptance and private object storage selection remain open. See [the decision record](20-v6-architecture-decision.md)
 > and [Redis runbook](53-redis-events-workers.md).
 
 This reference maps every section of **Full Scope v6, Revision 1.5** to the repository's
 current implementation evidence and the evidence required for acceptance. Rows include
-TypeScript increments through 2026-10-08; current evidence is linked below.
+TypeScript increments verified locally on 2026-10-12; current evidence is linked below.
 The v6 target architecture is recorded in
 [20-v6-architecture-decision.md](20-v6-architecture-decision.md).
 
@@ -23,11 +23,47 @@ The v6 target architecture is recorded in
 - Link evidence to stable tests, endpoints, screens, runbooks, or signed acceptance records.
 - A row may move backward when a regression or newly confirmed requirement invalidates evidence.
 
-## Scope coverage
+## Earlier 14-item gap list — implementation review, 2026-10-12
+
+**Items #1–13 are Built locally. Item #14, the AI assistant, remains Deferred - funding.**
+This review covers the current `feature/reports-page` checkout, including existing local
+uncommitted changes. The numbers in this checklist refer to the earlier gap list; the
+full-scope document uses §13 for AI.
+
+| # | Earlier gap | Implementation status | Evidence |
+|---|---|---|---|
+| 1 | Maintained public catalog and availability | Built | [Catalog management, publication, prices, availability and photos](43-public-catalog.md) |
+| 2 | Payment breakdown for each offer | Built | [Saved offer terms, exact sample installments and dates](44-catalog-installment-breakdown.md) |
+| 3 | FAQ search by topic | Built | [Question/answer search and topic filters](45-faq-topic-search.md) |
+| 4 | Public support/contact entry | Built | [Public support links and preserved sign-in destinations](46-public-support-entry.md) |
+| 5 | Consequential HR action approvals | Built | [Human requests, Owner decisions, reasons and immutable history](47-consequential-hr-action-approvals.md) |
+| 6 | Support concern source tracking | Built | [Immutable source, staff filters and reporting](48-support-concern-source-tracking.md) |
+| 7 | Submitted analysis attached to reporting periods | Built | [Immutable analysis with author/time and saved figures](49-submitted-report-analysis.md) |
+| 8 | Privacy notices and terms in the application | Built | [Notice screens, links and versioned acknowledgement](50-privacy-notices-terms.md) |
+| 9 | Retention and deletion controls | Built | [Policies, previews, holds, approved erasure and private-file cleanup](51-retention-deletion.md) |
+| 10 | Authentication and MFA migration | Built — Better Auth | [Credential/session migration, TOTP and recovery codes](52-authentication-mfa.md); the approved Better Auth/Neon decision supersedes the earlier Supabase choice |
+| 11 | Redis live-event distribution | Built | [Committed events, shared Streams readers and replica isolation](53-redis-events-workers.md) |
+| 12 | Redis background workers | Built | [Separate BullMQ workers, durable retries and recovery](53-redis-events-workers.md) |
+| 13 | Broader abuse rate limiting | Built | [Shared Redis limits, PostgreSQL fallback and protected public/file/report routes](54-abuse-rate-limits.md) |
+| 14 | AI assistant | Deferred - funding | [Explicit user deferral and requirements for resumption](05-modules.md#m11--ai-assistant--automation-13-staff) |
+
+Business configuration, approved legal text, policy activation, client-owned production
+services and named UAT retain their own acceptance work below. Offers without configured
+sample terms and inactive policies do not make their implemented features missing.
+Document-workflow consolidation and any additional approved report formats remain separate
+follow-ups; they do not reopen the completed items in this checklist.
+
+Current local verification passed **324 tests**, with no failures or skips: 63 API unit,
+71 web, 152 PostgreSQL business/auth/retention integration, 14 Redis, 23 abuse-limit and
+one private S3 retention check. Workspace typechecks and the API build also passed.
+The web suite used `NEXT_PUBLIC_API_BACKEND=typescript`; integration checks used fresh
+databases and isolated synthetic Redis/storage resources. See [build status](BUILD_STATUS.md#current-implementation-review--2026-10-12).
+
+## Scope coverage and acceptance
 
 | Scope | Requirement | Current baseline | Status | Target acceptance evidence |
 |---|---|---|---|---|
-| §1 Executive Summary | Centralize clients, batches, verified payments, documents, tasks, reports, support, recruitment, and agents while external payment remains familiar | Core records and operations exist; public, document, and notification coverage is incomplete. AI is deferred until API funding is available | Partial | End-to-end journeys for current delivery modules plus signed scope review recording the AI deferral |
+| §1 Executive Summary | Centralize clients, batches, verified payments, documents, tasks, reports, support, recruitment, and agents while external payment remains familiar | Core records, public features, document workflows and notification infrastructure are implemented locally. Business configuration, production setup and named UAT remain open; AI is deferred until API funding is available | Partial | End-to-end journeys for current delivery modules plus signed scope review recording the AI deferral |
 | §2 Product Vision | Operations and records platform; not payment gateway, BIR POS, autonomous HR, or public private-data store | Core code follows the payment, BIR, HR, and public-agent boundaries | Built | Boundary tests remain green in NestJS and appear in UAT scripts |
 | §3 Users and Roles | Individual accounts, least privilege, separately approved confidential HR access | Cookie-backed accounts, 10 employee roles, server-side checks and audited account administration exist. Handlers now have read-only access to assigned batches/clients, including scoped counts and live events. Owner-approved per-person confidential HR grants for HR/Payroll or COO, audited reasons/history, private KPI/applicant gates and revocation are implemented locally; see [42-confidential-hr-access.md](42-confidential-hr-access.md) | Partial | Endpoint-by-role matrix; inactive-user, self-lockout, cross-role, assignment-isolation and confidential-HR negative tests plus Owner UAT |
 | §4 Public Website | Catalog, breakdown, process, requirements, FAQs, careers, agent verification, login, support entry | Landing, process/requirements/FAQ content, careers, verification and login exist. Public catalog listings, daily rates, availability, photos and role-gated management are implemented locally; see [43-public-catalog.md](43-public-catalog.md). Staff-entered per-offer terms and public sample installments/dates are implemented locally; see [44-catalog-installment-breakdown.md](44-catalog-installment-breakdown.md). FAQ topic filtering and question/answer search are implemented; see [45-faq-topic-search.md](45-faq-topic-search.md). Public help/contact entry and preserved support destinations through login are implemented; see [46-public-support-entry.md](46-public-support-entry.md). Business content acceptance and named UAT remain open | Partial | Responsive/accessibility checks and public API tests for every listed feature |
@@ -42,7 +78,7 @@ The v6 target architecture is recorded in
 | §13 AI Assistant | Permission-aware, approved-source assistant added after stable core; summaries and task help only | `ai_app` is an empty skeleton. Deferred at the user's request on 2026-10-08 because paid AI API funding is unavailable; excluded from current implementation priorities | Deferred - funding | Resume when API funding is available and the user requests it; then verify approved-source retrieval, role isolation, no-write, prompt-injection, privacy, and human-review tests |
 | §14 Privacy, Documents, Compliance | Notices, terms, employee/applicant notice, DPA, DPO, PIA, NPC assessment, retention, breach process | Draft customer, employee and applicant notices and portal terms now have public screens and entry links. A tested versioned acknowledgement mechanism is ready for approved publications, but all texts remain inactive drafts while the controller/contact, bases, recipients, retention and business rules are unknown; see [50-privacy-notices-terms.md](50-privacy-notices-terms.md). Owner-managed retention policy drafts/approval, expiry previews, legal holds, reasoned erasure approvals, durable private file removal and backup/provider follow up now exist locally; policies start inactive; see [51-retention-deletion.md](51-retention-deletion.md). DPA, DPO, PIA, NPC assessment and incident work remain open. | Partial — approval blocked | Approved text and publication, named UAT, retention policy activation and backup/provider disposition/restore rehearsal, DPA/DPO/PIA/NPC decisions and incident runbooks |
 | §15 Technical Architecture | VPS web, Railway API, Neon PostgreSQL, Better Auth, private storage, Resend and Redis Streams/BullMQ; production provisioning pending | Architecture is approved in [20-v6-architecture-decision.md](20-v6-architecture-decision.md); Better Auth/MFA identity and Redis Streams/BullMQ are implemented locally; production provisioning is pending | Partial | Two API replicas, approved event/worker recovery, Neon/Better Auth parity, web/API/storage/email smoke tests and client-owned account record |
-| §16 Security Requirements | Auth, backend checks, private files, HTTPS, audit, validation/rate limits, backup/recovery, secrets, least privilege | Auth, server permissions, private signed files, audit, validation, and env-based secrets exist; rate-limit and recovery evidence is missing | Partial | Security checklist, all-route permission scan, rate-limit tests, backup/restore rehearsal, production HTTPS evidence |
+| §16 Security Requirements | Auth, backend checks, private files, HTTPS, audit, validation/rate limits, backup/recovery, secrets, least privilege | Better Auth/MFA, server permissions, private files, audit, validation, env-based secrets and shared abuse limits have local automated evidence. Redis outage and worker recovery checks pass locally; production gateway, capacity, backup/restore and HTTPS acceptance remain open | Partial | Security checklist, all-route permission scan, production proxy/quota checks, backup/restore rehearsal, production HTTPS evidence |
 | §17 SDLC and Timeline | Discovery through UAT/handover with change-controlled scope | Planning docs exist and much of the previous backend baseline was built; formal gate evidence is incomplete | Partial | Gate records from the implementation workflow and accepted release plan |
 | §18 Scope Revisions | Enforce ten revisions covering payments, BIR wording, wages, AI, Redis, access, public agents, privacy, and budget | Most boundaries are documented and represented in code; older AI wording still conflicts with the stricter project rule | Partial | Conflict removed from active docs and regression tests cover every technical revision |
 | §19 Out of Scope | Exclude checkout, official BIR invoicing, auto wage action, native apps, payroll, paid messaging, large migration, BI warehouse, unlimited revisions, 24/7 support | No excluded technical feature is present in the baseline | Built | Release review confirms no excluded capability or misleading product copy |
@@ -53,7 +89,7 @@ The v6 target architecture is recorded in
 
 ## Current implementation evidence
 
-### TypeScript increments (updated 2026-10-08)
+### TypeScript increments (implementation checked 2026-10-12)
 
 | Scope | Target implementation and evidence | Status |
 |---|---|---|

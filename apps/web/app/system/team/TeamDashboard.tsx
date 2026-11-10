@@ -651,6 +651,12 @@ export default function TeamDashboard() {
 
       const next = { ...previous, ...patch };
 
+      if (patch.role !== undefined && patch.role !== previous.role) {
+        next.supervisorId = null;
+
+        next.agentProfileId = null;
+      }
+
       if (
         (patch.role !== undefined && patch.role !== previous.role) ||
         (patch.active !== undefined && patch.active !== previous.active)
@@ -692,7 +698,16 @@ export default function TeamDashboard() {
 
     const statusChanged = nextStatus !== managed.status;
 
-    if (!roleChanged && !statusChanged && !explicitHrDecision) {
+    const assignmentsChanged =
+      accessDraft?.supervisorId !== undefined ||
+      accessDraft?.agentProfileId !== undefined;
+
+    if (
+      !roleChanged &&
+      !statusChanged &&
+      !explicitHrDecision &&
+      !assignmentsChanged
+    ) {
       closeManage();
 
       return;
@@ -715,6 +730,12 @@ export default function TeamDashboard() {
               hr_confidential_access: managedHrAccess,
               hr_access_reason: accessDraft?.hrAccessReason,
             }
+          : {}),
+        ...(accessDraft?.supervisorId !== undefined
+          ? { supervisor_id: accessDraft.supervisorId }
+          : {}),
+        ...(accessDraft?.agentProfileId !== undefined
+          ? { agent_profile_id: accessDraft.agentProfileId }
           : {}),
         version: accessDraft?.version ?? account.version,
       });

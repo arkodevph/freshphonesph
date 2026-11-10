@@ -1,10 +1,14 @@
 import Image from "next/image";
+import PublicNavigationLink from "./PublicNavigationLink";
 import {
   ArrowRight,
   FacebookLogo,
   MessengerLogo,
 } from "@phosphor-icons/react/dist/ssr";
 import styles from "./Footer.module.css";
+import scene from "./LandingContent.module.css";
+import { landingV2Font } from "./font";
+import typography from "./typography.module.css";
 
 const groups = [
   {
@@ -42,9 +46,16 @@ const socials = [
   },
 ];
 
-export default function Footer() {
+export default function Footer({
+  standalone = true,
+}: {
+  standalone?: boolean;
+}) {
   return (
-    <footer className={`landing-footer ${styles.footer}`}>
+    <footer
+      data-landing-version="2"
+      className={`landing-footer ${styles.footer} ${landingV2Font.variable} ${typography.root} ${standalone ? scene.footerScene : ""}`}
+    >
       <div className={styles.inner}>
         <div>
           <div className={styles.grid}>
@@ -79,7 +90,12 @@ export default function Footer() {
                       aria-label={s.label}
                       className={styles.social}
                     >
-                      <s.icon weight="fill" className="h-5 w-5" />
+                      <s.icon
+                        weight="fill"
+                        className="h-5 w-5"
+                        aria-hidden="true"
+                        data-button-icon
+                      />
                     </a>
                   );
                 })}
@@ -97,9 +113,12 @@ export default function Footer() {
                     {group.links.map((l) => {
                       return (
                         <li key={l.href}>
-                          <a href={l.href} className={styles.navLink}>
+                          <PublicNavigationLink
+                            href={l.href}
+                            className={styles.navLink}
+                          >
                             {l.label}
-                          </a>
+                          </PublicNavigationLink>
                         </li>
                       );
                     })}
@@ -122,7 +141,11 @@ export default function Footer() {
               >
                 Message our team
                 <span>
-                  <ArrowRight weight="bold" aria-hidden="true" />
+                  <ArrowRight
+                    weight="bold"
+                    aria-hidden="true"
+                    data-button-icon
+                  />
                 </span>
               </a>
               <a className={styles.phone} href="tel:+639624791649">

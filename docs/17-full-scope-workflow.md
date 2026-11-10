@@ -48,8 +48,8 @@ Next.js 16 web (VPS)
 NestJS API (Railway, two replicas)
    |          |          |          |
    v          v          v          v
-PostgreSQL  private S3  Event/jobs Resend
-(Neon)     provider TBD design TBD email
+PostgreSQL  private S3  Redis        Resend
+(Neon)     provider TBD Streams/jobs email
 ```
 
 | Concern | Target | Rule |
@@ -57,13 +57,13 @@ PostgreSQL  private S3  Event/jobs Resend
 | Web | Next.js 16, React 19, TypeScript, Tailwind CSS v4 | UI is not a trusted authorization boundary |
 | API | NestJS, TypeScript, REST | Controllers stay thin; services own writes and business rules |
 | Data | PostgreSQL through Prisma migrations | Money uses decimal types; balances stay derived |
-| Auth | Better Auth sessions validated by the API (planned) | Better Auth handles identity/session recovery after a verified migration; every protected route authenticates server-side |
+| Auth | Better Auth database sessions and MFA implemented locally; production cutover pending | Better Auth handles identity/session recovery; every protected route authenticates server-side |
 | Authorization | Stable permission keys plus NestJS guards | Each route declares the permission it requires |
 | Validation | DTO validation at the API boundary | Reject invalid money, state transitions, and file metadata |
 | Files | Private S3-compatible storage; provider pending | No public customer, payment-proof, employee, or applicant files |
 | Email | Resend from the API | Use approved templates and recipients only |
-| Live updates | Authenticated SSE after commit; production fan-out design pending | Events carry only refresh identifiers; clients refetch authorized data after reconnecting |
-| Background work | Durable workers; production design pending | Retries cover email, notifications, exports, document processing, reminders, and AI work; payment verification remains transactional |
+| Live updates | Authenticated SSE after commit through Redis Streams; implemented locally, production provisioning pending | Events carry only refresh identifiers; clients refetch authorized data after reconnecting |
+| Background work | Separate BullMQ workers with durable database outboxes; implemented locally, production provisioning pending | Workers process notifications, reminders and already authorized file cleanup; payment verification remains transactional. AI remains deferred |
 | Tests | Unit, API integration, authorization matrix, and end-to-end tests | Every scope row needs repeatable evidence |
 
 ## Non-negotiable acceptance rules

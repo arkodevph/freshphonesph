@@ -4,6 +4,7 @@ import type { Me } from "@/lib/api";
 import { ROLES, type Employee } from "@/lib/api";
 import type { RefObject } from "react";
 import { type FormEvent } from "react";
+import AccountAssignments from "./AccountAssignments";
 import HrAccessHistory from "./HrAccessHistory";
 import {
   AccessDraft,
@@ -99,7 +100,16 @@ export default function ManageAccountDialog({
                 {managed.role === "customer" && (
                   <option value="customer">Customer</option>
                 )}
-                {ROLES.map(([value, label]) => {
+                {managed.role === "analytics" && (
+                  <option value="analytics">
+                    Analytics (legacy — reassignment pending)
+                  </option>
+                )}
+                {ROLES.filter(([value]) => {
+                  return (
+                    value !== "system_admin" || me?.role === "system_admin"
+                  );
+                }).map(([value, label]) => {
                   return (
                     <option key={value} value={value}>
                       {label}
@@ -142,73 +152,92 @@ export default function ManageAccountDialog({
                 own account here.
               </p>
             )}
-            <>
-              <label
-                className={`team-access-switch${!managedHrAccess && managedRole !== "owner" ? " is-paused" : ""}`}
-              >
-                <span>
-                  <strong>Confidential HR access</strong>
-                  <small>
-                    {managedRole === "owner"
-                      ? "Owner access is automatic."
-                      : !hrEligible
-                        ? "Only HR / Payroll and COO can receive an Owner grant."
-                        : !managedActive
-                          ? "Activate sign-in before granting confidential access."
-                          : "Allow private KPI evaluations and applicant records, notes and attachments."}
-                  </small>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={managedRole === "owner" || managedHrAccess}
-                  onChange={(event) => {
-                    return editAccess({
-                      hrConfidentialAccess: event.target.checked,
-                      hrDecision: true,
-                    });
-                  }}
-                  disabled={managing || saving || !hrEligible || !managedActive}
+            {String(managed.id) !== String(me?.id) &&
+              managed.role !== "customer" && (
+                <AccountAssignments
+                  account={managed}
+                  role={managedRole}
+                  draft={accessDraft}
+                  edit={editAccess}
+                  disabled={managing || saving}
                 />
-                <i aria-hidden="true" />
-              </label>
-              {explicitHrDecision && (
-                <Field
-                  label="Reason for HR access decision"
-                  inputId="managed-hr-reason"
+              )}
+            {(me?.role === "system_admin" || me?.role === "coo") && (
+              <>
+                <label
+                  className={`team-access-switch${!managedHrAccess && managedRole !== "system_admin" ? " is-paused" : ""}`}
                 >
-                  <textarea
-                    id="managed-hr-reason"
-                    required
-                    minLength={3}
-                    maxLength={1000}
-                    rows={3}
-                    value={accessDraft?.hrAccessReason ?? ""}
+                  <span>
+                    <strong>Confidential HR access</strong>
+                    <small>
+                      {managedRole === "system_admin"
+                        ? "System administrator access is automatic."
+                        : !hrEligible
+                          ? "Only HR / Payroll and COO can receive an approved grant."
+                          : !managedActive
+                            ? "Activate sign-in before granting confidential access."
+                            : "Allow private KPI evaluations and applicant records, notes and attachments."}
+                    </small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={managedRole === "system_admin" || managedHrAccess}
                     onChange={(event) => {
                       return editAccess({
-                        hrAccessReason: event.target.value,
+                        hrConfidentialAccess: event.target.checked,
+                        hrDecision: true,
                       });
                     }}
-                    disabled={managing || saving}
+                    disabled={
+                      managing ||
+                      saving ||
+                      !hrEligible ||
+                      !managedActive ||
+                      String(managed.id) === String(me?.id)
+                    }
                   />
-                  <small>
-                    The decision, reason, Owner and date are recorded. The
-                    person must sign in again.
-                  </small>
-                </Field>
-              )}
-              {managed.hr_confidential_access &&
-                !managedHrAccess &&
-                !explicitHrDecision && (
-                  <p className="team-self-note">
-                    Saving this role or sign-in change will revoke the existing
-                    HR grant. A new grant requires an Owner decision.
-                  </p>
+                  <i aria-hidden="true" />
+                </label>
+                {explicitHrDecision && (
+                  <Field
+                    label="Reason for HR access decision"
+                    inputId="managed-hr-reason"
+                  >
+                    <textarea
+                      id="managed-hr-reason"
+                      required
+                      minLength={3}
+                      maxLength={1000}
+                      rows={3}
+                      value={accessDraft?.hrAccessReason ?? ""}
+                      onChange={(event) => {
+                        return editAccess({
+                          hrAccessReason: event.target.value,
+                        });
+                      }}
+                      disabled={managing || saving}
+                    />
+                    <small>
+                      The decision, reason, approving administrator and date are
+                      recorded. The person must sign in again.
+                    </small>
+                  </Field>
                 )}
-              <HrAccessHistory
-                key={`${managed.id}:${managed.version}`}
-                accountId={managed.id}
-              />
-            </>
+                {managed.hr_confidential_access &&
+                  !managedHrAccess &&
+                  !explicitHrDecision && (
+                    <p className="team-self-note">
+                      Saving this role or sign-in change will revoke the
+                      existing HR grant. A new grant requires an authorized
+                      access decision.
+                    </p>
+                  )}
+                <HrAccessHistory
+                  key={`${managed.id}:${managed.version}`}
+                  accountId={managed.id}
+                />
+              </>
+            )}
             {detailLoading && (
               <p role="status">Refreshing current account settings…</p>
             )}

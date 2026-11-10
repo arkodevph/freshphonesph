@@ -19,7 +19,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 import type { User } from "@freshphones/contracts";
 import { z } from "zod";
-import { CurrentUser, Requires } from "../auth/access";
+import { CurrentUser, Requires, RequiresAny } from "../auth/access";
 import { Validate } from "../http";
 import { NotificationsService } from "./notifications.service";
 import {
@@ -127,23 +127,25 @@ export class PortalController {
     @Inject(DocumentsService) private readonly documents: DocumentsService,
   ) {}
 
-  @Get("portal/support") mine(@CurrentUser() user: User) {
+  @Get("portal/support") @Requires("SUPPORT_READ") mine(
+    @CurrentUser() user: User,
+  ) {
     return this.support.mine(user);
   }
-  @Post("portal/support") create(
+  @Post("portal/support") @Requires("SUPPORT_CREATE") create(
     @CurrentUser() user: User,
     @Body(new Validate(createCaseSchema))
     body: z.infer<typeof createCaseSchema>,
   ) {
     return this.support.create(user, body);
   }
-  @Get("portal/support/:id") myCase(
+  @Get("portal/support/:id") @Requires("SUPPORT_READ") myCase(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
     return this.support.detail(user, id);
   }
-  @Post("portal/support/:id/replies") replyToMyCase(
+  @Post("portal/support/:id/replies") @Requires("SUPPORT_CREATE") replyToMyCase(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new Validate(customerReplySchema))
@@ -205,15 +207,21 @@ export class PortalController {
     return this.support.update(user, id, body);
   }
 
-  @Get("portal/notifications") notificationsList(@CurrentUser() user: User) {
-    return this.notifications.list(user);
-  }
-  @Post("portal/notifications/read-all") @HttpCode(200) readAllNotifications(
+  @Get("portal/notifications") @Requires("NOTIFICATION_READ") notificationsList(
     @CurrentUser() user: User,
   ) {
+    return this.notifications.list(user);
+  }
+  @Post("portal/notifications/read-all")
+  @HttpCode(200)
+  @Requires("NOTIFICATION_READ")
+  readAllNotifications(@CurrentUser() user: User) {
     return this.notifications.readAll(user);
   }
-  @Post("portal/notifications/:id/read") @HttpCode(200) readNotification(
+  @Post("portal/notifications/:id/read")
+  @HttpCode(200)
+  @Requires("NOTIFICATION_READ")
+  readNotification(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
@@ -268,10 +276,14 @@ export class PortalController {
     return this.emailDelivery.sendTestReminder(user.id, body.email);
   }
 
-  @Get("portal/documents") myDocuments(@CurrentUser() user: User) {
+  @Get("portal/documents") @Requires("DOCUMENT_READ") myDocuments(
+    @CurrentUser() user: User,
+  ) {
     return this.documents.mine(user);
   }
-  @Get("clients/:clientId/documents") clientDocuments(
+  @Get("clients/:clientId/documents")
+  @Requires("DOCUMENT_READ")
+  clientDocuments(
     @CurrentUser() user: User,
     @Param("clientId", ParseUUIDPipe) clientId: string,
   ) {
@@ -284,6 +296,7 @@ export class PortalController {
       limits: { fileSize: 5 * 1024 * 1024, files: 1 },
     }),
   )
+  @Requires("DOCUMENT_UPLOAD")
   uploadMine(
     @CurrentUser() user: User,
     @Param("key") key: string,
@@ -298,6 +311,7 @@ export class PortalController {
       limits: { fileSize: 5 * 1024 * 1024, files: 1 },
     }),
   )
+  @Requires("DOCUMENT_UPLOAD")
   uploadClient(
     @CurrentUser() user: User,
     @Param("clientId", ParseUUIDPipe) clientId: string,
@@ -308,6 +322,7 @@ export class PortalController {
   }
   @Post("documents/:id/review")
   @HttpCode(200)
+  @Requires("DOCUMENT_REVIEW")
   reviewDocument(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
@@ -317,6 +332,7 @@ export class PortalController {
   }
   @AbusePolicy("download")
   @Get("documents/:id/file")
+  @Requires("DOCUMENT_READ")
   async readDocument(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,

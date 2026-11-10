@@ -1,6 +1,7 @@
 "use client";
 
 import type { Me } from "@/lib/api";
+import { can } from "@/lib/useMe";
 import { tsRequest } from "@/lib/ts-api";
 import { X } from "@phosphor-icons/react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
@@ -192,24 +193,27 @@ export default function StaffTaskDialog({
               </p>
             </section>
           )}
-          {active.assigneeId === me?.id && active.status === "TODO" && (
-            <button
-              type="button"
-              className={styles.secondary}
-              disabled={busy || activeChanged}
-              onClick={() => {
-                return void mutate(() => {
-                  return tsRequest(`/tasks/${active.id}/start`, {
-                    method: "PATCH",
-                    body: JSON.stringify({ version: active.version }),
-                  });
-                }, "Task started.");
-              }}
-            >
-              Start task
-            </button>
-          )}
-          {active.assigneeId === me?.id &&
+          {can(me, "TASK_SUBMIT") &&
+            active.assigneeId === me?.id &&
+            active.status === "TODO" && (
+              <button
+                type="button"
+                className={styles.secondary}
+                disabled={busy || activeChanged}
+                onClick={() => {
+                  return void mutate(() => {
+                    return tsRequest(`/tasks/${active.id}/start`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ version: active.version }),
+                    });
+                  }, "Task started.");
+                }}
+              >
+                Start task
+              </button>
+            )}
+          {can(me, "TASK_SUBMIT") &&
+            active.assigneeId === me?.id &&
             (active.status === "TODO" || active.status === "IN_PROGRESS") && (
               <form onSubmit={submit} className={styles.stacked}>
                 <h3>Submit your work</h3>

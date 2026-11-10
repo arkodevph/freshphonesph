@@ -13,6 +13,7 @@ const actions: Record<string, string> = {
   "batch.created": "Batch created",
   "batch.updated": "Batch edited",
   "batch.assigned": "Assignments changed",
+  "batch.activated": "Batch activated when full",
   "client.created": "Client enrolled",
   "client.updated": "Client edited",
   "schedule.generated": "Schedule issued",

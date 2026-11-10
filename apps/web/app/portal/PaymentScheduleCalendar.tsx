@@ -7,11 +7,9 @@ import {
 } from "@/lib/portal-membership-calendar";
 import { installmentState } from "@/lib/portal-schedule";
 import {
-  ArrowRight,
-  CalendarBlank,
-  CaretLeft,
-  CaretRight,
-} from "@phosphor-icons/react";
+  AltArrowLeft as CaretLeft,
+  AltArrowRight as CaretRight,
+} from "@/components/SolarIcons";
 import type { RefObject } from "react";
 import { type KeyboardEvent } from "react";
 import styles from "./payment-schedule.module.css";
@@ -35,8 +33,6 @@ type Props = {
   monthDays: string[];
   month: string;
   navigateDay: (event: KeyboardEvent<HTMLButtonElement>, day: string) => void;
-  selectedDayItems: PortalScheduleItem[];
-  showDetails: (item: PortalScheduleItem, trigger: HTMLButtonElement) => void;
 };
 
 export default function PaymentScheduleCalendar({
@@ -50,8 +46,6 @@ export default function PaymentScheduleCalendar({
   monthDays,
   month,
   navigateDay,
-  selectedDayItems,
-  showDetails,
 }: Props) {
   return (
     <section
@@ -59,15 +53,9 @@ export default function PaymentScheduleCalendar({
       className={styles.calendar}
       aria-labelledby="payment-calendar-title"
     >
-      <header className={styles.heading}>
-        <span className={styles.icon}>
-          <CalendarBlank weight="duotone" aria-hidden="true" />
-        </span>
-        <div>
-          <p>Your due dates</p>
-          <h2 id="payment-calendar-title">Payment calendar</h2>
-        </div>
-      </header>
+      <h2 id="payment-calendar-title" className={styles.srOnly}>
+        Payment calendar
+      </h2>
       {status === "error" ? (
         <State error onRetry={onRetry} />
       ) : (
@@ -86,7 +74,7 @@ export default function PaymentScheduleCalendar({
                   return selectDay(moveCalendarMonth(selectedDate, -1));
                 }}
               >
-                <CaretLeft weight="bold" aria-hidden="true" />
+                <CaretLeft aria-hidden="true" />
               </button>
               <h3 aria-live="polite">
                 {monthFormat.format(dateObject(selectedDate))}
@@ -98,7 +86,7 @@ export default function PaymentScheduleCalendar({
                   return selectDay(moveCalendarMonth(selectedDate, 1));
                 }}
               >
-                <CaretRight weight="bold" aria-hidden="true" />
+                <CaretRight aria-hidden="true" />
               </button>
             </div>
             <button
@@ -164,8 +152,7 @@ export default function PaymentScheduleCalendar({
                           key={item.sequence_no}
                           className={`${styles.dayEvent} ${badgeClass(state.payment)}`}
                         >
-                          <span>Installment {item.sequence_no}</span>
-                          <strong>{money(item.expected_amount)}</strong>
+                          <span>#{item.sequence_no}</span>
                         </span>
                       );
                     })}
@@ -193,73 +180,6 @@ export default function PaymentScheduleCalendar({
               Paid
             </span>
           </div>
-          <section
-            className={styles.agenda}
-            aria-labelledby="schedule-day-title"
-            aria-live="polite"
-          >
-            <h3 id="schedule-day-title">
-              {fullDate.format(dateObject(selectedDate))}
-            </h3>
-            {!selectedDayItems.length ? (
-              <p>No installments scheduled for this day.</p>
-            ) : (
-              <ul>
-                {selectedDayItems.map((item) => {
-                  const state = installmentState(item, today);
-
-                  return (
-                    <li key={item.sequence_no}>
-                      <div className={styles.agendaHeading}>
-                        <strong>Installment {item.sequence_no}</strong>
-                        <span
-                          className={`${styles.badge} ${badgeClass(state.payment)}`}
-                        >
-                          {state.payment}
-                        </span>
-                      </div>
-                      <dl>
-                        <div>
-                          <dt>Scheduled</dt>
-                          <dd>{money(item.expected_amount)}</dd>
-                        </div>
-                        <div>
-                          <dt>Verified</dt>
-                          <dd>{money(item.paid_applied)}</dd>
-                        </div>
-                        <div>
-                          <dt>Remaining</dt>
-                          <dd>{money(state.remaining)}</dd>
-                        </div>
-                      </dl>
-                      <div className={styles.agendaActions}>
-                        <span
-                          className={
-                            state.timing === "Overdue"
-                              ? styles.overdue
-                              : styles.muted
-                          }
-                        >
-                          {state.timing}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label={`Calendar details for installment ${item.sequence_no}`}
-                          aria-haspopup="dialog"
-                          onClick={(event) => {
-                            return showDetails(item, event.currentTarget);
-                          }}
-                        >
-                          View details
-                          <ArrowRight aria-hidden="true" />
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
         </>
       )}
     </section>

@@ -52,14 +52,10 @@ export function useMe() {
 
     refresh();
 
-    window.addEventListener("focus", refresh);
-
     return () => {
       active = false;
 
       clearTimeout(retry);
-
-      window.removeEventListener("focus", refresh);
 
       window.removeEventListener("fp-session-expired", expire);
 

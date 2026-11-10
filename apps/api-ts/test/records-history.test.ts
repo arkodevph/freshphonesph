@@ -108,11 +108,15 @@ test("assignment history compares identifiers while displaying only approved sna
       "batch",
       "batch.assigned",
       {
+        managerId: "manager-one",
+        manager: { name: "Previous manager", email: "private" },
         handlerId: "one",
         agentId: null,
         handler: { name: "Previous", email: "private" },
       },
       {
+        managerId: "manager-two",
+        manager: { name: "Next manager", passwordHash: "secret" },
         handlerId: "two",
         agentId: "agent",
         handler: { name: "Next", passwordHash: "secret" },
@@ -120,6 +124,12 @@ test("assignment history compares identifiers while displaying only approved sna
       },
     ),
     [
+      {
+        field: "managerId",
+        label: "Batch manager",
+        before: "Previous manager",
+        after: "Next manager",
+      },
       {
         field: "handlerId",
         label: "Handler",

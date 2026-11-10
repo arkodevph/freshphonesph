@@ -51,6 +51,38 @@ export default function PaymentDetailsDialog({
             </button>
           </header>
           <div className="payment-details-body">
+            {detailsPayment.workflow && (
+              <section aria-label="Operational review history">
+                <h3>Operational review history</h3>
+                <p>
+                  Evidence revision {detailsPayment.workflow.evidenceVersion} ·
+                  Records{" "}
+                  {detailsPayment.workflow.recordsApproved
+                    ? "approved"
+                    : "pending"}{" "}
+                  · Manager{" "}
+                  {detailsPayment.workflow.managerApproved
+                    ? "approved"
+                    : "pending"}
+                </p>
+                {detailsPayment.workflow.history.map((review) => {
+                  return (
+                    <div key={review.id} className="mt-3">
+                      <p>
+                        {review.stage} · {review.decision} · revision{" "}
+                        {review.evidenceVersion}
+                      </p>
+                      <p>
+                        {review.reviewer.name} ·{" "}
+                        {formatTimestamp(review.createdAt)}
+                      </p>
+                      <p>{review.notes}</p>
+                    </div>
+                  );
+                })}
+              </section>
+            )}
+
             <section aria-label="Transaction">
               <h3>Transaction</h3>
               <dl className="payment-details-grid">

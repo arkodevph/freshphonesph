@@ -1,3 +1,7 @@
+import { requireOpenMembership } from "../withdrawals/withdrawal-tools";
+import { batchScope, clientScope } from "../records/scope";
+import { safeUser } from "../auth/auth.service";
+import { businessRole } from "@freshphones/contracts";
 import {
   BadRequestException,
   ConflictException,
@@ -8,6 +12,7 @@ import {
 } from "@nestjs/common";
 import type {
   PaymentInput,
+  PaymentOperationalReviewInput,
   PaymentDuplicateMatch,
   PaymentStatus,
   PaymentAdjustmentInput,
@@ -29,6 +34,13 @@ import { adjustmentInclude, effectiveAmount, verifiedTotals } from "./ledger";
 const pageSize = 20;
 
 const paymentInclude = {
+  batch: { select: { managerId: true, version: true } },
+  operationalReviews: {
+    include: {
+      reviewer: { select: { id: true, name: true, active: true, role: true } },
+    },
+    orderBy: { paymentVersion: "desc" as const },
+  },
   client: {
     select: {
       id: true,
@@ -55,6 +67,42 @@ type Query = {
 
 type PaymentRow = Prisma.PaymentGetPayload<{ include: typeof paymentInclude }>;
 
+function workflow(payment: PaymentRow) {
+  const records = payment.operationalReviews.find((review) => {
+    return (
+      review.stage === "RECORDS" &&
+      review.evidenceVersion === payment.evidenceVersion
+    );
+  });
+
+  const manager = payment.operationalReviews.find((review) => {
+    return (
+      review.stage === "MANAGER" &&
+      review.evidenceVersion === payment.evidenceVersion
+    );
+  });
+
+  const recordsApproved = Boolean(
+    records?.decision === "APPROVED" &&
+    records.reviewer.active &&
+    businessRole(records.reviewer.role) === "RECORDS" &&
+    records.reviewerId !== payment.recordedById,
+  );
+
+  const managerApproved = Boolean(
+    recordsApproved &&
+    manager?.decision === "APPROVED" &&
+    manager.reviewer.active &&
+    businessRole(manager.reviewer.role) === "BATCH_MANAGER" &&
+    manager.reviewerId === payment.batch.managerId &&
+    manager.batchVersion === payment.batch.version &&
+    manager.reviewerId !== payment.recordedById &&
+    manager.reviewerId !== records?.reviewerId,
+  );
+
+  return { recordsApproved, managerApproved };
+}
+
 const json = (value: unknown): Prisma.InputJsonValue => {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 };
@@ -70,7 +118,7 @@ export class FinanceService {
   private async write<T>(
     user: User,
     permission: Permission,
-    run: (tx: Prisma.TransactionClient) => Promise<T>,
+    run: (tx: Prisma.TransactionClient, current: User) => Promise<T>,
   ) {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
@@ -81,7 +129,7 @@ export class FinanceService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      return run(tx);
+      return run(tx, safeUser(current));
     });
   }
 
@@ -137,7 +185,7 @@ export class FinanceService {
     referenceNumber: string,
     excludeId?: string,
   ): Promise<PaymentDuplicateMatch[]> {
-    if (!allowed(user, "PAYMENT_RECORD")) {
+    if (!allowed(user, "PAYMENT_RECORD") && !allowed(user, "PAYMENT_VERIFY")) {
       throw new ForbiddenException("You cannot record payments.");
     }
 
@@ -152,9 +200,11 @@ export class FinanceService {
         p."paymentDate"::text AS "paymentDate", p.method, p."referenceNumber", p.status
       FROM "Payment" p
       JOIN "Client" c ON c.id = p."clientId"
+      JOIN "Batch" b ON b.id = p."batchId"
       WHERE lower(p.method) = lower(${method})
         AND upper(regexp_replace(p."referenceNumber", '[^[:alnum:]]', '', 'g')) = ${normalized}
         ${excludeId ? Prisma.sql`AND p.id <> ${excludeId}::uuid` : Prisma.empty}
+      ${businessRole(user.role) === "BATCH_HANDLER" ? Prisma.sql`AND b."handlerId" = ${user.id}::uuid` : Prisma.empty}
       ORDER BY p."createdAt" DESC
       LIMIT 10
     `;
@@ -165,8 +215,33 @@ export class FinanceService {
     payment: PaymentRow,
     customer = false,
   ) {
+    const { operationalReviews, batch, ...record } = payment;
+
     return {
-      ...payment,
+      ...record,
+      ...(!customer
+        ? {
+            workflow: {
+              ...workflow(payment),
+              evidenceVersion: payment.evidenceVersion,
+              managerId: batch.managerId,
+              history: operationalReviews.map((review) => {
+                return {
+                  id: review.id,
+                  stage: review.stage,
+                  decision: review.decision,
+                  notes: review.notes,
+                  evidenceVersion: review.evidenceVersion,
+                  reviewer: {
+                    id: review.reviewer.id,
+                    name: review.reviewer.name,
+                  },
+                  createdAt: review.createdAt.toISOString(),
+                };
+              }),
+            },
+          }
+        : {}),
       amount: payment.amount.toFixed(2),
       effectiveAmount: effectiveAmount(payment).toFixed(2),
       adjustmentAmount: effectiveAmount(payment).sub(payment.amount).toFixed(2),
@@ -201,7 +276,7 @@ export class FinanceService {
       return { clientId: user.clientId, status: "VERIFIED" };
     }
 
-    return {};
+    return { batch: batchScope(user) };
   }
 
   async customerPending(user: User) {
@@ -305,14 +380,16 @@ export class FinanceService {
   }
 
   async create(user: User, input: PaymentInput) {
-    return this.write(user, "PAYMENT_RECORD", async (tx) => {
-      const client = await tx.client.findUnique({
-        where: { id: input.clientId },
+    return this.write(user, "PAYMENT_RECORD", async (tx, current) => {
+      const client = await tx.client.findFirst({
+        where: { id: input.clientId, ...clientScope(current) },
       });
 
       if (!client) {
         throw new NotFoundException("Client not found.");
       }
+
+      await requireOpenMembership(tx, input.clientId);
 
       if (input.scheduleItemId) {
         const item = await tx.scheduleItem.findFirst({
@@ -360,12 +437,16 @@ export class FinanceService {
   }
 
   async correct(user: User, id: string, input: PaymentInput, version: number) {
-    return this.write(user, "PAYMENT_RECORD", async (tx) => {
-      const before = await tx.payment.findUnique({ where: { id } });
+    return this.write(user, "PAYMENT_RECORD", async (tx, current) => {
+      const before = await tx.payment.findFirst({
+        where: { id, ...this.scope(current) },
+      });
 
       if (!before) {
         throw new NotFoundException("Payment not found.");
       }
+
+      await requireOpenMembership(tx, before.clientId);
 
       if (!["PENDING", "NEEDS_CLARIFICATION"].includes(before.status)) {
         throw new ConflictException(
@@ -373,13 +454,15 @@ export class FinanceService {
         );
       }
 
-      const client = await tx.client.findUnique({
-        where: { id: input.clientId },
+      const client = await tx.client.findFirst({
+        where: { id: input.clientId, ...clientScope(current) },
       });
 
       if (!client) {
         throw new NotFoundException("Client not found.");
       }
+
+      await requireOpenMembership(tx, input.clientId);
 
       if (
         input.scheduleItemId &&
@@ -412,6 +495,7 @@ export class FinanceService {
           receiptPhone: input.receiptPhone || null,
           notes: input.notes || null,
           status: "PENDING",
+          evidenceVersion: { increment: 1 },
           verificationNotes: null,
           verifierId: null,
           version: { increment: 1 },
@@ -437,6 +521,123 @@ export class FinanceService {
     });
   }
 
+  async operationalReview(
+    user: User,
+    id: string,
+    input: PaymentOperationalReviewInput,
+  ) {
+    const permission =
+      input.stage === "RECORDS"
+        ? "PAYMENT_COMPLETENESS_REVIEW"
+        : "PAYMENT_MANAGER_REVIEW";
+
+    return this.write(user, permission, async (tx, current) => {
+      const expectedRole =
+        input.stage === "RECORDS" ? "RECORDS" : "BATCH_MANAGER";
+
+      if (businessRole(current.role) !== expectedRole) {
+        throw new ForbiddenException(
+          "This review belongs to the designated business role.",
+        );
+      }
+
+      const before = await tx.payment.findFirst({
+        where: { id, ...this.scope(current) },
+        include: paymentInclude,
+      });
+
+      if (!before) {
+        throw new NotFoundException("Payment not found.");
+      }
+
+      await requireOpenMembership(tx, before.clientId);
+
+      if (before.status !== "PENDING" || before.version !== input.version) {
+        throw new ConflictException(
+          "This payment changed. Refresh and review the current evidence.",
+        );
+      }
+
+      if (
+        current.id === before.recordedById ||
+        (input.stage === "MANAGER" && current.id !== before.batch.managerId)
+      ) {
+        throw new ForbiddenException(
+          "A payment needs an independent reviewer and its assigned Manager.",
+        );
+      }
+
+      if (
+        input.decision === "APPROVED" &&
+        (input.stage === "RECORDS"
+          ? workflow(before).recordsApproved
+          : workflow(before).managerApproved)
+      ) {
+        throw new ConflictException(
+          "This evidence revision was already reviewed. Return corrected evidence for a new review.",
+        );
+      }
+
+      if (input.stage === "MANAGER" && !workflow(before).recordsApproved) {
+        throw new ConflictException(
+          "Records must approve completeness before the Manager cross-check.",
+        );
+      }
+
+      if (input.decision === "APPROVED" && !before.proofFileId) {
+        throw new ConflictException(
+          "Attach the receipt proof before approving completeness.",
+        );
+      }
+
+      const changed = await tx.payment.updateMany({
+        where: { id, version: input.version, status: "PENDING" },
+        data: {
+          version: { increment: 1 },
+          ...(input.decision === "RETURNED"
+            ? {
+                status: "NEEDS_CLARIFICATION",
+                evidenceVersion: { increment: 1 },
+              }
+            : {}),
+        },
+      });
+
+      if (!changed.count) {
+        throw new ConflictException("This payment changed. Refresh the queue.");
+      }
+
+      await tx.paymentOperationalReview.create({
+        data: {
+          paymentId: id,
+          reviewerId: current.id,
+          stage: input.stage,
+          decision: input.decision,
+          notes: input.notes,
+          evidenceVersion: before.evidenceVersion,
+          paymentVersion: before.version,
+          batchVersion: before.batch.version,
+        },
+      });
+
+      const after = await tx.payment.findUniqueOrThrow({
+        where: { id },
+        include: paymentInclude,
+      });
+
+      await this.record(
+        tx,
+        current.id,
+        id,
+        `payment.${input.stage.toLowerCase()}_${input.decision.toLowerCase()}`,
+        before,
+        after,
+      );
+
+      return this.view(tx, after);
+    });
+  }
+
   async decide(
     user: User,
     id: string,
@@ -444,16 +645,33 @@ export class FinanceService {
     notes: string,
     version: number,
   ) {
-    return this.write(user, "PAYMENT_VERIFY", async (tx) => {
-      const before = await tx.payment.findUnique({ where: { id } });
+    return this.write(user, "PAYMENT_VERIFY", async (tx, current) => {
+      const before = await tx.payment.findFirst({
+        where: { id, ...this.scope(current) },
+        include: paymentInclude,
+      });
 
       if (!before) {
         throw new NotFoundException("Payment not found.");
       }
 
+      await requireOpenMembership(tx, before.clientId);
+
       if (before.status !== "PENDING") {
         throw new ConflictException(
           "Only pending payments can receive a Finance decision.",
+        );
+      }
+
+      const approvals = workflow(before);
+
+      if (
+        !approvals.recordsApproved ||
+        !approvals.managerApproved ||
+        !before.proofFileId
+      ) {
+        throw new ConflictException(
+          "Records completeness approval and the assigned Manager cross-check are required before Finance review.",
         );
       }
 
@@ -511,21 +729,21 @@ export class FinanceService {
     const storageKey = await this.storage.save(file);
 
     try {
-      return await this.write(user, "PAYMENT_RECORD", async (tx) => {
-        const before = await tx.payment.findUnique({ where: { id } });
+      return await this.write(user, "PAYMENT_RECORD", async (tx, current) => {
+        const before = await tx.payment.findFirst({
+          where: { id, ...this.scope(current) },
+        });
 
         if (!before) {
           throw new NotFoundException("Payment not found.");
         }
 
+        await requireOpenMembership(tx, before.clientId);
+
         if (!["PENDING", "NEEDS_CLARIFICATION"].includes(before.status)) {
           throw new ConflictException(
             "Proof cannot be changed after the Finance decision.",
           );
-        }
-
-        if (before.proofFileId) {
-          throw new ConflictException("This payment already has a proof file.");
         }
 
         const stored = await tx.storedFile.create({
@@ -540,7 +758,11 @@ export class FinanceService {
 
         const after = await tx.payment.update({
           where: { id },
-          data: { proofFileId: stored.id, version: { increment: 1 } },
+          data: {
+            proofFileId: stored.id,
+            evidenceVersion: { increment: 1 },
+            version: { increment: 1 },
+          },
           include: paymentInclude,
         });
 
@@ -585,7 +807,7 @@ export class FinanceService {
   }
 
   async adjust(user: User, paymentId: string, input: PaymentAdjustmentInput) {
-    return this.write(user, "PAYMENT_VERIFY", async (tx) => {
+    return this.write(user, "PAYMENT_VERIFY", async (tx, current) => {
       const existing = await tx.paymentAdjustment.findUnique({
         where: { requestId: input.requestId },
       });
@@ -621,6 +843,8 @@ export class FinanceService {
       if (!payment) {
         throw new NotFoundException("Payment not found.");
       }
+
+      await requireOpenMembership(tx, payment.clientId);
 
       if (payment.status !== "VERIFIED") {
         throw new ConflictException("Only verified payments can be adjusted.");
@@ -706,8 +930,8 @@ export class FinanceService {
       throw new NotFoundException("Client not found.");
     }
 
-    const client = await this.db.client.findUnique({
-      where: { id: clientId },
+    const client = await this.db.client.findFirst({
+      where: { id: clientId, ...clientScope(user) },
       select: { id: true },
     });
 
@@ -727,7 +951,7 @@ export class FinanceService {
     const [schedule, verified, pending] = await Promise.all([
       tx.scheduleItem.aggregate({
         where: { clientId },
-        _sum: { expectedAmount: true },
+        _sum: { expectedAmount: true, releasedAmount: true },
       }),
       verifiedTotals(tx, { clientId }),
       tx.payment.aggregate({
@@ -736,7 +960,9 @@ export class FinanceService {
       }),
     ]);
 
-    const totalDue = schedule._sum.expectedAmount ?? new Prisma.Decimal(0);
+    const totalDue = (
+      schedule._sum.expectedAmount ?? new Prisma.Decimal(0)
+    ).sub(schedule._sum.releasedAmount ?? 0);
 
     const verifiedPaid = verified.effective;
 
@@ -746,6 +972,12 @@ export class FinanceService {
 
     return {
       clientId,
+      originalDue: (
+        schedule._sum.expectedAmount ?? new Prisma.Decimal(0)
+      ).toFixed(2),
+      releasedDue: (
+        schedule._sum.releasedAmount ?? new Prisma.Decimal(0)
+      ).toFixed(2),
       totalDue: totalDue.toFixed(2),
       verifiedPaid: verifiedPaid.toFixed(2),
       remainingBalance: Prisma.Decimal.max(difference, 0).toFixed(2),
@@ -796,7 +1028,11 @@ export class FinanceService {
       throw new NotFoundException("Client not found.");
     }
 
-    if (!(await this.db.client.count({ where: { id: clientId } }))) {
+    if (
+      !(await this.db.client.count({
+        where: { id: clientId, ...clientScope(user) },
+      }))
+    ) {
       throw new NotFoundException("Client not found.");
     }
 

@@ -4,7 +4,11 @@ import { formatPeso as money } from "@/lib/currency";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, DownloadSimple, Printer } from "@phosphor-icons/react";
+import {
+  ArrowLeft,
+  DownloadMinimalistic as DownloadSimple,
+  Printer,
+} from "@/components/SolarIcons";
 import type {
   Client,
   ClientBalance,
@@ -12,9 +16,11 @@ import type {
   User,
 } from "@freshphones/contracts";
 import { tsRequest } from "@/lib/ts-api";
+import { currentMembership } from "@/lib/membership-selection";
 import { downloadAccountPdf } from "@/lib/account-pdf";
 import DocumentSheetSkeleton from "./DocumentSheetSkeleton";
 import styles from "./financial-document.module.css";
+import glass from "../portal-glass.module.css";
 
 type Statement = {
   title: string;
@@ -83,11 +89,13 @@ export default function FinancialDocumentPage() {
           return;
         }
 
+        const membershipId = currentMembership(user.id, user.clientId)!;
+
         const [account, record] = await Promise.all([
-          tsRequest<Client>(`/clients/${user.clientId}`),
+          tsRequest<Client>(`/clients/${membershipId}`),
           paymentId
             ? tsRequest<Confirmation>(`/payments/${paymentId}/confirmation`)
-            : tsRequest<Statement>(`/clients/${user.clientId}/statement`),
+            : tsRequest<Statement>(`/clients/${membershipId}/statement`),
         ]);
 
         setClient(account);
@@ -104,7 +112,7 @@ export default function FinancialDocumentPage() {
   }, [router]);
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${glass.interactions}`}>
       <header className={styles.documentHeader}>
         <div className={styles.documentHeading}>
           <p>Fresh Phones PH</p>
@@ -194,8 +202,24 @@ export default function FinancialDocumentPage() {
             <>
               <h2>Account balance</h2>
               <dl className={styles.totals}>
+                {Number(document.balance.releasedDue ?? 0) > 0 && (
+                  <>
+                    <div>
+                      <dt>Originally issued installment obligation</dt>
+                      <dd>
+                        {document.balance.originalDue
+                          ? money(document.balance.originalDue)
+                          : "Not captured"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Unpaid obligation released at replacement</dt>
+                      <dd>{money(document.balance.releasedDue!)}</dd>
+                    </div>
+                  </>
+                )}
                 <div>
-                  <dt>Total due</dt>
+                  <dt>Current installment obligation</dt>
                   <dd>{money(document.balance.totalDue)}</dd>
                 </div>
                 <div>
@@ -207,6 +231,14 @@ export default function FinancialDocumentPage() {
                   <dd>{money(document.balance.remainingBalance)}</dd>
                 </div>
               </dl>
+              {Number(document.balance.releasedDue ?? 0) > 0 && (
+                <p>
+                  The replacement handover released the unpaid obligation shown
+                  above. This release is not a payment or refund. Original
+                  incoming payments remain in your history; refund decisions and
+                  external refund records are tracked separately.
+                </p>
+              )}
               <h2>Verified payments</h2>
               {document.verifiedPayments.length ? (
                 <table>

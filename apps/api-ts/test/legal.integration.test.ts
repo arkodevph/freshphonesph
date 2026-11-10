@@ -96,6 +96,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     JWT_SECRET: "legal-test-only-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local" as const,
@@ -143,7 +144,7 @@ before(async () => {
       name: "Synthetic legal owner",
       email: `legal-owner-${suffix}@example.test`,
       passwordHash: hash,
-      role: "OWNER",
+      role: "SYSTEM_ADMIN",
     },
   });
 

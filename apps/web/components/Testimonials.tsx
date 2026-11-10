@@ -2,6 +2,7 @@ import { Quotes } from "@phosphor-icons/react/dist/ssr";
 import SolarStar from "./SolarStar";
 import SectionHeading from "./SectionHeading";
 import Reveal from "./Reveal";
+import DoodleIcon from "./DoodleIcon";
 import styles from "./Testimonials.module.css";
 import type { CSSProperties } from "react";
 
@@ -99,9 +100,28 @@ export default function Testimonials({ staged = false }: { staged?: boolean }) {
     >
       <SectionHeading
         title={
-          <>
-            Real members, real <span className="holo-text">flexes</span>
-          </>
+          <span className={styles.headingComposition}>
+            <span className={styles.headingLine}>Real members,</span>{" "}
+            <span className={styles.headingLine}>
+              real <span className="holo-text">flexes</span>
+            </span>
+            {[
+              styles.doodleOne,
+              styles.doodleTwo,
+              styles.doodleThree,
+              styles.doodleFour,
+            ].map((position) => {
+              return (
+                <span
+                  key={position}
+                  className={`${styles.headingDoodle} ${position}`}
+                  aria-hidden="true"
+                >
+                  <DoodleIcon name="chat-heart" size={56} />
+                </span>
+              );
+            })}
+          </span>
         }
         subtitle="Customer recommendations, with clearly labeled sample reviews for this preview."
       />
@@ -115,7 +135,7 @@ export default function Testimonials({ staged = false }: { staged?: boolean }) {
       >
         {reviews.map((r, i) => {
           const card = (
-            <figure className="glass relative h-full rounded-[1.75rem] p-6">
+            <figure className={`glass relative h-full rounded-[1.75rem] p-6`}>
               {r.sample && (
                 <span className={styles.sample}>
                   Sample review · preview only
@@ -156,6 +176,7 @@ export default function Testimonials({ staged = false }: { staged?: boolean }) {
           return staged ? (
             <div
               key={r.name}
+              data-mobile-review
               data-sample={r.sample || undefined}
               className={styles.card}
               style={
@@ -164,7 +185,7 @@ export default function Testimonials({ staged = false }: { staged?: boolean }) {
                     i < 4 ? [1.05, 1.55, 2, 2.4][i] : reviewX(i) + 1.1,
                   "--review-to-x": reviewX(i),
                   "--review-from-y": [1.05, 1.2, 1.4, 1.55][i % 4],
-                  "--review-to-y": [0.46, 0.26, 0.41, 0.44][i % 4],
+                  "--review-to-y": [0.46, 0.42, 0.41, 0.44][i % 4],
                   "--review-from-angle": `${[26, 30, -18, 24][i % 4]}deg`,
                   "--review-to-angle": `${[-12, 0, -10, 0][i % 4]}deg`,
                   "--review-delay": [0, 0.08, 0.16, 0.24][i % 4],
@@ -186,9 +207,10 @@ export default function Testimonials({ staged = false }: { staged?: boolean }) {
           href="https://web.facebook.com/FreshPhonesPh"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-700 text-blue underline-offset-2 hover:underline"
+          className={styles.reviewButton}
         >
-          See all reviews on Facebook
+          <DoodleIcon name="chat-heart" />
+          <span>See all reviews on Facebook</span>
         </a>
       </div>
     </section>

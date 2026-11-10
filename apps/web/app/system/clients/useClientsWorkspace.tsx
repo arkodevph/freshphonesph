@@ -31,7 +31,8 @@ export function useClientsWorkspace() {
 
   const canRead = can(me, "CLIENT_READ", "CLIENT_MANAGE");
 
-  const canReadDocuments = me?.role === "owner" || me?.role === "records";
+  const canReadDocuments =
+    me?.role === "system_admin" || me?.role === "records";
 
   const [page, setPage] = useState(1);
 

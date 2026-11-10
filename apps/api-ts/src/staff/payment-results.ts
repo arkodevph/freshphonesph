@@ -11,7 +11,7 @@ export const canReadPaymentResults = (user: Pick<User, "role">) => {
   return (
     user.role !== "CUSTOMER" &&
     allowed(user, "PAYMENT_READ") &&
-    allowed(user, "PAYMENT_RECORD")
+    (allowed(user, "PAYMENT_RECORD") || user.role === "RECORDS")
   );
 };
 

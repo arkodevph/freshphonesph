@@ -28,6 +28,23 @@ to those options. The contacts are carried over from the website, with no invent
 response-time promise or new public collection form. Following an external contact link
 does not create a tracked portal case automatically.
 
+## Public-page design — November 6, 2026
+
+Canonical `/support` and retained `/v2/support` now share `SupportContent`.
+The page uses the public site's sky blue and fading cloud artwork, matching
+the landscape footer at the boundary. Sono headings, Nunito body text, a solid
+rose accent, the existing guidance mascot and pastel doodles replace the older
+page styles. A glass contact panel and lilac FAQ card sit beside each other on
+desktop and stack on phones. Existing customer request cards stay before the
+external contact choices when the system is configured.
+
+Messenger, telephone, Facebook, FAQ and customer request destinations remain
+connected to their existing routes. Keyboard focus, reduced motion, reduced
+transparency and no-JavaScript reading are supported. The November 6 local
+checks cover 14 responsive groups across both apps, both frontend type checks
+and 15 support/navigation/link regression tests. Visual acceptance is pending;
+these checks do not replace the customer/Customer Service UAT below.
+
 ## Existing case workflow
 
 Customers submit a category and description through the existing authenticated

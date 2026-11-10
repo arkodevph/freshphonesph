@@ -1,0 +1,223 @@
+.page {
+  min-height: 100svh;
+  background: var(--landing-sky, #c1e4f4);
+  color: #14266b;
+  overflow-wrap: anywhere;
+}
+
+.main {
+  position: relative;
+  isolation: isolate;
+  padding-top: 6.5rem;
+  background: var(--landing-sky, #c1e4f4);
+}
+
+.main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("/brand/cloud-section-divider-v2.webp") center top /
+    max(76rem, 120vw) auto repeat-y;
+  opacity: 0.5;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 4rem,
+    #000 calc(100% - 4rem),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.main > section:first-child > [aria-hidden="true"] {
+  max-width: 90%;
+}
+
+.heroTitle,
+.sectionTitle {
+  margin-top: 1.25rem;
+  color: var(--color-blue-ink);
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 3.5vw, 3.75rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1.08;
+}
+
+.heroTitle {
+  max-width: 11ch;
+}
+
+.sectionEyebrow {
+  color: var(--color-blue-ink);
+}
+
+.sectionTitle {
+  margin-top: 0.75rem;
+  text-wrap: balance;
+}
+
+.trust,
+.sectionAccent {
+  color: var(--landing-accent-ink);
+}
+
+.trust {
+  display: block;
+}
+
+.heroDescription {
+  margin-top: 1.5rem;
+  color: #344c73;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+.storyButton {
+  flex-wrap: wrap;
+}
+
+.main .founderCard {
+  width: 100%;
+  max-width: 35rem;
+  min-height: 40.625rem;
+  align-self: end;
+  padding: 0;
+  border-radius: 2.25rem;
+  text-align: left;
+}
+
+.founderEyebrow {
+  color: #344c73;
+}
+
+.founderTitle {
+  margin-top: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1.12;
+}
+
+.founderDoodle {
+  position: absolute;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 16px rgb(53 61 106 / 12%));
+}
+
+.founderPhone {
+  top: 13rem;
+  left: 1rem;
+  z-index: 5;
+  width: 8rem;
+  height: 8rem;
+  transform: rotate(-14deg);
+}
+
+.founderShield {
+  top: 13rem;
+  right: 1.5rem;
+  z-index: 20;
+  width: 6.5rem;
+  height: 6.5rem;
+  transform: rotate(12deg);
+}
+
+.founderHeart {
+  top: 2rem;
+  right: 2rem;
+  z-index: 20;
+  width: 3.5rem;
+  height: 3.5rem;
+  transform: rotate(10deg);
+}
+
+.founderFade {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 20;
+  height: 8rem;
+  background: linear-gradient(
+    to top,
+    #d8f0fd,
+    rgb(216 240 253 / 88%) 35%,
+    rgb(216 240 253 / 0%)
+  );
+  pointer-events: none;
+}
+
+.founderName {
+  position: absolute;
+  inset: auto 1.75rem 1.25rem;
+  z-index: 30;
+}
+
+.contact {
+  padding-top: clamp(3rem, 6vw, 5rem);
+  padding-bottom: clamp(3rem, 6vw, 5rem);
+}
+
+.contactCard {
+  min-height: 27rem;
+}
+
+.contact .messenger {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.messenger svg {
+  flex-shrink: 0;
+}
+
+.contact .eyebrow {
+  margin: 0 0 1.5rem;
+  color: #344c73;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 639px) {
+  .main {
+    padding-top: 6rem;
+  }
+
+  .founderPhone {
+    left: 0.5rem;
+    width: 5.25rem;
+    height: 5.25rem;
+  }
+
+  .founderShield {
+    top: 14rem;
+    right: 0.625rem;
+    width: 5rem;
+    height: 5rem;
+  }
+
+  .founderHeart {
+    top: 1.25rem;
+    right: 1.25rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .contactCard {
+    min-height: 0;
+    padding: 3rem 1.25rem;
+  }
+
+  .contact .messenger {
+    padding-inline: 0.75rem;
+  }
+
+  .contact h2 {
+    font-size: clamp(1.75rem, 7vw, 2rem);
+  }
+}

@@ -81,7 +81,7 @@ export class CustomerWorkService {
     }
 
     if (kind === "documents") {
-      if (user.role !== "OWNER" && user.role !== "RECORDS") {
+      if (!allowed(user, "DOCUMENT_REVIEW")) {
         throw new ForbiddenException("Records access required.");
       }
 

@@ -1,5 +1,174 @@
 # Build Status
 
+## October 30 editable website enrollment form
+
+Checklist #11 now includes landing-page intake and a COO/Records question builder: save/preview/publish, immutable revisions, assigned Agent review and existing assigned Manager approval. Website submissions do not enroll or reserve capacity. The local starter form is published to the existing Demo Agent; original applications retain answered wording. Current staff scopes, Finance-only verification, CEO reports and the My documents summary are preserved. [Guide and links](81-editable-public-enrollment-form.md).
+
+594 distinct automated checks pass (107unit/validation,156web,331PG/API), plus contracts/API/web/landing builds/types and scoped formatting. Ten live browser groups pass with zero page errors. Both rehearsal and actual main migration preserve69tables/4,274rows; final original-business comparison preserves1,019rows in21tables. All four local services are healthy. Local/uncommitted; acceptance/deployment remain separate.
+
+## October 30 printable application summary
+
+Checklist #11's approved printable summary is implemented in the main local demo. Customers open **My documents → View application summary**, then download a PDF or print the selected membership's recorded details and original issued plan. Customer ownership is enforced server-side; raw applications/review notes, other members and payment activity remain private. Google Forms and signed agreements remain separate. No migration, new dependency or financial write is required.
+
+43 PostgreSQL/API and 150 web checks, contracts/API/protected web builds, types and scoped formatting pass. Nine read-only live browser groups pass with zero page errors; independent Unicode PDF text/bounds review is clean. Main API/worker/web are healthy. Local/uncommitted; user/client acceptance and deployment remain separate. [Guide](79-printable-application-summary.md).
+
+**#11 placement correction:** Post-move verification: seven focused web checks, optimized web build/types, scoped formatting and three read-only live browser groups pass with zero page errors. My documents placement, removal from My membership, selected-batch changes, 1440/390/320px light/dark layout, captured PDF download and Back to documents were verified.
+
+## October 30 member withdrawals, replacement and refunds
+
+**#3 and the linked replacement-admission path in #4 are implemented and verified
+in the main demo.** Member explanation → assigned Agent review → COO decision;
+refund resolution remains separate and discretionary. Dues continue until actual
+replacement admission by the assigned Manager. The COO records CEO consultation
+and selects unpaid continuation or an explicit new plan. Finance records actual
+external refunds separately from incoming installment receipts. Historical
+payments remain intact, and replacement preserves current occupancy (a full
+eight-member batch stays at eight). [Workflow, roles and verification](77-member-withdrawals-main-demo.md).
+
+**Combined validation: 531 checks pass** (88 API unit/reader, 143 web, 300
+PostgreSQL/API scenarios in 26 isolated suites), builds/types, scoped formatting,
+nine withdrawal browser groups, seven live main-API checks and five independent
+PostgreSQL review groups. The migration preserves all existing values across 65
+business tables; final comparison preserves 875 original rows/columns in 17
+financial/member/evidence tables. The customer **My membership** batch-count
+follow-up also passes seven main-browser groups. [Count/privacy guide](78-customer-batch-participation.md).
+Local/uncommitted; user/client acceptance and deployment remain pending.
+
+## October 30 update — batch capacity and internal positions
+
+Checklist #5 is implemented and verified in the main demo. Eight real memberships determine capacity; four staff-only positions are display-only. The eighth approved membership auto-activates atomically, with authorized manual activation before full. Customer records and existing financial history remain private and preserved. 375 distinct automated checks, eight browser groups, types/builds and scoped formatting pass; original-row fingerprints match across 11 tables. Local/uncommitted, user acceptance pending. [Guide](75-batch-capacity-internal-positions.md).
+
+## Calendar schedules and Agent numbering in main — October 30, 2026
+
+Checklist #6 and #15 are integrated into the current port-3000 demo with normal
+seeded accounts, current `BATCH_CREATE`/assignment permissions, Manager-approved
+enrollment, multiple memberships, earnings, notifications and the preserved GCash
+workspace. All **486 checks** pass (86 API unit/reader, 130 web, 270 PostgreSQL),
+plus builds/types, scoped formatting and seven browser groups with zero page
+errors. Both the migration rehearsal and live migration preserved all original
+values in 64 tables; final backup comparison verifies original rows/columns in 17
+operational/evidence tables. Fixed saved month-end validation when calendar fields
+are omitted during an edit. Main API/worker/web are running. Local/uncommitted;
+user/client acceptance, remote publication and deployment remain separate.
+[Current guide](74-calendar-numbering-main-demo.md) ·
+[Updated afternoon handoff](68-2026-10-28-afternoon-handoff.md).
+
+## GCash review workspace — October 29, 2026
+
+All four previously deferred enhancements are implemented locally and available in the main demo: a clearer queue, same-revision original PDF comparison with temporary browser unlock, audited transaction corrections with reopened review, and reversible whole-period archive/restore. Existing Records review access governs changes; originals, prior decisions and Finance-only payment verification are preserved. All 452 automated checks (79 API unit, 123 web, 250 PostgreSQL), API/web builds/types, scoped formatting and ten browser groups pass with zero page errors. The migration preserved all original values across 63 tables; final comparison of 14 operational/evidence tables confirms existing rows are unchanged. Local/uncommitted on `feature/gcash-review-workspace`; user/client acceptance and deployment remain separate. [Workspace guide and evidence](73-gcash-review-workspace.md) · [expanded afternoon handoff](68-2026-10-28-afternoon-handoff.md).
+
+## GCash PDF reading and upload passwords
+
+The main GCash upload reads PDF text or scanned pages (Tesseract), accepts an
+optional transient password, and stores a per-revision transaction table for
+Records to check. Financial verification is unchanged. Existing uploads remain
+valid without extraction. Verification: 168 automated checks, API/web builds/types,
+11 browser groups and unchanged original financial/assignment data. Main services
+are running. [Current guide](72-gcash-pdf-reading.md).
+
+## Evening update — multiple batch memberships (2026-10-28)
+
+Checklist #10 is implemented and verified in the main local demo. One member/customer login can switch among independently scheduled batch memberships; existing Agent submission and assigned Manager approval remain. Original identities, account links, schedules and verified credit are preserved. Types/builds, 22 focused database scenarios, web/API/Redis checks and main browser/PDF verification pass. The broader regression exposed one retention-age issue, now fixed with all nine retention cases rerun successfully. Local/uncommitted; user acceptance pending. [Implementation and test guide](70-multiple-batch-memberships.md).
+
+## Evening update — GCash available in the main demo (2026-10-28)
+
+Full-history GCash PDF upload, clarification/correction and Records review now run at
+`http://localhost:3000/system/gcash-history`. Main login's **Preview a workspace**
+uses the existing **Batch handler** and **Records & monitoring officer** accounts;
+separate isolated credentials are no longer needed. Finance/COO read evidence only;
+Owner / CEO stays report-only. Finance alone verifies money.
+
+228 automated checks pass (44 PostgreSQL integration, 68 API unit, 116 web), API
+types/build and optimized web build/types pass, and seeded-login/full-workflow
+browser checks passed. Original data was preserved. Main integration is local and
+uncommitted; user acceptance remains pending. [Current guide](69-gcash-history-main-demo.md).
+
+Owner and CEO now use one report-only business role, **Owner / CEO**. Legacy OWNER
+normalizes to CEO; technical maintenance uses SYSTEM_ADMIN. See [the role merge](67-owner-ceo-role.md).
+Validated with 375 automated scenarios, types/builds, preserved-data migration and
+desktop/mobile browser checks. Existing identities remain separate and unchanged.
+
+## Role access alignment — 2026-10-28
+
+The approved business roles, COO role administration, current assignment scope and
+Agent enrollment with assigned Batch Manager approval/COO oversight are implemented
+and verified locally. CEO remains report-only; Finance alone verifies money.
+HR delegation, legacy Analytics reassignment and catalog ownership remain undecided.
+Actual teams/batches must be assigned by COO; no real roster was guessed.
+
+Validation: 370 automated tests pass (181 PostgreSQL integration, 68 API unit,
+108 web, 13 Redis); one optional Redis interruption test skipped. Typechecks,
+API/web builds, formatting, migration preservation and all local role previews passed.
+Browser-tested Agent submission → Manager approval → Agent status, CSR lookup and mobile.
+The integrated preview is running at http://localhost:3000/login. Changes remain local
+and uncommitted in the shared checkout. See [the role matrix, evidence and workflow
+limits](66-role-access-alignment.md).
+
+## Scheduled installment earnings — 2026-10-28
+
+Item 2 of the October 26 workflow notes is implemented locally: scheduled
+installment amounts per batch and member, with monthly, bi-monthly (15th and
+month-end) and every-two-month periods. Includes batch filtering, member drill-down, complete
+scope totals, pagination and CSV/XLSX downloads. Existing schedules and financial
+records are unchanged. The API requires `REPORT_VIEW` for reads and exports.
+
+Validation passed: 106 web tests and 20 API integration tests (six focused
+earnings, ten existing reports, four CEO access), API/web typechecks, optimized
+web preview build and ten browser check groups covering real data reconciliation,
+period selection, drill-down, pagination, exports, zero periods, retry, both
+themes and 390/320px layouts. Browser page errors: zero. SQL plans were captured
+on the small local dataset; production-scale acceptance remains open.
+
+Concurrent role/access edits required isolating the reporting source and Prisma
+client for validation. The dedicated review preview runs at
+`http://localhost:3002` with API port 4102, preserving the other session's preview.
+Source changes remain in the main checkout; manual acceptance by Jaycee is
+pending. See [Scheduled installment earnings](65-scheduled-installment-earnings.md).
+
+## CEO client-portal design — 2026-10-26
+
+CEO now follows the existing customer portal's full-width brand header, gray
+navigation, illustrated blue/blush banner, summary panel, typography and card
+styles. Small screens have Dashboard/Reports bottom navigation. Existing charts
+and report reading remain; other staff/customer layouts and backend access are
+unchanged. All 98 web tests, web typecheck/build, format/diff checks and six layout
+browser groups plus fourteen chart browser regression groups passed. The local preview is rebuilt. Details:
+[CEO client-portal design](64-ceo-client-portal-design.md). Deployment remains deferred.
+
+## CEO report visualizations — 2026-10-26
+
+The report-only CEO overview now includes interactive 3/6/12-month collections,
+payment-status counts and full-scope outstanding batch rankings. All five live
+and saved report families include comparisons from their own data. Net credit,
+pending claims, signed corrections, current balances and captured figures have
+explicit labels. No write permissions, migrations or dependencies were added.
+
+Local checks: 179 automated tests (67 API unit, 98 web, 10 report integration,
+4 CEO authorization), workspace typechecks, API/web builds, formatting/whitespace,
+two query plans and fourteen browser check groups. Browser coverage includes
+keyboard, themes, mobile, request races, errors/retry, zero data, historical
+figures, filters/CSV and retained Finance authoring. Details and evidence limits:
+[CEO report visualizations](63-ceo-report-visualizations.md). Deployment remains deferred.
+
+## CEO report-only portal — 2026-10-26
+
+The client-authorized CEO slice adds a distinct `CEO` role, maps existing business
+Owner accounts with an audited migration, and limits the portal to executive
+overview and report reading. `REPORT_WRITE` separates saving/analysis from report
+viewing. API guards also deny unannotated operational routes; personal account
+security/notices remain available. Finance verification stays exclusive to Finance.
+Other client workflow changes and external deployment remain deferred.
+
+Local verification: 64 API unit, 92 web, 77 core integration, 4 CEO integration,
+8 report integration, 1 report-analysis and 9 authentication/MFA tests passed
+(255 total), plus workspace typechecks, API/web builds, formatting and whitespace
+checks. Migration rehearsal preserved identity/credentials and payment history.
+Real browser checks covered all five existing report families, exports, all thirteen
+blocked operational routes, light/dark/mobile, retained Finance authoring and the
+customer portal. Local preview uses the migrated `_preview` database. Details:
+[CEO access](62-ceo-report-only-access.md). This is local implementation evidence,
+not production deployment or named client UAT.
+
 > **2026-10-08 architecture update (documentation only):** Neon PostgreSQL and Better Auth
 > replace the planned Supabase database/Auth stack. On 2026-10-09 the user reaffirmed Redis
 > for live events and background workers; Redis Streams/BullMQ and Better Auth/MFA are
@@ -14,6 +183,37 @@ The former backend has been removed, and its historical test count is not a curr
 NestJS is the sole backend. Prisma owns database schema and migrations. Delivery gates are in
 [17-full-scope-workflow.md](17-full-scope-workflow.md); row-level coverage is in
 [18-scope-traceability-matrix.md](18-scope-traceability-matrix.md).
+
+## Current implementation review — 2026-10-12
+
+The earlier 14-item gap list now has **13 Built non-AI items** and **one AI item
+Deferred - funding**. The application features for catalog/availability, sample payments,
+FAQ search, public support, HR approvals, Support source, submitted report analysis,
+legal notices/version tracking, retention/deletion, Better Auth/MFA, Redis events,
+Redis workers and broader abuse limits are implemented. The authentication item follows
+the approved Better Auth/Neon replacement of the earlier Supabase plan.
+
+Business configuration, publication/activation, production provisioning and named UAT
+are tracked as acceptance work. See the [item-by-item implementation checklist](18-scope-traceability-matrix.md#earlier-14-item-gap-list--implementation-review-2026-10-12).
+
+Verification of the current local `feature/reports-page` checkout, including existing
+uncommitted changes:
+
+| Check                                                                 | Passed                         |
+| --------------------------------------------------------------------- | ------------------------------ |
+| API unit tests                                                        | 63                             |
+| Web tests with `NEXT_PUBLIC_API_BACKEND=typescript`                   | 71                             |
+| PostgreSQL business/auth/retention integration tests                  | 152                            |
+| Redis events/workers, including an actual isolated Redis interruption | 14                             |
+| Abuse limits, including isolated Redis stall/outage recovery          | 23                             |
+| Synthetic private S3 version/local-copy erasure                       | 1                              |
+| **Total**                                                             | **324 — no failures or skips** |
+
+Workspace typechecks and the API build passed. All **34 active migrations** applied
+to fresh audit databases; the local preview also has 34 applied migrations. Tests used
+disposable databases, a separate test Redis container and a synthetic local MinIO bucket.
+The disposable resources were removed after verification. Production services, policies
+and acceptance records were not changed by this review.
 
 ## TypeScript foundation
 
@@ -386,19 +586,19 @@ databases to **27 migrations**. Local verification passes 59 API unit, 126 broad
 integration and 52 web tests, the final four-case HR integration check, production
 builds and three browser groups. See [47-consequential-hr-action-approvals.md](47-consequential-hr-action-approvals.md).
 
-| Module | Status | Key endpoints | UI |
-|---|---|---|---|
-| **M2 Auth / Users & Roles** | ✅ Built | `/api/auth/*`, `/api/accounts` (list/create/detail/update, ACCOUNT_MANAGE) | `/login`, Owner-only `/system/team` |
-| **M3 Paluwagan Records & Clients** | ✅ Built | `/api/batches/`, `/api/clients/` (+ auto-schedule), `/api/clients/{id}/schedule` | `/system/records`, `/system/clients` |
-| **M4 Payments & Finance** | ✅ Built | `/api/payments/` (record/list/verify), `/api/payments/{id}/adjustments`, `/api/clients/{id}/balance|statement`, `/api/payments/{id}/proof|confirmation` | `/system/payments` with audited credit corrections |
-| **M5 Customer Portal** | ✅ Built | `/api/clients/:id`, schedules, balances, payments, `/api/portal/support`, `/api/accounts` | `/portal` |
-| **M6 Employee Tasks & KPI** | ✅ Built | `/api/work/tasks` (+ submit → late flag), `/api/work/kpi/queue`, `/api/work/kpi/reviews` | `/system/tasks` |
-| **M7 Reporting & Analytics** | 🟡 Partial | `/api/reports/` dashboard, payments, collections, reconciliation, authorized reconciliation exceptions, tasks, support, export, snapshots and batches; business field/format acceptance and external matching open | dashboard cards and `/system/reports` |
-| **M8 Customer Service** | ✅ Built | `/api/support/cases/`, `/api/portal/support/` | `/system/support`, portal |
-| **M9 Recruitment & Agents** | 🟡 Partial — implemented, acceptance open | public `/api/careers`, `/api/careers/apply`, `/api/agents/verify`; guarded recruitment search/paging/summary/detail/review and `/api/agents/` | `/careers`, `/verify`, `/system/recruitment` with retained review drafts; privacy/retention/import and named UAT open |
-| **M10 Notifications** | 🟡 Partial | Customer delivery/read/templates; staff alert and task/Finance/Support/account email queues/settings | Portal notifications; shared Tasks/Finance/Results/Support/Accounts bell; fourteen Owner staff templates, timing and delivery controls |
-| **M1 Public Website** | 🟡 Partial | maintained published catalog, photos and per-offer sample payments; guarded catalog management; Careers + Verify | `/`, `/system/catalog`, `/careers`, `/verify`; remaining public-service scope and content acceptance open |
-| **M11 AI Assistant** | Deferred — paid AI API funding unavailable (user request, 2026-10-08) | — | — |
+| Module                             | Status                                                                | Key endpoints                                                                                                                                                                                                      | UI                                                                                                                                     |
+| ---------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **M2 Auth / Users & Roles**        | ✅ Built                                                              | `/api/auth/*`, `/api/accounts` (list/create/detail/update, ACCOUNT_MANAGE)                                                                                                                                         | `/login`, Owner-only `/system/team`                                                                                                    |
+| **M3 Paluwagan Records & Clients** | ✅ Built                                                              | `/api/batches/`, `/api/clients/` (+ auto-schedule), `/api/clients/{id}/schedule`                                                                                                                                   | `/system/records`, `/system/clients`                                                                                                   |
+| **M4 Payments & Finance**          | ✅ Built                                                              | `/api/payments/` (record/list/verify), `/api/payments/{id}/adjustments`, `/api/clients/{id}/balance                                                                                                                | statement`, `/api/payments/{id}/proof                                                                                                  | confirmation` | `/system/payments` with audited credit corrections |
+| **M5 Customer Portal**             | ✅ Built                                                              | `/api/clients/:id`, schedules, balances, payments, `/api/portal/support`, `/api/accounts`                                                                                                                          | `/portal`                                                                                                                              |
+| **M6 Employee Tasks & KPI**        | ✅ Built                                                              | `/api/work/tasks` (+ submit → late flag), `/api/work/kpi/queue`, `/api/work/kpi/reviews`                                                                                                                           | `/system/tasks`                                                                                                                        |
+| **M7 Reporting & Analytics**       | 🟡 Partial                                                            | `/api/reports/` dashboard, payments, collections, reconciliation, authorized reconciliation exceptions, tasks, support, export, snapshots and batches; business field/format acceptance and external matching open | dashboard cards and `/system/reports`                                                                                                  |
+| **M8 Customer Service**            | ✅ Built                                                              | `/api/support/cases/`, `/api/portal/support/`                                                                                                                                                                      | `/system/support`, portal                                                                                                              |
+| **M9 Recruitment & Agents**        | 🟡 Partial — implemented, acceptance open                             | public `/api/careers`, `/api/careers/apply`, `/api/agents/verify`; guarded recruitment search/paging/summary/detail/review and `/api/agents/`                                                                      | `/careers`, `/verify`, `/system/recruitment` with retained review drafts; privacy/retention/import and named UAT open                  |
+| **M10 Notifications**              | 🟡 Partial                                                            | Customer delivery/read/templates; staff alert and task/Finance/Support/account email queues/settings                                                                                                               | Portal notifications; shared Tasks/Finance/Results/Support/Accounts bell; fourteen Owner staff templates, timing and delivery controls |
+| **M1 Public Website**              | 🟡 Partial                                                            | maintained published catalog, photos and per-offer sample payments; guarded catalog management; Careers + Verify                                                                                                   | `/`, `/system/catalog`, `/careers`, `/verify`; remaining public-service scope and content acceptance open                              |
+| **M11 AI Assistant**               | Deferred — paid AI API funding unavailable (user request, 2026-10-08) | —                                                                                                                                                                                                                  | —                                                                                                                                      |
 
 ## Active implementation
 
@@ -417,6 +617,7 @@ their owned domains against the accepted business requirements.
 - **Events/email:** durable outboxes, configured Redis/BullMQ workers and Resend delivery.
 
 ## Known follow-ups
+
 - Customer, employee and applicant privacy notices plus portal terms have linked review-draft
   screens. Published-version acknowledgement, role gating and applicant evidence are
   implemented and tested locally, but no text is approved or active. Exact business identity,
@@ -447,10 +648,14 @@ their owned domains against the accepted business requirements.
   TypeScript task reminders, Finance pending/results, staff email templates/timing/history/retries
   plus Support/account events and customer delivery/templates/read UI exist. Setup checks and
   the named Owner walkthrough are ready in [33-staff-email-launch.md](33-staff-email-launch.md).
-- Task proof/attachments; report role-scoped field trimming; RLS hardening (optional, docs/15).
+- Task proof/attachments are implemented in the TypeScript staff task workflow and covered
+  by private-evidence integration checks. Remaining report field-matrix approval and any
+  subsequent field trimming are tracked with Reporting acceptance; RLS hardening is optional
+  (docs/15).
 - Production provisioning (Neon/Railway/VPS/Cloudflare/Resend plus selected private storage and event/job infrastructure) — client-owned accounts (§20).
 
 ## Test & run
+
 `pnpm test:api-ts` runs the API unit suite; PostgreSQL integration checks use `pnpm test:api-ts:integration`.
 Run web checks with `pnpm --filter @fresh/web test` and static checks with `pnpm typecheck`.
 Run instructions: see [../AGENTS.md](../AGENTS.md). Dev accounts: [DEV_ACCOUNTS.md](DEV_ACCOUNTS.md).

@@ -1,3 +1,4 @@
+import { clientScope } from "../records/scope";
 import {
   ConflictException,
   ForbiddenException,
@@ -6,7 +7,8 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import type { Permission, User } from "@freshphones/contracts";
-import { allowed } from "../auth/access";
+import { safeUser } from "../auth/auth.service";
+import { allowed, requireCurrentUser } from "../auth/access";
 import { Database } from "../database";
 import { Prisma } from "../generated/prisma/client";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -54,23 +56,23 @@ export class DocumentsService {
   private async write<T>(
     user: User,
     permission: Permission,
-    run: (tx: Prisma.TransactionClient) => Promise<T>,
+    run: (tx: Prisma.TransactionClient, current: User) => Promise<T>,
   ) {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
-      const current = await tx.user.findUnique({ where: { id: user.id } });
+      const current = await requireCurrentUser(tx, user, permission);
 
-      if (!current?.active || !allowed(current, permission)) {
-        throw new ForbiddenException("Your access has changed.");
-      }
-
-      return run(tx);
+      return run(tx, safeUser(current));
     });
   }
 
-  private assertClient(user: User, clientId: string) {
-    if (user.role === "CUSTOMER" && user.clientId !== clientId) {
+  private async assertClient(user: User, clientId: string) {
+    if (
+      !(await this.db.client.count({
+        where: { id: clientId, ...clientScope(user) },
+      }))
+    ) {
       throw new NotFoundException("Client not found.");
     }
   }
@@ -174,7 +176,7 @@ export class DocumentsService {
   }
 
   async requirements(user: User, clientId: string) {
-    this.assertClient(user, clientId);
+    await this.assertClient(user, clientId);
 
     const client = await this.db.client.findUnique({
       where: { id: clientId },
@@ -248,7 +250,7 @@ export class DocumentsService {
     typeId: string,
     upload?: PrivateUpload,
   ) {
-    this.assertClient(user, clientId);
+    await this.assertClient(user, clientId);
 
     const type = await this.db.requirementType.findFirst({
       where: { id: typeId, active: true },
@@ -277,7 +279,15 @@ export class DocumentsService {
     });
 
     try {
-      return await this.write(user, "DOCUMENT_UPLOAD", async (tx) => {
+      return await this.write(user, "DOCUMENT_UPLOAD", async (tx, current) => {
+        if (
+          !(await tx.client.count({
+            where: { id: clientId, ...clientScope(current) },
+          }))
+        ) {
+          throw new NotFoundException("Client not found.");
+        }
+
         const client = await tx.client.findUnique({
           where: { id: clientId },
           select: { id: true, name: true, account: { select: { id: true } } },
@@ -346,7 +356,7 @@ export class DocumentsService {
         if (user.role === "CUSTOMER") {
           await this.notifications.enqueueRoles(
             tx,
-            ["OWNER", "COO", "RECORDS"],
+            ["SYSTEM_ADMIN", "COO", "RECORDS"],
             {
               eventKey: "document.submitted",
               dedupeKey: `document:${document.id}:submitted`,
@@ -475,7 +485,9 @@ export class DocumentsService {
 
     if (
       !document ||
-      (user.role === "CUSTOMER" && user.clientId !== document.clientId)
+      !(await this.db.client.count({
+        where: { id: document.clientId, ...clientScope(user) },
+      }))
     ) {
       throw new NotFoundException("Document not found.");
     }

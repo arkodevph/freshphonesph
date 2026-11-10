@@ -86,7 +86,7 @@ export default function HrActionsPage() {
   return (
     <HrActionsWorkspace
       key={`${me.id}:${me.role}:${me.permissions.join(",")}`}
-      owner={me.role === "owner"}
+      owner={me.role === "system_admin"}
     />
   );
 }
@@ -406,7 +406,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
         <div className={styles.sectionHead}>
           <div>
             <p className={styles.eyebrow}>
-              {owner ? "Owner decision queue" : "My submitted requests"}
+              {owner ? "Administrator decision queue" : "My submitted requests"}
             </p>
             <h2 id="requests-title">
               {owner ? "Requests and decisions" : "Request history"}

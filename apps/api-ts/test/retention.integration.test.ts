@@ -178,6 +178,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     JWT_SECRET: "retention-test-only-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local" as const,
@@ -208,7 +209,7 @@ before(async () => {
       name: "Retention Owner",
       email: `retention-owner-${suffix}@example.test`,
       passwordHash: hash,
-      role: "OWNER",
+      role: "SYSTEM_ADMIN",
     },
   });
 

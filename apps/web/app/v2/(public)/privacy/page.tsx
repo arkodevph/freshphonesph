@@ -1,0 +1,53 @@
+import Link from "@/components/PublicNavigationLink";
+import type { Metadata } from "next";
+import { legalDocuments } from "@freshphones/contracts";
+import styles from "@/app/privacy/privacy.module.css";
+
+const notices = [
+  { href: "/v2/privacy/customer", document: legalDocuments.CUSTOMER_PRIVACY },
+  { href: "/v2/privacy/employee", document: legalDocuments.EMPLOYEE_PRIVACY },
+  { href: "/v2/privacy/applicant", document: legalDocuments.APPLICANT_PRIVACY },
+  { href: "/v2/terms", document: legalDocuments.PORTAL_TERMS },
+];
+
+export const metadata: Metadata = {
+  title: "Privacy and terms · Fresh Phones PH",
+  robots: { index: false, follow: false },
+};
+
+export default function PrivacyIndex() {
+  return (
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <Link href="/v2" className={styles.back}>
+          ← Fresh Phones PH
+        </Link>
+        <h1>Privacy and terms</h1>
+        <p className={styles.intro}>
+          Choose the notice that applies to you. The current texts are drafts
+          for Fresh Phones PH to review before publication.
+        </p>
+        <div className={styles.grid}>
+          {notices.map(({ href, document }) => {
+            return (
+              <Link href={href} className={styles.card} key={href}>
+                <span>{document.audience}</span>
+                <strong>{document.title}</strong>
+                <small>
+                  {document.status === "DRAFT"
+                    ? "Draft · awaiting business approval"
+                    : `Version ${document.version}`}
+                </small>
+              </Link>
+            );
+          })}
+        </div>
+        <p className={styles.help}>
+          For questions about a current account, use{" "}
+          <Link href="/v2/support">Help & Support</Link>. The formal privacy
+          contact still needs confirmation by Fresh Phones PH.
+        </p>
+      </div>
+    </main>
+  );
+}

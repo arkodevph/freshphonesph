@@ -8,6 +8,7 @@ import { join } from "node:path";
 import type { INestApplication } from "@nestjs/common";
 import {
   roles,
+  businessRole,
   type CatalogInput,
   type CatalogItem,
   type Role,
@@ -31,7 +32,7 @@ const origin = "http://localhost:3100",
 
 const suffix = randomUUID().slice(0, 8);
 
-const authorized: Role[] = ["OWNER", "COO", "GENERAL_MANAGER", "RECORDS"];
+const authorized: Role[] = ["SYSTEM_ADMIN", "COO", "BATCH_MANAGER", "RECORDS"];
 
 let app: INestApplication,
   second: INestApplication,
@@ -78,7 +79,12 @@ async function request(
 }
 
 async function create(record: CatalogInput = input()) {
-  const response = await request("/catalog/items", "OWNER", "POST", record);
+  const response = await request(
+    "/catalog/items",
+    "SYSTEM_ADMIN",
+    "POST",
+    record,
+  );
 
   assert.equal(response.status, 201);
 
@@ -105,7 +111,7 @@ async function update(
 
   return request(
     `/catalog/items/${item.id}`,
-    "OWNER",
+    "SYSTEM_ADMIN",
     "PATCH",
     {
       version: item.version,
@@ -137,6 +143,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     JWT_SECRET: "catalog-test-only-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local" as const,
@@ -232,7 +239,7 @@ test("anonymous and every role can see published catalog, while management route
   for (const role of [undefined, ...roles]) {
     assert.equal((await request("/catalog", role)).status, 200);
 
-    const allowed = Boolean(role && authorized.includes(role));
+    const allowed = Boolean(role && authorized.includes(businessRole(role)));
 
     const denied = role ? 403 : 401;
 
@@ -351,7 +358,7 @@ test("publication, availability and prices change the public view without leakin
 
   assert.ok(
     audits.every((audit) => {
-      return audit.actorId === users.get("OWNER");
+      return audit.actorId === users.get("SYSTEM_ADMIN");
     }),
   );
 
@@ -438,7 +445,9 @@ test("staff-maintained payment terms publish atomically, survive photo operation
     [200, 409],
   );
 
-  row = await (await request(`/catalog/items/${row.id}`, "OWNER")).json();
+  row = await (
+    await request(`/catalog/items/${row.id}`, "SYSTEM_ADMIN")
+  ).json();
 
   const audit = await db.auditEntry.findFirstOrThrow({
     where: { entity: "catalog", recordId: row.id },
@@ -483,7 +492,7 @@ test("staff-maintained payment terms publish atomically, survive photo operation
 
   assert.equal(
     (
-      await request(`/catalog/items/${row.id}`, "OWNER", "PATCH", {
+      await request(`/catalog/items/${row.id}`, "SYSTEM_ADMIN", "PATCH", {
         version: row.version,
         record: withoutPlan,
       })
@@ -590,7 +599,7 @@ test("search, availability, visibility and stable pagination cover the full back
   assert.equal(hidden.total, 1);
 
   const byCode = await (
-    await request(`/catalog/items?q=CAT-${suffix}-page-22`, "OWNER")
+    await request(`/catalog/items?q=CAT-${suffix}-page-22`, "SYSTEM_ADMIN")
   ).json();
 
   assert.equal(byCode.total, 1);
@@ -614,7 +623,7 @@ test("competing saves across instances reject stale versions and duplicate codes
   );
 
   const latest = await (
-    await request(`/catalog/items/${row.id}`, "OWNER")
+    await request(`/catalog/items/${row.id}`, "SYSTEM_ADMIN")
   ).json();
 
   assert.equal(latest.version, 2);
@@ -628,7 +637,7 @@ test("competing saves across instances reject stale versions and duplicate codes
 
   assert.equal(
     (
-      await request("/catalog/items", "OWNER", "POST", {
+      await request("/catalog/items", "SYSTEM_ADMIN", "POST", {
         ...input(),
         code: row.code.toLowerCase(),
       })
@@ -638,7 +647,7 @@ test("competing saves across instances reject stale versions and duplicate codes
 
   assert.equal(
     (
-      await request("/catalog/items", "OWNER", "POST", {
+      await request("/catalog/items", "SYSTEM_ADMIN", "POST", {
         ...input(),
         dailyAmount: "-1",
       })
@@ -693,7 +702,7 @@ test("product photos are publish-gated and never serve unrelated private files; 
 
   assert.equal((await request(`/catalog/${row.id}/image`)).status, 404);
 
-  response = await request(`/catalog/items/${row.id}/image`, "OWNER");
+  response = await request(`/catalog/items/${row.id}/image`, "SYSTEM_ADMIN");
 
   assert.equal(response.status, 200);
 
@@ -720,7 +729,7 @@ test("product photos are publish-gated and never serve unrelated private files; 
 
   response = await request(
     `/catalog/items/${row.id}/image/remove`,
-    "OWNER",
+    "SYSTEM_ADMIN",
     "POST",
     { version: row.version },
   );

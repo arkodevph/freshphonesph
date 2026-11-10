@@ -33,8 +33,8 @@ import { WorkService } from "./work.service";
 export class WorkController {
   constructor(@Inject(WorkService) private readonly work: WorkService) {}
 
-  @Get("staff") @Requires("TASK_READ") staff() {
-    return this.work.staff();
+  @Get("staff") @Requires("TASK_READ") staff(@CurrentUser() user: User) {
+    return this.work.staff(user);
   }
 
   @Get("tasks") @Requires("TASK_READ") tasks(

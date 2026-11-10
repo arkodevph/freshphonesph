@@ -2,7 +2,7 @@
 
 import type { PortalScheduleItem } from "@/lib/api";
 import { installmentState } from "@/lib/portal-schedule";
-import { ArrowDown, ArrowRight, ArrowUp } from "@phosphor-icons/react";
+import { ArrowDown, ArrowRight, ArrowUp } from "@/components/SolarIcons";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import styles from "./payment-schedule.module.css";
 import { badgeClass, dueDate, money, State } from "./schedule-view";

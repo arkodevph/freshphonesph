@@ -1,5 +1,6 @@
 import {
   Body,
+  ForbiddenException,
   Controller,
   Get,
   Inject,
@@ -13,7 +14,7 @@ import {
   accountSchema,
   accountListQuerySchema,
   accountUpdateSchema,
-  batchSchema,
+  batchCreateSchema,
   batchUpdateSchema,
   batchAssignmentSchema,
   clientSchema,
@@ -22,11 +23,11 @@ import {
   clientUpdateSchema,
   listQuerySchema,
   type AccountInput,
-  type BatchInput,
+  type BatchCreateInput,
   type ClientInput,
   type User,
 } from "@freshphones/contracts";
-import { CurrentUser, Requires } from "../auth/access";
+import { CurrentUser, Requires, RequiresAny } from "../auth/access";
 import { Validate } from "../http";
 import { RecordsService } from "./records.service";
 import { z } from "zod";
@@ -58,10 +59,27 @@ const historyQuerySchema = z
 
 @Controller()
 export class RecordsController {
+  @Get("portal/application-summary")
+  @Requires("PAYMENT_READ")
+  portalApplicationSummary(@CurrentUser() user: User) {
+    return this.records.portalApplicationSummary(user);
+  }
+  @Get("portal/batch-summary") @Requires("PAYMENT_READ") portalBatchSummary(
+    @CurrentUser() user: User,
+  ) {
+    return this.records.portalBatchSummary(user);
+  }
+  @Get("portal/memberships") @Requires("PAYMENT_READ") memberships(
+    @CurrentUser() user: User,
+  ) {
+    return this.records.memberships(user);
+  }
   constructor(
     @Inject(RecordsService) private readonly records: RecordsService,
   ) {}
-  @Get("overview") overview(@CurrentUser() user: User) {
+  @Get("overview")
+  @RequiresAny("BATCH_READ", "CLIENT_READ", "ACCOUNT_MANAGE", "TASK_READ")
+  overview(@CurrentUser() user: User) {
     return this.records.overview(user);
   }
   @Get("batches") @Requires("BATCH_READ") batches(
@@ -70,9 +88,9 @@ export class RecordsController {
   ) {
     return this.records.batches(user, query);
   }
-  @Post("batches") @Requires("BATCH_MANAGE") createBatch(
+  @Post("batches") @Requires("BATCH_CREATE") createBatch(
     @CurrentUser() user: User,
-    @Body(new Validate(batchSchema)) body: BatchInput,
+    @Body(new Validate(batchCreateSchema)) body: BatchCreateInput,
   ) {
     return this.records.createBatch(user, body);
   }
@@ -81,7 +99,7 @@ export class RecordsController {
   ) {
     return this.records.assignmentOptions(user);
   }
-  @Patch("batches/:id/assignments") @Requires("BATCH_MANAGE") assignBatch(
+  @Patch("batches/:id/assignments") @Requires("BATCH_ASSIGN") assignBatch(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new Validate(batchAssignmentSchema))
@@ -96,11 +114,12 @@ export class RecordsController {
     return this.records.batch(user, id);
   }
   @Get("batches/:id/history") @Requires("BATCH_MANAGE") batchHistory(
+    @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
     @Query(new Validate(historyQuerySchema))
     query: z.infer<typeof historyQuerySchema>,
   ) {
-    return this.records.history("batch", id, query.page);
+    return this.records.history(user, "batch", id, query.page);
   }
   @Patch("batches/:id") @Requires("BATCH_MANAGE") updateBatch(
     @CurrentUser() user: User,
@@ -116,20 +135,23 @@ export class RecordsController {
   ) {
     return this.records.clients(user, query);
   }
-  @Get("clients/:id") client(
+  @Get("clients/:id") @RequiresAny("CLIENT_READ", "DOCUMENT_READ") client(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
     return this.records.client(user, id);
   }
   @Get("clients/:id/history") @Requires("CLIENT_MANAGE") clientHistory(
+    @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
     @Query(new Validate(historyQuerySchema))
     query: z.infer<typeof historyQuerySchema>,
   ) {
-    return this.records.history("client", id, query.page);
+    return this.records.history(user, "client", id, query.page);
   }
-  @Get("clients/:id/release-updates") releaseUpdates(
+  @Get("clients/:id/release-updates")
+  @RequiresAny("CLIENT_READ", "DOCUMENT_READ")
+  releaseUpdates(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
@@ -145,19 +167,20 @@ export class RecordsController {
   ) {
     return this.records.addReleaseUpdate(user, id, body);
   }
-  @Post("clients") @Requires("CLIENT_MANAGE") createClient(
+  @Post("clients") @Requires("CLIENT_MANAGE", "ENROLLMENT_REVIEW") createClient(
     @CurrentUser() user: User,
     @Body(new Validate(clientSchema)) body: ClientInput,
   ) {
     return this.records.createClient(user, body);
   }
-  @Get("clients/:id/schedule") schedule(
-    @CurrentUser() user: User,
-    @Param("id", ParseUUIDPipe) id: string,
-  ) {
+  @Get("clients/:id/schedule")
+  @RequiresAny("CLIENT_READ", "DOCUMENT_READ")
+  schedule(@CurrentUser() user: User, @Param("id", ParseUUIDPipe) id: string) {
     return this.records.schedule(user, id);
   }
-  @Post("clients/:id/schedule") @Requires("CLIENT_MANAGE") issueSchedule(
+  @Post("clients/:id/schedule")
+  @Requires("CLIENT_MANAGE", "ENROLLMENT_REVIEW")
+  issueSchedule(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
@@ -172,9 +195,10 @@ export class RecordsController {
     return this.records.updateClient(user, id, body.record, body.version);
   }
   @Get("accounts") @Requires("ACCOUNT_MANAGE") accounts(
+    @CurrentUser() user: User,
     @Query(new Validate(accountListQuerySchema)) query: AccountListQuery,
   ) {
-    return this.records.accounts(query);
+    return this.records.accounts(user, query);
   }
   @Post("accounts") @Requires("ACCOUNT_MANAGE") createAccount(
     @CurrentUser() user: User,
@@ -183,17 +207,21 @@ export class RecordsController {
     return this.records.createAccount(user, body);
   }
   @Get("accounts/:id") @Requires("ACCOUNT_MANAGE") account(
+    @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
-    return this.records.account(id);
+    return this.records.account(user, id);
   }
   @Get("accounts/:id/hr-access-history")
   @Requires("ACCOUNT_MANAGE")
-  hrAccessHistory(
+  async hrAccessHistory(
+    @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
     @Query(new Validate(historyQuerySchema))
     query: z.infer<typeof historyQuerySchema>,
   ) {
+    await this.records.account(user, id);
+
     return this.records.hrAccessHistory(id, query.page);
   }
   @Patch("accounts/:id") @Requires("ACCOUNT_MANAGE") updateAccount(

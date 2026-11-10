@@ -13,6 +13,7 @@ import {
   type User as StoredUser,
 } from "../generated/prisma/client";
 import { allowed } from "../auth/access";
+import { notificationVisibilitySql } from "../staff/enrollment-alerts";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -156,47 +157,69 @@ export class NotificationsService {
   }
 
   async list(user: User, page: number, unreadOnly = false) {
-    const where: Prisma.StaffNotificationWhereInput = {
-      recipientId: user.id,
-      ...(unreadOnly ? { readAt: null } : {}),
+    const visible = notificationVisibilitySql(user.id);
+
+    const filter = Prisma.sql`${visible} ${unreadOnly ? Prisma.sql`AND n."readAt" IS NULL` : Prisma.empty}`;
+
+    const [items, counts] = await this.db.$transaction(
+      [
+        this.db.$queryRaw<
+          StaffNotification[]
+        >`SELECT n.* FROM "StaffNotification" n WHERE ${filter}
+        ORDER BY n."createdAt" DESC, n.id DESC LIMIT 20 OFFSET ${(page - 1) * 20}`,
+        this.db.$queryRaw<{ total: bigint; unread: bigint }[]>`
+        SELECT COUNT(*) FILTER (WHERE ${unreadOnly ? Prisma.sql`n."readAt" IS NULL` : Prisma.sql`TRUE`}) AS total,
+          COUNT(*) FILTER (WHERE n."readAt" IS NULL) AS unread
+        FROM "StaffNotification" n WHERE ${visible}`,
+      ],
+      { isolationLevel: "RepeatableRead" },
+    );
+
+    return {
+      items,
+      total: Number(counts[0].total),
+      unread: Number(counts[0].unread),
+      page,
+      pageSize: 20,
     };
-
-    const [items, total, unread] = await this.db.$transaction([
-      this.db.staffNotification.findMany({
-        where,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        skip: (page - 1) * 20,
-        take: 20,
-      }),
-      this.db.staffNotification.count({ where }),
-      this.db.staffNotification.count({
-        where: { recipientId: user.id, readAt: null },
-      }),
-    ]);
-
-    return { items, total, unread, page, pageSize: 20 };
   }
 
   async markRead(user: User, id: string) {
-    const changed = await this.db.staffNotification.updateMany({
-      where: { id, recipientId: user.id },
-      data: { readAt: new Date() },
+    return this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+
+      const [notice] = await tx.$queryRaw<StaffNotification[]>`
+        UPDATE "StaffNotification" n SET "readAt" = COALESCE(n."readAt", CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+        WHERE n.id = ${id}::uuid AND ${notificationVisibilitySql(user.id)} RETURNING n.*`;
+
+      if (!notice) {
+        throw new NotFoundException("Notification not found.");
+      }
+
+      await tx.changeEvent.create({
+        data: { entity: "staff-alert-read", recordId: user.id },
+      });
+
+      return notice;
     });
-
-    if (!changed.count) {
-      throw new NotFoundException("Notification not found.");
-    }
-
-    return this.db.staffNotification.findUniqueOrThrow({ where: { id } });
   }
 
   async readAll(user: User) {
-    const result = await this.db.staffNotification.updateMany({
-      where: { recipientId: user.id, readAt: null },
-      data: { readAt: new Date() },
-    });
+    return this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
-    return { updated: result.count };
+      const updated = await tx.$executeRaw`
+        UPDATE "StaffNotification" n SET "readAt" = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
+        WHERE n."readAt" IS NULL AND ${notificationVisibilitySql(user.id)}`;
+
+      if (updated) {
+        await tx.changeEvent.create({
+          data: { entity: "staff-alert-read", recordId: user.id },
+        });
+      }
+
+      return { updated };
+    });
   }
 
   templates() {

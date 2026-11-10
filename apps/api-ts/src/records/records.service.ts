@@ -1,3 +1,4 @@
+import { requireOpenMembership } from "../withdrawals/withdrawal-tools";
 import {
   BadRequestException,
   ConflictException,
@@ -11,13 +12,16 @@ import type {
   AgentInput,
   BatchAssignmentInput,
   BatchInput,
+  BatchCreateInput,
   ClientInput,
   Permission,
   User,
 } from "@freshphones/contracts";
 import { Database } from "../database";
 import { Prisma } from "../generated/prisma/client";
-import { allowed } from "../auth/access";
+import { allowed, requireCurrentUser } from "../auth/access";
+import { businessRole, businessRoles } from "@freshphones/contracts";
+import { safeUser } from "../auth/auth.service";
 import { eligibleForConfidentialHr } from "@freshphones/contracts";
 import { hashPassword } from "../auth/password";
 import { generateSchedule } from "./schedule";
@@ -28,12 +32,24 @@ import type {
 } from "../generated/prisma/client";
 import { notifyCustomer } from "../portal/notifications.service";
 import { historyChanges } from "./history";
-import { batchScope, clientScope } from "./scope";
+import { batchScope, clientScope, staffScope } from "./scope";
 import { notifyAccount } from "../staff/account-alerts";
 import { verifiedTotals } from "../finance/ledger";
+import { allocateBatchNumber } from "./batch-numbering";
+import { BATCH_REAL_MEMBER_CAPACITY } from "@freshphones/contracts";
+import {
+  countBatchMembers,
+  currentBatchPositionWhere,
+  requireBatchVacancy,
+} from "./batch-capacity";
+import { portalBatchSummary } from "./portal-batch-summary";
+import { portalApplicationSummary } from "./portal-application-summary";
 
 const batchInclude = {
-  _count: { select: { clients: true } },
+  manager: { select: { id: true, name: true, active: true, role: true } },
+  _count: {
+    select: { clients: { where: currentBatchPositionWhere }, payments: true },
+  },
   handler: { select: { id: true, name: true, active: true, role: true } },
   agent: { select: { id: true, name: true, active: true } },
   clients: { where: { schedule: { some: {} } }, select: { id: true }, take: 1 },
@@ -60,6 +76,8 @@ const accountSelect = {
   role: true,
   active: true,
   hrConfidentialAccess: true,
+  supervisorId: true,
+  agentProfileId: true,
   clientId: true,
   version: true,
   createdAt: true,
@@ -91,17 +109,23 @@ const json = (value: unknown): Prisma.InputJsonValue => {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 };
 
-const batchJson = <T extends StoredBatch & { clients: { id: string }[] }>(
+const batchJson = <
+  T extends StoredBatch & {
+    clients: { id: string }[];
+    _count: { payments: number };
+  },
+>(
   batch: T,
 ) => {
   const { clients, ...record } = batch;
 
   return {
     ...record,
-    termsLocked: clients.length > 0,
+    termsLocked: clients.length > 0 || batch._count.payments > 0,
     startDate: batch.startDate.toISOString().slice(0, 10),
     endDate: batch.endDate.toISOString().slice(0, 10),
     contractPrice: batch.contractPrice?.toFixed(2) ?? null,
+    firstDueDate: batch.firstDueDate?.toISOString().slice(0, 10) ?? null,
   };
 };
 
@@ -127,7 +151,7 @@ export class RecordsService {
   private async write<T>(
     user: User,
     permission: Permission,
-    run: (tx: Prisma.TransactionClient) => Promise<T>,
+    run: (tx: Prisma.TransactionClient, current: User) => Promise<T>,
   ) {
     return this.db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
@@ -138,7 +162,7 @@ export class RecordsService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      return run(tx);
+      return run(tx, safeUser(current));
     });
   }
   private async record(
@@ -218,15 +242,21 @@ export class RecordsService {
       pageSize,
     };
   }
-  async createBatch(user: User, input: BatchInput) {
+  async createBatch(user: User, input: BatchCreateInput) {
     this.validatePlan(input);
 
-    return this.write(user, "BATCH_MANAGE", async (tx) => {
+    return this.write(user, "BATCH_CREATE", async (tx, current) => {
+      const numbering = await allocateBatchNumber(tx, input.agentId);
+
       const result = await tx.batch.create({
         data: {
           ...input,
+          ...numbering,
           startDate: new Date(input.startDate),
           endDate: new Date(input.endDate),
+          firstDueDate: input.firstDueDate
+            ? new Date(input.firstDueDate)
+            : input.firstDueDate,
         },
         include: batchInclude,
       });
@@ -257,44 +287,64 @@ export class RecordsService {
     return batchJson(batch);
   }
   async assignmentOptions(user: User) {
-    const [handlers, agents] = await this.db.$transaction([
+    user = await requireCurrentUser(this.db, user, "BATCH_READ");
+
+    const global = [
+      "SYSTEM_ADMIN",
+      "COO",
+      "RECORDS",
+      "FINANCE_OFFICER",
+    ].includes(user.role);
+
+    const [handlers, agents, managers] = await this.db.$transaction([
       this.db.user.findMany({
-        where:
-          user.role === "CORE_HANDLER"
-            ? { id: user.id }
+        where: {
+          role: { in: ["BATCH_HANDLER", "CORE_HANDLER"] },
+          ...(global
+            ? {}
             : {
                 OR: [
-                  { role: "CORE_HANDLER" },
-                  { handledBatches: { some: {} } },
+                  { handledBatches: { some: batchScope(user) } },
+                  ...(businessRole(user.role) === "BATCH_MANAGER"
+                    ? [{ supervisorId: user.id }]
+                    : []),
                 ],
-              },
-        select: { id: true, name: true, active: true, role: true },
-        orderBy: [{ name: "asc" }, { id: "asc" }],
+              }),
+        },
+        select: { id: true, name: true, active: true },
+        orderBy: { name: "asc" },
       }),
       this.db.agent.findMany({
-        where:
-          user.role === "CORE_HANDLER"
-            ? { batches: { some: batchScope(user) } }
-            : {},
-        select: { id: true, name: true, active: true },
+        where: global ? {} : { batches: { some: batchScope(user) } },
+        select: { id: true, name: true, active: true, code: true },
         orderBy: [{ name: "asc" }, { id: "asc" }],
+      }),
+      this.db.user.findMany({
+        where: {
+          role: { in: ["BATCH_MANAGER", "GENERAL_MANAGER"] },
+          ...(["SYSTEM_ADMIN", "COO"].includes(user.role)
+            ? {}
+            : { id: user.id }),
+        },
+        select: { id: true, name: true, active: true },
+        orderBy: { name: "asc" },
       }),
     ]);
 
     return {
-      handlers: handlers.map(({ role, ...handler }) => {
-        return {
-          ...handler,
-          active: handler.active && role === "CORE_HANDLER",
-        };
-      }),
-      agents,
+      handlers,
+      agents: allowed(user, "BATCH_CREATE")
+        ? agents
+        : agents.map(({ code, ...agent }) => {
+            return agent;
+          }),
+      managers,
     };
   }
   async assignBatch(user: User, id: string, input: BatchAssignmentInput) {
-    return this.write(user, "BATCH_MANAGE", async (tx) => {
-      const before = await tx.batch.findUnique({
-        where: { id },
+    return this.write(user, "BATCH_ASSIGN", async (tx, current) => {
+      const before = await tx.batch.findFirst({
+        where: { id, ...batchScope(current) },
         include: batchInclude,
       });
 
@@ -309,14 +359,57 @@ export class RecordsService {
       }
 
       if (
+        input.managerId !== undefined &&
+        input.managerId !== before.managerId &&
+        !["SYSTEM_ADMIN", "COO"].includes(current.role)
+      ) {
+        throw new ForbiddenException("COO assigns batch managers.");
+      }
+
+      if (
+        input.managerId &&
+        !(await tx.user.findFirst({
+          where: {
+            id: input.managerId,
+            active: true,
+            role: { in: ["BATCH_MANAGER", "GENERAL_MANAGER"] },
+          },
+          select: { id: true },
+        }))
+      ) {
+        throw new BadRequestException("Choose an active batch manager.");
+      }
+
+      if (
         input.handlerId &&
         input.handlerId !== before.handlerId &&
         !(await tx.user.findFirst({
-          where: { id: input.handlerId, role: "CORE_HANDLER", active: true },
+          where: {
+            id: input.handlerId,
+            role: { in: ["BATCH_HANDLER", "CORE_HANDLER"] },
+            active: true,
+          },
           select: { id: true },
         }))
       ) {
         throw new BadRequestException("Choose an active handler account.");
+      }
+
+      if (
+        input.handlerId &&
+        businessRole(current.role) === "BATCH_MANAGER" &&
+        !(await tx.user.findFirst({
+          where: {
+            id: input.handlerId,
+            OR: [
+              { supervisorId: current.id },
+              { handledBatches: { some: { managerId: current.id } } },
+            ],
+          },
+          select: { id: true },
+        }))
+      ) {
+        throw new NotFoundException("Handler is outside your assigned team.");
       }
 
       if (
@@ -331,6 +424,8 @@ export class RecordsService {
       }
 
       if (
+        (input.managerId === undefined ||
+          input.managerId === before.managerId) &&
         input.handlerId === before.handlerId &&
         input.agentId === before.agentId
       ) {
@@ -340,6 +435,9 @@ export class RecordsService {
       await tx.batch.update({
         where: { id },
         data: {
+          ...(input.managerId !== undefined
+            ? { managerId: input.managerId }
+            : {}),
           handlerId: input.handlerId,
           agentId: input.agentId,
           version: { increment: 1 },
@@ -362,13 +460,19 @@ export class RecordsService {
       );
 
       // Refresh both handlers without exposing a removed record's identifier to the old handler.
-      if (before.handlerId !== after.handlerId) {
+      if (
+        before.handlerId !== after.handlerId ||
+        before.managerId !== after.managerId
+      ) {
         for (const handlerId of new Set(
-          [before.handlerId, after.handlerId].filter(
-            (value): value is string => {
-              return Boolean(value);
-            },
-          ),
+          [
+            before.handlerId,
+            after.handlerId,
+            before.managerId,
+            after.managerId,
+          ].filter((value): value is string => {
+            return Boolean(value);
+          }),
         )) {
           await tx.changeEvent.create({
             data: { entity: "record-access", recordId: handlerId },
@@ -405,7 +509,7 @@ export class RecordsService {
     return { items, total, page: query.page, pageSize };
   }
   async createAgent(user: User, input: AgentInput) {
-    return this.write(user, "AGENT_MANAGE", async (tx) => {
+    return this.write(user, "AGENT_MANAGE", async (tx, current) => {
       const agent = await tx.agent.create({ data: input });
 
       await this.record(
@@ -436,7 +540,7 @@ export class RecordsService {
     input: AgentInput,
     version: number,
   ) {
-    return this.write(user, "AGENT_MANAGE", async (tx) => {
+    return this.write(user, "AGENT_MANAGE", async (tx, current) => {
       const before = await tx.agent.findUnique({ where: { id } });
 
       if (!before) {
@@ -526,16 +630,30 @@ export class RecordsService {
     input: BatchInput,
     version: number,
   ) {
-    return this.write(user, "BATCH_MANAGE", async (tx) => {
-      const before = await tx.batch.findUnique({ where: { id } });
+    return this.write(user, "BATCH_MANAGE", async (tx, current) => {
+      const before = await tx.batch.findFirst({
+        where: { id, ...batchScope(current) },
+      });
 
       if (!before) {
         throw new NotFoundException("Batch not found.");
       }
 
+      if (input.code !== before.code && !allowed(current, "BATCH_CREATE")) {
+        throw new ForbiddenException(
+          "Only authorized Records staff can change an official batch identifier.",
+        );
+      }
+
       if (before.version !== version) {
         throw new ConflictException(
           "This batch changed while you were editing. Refresh and review the latest record.",
+        );
+      }
+
+      if (before.numberingAgentId && input.code !== before.code) {
+        throw new BadRequestException(
+          "An assigned batch number cannot be changed.",
         );
       }
 
@@ -547,14 +665,21 @@ export class RecordsService {
           !before.contractPrice?.equals(input.contractPrice)) ||
         (input.installmentCount !== undefined &&
           before.installmentCount !== input.installmentCount) ||
-        (input.cadence !== undefined && before.cadence !== input.cadence);
+        (input.cadence !== undefined && before.cadence !== input.cadence) ||
+        (input.firstDueDate !== undefined &&
+          (before.firstDueDate?.toISOString().slice(0, 10) ?? null) !==
+            input.firstDueDate) ||
+        (input.monthEnd !== undefined && before.monthEnd !== input.monthEnd);
 
       if (
         termsChanged &&
-        (await tx.scheduleItem.count({ where: { client: { batchId: id } } }))
+        ((await tx.scheduleItem.count({
+          where: { client: { batchId: id } },
+        })) ||
+          (await tx.payment.count({ where: { batchId: id } })))
       ) {
         throw new ConflictException(
-          "Plan terms are locked after schedules are issued. Create a new batch for a different plan.",
+          "Plan terms are locked after schedules or payments are recorded. Create a new batch for a different plan.",
         );
       }
 
@@ -564,6 +689,11 @@ export class RecordsService {
         installmentCount:
           input.installmentCount ?? before.installmentCount ?? undefined,
         cadence: input.cadence ?? before.cadence ?? undefined,
+        firstDueDate:
+          input.firstDueDate === undefined
+            ? before.firstDueDate?.toISOString().slice(0, 10)
+            : input.firstDueDate,
+        monthEnd: input.monthEnd ?? before.monthEnd,
       });
 
       const changed = await tx.batch.updateMany({
@@ -572,6 +702,9 @@ export class RecordsService {
           ...input,
           startDate: new Date(input.startDate),
           endDate: new Date(input.endDate),
+          firstDueDate: input.firstDueDate
+            ? new Date(input.firstDueDate)
+            : input.firstDueDate,
           version: { increment: 1 },
         },
       });
@@ -695,7 +828,34 @@ export class RecordsService {
 
     return clientJson(client);
   }
-  private validatePlan(input: BatchInput) {
+
+  async memberships(user: User) {
+    if (user.role !== "CUSTOMER") {
+      throw new ForbiddenException("A customer account is required.");
+    }
+
+    return this.db.client.findMany({
+      where: {
+        retentionErasedAt: null,
+        member: { account: { id: user.id, active: true, role: "CUSTOMER" } },
+      },
+      select: {
+        id: true,
+        memberId: true,
+        status: true,
+        unitModel: true,
+        batch: { select: { id: true, code: true, model: true } },
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+  }
+  async portalBatchSummary(user: User) {
+    return portalBatchSummary(this.db, user);
+  }
+  async portalApplicationSummary(user: User) {
+    return portalApplicationSummary(this.db, user);
+  }
+  private validatePlan(input: Omit<BatchInput, "code">) {
     if (
       input.contractPrice === undefined ||
       input.installmentCount === undefined ||
@@ -710,6 +870,8 @@ export class RecordsService {
       installmentCount: input.installmentCount,
       cadence: input.cadence,
       startDate: new Date(input.startDate),
+      firstDueDate: input.firstDueDate ? new Date(input.firstDueDate) : null,
+      monthEnd: input.monthEnd,
     });
 
     if (items[items.length - 1].dueDate > new Date(input.endDate)) {
@@ -745,50 +907,106 @@ export class RecordsService {
       );
     }
 
+    await requireBatchVacancy(tx, batchId);
+
     return batch;
   }
-  async createClient(user: User, input: ClientInput) {
-    return this.write(user, "CLIENT_MANAGE", async (tx) => {
-      const batch = await this.enrollment(tx, input.batchId);
-
-      const schedule = this.plan(batch);
-
-      const result = await tx.client.create({
-        data: {
-          ...input,
-          joinedAt: input.joinedAt ? new Date(input.joinedAt) : new Date(),
-          unitModel: input.unitModel || batch.model,
-          schedule: { create: schedule },
-        },
-        include: clientInclude,
-      });
-
-      await this.record(
-        tx,
-        user.id,
-        "client",
-        result.id,
-        "client.created",
-        null,
-        result,
-      );
-
-      await this.record(
-        tx,
-        user.id,
-        "client",
-        result.id,
-        "schedule.generated",
-        null,
-        { items: schedule },
-      );
-
-      await tx.changeEvent.create({
-        data: { entity: "batch", recordId: batch.id },
-      });
-
-      return clientJson(result);
+  private async activateFullBatch(
+    tx: Prisma.TransactionClient,
+    current: User,
+    batchId: string,
+  ) {
+    const before = await tx.batch.findUniqueOrThrow({
+      where: { id: batchId },
     });
+
+    if (
+      before.status !== "PLANNED" ||
+      (await countBatchMembers(tx, batchId)) < BATCH_REAL_MEMBER_CAPACITY
+    ) {
+      return;
+    }
+
+    const after = await tx.batch.update({
+      where: { id: batchId },
+      data: { status: "ACTIVE", version: { increment: 1 } },
+    });
+
+    await this.record(
+      tx,
+      current.id,
+      "batch",
+      batchId,
+      "batch.activated",
+      before,
+      after,
+    );
+  }
+  async createClient(user: User, input: ClientInput) {
+    return this.write(user, "CLIENT_MANAGE", (tx, current) => {
+      return this.enrollApproved(tx, current, input);
+    });
+  }
+  async enrollApproved(
+    tx: Prisma.TransactionClient,
+    current: User,
+    input: ClientInput,
+    memberId?: string,
+  ) {
+    if (
+      !allowed(current, "ENROLLMENT_REVIEW") ||
+      !(await tx.batch.findFirst({
+        where: { id: input.batchId, ...batchScope(current) },
+        select: { id: true },
+      }))
+    ) {
+      throw new ForbiddenException(
+        "Approved enrollment in an authorized batch is required.",
+      );
+    }
+
+    const batch = await this.enrollment(tx, input.batchId);
+
+    const schedule = this.plan(batch);
+
+    const result = await tx.client.create({
+      data: {
+        ...input,
+        ...(memberId ? { memberId } : {}),
+        joinedAt: input.joinedAt ? new Date(input.joinedAt) : new Date(),
+        unitModel: input.unitModel || batch.model,
+        schedule: { create: schedule },
+      },
+      include: clientInclude,
+    });
+
+    await this.record(
+      tx,
+      current.id,
+      "client",
+      result.id,
+      "client.created",
+      null,
+      result,
+    );
+
+    await this.record(
+      tx,
+      current.id,
+      "client",
+      result.id,
+      "schedule.generated",
+      null,
+      { items: schedule },
+    );
+
+    await this.activateFullBatch(tx, current, batch.id);
+
+    await tx.changeEvent.create({
+      data: { entity: "batch", recordId: batch.id },
+    });
+
+    return clientJson(result);
   }
   async updateClient(
     user: User,
@@ -796,9 +1014,9 @@ export class RecordsService {
     input: ClientInput,
     version: number,
   ) {
-    return this.write(user, "CLIENT_MANAGE", async (tx) => {
-      const before = await tx.client.findUnique({
-        where: { id },
+    return this.write(user, "CLIENT_MANAGE", async (tx, current) => {
+      const before = await tx.client.findFirst({
+        where: { id, ...clientScope(current) },
         include: clientInclude,
       });
 
@@ -806,10 +1024,33 @@ export class RecordsService {
         throw new NotFoundException("Client not found.");
       }
 
+      await requireOpenMembership(tx, id);
+
       if (before.version !== version) {
         throw new ConflictException(
           "This client changed while you were editing. Refresh and review the latest record.",
         );
+      }
+
+      const identityChanged = ["name", "email", "phone"].some((field) => {
+        const key = field as "name" | "email" | "phone";
+
+        return before[key] !== input[key];
+      });
+
+      if (identityChanged) {
+        const shared = { memberId: before.memberId, retentionErasedAt: null };
+
+        const [total, accessible] = await Promise.all([
+          tx.client.count({ where: shared }),
+          tx.client.count({ where: { AND: [shared, clientScope(current)] } }),
+        ]);
+
+        if (accessible !== total) {
+          throw new ForbiddenException(
+            "Ask Records or COO to update details shared with batches outside your scope.",
+          );
+        }
       }
 
       if (before.batchId !== input.batchId) {
@@ -817,6 +1058,15 @@ export class RecordsService {
           throw new ConflictException(
             "This client has an issued schedule and cannot be moved to another batch.",
           );
+        }
+
+        if (
+          !(await tx.batch.findFirst({
+            where: { id: input.batchId, ...batchScope(current) },
+            select: { id: true },
+          }))
+        ) {
+          throw new NotFoundException("Batch not found.");
         }
 
         await this.enrollment(tx, input.batchId);
@@ -851,6 +1101,32 @@ export class RecordsService {
         before,
         after,
       );
+
+      if (before.batchId !== after.batchId) {
+        await this.activateFullBatch(tx, current, after.batchId);
+
+        for (const batchId of [before.batchId, after.batchId]) {
+          await tx.changeEvent.create({
+            data: { entity: "batch", recordId: batchId },
+          });
+        }
+      }
+
+      if (identityChanged) {
+        await this.record(
+          tx,
+          user.id,
+          "member",
+          before.memberId,
+          "member.identity_updated",
+          {
+            name: before.name,
+            email: before.email,
+            phone: before.phone,
+          },
+          { name: after.name, email: after.email, phone: after.phone },
+        );
+      }
 
       if (before.releaseStatus !== after.releaseStatus) {
         const update = await tx.releaseUpdate.create({
@@ -918,8 +1194,10 @@ export class RecordsService {
       }
     }
 
-    return this.write(user, "CLIENT_MANAGE", async (tx) => {
-      const before = await tx.client.findUnique({ where: { id } });
+    return this.write(user, "CLIENT_MANAGE", async (tx, current) => {
+      const before = await tx.client.findFirst({
+        where: { id, ...clientScope(current) },
+      });
 
       if (!before || before.retentionErasedAt) {
         throw new NotFoundException("Client not found.");
@@ -1006,7 +1284,7 @@ export class RecordsService {
 
     const totalDue = items
       .reduce((sum, item) => {
-        return sum.add(item.expectedAmount);
+        return sum.add(item.expectedAmount.sub(item.releasedAmount));
       }, new Prisma.Decimal(0))
       .toFixed(2);
 
@@ -1017,7 +1295,9 @@ export class RecordsService {
         id: item.id,
         sequenceNo: item.sequenceNo,
         dueDate: item.dueDate.toISOString().slice(0, 10),
-        expectedAmount: item.expectedAmount.toFixed(2),
+        expectedAmount: item.expectedAmount.sub(item.releasedAmount).toFixed(2),
+        originalExpectedAmount: item.expectedAmount.toFixed(2),
+        releasedAmount: item.releasedAmount.toFixed(2),
       };
     });
 
@@ -1032,7 +1312,18 @@ export class RecordsService {
     };
   }
   async issueSchedule(user: User, id: string) {
-    return this.write(user, "CLIENT_MANAGE", async (tx) => {
+    return this.write(user, "CLIENT_MANAGE", async (tx, current) => {
+      if (
+        !(await tx.client.findFirst({
+          where: { id, ...clientScope(current) },
+          select: { id: true },
+        }))
+      ) {
+        throw new NotFoundException("Client not found.");
+      }
+
+      await requireOpenMembership(tx, id);
+
       const client = await tx.client.findUnique({
         where: { id },
         include: { batch: true },
@@ -1065,9 +1356,14 @@ export class RecordsService {
       return this.readSchedule(tx, id);
     });
   }
-  async account(id: string) {
-    const result = await this.db.user.findUnique({
-      where: { id },
+  async account(user: User, id: string) {
+    const result = await this.db.user.findFirst({
+      where: {
+        id,
+        ...(user.role === "SYSTEM_ADMIN"
+          ? {}
+          : { role: { not: "SYSTEM_ADMIN" } }),
+      },
       select: accountSelect,
     });
 
@@ -1077,11 +1373,14 @@ export class RecordsService {
 
     return result;
   }
-  async accounts(query: AccountQuery) {
+  async accounts(user: User, query: AccountQuery) {
     const where: Prisma.UserWhereInput = {
       retentionErasedAt: null,
       ...(query.status ? { active: query.status === "ACTIVE" } : {}),
-      ...(query.role ? { role: query.role } : {}),
+      AND: [
+        user.role === "SYSTEM_ADMIN" ? {} : { role: { not: "SYSTEM_ADMIN" } },
+        ...(query.role ? [{ role: query.role }] : []),
+      ],
       OR: [
         { name: { contains: query.q, mode: "insensitive" } },
         { email: { contains: query.q, mode: "insensitive" } },
@@ -1147,12 +1446,33 @@ export class RecordsService {
   async createAccount(user: User, input: AccountInput) {
     const passwordHash = await hashPassword(input.password);
 
-    return this.write(user, "ACCOUNT_MANAGE", async (tx) => {
+    return this.write(user, "ACCOUNT_MANAGE", async (tx, current) => {
       if (
-        input.clientId &&
-        !(await tx.client.findUnique({ where: { id: input.clientId } }))
+        current.role !== "SYSTEM_ADMIN" &&
+        (!businessRoles.includes(input.role) || input.role === "SYSTEM_ADMIN")
       ) {
-        throw new BadRequestException("Client not found.");
+        throw new ForbiddenException(
+          "COO assigns business roles; technical administration is separate.",
+        );
+      }
+
+      if (input.clientId) {
+        const membership = await tx.client.findFirst({
+          where: { id: input.clientId, retentionErasedAt: null },
+          include: {
+            member: { select: { account: { select: { id: true } } } },
+          },
+        });
+
+        if (!membership) {
+          throw new BadRequestException("Client not found.");
+        }
+
+        if (membership.member.account) {
+          throw new ConflictException(
+            "This member already has a portal account for all their batches.",
+          );
+        }
       }
 
       const result = await tx.user.create({
@@ -1189,10 +1509,12 @@ export class RecordsService {
       role?: User["role"];
       hrConfidentialAccess?: boolean;
       hrAccessReason?: string;
+      supervisorId?: string | null;
+      agentProfileId?: string | null;
     },
     version: number,
   ) {
-    return this.write(user, "ACCOUNT_MANAGE", async (tx) => {
+    return this.write(user, "ACCOUNT_MANAGE", async (tx, current) => {
       const before = await tx.user.findUnique({
         where: { id },
         select: accountSelect,
@@ -1200,6 +1522,24 @@ export class RecordsService {
 
       if (!before) {
         throw new NotFoundException("Account not found.");
+      }
+
+      if (
+        current.role !== "SYSTEM_ADMIN" &&
+        (before.role === "SYSTEM_ADMIN" || input.role === "SYSTEM_ADMIN")
+      ) {
+        throw new ForbiddenException(
+          "Technical administration requires separate administrator access.",
+        );
+      }
+
+      if (
+        input.role &&
+        current.role !== "SYSTEM_ADMIN" &&
+        !businessRoles.includes(input.role) &&
+        input.role !== before.role
+      ) {
+        throw new BadRequestException("Choose a current business role.");
       }
 
       if (before.version !== version) {
@@ -1234,6 +1574,17 @@ export class RecordsService {
         );
       }
 
+      if (
+        id === user.id &&
+        (input.supervisorId !== undefined ||
+          input.agentProfileId !== undefined ||
+          input.hrConfidentialAccess !== undefined)
+      ) {
+        throw new BadRequestException(
+          "A different authorized administrator must change your access assignments.",
+        );
+      }
+
       const roleChanged = Boolean(input.role && input.role !== before.role);
 
       const activeChanged =
@@ -1244,9 +1595,9 @@ export class RecordsService {
       const nextActive = input.active ?? before.active;
 
       if (input.hrConfidentialAccess !== undefined) {
-        if (nextRole === "OWNER") {
+        if (nextRole === "SYSTEM_ADMIN") {
           throw new BadRequestException(
-            "Owner confidential HR access is automatic.",
+            "System administrator confidential HR access is automatic.",
           );
         }
 
@@ -1278,7 +1629,78 @@ export class RecordsService {
 
       const hrChanged = hrConfidentialAccess !== before.hrConfidentialAccess;
 
-      if (!roleChanged && !activeChanged && !hrChanged) {
+      const supervisorId =
+        input.supervisorId !== undefined
+          ? input.supervisorId
+          : roleChanged
+            ? null
+            : before.supervisorId;
+
+      const agentProfileId =
+        businessRole(nextRole) === "AGENT"
+          ? input.agentProfileId !== undefined
+            ? input.agentProfileId
+            : before.agentProfileId
+          : null;
+
+      if (input.agentProfileId && businessRole(nextRole) !== "AGENT") {
+        throw new BadRequestException(
+          "Only an Agent account can link an Agent profile.",
+        );
+      }
+
+      const superiorRoles: Partial<Record<User["role"], User["role"][]>> = {
+        COO: ["CEO"],
+        BATCH_MANAGER: ["COO"],
+        HR_PAYROLL: ["COO"],
+        FINANCE_OFFICER: ["COO"],
+        RECORDS: ["COO"],
+        KPI_OFFICER: ["COO"],
+        OPERATIONS_COORDINATOR: ["COO"],
+        CSR: ["COO"],
+        PIONEER_AGENT: ["OPERATIONS_COORDINATOR"],
+        AGENT: ["PIONEER_AGENT"],
+        BATCH_HANDLER: ["BATCH_MANAGER", "GENERAL_MANAGER"],
+      };
+
+      if (
+        supervisorId &&
+        (supervisorId === id ||
+          !(await tx.user.findFirst({
+            where: {
+              id: supervisorId,
+              active: true,
+              role: { in: superiorRoles[businessRole(nextRole)] ?? [] },
+            },
+            select: { id: true },
+          })))
+      ) {
+        throw new BadRequestException(
+          "Choose an active supervisor for this business role.",
+        );
+      }
+
+      if (
+        agentProfileId &&
+        !(await tx.agent.findFirst({
+          where: {
+            id: agentProfileId,
+            active: true,
+            OR: [{ account: { is: null } }, { account: { id } }],
+          },
+          select: { id: true },
+        }))
+      ) {
+        throw new BadRequestException(
+          "Choose an active, available Agent profile.",
+        );
+      }
+
+      const assignmentChanged =
+        supervisorId !== before.supervisorId ||
+        agentProfileId !== before.agentProfileId;
+
+      if (!roleChanged && !activeChanged && !hrChanged && !assignmentChanged) {
         return before;
       }
 
@@ -1288,6 +1710,8 @@ export class RecordsService {
           ...(input.active !== undefined ? { active: input.active } : {}),
           ...(input.role ? { role: input.role } : {}),
           hrConfidentialAccess,
+          supervisorId,
+          agentProfileId,
           version: { increment: 1 },
         },
       });
@@ -1298,7 +1722,12 @@ export class RecordsService {
         );
       }
 
-      if (input.active === false || roleChanged || hrChanged) {
+      if (
+        input.active === false ||
+        roleChanged ||
+        hrChanged ||
+        assignmentChanged
+      ) {
         await tx.session.updateMany({
           where: { userId: id, revokedAt: null },
           data: { revokedAt: new Date() },
@@ -1309,6 +1738,23 @@ export class RecordsService {
         where: { id },
         select: accountSelect,
       });
+
+      if (assignmentChanged) {
+        await this.record(
+          tx,
+          user.id,
+          "account",
+          id,
+          "account.assignments_changed",
+          {
+            supervisorId: before.supervisorId,
+            agentProfileId: before.agentProfileId,
+          },
+          { supervisorId, agentProfileId },
+        );
+
+        await tx.authSession.deleteMany({ where: { userId: id } });
+      }
 
       if (roleChanged || activeChanged) {
         const action = roleChanged
@@ -1372,7 +1818,18 @@ export class RecordsService {
 
     return { items, total, page: query.page, pageSize };
   }
-  async history(entity: "batch" | "client", id: string, page: number) {
+  async history(
+    user: User,
+    entity: "batch" | "client",
+    id: string,
+    page: number,
+  ) {
+    if (entity === "batch") {
+      await this.batch(user, id);
+    } else {
+      await this.client(user, id);
+    }
+
     const record =
       entity === "batch"
         ? await this.db.batch.findUnique({

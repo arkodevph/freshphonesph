@@ -1,7 +1,7 @@
 "use client";
 
 import { type PortalNotification } from "@/lib/api";
-import { Compass, X } from "@phosphor-icons/react";
+import { Compass, Close as X } from "@/components/SolarIcons";
 import Link from "next/link";
 import type { Dispatch, SetStateAction } from "react";
 import { type MouseEvent } from "react";
@@ -12,6 +12,7 @@ type Props = {
   menuOpen: boolean;
   setMenuOpen: Dispatch<SetStateAction<boolean>>;
   section:
+    | "catalog"
     | "overview"
     | "membership"
     | "schedule"
@@ -20,6 +21,7 @@ type Props = {
     | "release"
     | "notifications"
     | "support"
+    | "withdrawals"
     | "settings";
   notifications: PortalNotification[];
   startTour: (event?: MouseEvent<HTMLButtonElement>) => void;
@@ -35,6 +37,7 @@ export default function PortalSidebar({
   return (
     <aside
       id="customer-sidebar"
+      data-portal-material="sidebar"
       className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ""}`}
       aria-label="Customer navigation"
     >
@@ -46,7 +49,7 @@ export default function PortalSidebar({
           return setMenuOpen(false);
         }}
       >
-        <X weight="bold" aria-hidden="true" />
+        <X aria-hidden="true" />
       </button>
       <nav className={styles.sidebarNav} aria-label="Customer sections">
         {["Workspace", "Updates", "Account"].map((group) => {
@@ -81,10 +84,7 @@ export default function PortalSidebar({
                         return setMenuOpen(false);
                       }}
                     >
-                      <Icon
-                        weight={section === item.id ? "fill" : "regular"}
-                        aria-hidden="true"
-                      />
+                      <Icon aria-hidden="true" />
                       <span>{item.label}</span>
                       {item.id === "notifications" &&
                         notifications.some((notification) => {

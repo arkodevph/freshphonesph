@@ -12,8 +12,14 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { loginSchema, passwordSchema, type User } from "@freshphones/contracts";
 import { Validate } from "../http";
-import { CurrentUser, LegalExempt, MfaExempt, Public } from "./access";
-import { AuthService } from "./auth.service";
+import {
+  CurrentUser,
+  LegalExempt,
+  MfaExempt,
+  PersonalAccess,
+  Public,
+} from "./access";
+import { AuthService, localDemoEmails } from "./auth.service";
 import { AbusePolicy, addressGroup } from "../abuse/policies";
 
 const passwordBody = z
@@ -24,6 +30,7 @@ const codeBody = z.object({ code: z.string().regex(/^\d{6}$/) }).strict();
 
 @LegalExempt()
 @MfaExempt()
+@PersonalAccess()
 @Controller("auth")
 @AbusePolicy("auth")
 export class AuthController {
@@ -37,6 +44,17 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.auth.login(body.email, body.password, req, res);
+  }
+  @Post("local-demo-login")
+  @Public()
+  @HttpCode(200)
+  demo(
+    @Body(new Validate(z.object({ email: z.enum(localDemoEmails) }).strict()))
+    body: { email: string },
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.auth.localDemoLogin(body.email, req, res);
   }
   @Post("refresh")
   @Public()

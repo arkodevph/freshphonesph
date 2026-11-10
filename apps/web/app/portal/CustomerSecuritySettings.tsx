@@ -2,7 +2,11 @@
 
 import { API_URL } from "@/lib/backend";
 import { tsRequest } from "@/lib/ts-api";
-import { ArrowRight, LockKey, SignOut } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  LockKeyhole as LockKey,
+  Logout as SignOut,
+} from "@/components/SolarIcons";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import styles from "./portal.module.css";
@@ -216,7 +220,7 @@ export function CustomerSecuritySettings({
     >
       <div className={styles.sectionHeading}>
         <span className={`${styles.sectionIcon} ${styles.settingsIcon}`}>
-          <LockKey weight="duotone" aria-hidden="true" />
+          <LockKey aria-hidden="true" />
         </span>
         <div>
           <p className={styles.eyebrow}>Account access</p>

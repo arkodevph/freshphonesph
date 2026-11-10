@@ -20,6 +20,7 @@ import {
 import { can, useMe } from "@/lib/useMe";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { ApiError } from "@/lib/ts-api";
+import CustomerLookup from "./CustomerLookup";
 import CreateSupportConcern from "./CreateSupportConcern";
 import { ReplyDraft, ResolutionDraft, emptyReply } from "./support-view";
 import SupportCasesTable from "./SupportCasesTable";
@@ -588,6 +589,7 @@ export default function SupportDashboard() {
           </p>
         </div>
       </header>
+      {canManage && <CustomerLookup />}
       {error && (
         <div
           role="alert"

@@ -19,6 +19,16 @@ The stack uses TypeScript across these deployables:
 `apps/api-ts/` is the sole backend. Its Prisma schema and committed SQL migrations own the
 database structure; `packages/contracts/` supplies shared API validation and types.
 
+## Real production runtime
+
+Use the built Next.js web app with the NestJS API and worker through
+`docker-compose.production.yml`. Configure `.env.production` from
+`deploy/production.env.example`, then run `pnpm production:config` and
+`pnpm production:build`. See [production startup and current blockers](docs/57-container-builds.md#run-the-real-production-services-together)
+for the explicit migration step, HTTPS gateway, startup and readiness checks.
+This runtime disables fictional presentation data. Current legal drafts and
+production-service configuration still block a real customer release.
+
 ## Start here
 
 **Current presentation deployment:** use Vercel with **Root Directory `apps/web`**.
@@ -64,12 +74,34 @@ server-only `LOCAL_DEMO_PASSWORD` in both service env files, apply migrations, a
 
 ### Protected web preview on Linux
 
+For fast browsing with fictional, read-only data, use the prebuilt presentation:
+
+```bash
+pnpm --filter @fresh/web preview
+```
+
+This builds all pages once with Webpack and starts the standalone server at
+`http://localhost:3000`. It requires no API or database and performs no deployment.
+The build and server run within a 4 GiB memory / 2 CPU resource limit. Stop with
+Ctrl+C or `systemctl --user stop freshphones-web-presentation.scope`.
+An optional port can be supplied, for example `pnpm --filter @fresh/web preview 3002`.
+Restart this command after changing source files to rebuild the presentation.
+
+For live code editing, use the development server below; its first visit to each
+page is slower because Next.js compiles that page on demand.
+
 Run `bash scripts/dev-web-safe.sh --hostname 127.0.0.1` from the repository root
 to preview the web app without starting the API or infrastructure. The equivalent workspace
 command is `pnpm --filter @fresh/web dev:safe --hostname 127.0.0.1`.
 This requires a systemd user manager and caps the complete preview process tree at 3 GiB
 of memory, no swap, 1.5 CPU cores, and 128 tasks. Stop it with Ctrl+C or
 `systemctl --user stop freshphones-web-preview.scope`.
+
+The web preview allows a 2 GiB Node heap within that 3 GiB process-tree limit.
+It keeps the 20 most recently visited routes ready, retains other inactive entries
+for ten minutes, and enables development-only Webpack memory optimizations. This
+reduces repeated compilation when switching between workspace pages. A route's
+first visit after startup can still require compilation.
 
 Development uses Webpack because the local Turbopack landing-page compilation failed to
 complete and exhausted task limits in protected reproduction runs on Node 26.8.2 with
@@ -78,33 +110,66 @@ Phosphor package imports are optimized to avoid loading unused icons. Production
 uses `next build`. The exact internal cause of Turbopack's worker growth remains
 unconfirmed; do not retry it without process-tree resource limits.
 
+### Fast local demo preview
+
+The local demo runs prebuilt pages to avoid development compilation during a
+walkthrough. Build once, then start the two apps in separate terminals:
+
+```bash
+pnpm --filter @fresh/web preview:build
+pnpm --filter @fresh/landing preview:build
+pnpm --filter @fresh/web preview:local       # localhost:3000
+pnpm --filter @fresh/landing preview:local   # localhost:3001
+```
+
+Keep the development API and worker running as described above. The protected
+preview binds to loopback and uses the same memory, CPU and task limits as the
+development preview. The web command checks for the private local demo helper,
+its server-only credential and a local database ending in `_preview`. Its explicit
+local-preview flags retain the workspace buttons; normal deployment builds keep
+their usual login behavior. The ignored helper accepts loopback hosts only.
+
+Source edits require a new `preview:build`; restarting an unchanged preview only
+requires `preview:local`. Stop these servers with
+`systemctl --user stop freshphones-web-preview.scope freshphones-landing-preview.scope`.
+
 ## Landing site and system deployments
 
-The system, API and worker target Render; the public landing site stays on Vercel.
+For the combined Vercel presentation, deploy **`apps/web`** with the Next.js preset
+and its checked-in `vercel.json` commands. Enable access to source files outside
+the root directory. This includes the landing page at `/`, login at `/login`, staff
+workspaces at `/system/*` and the customer portal at `/portal/*` on one domain.
+See [the Vercel presentation guide](docs/57-vercel-presentation.md). Login and
+website links stay on this origin without separate landing/system URL settings.
+
+For a real backend deployment, the system, API and worker can target Render.
 See [the Render deployment guide](docs/56-render-deployment.md) for service settings,
 environment variables and the remaining production blockers.
 
-Deploy **`apps/landing`** as the Vercel project root, with the Next.js preset and
-`pnpm build` as the build command. Enable access to files outside the root directory:
+For an optional standalone public site, deploy **`apps/landing`** as the Vercel
+project root, with the Next.js preset and `pnpm build` as the build command.
+Enable access to files outside the root directory:
 this workspace reuses public presentation components from `apps/web` and the shared
-contracts package. Install dependencies from the monorepo workspace. Do not deploy
-`apps/web` to the landing Vercel project.
+contracts package. Install dependencies from the monorepo workspace.
 
 The landing app has its own route tree: `/`, `/about`, `/careers`, `/careers/apply`,
 `/verify`, `/inquire`, `/support`, `/privacy` and its notices, and `/terms`. Login, password recovery,
 MFA, demo login, `/system/*` and `/portal/*` are absent and return 404. The system app
-stays in `apps/web`; its root redirects to `/login`.
+stays in `apps/web`, which also serves the landing page at its root.
 
 Set `NEXT_PUBLIC_API_URL` on the landing deployment to the separately hosted API for
-careers, applications and public agent verification. Allow the landing origin in the
-API's existing CORS configuration. The home page itself needs no API.
+the public catalog, careers, applications and public agent verification.
+Configure the landing origin with `PUBLIC_SITE_ORIGIN` on the API. It allows public-site
+reads, career applications and device inquiry submissions; account and financial writes still require the
+system origin and their existing authentication and permissions.
 
 When the system has a URL, set `NEXT_PUBLIC_SYSTEM_URL` on the landing project (origin
 only, without `/login`) and rebuild. This connects the Login Portal button and
 customer support links to that host. The login button stays visible while the URL is
-pending, with navigation disabled; customer portal support links remain hidden. Set
-`NEXT_PUBLIC_LANDING_URL` on the system deployment for the login page's website links.
-Local defaults are landing on port 3001 and system on port 3000.
+pending, with navigation disabled; customer portal support links remain hidden. The
+system deployment's root serves the landing page for the login page's website
+links. Local defaults are the optional standalone landing on port 3001 and the
+integrated site on port 3000.
 
 For a protected local landing preview:
 

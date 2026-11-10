@@ -86,7 +86,9 @@ export default function ClientRecordsTable({
           ) : clients.length === 0 ? (
             <tr>
               <td colSpan={7} className="px-2 py-6 text-center text-ink-soft">
-                {me?.role === "core_handler"
+                {["core_handler", "batch_handler", "batch_manager"].includes(
+                  me?.role ?? "",
+                )
                   ? "No assigned clients match these filters."
                   : "No clients match these filters."}
               </td>

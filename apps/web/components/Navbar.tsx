@@ -1,163 +1,477 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { CaretDown, List, X } from "@phosphor-icons/react";
 import { systemHref } from "@/lib/site-links";
-import { List, X, SignIn } from "@phosphor-icons/react";
+import styles from "./Navbar.module.css";
+import DoodleIcon from "./DoodleIcon";
+import PublicNavigationLink from "./PublicNavigationLink";
+import { landingV2Font } from "./font";
+import typography from "./typography.module.css";
+import "./landing-v2.css";
 
-const links = [
-  { href: "/#top", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/#units", label: "Units" },
-  { href: "/#how", label: "How it Works" },
-  { href: "/careers", label: "Careers" },
-  { href: "/inquire", label: "Inquire" },
-  { href: "/support", label: "Support" },
-];
+const primaryLinks = [
+  { href: "/#units", label: "Units", icon: "phone-heart" },
+  { href: "/about", label: "About", icon: "heart" },
+  { href: "/inquire", label: "Inquire", icon: "chat-heart" },
+] as const;
 
-export default function Navbar({ immersive = false }: { immersive?: boolean }) {
-  const loginHref = systemHref("/login");
+const exploreLinks = [
+  { href: "/#how", label: "How it works", icon: "calendar-heart" },
+  { href: "/careers", label: "Careers", icon: "id-heart" },
+  { href: "/support", label: "Support", icon: "chat-heart" },
+] as const;
+
+export default function Navbar() {
+  const scrollMarker = useRef<HTMLSpanElement>(null);
 
   const [scrolled, setScrolled] = useState(false);
 
-  const [open, setOpen] = useState(false);
+  const desktopDisclosure = useRef<HTMLDetailsElement>(null);
 
-  const sentinel = useRef<HTMLSpanElement | null>(null);
+  const exploreAnimation = useRef<Animation | null>(null);
 
-  // IntersectionObserver instead of a per-frame scroll listener
-  useEffect(() => {
-    const node = sentinel.current;
+  const mobileDisclosure = useRef<HTMLDetailsElement>(null);
 
-    if (!node) {
+  const mobileAnimation = useRef<Animation | null>(null);
+
+  const loginHref = systemHref("/login");
+
+  const animateExplore = useCallback((open: boolean) => {
+    const disclosure = desktopDisclosure.current;
+
+    const panel = disclosure?.querySelector<HTMLElement>(
+      "[data-explore-panel]",
+    );
+
+    if (
+      !disclosure ||
+      !panel ||
+      (!open && (!disclosure.open || disclosure.dataset.closing === "true"))
+    ) {
       return;
     }
 
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        return setScrolled(!entry.isIntersecting);
+    const current = disclosure.open ? getComputedStyle(panel) : null;
+
+    const from = {
+      opacity: current?.opacity ?? "0",
+      transform:
+        current?.transform ?? "translate(-50%, -16px) scale(0.94, 0.88)",
+    };
+
+    exploreAnimation.current?.cancel();
+
+    disclosure.open = true;
+
+    disclosure.dataset.closing = String(!open);
+
+    panel.inert = !open;
+
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      !panel.animate
+    ) {
+      disclosure.open = open;
+
+      delete disclosure.dataset.closing;
+
+      exploreAnimation.current = null;
+
+      return;
+    }
+
+    const animation = panel.animate(
+      [
+        from,
+        {
+          opacity: open ? "1" : "0",
+          transform: open
+            ? "translate(-50%, 0) scale(1)"
+            : "translate(-50%, -12px) scale(0.96, 0.9)",
+        },
+      ],
+      {
+        duration: open ? 340 : 220,
+        easing: open
+          ? "cubic-bezier(0.16, 1, 0.3, 1)"
+          : "cubic-bezier(0.4, 0, 1, 1)",
+        fill: "both",
       },
-      { rootMargin: "-16px 0px 0px 0px", threshold: 0 },
     );
 
-    io.observe(node);
+    exploreAnimation.current = animation;
 
-    return () => {
-      return io.disconnect();
+    animation.onfinish = () => {
+      if (exploreAnimation.current !== animation) {
+        return;
+      }
+
+      disclosure.open = open;
+
+      delete disclosure.dataset.closing;
+
+      animation.cancel();
+
+      exploreAnimation.current = null;
     };
   }, []);
+
+  const animateMobile = useCallback((open: boolean, immediate = false) => {
+    const disclosure = mobileDisclosure.current;
+
+    const panel = disclosure?.querySelector<HTMLElement>("[data-mobile-panel]");
+
+    if (
+      !disclosure ||
+      !panel ||
+      (!open &&
+        (!disclosure.open ||
+          (!immediate && disclosure.dataset.closing === "true")))
+    ) {
+      return;
+    }
+
+    const current = disclosure.open ? getComputedStyle(panel) : null;
+
+    const from = {
+      opacity: current?.opacity ?? "0",
+      transform: current?.transform ?? "translateY(-14px) scale(0.98, 0.94)",
+    };
+
+    mobileAnimation.current?.cancel();
+
+    disclosure.open = true;
+
+    disclosure.dataset.closing = String(!open);
+
+    panel.inert = !open;
+
+    if (
+      immediate ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      !panel.animate
+    ) {
+      disclosure.open = open;
+
+      delete disclosure.dataset.closing;
+
+      mobileAnimation.current = null;
+
+      return;
+    }
+
+    const animation = panel.animate(
+      [
+        from,
+        {
+          opacity: open ? "1" : "0",
+          transform: open
+            ? "translateY(0) scale(1)"
+            : "translateY(-10px) scale(0.98, 0.96)",
+        },
+      ],
+      {
+        duration: open ? 340 : 220,
+        easing: open
+          ? "cubic-bezier(0.16, 1, 0.3, 1)"
+          : "cubic-bezier(0.4, 0, 1, 1)",
+        fill: "both",
+      },
+    );
+
+    mobileAnimation.current = animation;
+
+    animation.onfinish = () => {
+      if (mobileAnimation.current !== animation) {
+        return;
+      }
+
+      disclosure.open = open;
+
+      delete disclosure.dataset.closing;
+
+      animation.cancel();
+
+      mobileAnimation.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const marker = scrollMarker.current;
+
+    if (!marker) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setScrolled(!entry.isIntersecting);
+    });
+
+    observer.observe(marker);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const disclosures = [desktopDisclosure.current, mobileDisclosure.current];
+
+    const desktop = window.matchMedia("(min-width: 64rem)");
+
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    function dismissOutside(event: Event) {
+      for (const disclosure of disclosures) {
+        if (
+          disclosure?.open &&
+          event.target instanceof Node &&
+          !disclosure.contains(event.target)
+        ) {
+          if (disclosure === desktopDisclosure.current) {
+            animateExplore(false);
+          } else {
+            animateMobile(false);
+          }
+        }
+      }
+    }
+
+    function dismissOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      for (const disclosure of disclosures) {
+        if (disclosure?.open) {
+          if (disclosure === desktopDisclosure.current) {
+            animateExplore(false);
+          } else {
+            animateMobile(false);
+          }
+
+          disclosure.querySelector("summary")?.focus();
+        }
+      }
+    }
+
+    function dismissOnResize() {
+      for (const disclosure of disclosures) {
+        if (disclosure) {
+          if (disclosure === desktopDisclosure.current) {
+            animateExplore(false);
+          } else {
+            animateMobile(false, true);
+          }
+        }
+      }
+    }
+
+    function settleReducedMotion() {
+      const disclosure = mobileDisclosure.current;
+
+      if (motion.matches && disclosure?.open) {
+        animateMobile(disclosure.dataset.closing !== "true", true);
+      }
+    }
+
+    document.addEventListener("pointerdown", dismissOutside);
+
+    document.addEventListener("focusin", dismissOutside);
+
+    document.addEventListener("keydown", dismissOnEscape);
+
+    desktop.addEventListener("change", dismissOnResize);
+
+    motion.addEventListener("change", settleReducedMotion);
+
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside);
+
+      document.removeEventListener("focusin", dismissOutside);
+
+      document.removeEventListener("keydown", dismissOnEscape);
+
+      desktop.removeEventListener("change", dismissOnResize);
+
+      motion.removeEventListener("change", settleReducedMotion);
+
+      exploreAnimation.current?.cancel();
+
+      mobileAnimation.current?.cancel();
+    };
+  }, [animateExplore, animateMobile]);
+
+  function closeMenus() {
+    for (const disclosure of [
+      desktopDisclosure.current,
+      mobileDisclosure.current,
+    ]) {
+      if (disclosure) {
+        if (disclosure === desktopDisclosure.current) {
+          animateExplore(false);
+        } else {
+          animateMobile(false);
+        }
+      }
+    }
+  }
+
+  const login = (
+    <PublicNavigationLink
+      href={loginHref ?? undefined}
+      role="link"
+      aria-disabled={!loginHref}
+      title={loginHref ? undefined : "Login will be available soon"}
+      className={styles.login}
+      onClick={closeMenus}
+    >
+      <DoodleIcon name="lock-heart" size={24} />
+      Log in
+    </PublicNavigationLink>
+  );
+
+  const apply = (
+    <PublicNavigationLink
+      href="/enroll"
+      className={styles.apply}
+      onClick={closeMenus}
+    >
+      <DoodleIcon name="application" size={24} />
+      Apply to join
+    </PublicNavigationLink>
+  );
 
   return (
     <>
       <span
-        ref={sentinel}
-        aria-hidden
-        className="absolute left-0 top-0 h-px w-px"
-        style={immersive ? { top: "calc(100svh - 5rem)" } : undefined}
+        ref={scrollMarker}
+        className={styles.scrollMarker}
+        aria-hidden="true"
       />
-      <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5">
-        <nav
-          className={`mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full px-3 transition-all duration-300 sm:px-4 ${
-            scrolled
-              ? "glass !bg-white"
-              : immersive
-                ? "bg-transparent"
-                : "bg-white/30 backdrop-blur-sm"
-          }`}
-        >
-          <a href="/#top" className="flex min-w-0 items-center gap-2.5 pl-1">
-            <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-2xl chrome">
+      <header
+        className={`${styles.header} ${landingV2Font.variable} ${typography.root}`}
+        data-scrolled={scrolled}
+        data-landing-version="2"
+      >
+        <nav className={styles.nav} aria-label="Main navigation">
+          <PublicNavigationLink
+            href="/#top"
+            className={styles.brand}
+            aria-label="Fresh Phones PH home"
+            onClick={closeMenus}
+          >
+            <span className={styles.logo} data-landing-logo>
               <Image
                 src="/brand/fresh-phones-logo.png"
-                alt="Fresh Phones PH logo"
-                width={40}
-                height={40}
-                className="h-9 w-9 scale-150 object-cover"
+                alt=""
+                width={36}
+                height={36}
+                className={styles.logoImage}
               />
             </span>
-            <span className="min-w-0 break-words font-body text-base font-800 leading-none tracking-tight text-blue-ink sm:text-lg">
-              Fresh Phones <span className="holo-text">PH</span>
+            <span className={styles.wordmark}>
+              Fresh Phones <span>PH</span>
             </span>
-          </a>
+          </PublicNavigationLink>
 
-          <ul className="hidden items-center gap-1 lg:flex">
-            {links.map((l) => {
+          <ul className={styles.primary}>
+            {primaryLinks.map((link) => {
               return (
-                <li key={l.href}>
-                  <a
-                    href={l.href}
-                    className="rounded-full px-3.5 py-2 text-sm font-700 text-ink-soft transition-colors hover:bg-white/60 hover:text-blue"
+                <li key={link.href}>
+                  <PublicNavigationLink
+                    href={link.href}
+                    className={styles.navLink}
+                    onClick={closeMenus}
                   >
-                    {l.label}
-                  </a>
+                    {link.label}
+                  </PublicNavigationLink>
                 </li>
               );
             })}
+            <li>
+              <details ref={desktopDisclosure} className={styles.explore}>
+                <summary
+                  className={styles.navLink}
+                  onClick={(event) => {
+                    event.preventDefault();
+
+                    const disclosure = desktopDisclosure.current;
+
+                    animateExplore(
+                      !disclosure?.open ||
+                        disclosure.dataset.closing === "true",
+                    );
+                  }}
+                >
+                  Explore
+                  <CaretDown aria-hidden="true" />
+                </summary>
+                <ul className={styles.explorePanel} data-explore-panel>
+                  {exploreLinks.map((link) => {
+                    return (
+                      <li key={link.href}>
+                        <PublicNavigationLink
+                          href={link.href}
+                          onClick={closeMenus}
+                        >
+                          <DoodleIcon name={link.icon} size={28} />
+                          {link.label}
+                        </PublicNavigationLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            </li>
           </ul>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <a
-              href={loginHref ?? undefined}
-              role="link"
-              tabIndex={0}
-              aria-disabled={!loginHref}
-              title={loginHref ? undefined : "Login will be available soon"}
-              className="btn-candy hidden items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-700 sm:inline-flex"
-            >
-              <SignIn weight="bold" className="h-4 w-4" />
-              Login Portal
-            </a>
-            <button
-              onClick={() => {
-                return setOpen((v) => {
-                  return !v;
-                });
-              }}
-              aria-label={open ? "Close menu" : "Open menu"}
-              aria-expanded={open}
-              className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-blue-ink lg:hidden"
-            >
-              {open ? <X className="h-5 w-5" /> : <List className="h-5 w-5" />}
-            </button>
+          <div className={styles.actions}>
+            <span className={styles.desktopLogin}>{login}</span>
+            <span className={styles.desktopApply}>{apply}</span>
+            <details ref={mobileDisclosure} className={styles.mobileDisclosure}>
+              <summary
+                className={styles.menuToggle}
+                aria-label="Navigation menu"
+                onClick={(event) => {
+                  event.preventDefault();
+
+                  const disclosure = mobileDisclosure.current;
+
+                  animateMobile(
+                    !disclosure?.open || disclosure.dataset.closing === "true",
+                  );
+                }}
+              >
+                <List className={styles.menuIcon} aria-hidden="true" />
+                <X className={styles.closeIcon} aria-hidden="true" />
+              </summary>
+              <div className={styles.mobilePanel} data-mobile-panel>
+                <ul className={styles.mobileLinks}>
+                  {[...primaryLinks, ...exploreLinks].map((link) => {
+                    return (
+                      <li key={link.href}>
+                        <PublicNavigationLink
+                          href={link.href}
+                          onClick={closeMenus}
+                        >
+                          <DoodleIcon name={link.icon} size={28} />
+                          {link.label}
+                        </PublicNavigationLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className={styles.mobileActions}>
+                  {login}
+                  {apply}
+                </div>
+              </div>
+            </details>
           </div>
         </nav>
-
-        {open && (
-          <div className="glass mx-auto mt-2 max-w-7xl rounded-3xl p-3 lg:hidden">
-            <ul className="flex flex-col">
-              {links.map((l) => {
-                return (
-                  <li key={l.href}>
-                    <a
-                      href={l.href}
-                      onClick={() => {
-                        return setOpen(false);
-                      }}
-                      className="block rounded-2xl px-4 py-3 font-600 text-ink-soft hover:bg-white/70 hover:text-blue"
-                    >
-                      {l.label}
-                    </a>
-                  </li>
-                );
-              })}
-              <li className="mt-1 px-1">
-                <a
-                  href={loginHref ?? undefined}
-                  role="link"
-                  tabIndex={0}
-                  aria-disabled={!loginHref}
-                  title={loginHref ? undefined : "Login will be available soon"}
-                  onClick={() => {
-                    return setOpen(false);
-                  }}
-                  className="btn-candy flex items-center justify-center gap-1.5 rounded-2xl px-5 py-3 font-700"
-                >
-                  <SignIn weight="bold" className="h-4 w-4" />
-                  Login Portal
-                </a>
-              </li>
-            </ul>
-          </div>
-        )}
       </header>
     </>
   );

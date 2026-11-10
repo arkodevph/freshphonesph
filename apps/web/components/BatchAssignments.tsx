@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { useMe } from "@/lib/useMe";
 import {
   getAssignmentOptions,
   getBatchDetails,
@@ -23,6 +24,10 @@ export function BatchAssignments({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const me = useMe();
+
+  const canAssignManager = me?.role === "coo" || me?.role === "system_admin";
+
   const dialog = useRef<HTMLDialogElement>(null);
 
   const labelId = useId();
@@ -34,7 +39,11 @@ export function BatchAssignments({
     agents: [],
   });
 
-  const [draft, setDraft] = useState({ handlerId: "", agentId: "" });
+  const [draft, setDraft] = useState({
+    managerId: "",
+    handlerId: "",
+    agentId: "",
+  });
 
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +63,8 @@ export function BatchAssignments({
 
   const dirty = Boolean(
     batch &&
-    (draft.handlerId !== (batch.handlerId ?? "") ||
+    (draft.managerId !== (batch.managerId ?? "") ||
+      draft.handlerId !== (batch.handlerId ?? "") ||
       draft.agentId !== (batch.agentId ?? "")),
   );
 
@@ -80,6 +90,7 @@ export function BatchAssignments({
       setOptions(choices);
 
       setDraft({
+        managerId: record.managerId ?? "",
         handlerId: record.handlerId ?? "",
         agentId: record.agentId ?? "",
       });
@@ -160,6 +171,7 @@ export function BatchAssignments({
     try {
       await updateBatchAssignments(id, {
         version: batch.version,
+        ...(canAssignManager ? { managerId: draft.managerId || null } : {}),
         handlerId: draft.handlerId || null,
         agentId: draft.agentId || null,
       });
@@ -180,10 +192,23 @@ export function BatchAssignments({
     }
   }
 
-  const select = (key: "handlerId" | "agentId", label: string) => {
-    const items = key === "handlerId" ? options.handlers : options.agents;
+  const select = (
+    key: "managerId" | "handlerId" | "agentId",
+    label: string,
+  ) => {
+    const items =
+      key === "managerId"
+        ? (options.managers ?? [])
+        : key === "handlerId"
+          ? options.handlers
+          : options.agents;
 
-    const assigned = key === "handlerId" ? batch?.handler : batch?.agent;
+    const assigned =
+      key === "managerId"
+        ? batch?.manager
+        : key === "handlerId"
+          ? batch?.handler
+          : batch?.agent;
 
     return (
       <label className={styles.field} htmlFor={`${labelId}-${key}`}>
@@ -326,6 +351,7 @@ export function BatchAssignments({
             className={styles.grid}
             disabled={saving || Boolean(discard)}
           >
+            {canAssignManager && select("managerId", "Batch manager")}
             {select("handlerId", "Handler")}
             {select("agentId", "Agent")}
           </fieldset>

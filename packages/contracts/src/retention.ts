@@ -5,6 +5,7 @@ export const retentionScopes = [
   "CUSTOMER",
   "EMPLOYEE",
   "PRIVATE_FILE",
+  "PUBLIC_ENROLLMENT",
 ] as const;
 
 export const retentionScopeSchema = z.enum(retentionScopes);
@@ -16,6 +17,7 @@ export const retentionScopeLabels: Record<RetentionScope, string> = {
   CUSTOMER: "Completed customer records",
   EMPLOYEE: "Inactive employee accounts",
   PRIVATE_FILE: "Private files",
+  PUBLIC_ENROLLMENT: "Closed public enrollment applications",
 };
 
 export const retentionScopeDescriptions: Record<RetentionScope, string> = {
@@ -27,6 +29,8 @@ export const retentionScopeDescriptions: Record<RetentionScope, string> = {
     "Remove inactive account identity, credentials, sessions and completed task details. Keep operational event references.",
   PRIVATE_FILE:
     "Delete an unreferenced file or a file attached to finalized work, with its download links and filename metadata.",
+  PUBLIC_ENROLLMENT:
+    "Erase contact details and answers from closed public applications that were not forwarded to enrollment. Keep form revisions, routing and operational references; enrollment and membership history remain unchanged.",
 };
 
 export const retentionTargetSchema = z

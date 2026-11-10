@@ -3,6 +3,7 @@ FROM node:22-bookworm-slim AS builder
 WORKDIR /workspace
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_PRESENTATION_MODE=false
 
 RUN npm install --global pnpm@9.12.0 \
     && npm cache clean --force

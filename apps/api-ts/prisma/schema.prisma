@@ -7,6 +7,15 @@ datasource db {
   provider = "postgresql"
 }
 enum Role {
+  BATCH_MANAGER
+  KPI_OFFICER
+  OPERATIONS_COORDINATOR
+  CSR
+  PIONEER_AGENT
+  AGENT
+  BATCH_HANDLER
+  CEO
+  SYSTEM_ADMIN
   OWNER
   COO
   GENERAL_MANAGER
@@ -129,6 +138,13 @@ enum StaffEmailStatus {
   SKIPPED
 }
 model User {
+  paymentOperationalReviews PaymentOperationalReview[]
+  enrollmentFormDrafts EnrollmentFormConfig[] @relation("EnrollmentFormReceivingAgent")
+  enrollmentFormRevisions EnrollmentFormRevision[] @relation("EnrollmentRevisionReceivingAgent")
+  assignedPublicApplications PublicEnrollmentApplication[] @relation("PublicApplicationAgent")
+  withdrawalRequests WithdrawalRequest[]
+  withdrawalEvents WithdrawalEvent[]
+  withdrawalPayouts WithdrawalPayout[]
   legalAcknowledgements LegalAcknowledgement[]
   requirementReviews RequirementReview[] @relation("RequirementReviewer")
   staffNotifications StaffNotification[] @relation("NotificationRecipient")
@@ -143,6 +159,8 @@ model User {
   active Boolean @default(true)
   version Int @default(1)
   clientId String? @unique @db.Uuid
+  memberId String? @unique @db.Uuid
+  member Member? @relation(fields: [memberId], references: [id], onDelete: Restrict)
   hrConfidentialAccess Boolean @default(false)
   retentionErasedAt DateTime?
   emailVerified Boolean @default(false)
@@ -159,6 +177,10 @@ model User {
   recordedPayments Payment[] @relation("PaymentRecorder")
   verifiedPayments Payment[] @relation("PaymentVerifier")
   paymentAdjustments PaymentAdjustment[]
+  gcashUploads GcashHistorySubmission[] @relation("GcashUploader")
+  gcashReviews GcashHistorySubmission[] @relation("GcashReviewer")
+  gcashArchives GcashHistory[] @relation("GcashArchiver")
+  gcashCorrections GcashReadingCorrection[]
   uploadedFiles StoredFile[]
   assignedCases SupportCase[] @relation("CaseAssignee")
   supportMessages SupportMessage[]
@@ -174,6 +196,15 @@ model User {
   reviewedDocuments CustomerDocument[] @relation("DocumentReviewer")
   assignedTasks Task[] @relation("TaskAssignee")
   handledBatches Batch[] @relation("BatchHandler")
+  managedBatches Batch[] @relation("BatchManager")
+  supervisorId String? @db.Uuid
+  supervisor User? @relation("StaffSupervisor", fields: [supervisorId], references: [id], onDelete: Restrict)
+  supervisedStaff User[] @relation("StaffSupervisor")
+  agentProfileId String? @unique @db.Uuid
+  agentProfile Agent? @relation("AgentAccount", fields: [agentProfileId], references: [id], onDelete: Restrict)
+  submittedEnrollments EnrollmentRequest[] @relation("EnrollmentSubmitter")
+  reviewedEnrollments EnrollmentRequest[] @relation("EnrollmentReviewer")
+  @@index([supervisorId, active, role])
   createdTasks Task[] @relation("TaskCreator")
   kpiReviews KpiReview[]
   proposedHrActions HrActionRequest[] @relation("HrActionProposer")
@@ -254,8 +285,9 @@ model PasswordReset {
   usedAt DateTime?
 }
 model Batch {
+  gcashHistories GcashHistory[]
   id String @id @default(uuid()) @db.Uuid
-  code String @unique @db.VarChar(30)
+  code String @unique @db.VarChar(71)
   model String @db.VarChar(100)
   status BatchStatus @default(PLANNED)
   startDate DateTime @db.Date
@@ -263,34 +295,68 @@ model Batch {
   contractPrice Decimal? @db.Decimal(12, 2)
   installmentCount Int?
   cadence Cadence?
+  firstDueDate DateTime? @db.Date
+  monthEnd Boolean @default(false)
   version Int @default(1)
+  managerId String? @db.Uuid
+  manager User? @relation("BatchManager", fields: [managerId], references: [id], onDelete: Restrict)
+  enrollmentRequests EnrollmentRequest[]
   handlerId String? @db.Uuid
   handler User? @relation("BatchHandler", fields: [handlerId], references: [id], onDelete: Restrict)
   agentId String? @db.Uuid
-  agent Agent? @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  agent Agent? @relation("BatchRepresentative", fields: [agentId], references: [id], onDelete: Restrict)
+  numberingAgentId String? @db.Uuid
+  numberingAgent Agent? @relation("BatchNumberOwner", fields: [numberingAgentId], references: [id], onDelete: Restrict)
+  numberSequence Int?
   clients Client[]
   payments Payment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([status, createdAt])
+  @@index([managerId, createdAt, id])
   @@index([handlerId, createdAt, id])
   @@index([agentId, createdAt, id])
+  @@unique([numberingAgentId, numberSequence])
 }
 model Agent {
+  account User? @relation("AgentAccount")
   id String @id @default(uuid()) @db.Uuid
   name String @db.VarChar(200)
   code String @unique @db.VarChar(60)
   active Boolean @default(true)
   version Int @default(1)
-  batches Batch[]
+  batches Batch[] @relation("BatchRepresentative")
+  numberedBatches Batch[] @relation("BatchNumberOwner")
+  numberCounter BatchNumberCounter?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([active, name, id])
 }
+model Member {
+  id String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(100)
+  email String @db.VarChar(254)
+  phone String @db.VarChar(25)
+  memberships Client[]
+  account User?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model BatchNumberCounter {
+  agentId String @id @db.Uuid
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  lastNumber Int @default(0)
+}
 model Client {
+  membershipPlan Json?
+  replacementCompletedAt DateTime?
+  withdrawalRequests WithdrawalRequest[] @relation("WithdrawalOrigin")
+  replacementFor WithdrawalRequest? @relation("WithdrawalReplacement")
   requirements ClientRequirement[]
   requirementDocuments RequirementDocument[]
   id String @id @default(uuid()) @db.Uuid
+  memberId String @default(uuid()) @db.Uuid
+  member Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
   name String @db.VarChar(100)
   email String @db.VarChar(254)
   phone String @db.VarChar(25)
@@ -311,6 +377,7 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([batchId])
+  @@unique([memberId, batchId])
   @@index([status, createdAt])
 }
 model CustomerDocument {
@@ -449,6 +516,9 @@ model CustomerNotificationConfig {
   updatedAt DateTime @updatedAt
 }
 model ScheduleItem {
+  releasedAmount Decimal @default(0) @db.Decimal(12, 2)
+  withdrawalRelease WithdrawalScheduleRelease? @relation("WithdrawalReleaseSource")
+  withdrawalTransfer WithdrawalScheduleRelease? @relation("WithdrawalReleaseDestination")
   id String @id @default(uuid()) @db.Uuid
   clientId String @db.Uuid
   client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
@@ -459,6 +529,8 @@ model ScheduleItem {
   @@unique([clientId, sequenceNo])
 }
 model Payment {
+  evidenceVersion Int @default(1)
+  operationalReviews PaymentOperationalReview[]
   id String @id @default(uuid()) @db.Uuid
   clientId String @db.Uuid
   client Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
@@ -547,6 +619,7 @@ model PaymentResultAlert {
   @@index([paymentId])
 }
 model StoredFile {
+  gcashSubmission GcashHistorySubmission?
   catalogItem CatalogItem?
   requirementDocument RequirementDocument?
   workAttachment TaskAttachment?
@@ -994,6 +1067,7 @@ model CatalogItem {
 }
 
 enum RetentionScope {
+  PUBLIC_ENROLLMENT
   APPLICANT
   CUSTOMER
   EMPLOYEE
@@ -1113,4 +1187,251 @@ model DeviceInquiry {
 
   @@index([status, createdAt, id])
   @@index([createdAt, id])
+}
+
+model EnrollmentRequest {
+  publicApplication PublicEnrollmentApplication?
+  id String @id @default(uuid()) @db.Uuid
+  submissionId String @unique @db.Uuid
+  batchId String @db.Uuid
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  submittedById String @db.Uuid
+  submittedBy User @relation("EnrollmentSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  reviewedById String? @db.Uuid
+  reviewedBy User? @relation("EnrollmentReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  status String @default("PENDING") @db.VarChar(20)
+  applicant Json
+  reason String @default("") @db.VarChar(1000)
+  clientId String? @unique @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  @@index([submittedById, createdAt, id])
+  @@index([status, batchId, createdAt])
+}
+
+model EnrollmentFormConfig {
+  id String @id @default("singleton") @db.VarChar(20)
+  version Int @default(1)
+  definition Json
+  receivingAgentId String? @db.Uuid
+  receivingAgent User? @relation("EnrollmentFormReceivingAgent", fields: [receivingAgentId], references: [id], onDelete: Restrict)
+  publishedRevisionId String? @unique @db.Uuid
+  publishedRevision EnrollmentFormRevision? @relation(fields: [publishedRevisionId], references: [id], onDelete: Restrict)
+  updatedAt DateTime @updatedAt
+}
+
+model EnrollmentFormRevision {
+  id String @id @default(uuid()) @db.Uuid
+  number Int @unique
+  definition Json
+  receivingAgentId String @db.Uuid
+  receivingAgent User @relation("EnrollmentRevisionReceivingAgent", fields: [receivingAgentId], references: [id], onDelete: Restrict)
+  publishedBy EnrollmentFormConfig?
+  applications PublicEnrollmentApplication[]
+  createdAt DateTime @default(now())
+}
+
+enum PublicEnrollmentStatus {
+  RECEIVED
+  FORWARDED
+  CLOSED
+}
+
+model PublicEnrollmentApplication {
+  id String @id @default(uuid()) @db.Uuid
+  submissionId String @unique @db.Uuid
+  revisionId String @db.Uuid
+  revision EnrollmentFormRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+  name String @db.VarChar(100)
+  email String @db.VarChar(254)
+  phone String @db.VarChar(25)
+  answers Json
+  assignedAgentId String @db.Uuid
+  assignedAgent User @relation("PublicApplicationAgent", fields: [assignedAgentId], references: [id], onDelete: Restrict)
+  status PublicEnrollmentStatus @default(RECEIVED)
+  version Int @default(1)
+  enrollmentRequestId String? @unique @db.Uuid
+  enrollmentRequest EnrollmentRequest? @relation(fields: [enrollmentRequestId], references: [id], onDelete: Restrict)
+  reviewedContact Json?
+  closeReason String @default("") @db.VarChar(1000)
+  retentionErasedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([assignedAgentId, status, createdAt, id], map: "PublicEnrollmentApplication_agent_status_created_idx")
+  @@index([status, createdAt, id])
+  @@index([revisionId])
+}
+
+enum GcashHistoryStatus {
+  SUBMITTED
+  REVIEWED
+  NEEDS_CLARIFICATION
+}
+model GcashHistory {
+  id String @id @default(uuid()) @db.Uuid
+  batchId String @db.Uuid
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  periodStart DateTime @db.Date
+  periodEnd DateTime @db.Date
+  status GcashHistoryStatus @default(SUBMITTED)
+  revision Int @default(1)
+  version Int @default(1)
+  archivedAt DateTime?
+  archiveReason String @default("") @db.VarChar(1000)
+  archivedById String? @db.Uuid
+  archivedBy User? @relation("GcashArchiver", fields: [archivedById], references: [id], onDelete: Restrict)
+  submissions GcashHistorySubmission[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([batchId, periodStart, periodEnd])
+  @@index([createdAt, id])
+  @@index([status, createdAt, id])
+  @@index([batchId, createdAt, id])
+  @@index([archivedAt, createdAt, id])
+}
+model GcashHistorySubmission {
+  readingSummary Json?
+  reading GcashPdfReading?
+  id String @id @default(uuid()) @db.Uuid
+  historyId String @db.Uuid
+  history GcashHistory @relation(fields: [historyId], references: [id], onDelete: Restrict)
+  revision Int
+  fileId String @unique @db.Uuid
+  file StoredFile @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  status GcashHistoryStatus @default(SUBMITTED)
+  note String @default("") @db.VarChar(1000)
+  uploadedById String @db.Uuid
+  uploadedBy User @relation("GcashUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  submittedAt DateTime @default(now())
+  reviewNote String @default("") @db.VarChar(2000)
+  reviewedById String? @db.Uuid
+  reviewedBy User? @relation("GcashReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  reviewedAt DateTime?
+  @@unique([historyId, revision])
+  @@index([uploadedById])
+  @@index([reviewedById])
+}
+
+model GcashPdfReading {
+  submissionId String @id @db.Uuid
+  submission GcashHistorySubmission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  data Json
+  correctedData Json?
+  correctionVersion Int @default(0)
+  corrections GcashReadingCorrection[]
+  createdAt DateTime @default(now())
+}
+
+model GcashReadingCorrection {
+  id String @id @default(uuid()) @db.Uuid
+  submissionId String @db.Uuid
+  reading GcashPdfReading @relation(fields: [submissionId], references: [submissionId], onDelete: Restrict)
+  version Int
+  rowIndex Int
+  reason String @db.VarChar(1000)
+  before Json
+  after Json
+  editorId String @db.Uuid
+  editor User @relation(fields: [editorId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@unique([submissionId, version])
+  @@index([editorId])
+}
+
+model WithdrawalRequest {
+  id String @id @default(uuid()) @db.Uuid
+  submissionId String @unique @db.Uuid
+  clientId String @db.Uuid
+  client Client @relation("WithdrawalOrigin", fields: [clientId], references: [id], onDelete: Restrict)
+  requesterId String @db.Uuid
+  requester User @relation(fields: [requesterId], references: [id], onDelete: Restrict)
+  reason String @db.VarChar(5000)
+  status String @default("AWAITING_AGENT") @db.VarChar(30)
+  version Int @default(1)
+  agentNote String? @db.VarChar(2000)
+  agentReviewedById String? @db.Uuid
+  reviewedAt DateTime?
+  decisionNote String? @db.VarChar(2000)
+  decidedAt DateTime?
+  replacedAt DateTime?
+  replacementClientId String? @unique @db.Uuid
+  replacementClient Client? @relation("WithdrawalReplacement", fields: [replacementClientId], references: [id], onDelete: Restrict)
+  replacementEnrollmentId String? @db.Uuid
+  replacementMode String? @db.VarChar(30)
+  replacementNote String? @db.VarChar(2000)
+  consultationNote String? @db.VarChar(2000)
+  restartPlan Json?
+  policyFingerprint String? @db.VarChar(64)
+  policyVersion Int @default(0)
+  refundStatus String @default("PENDING") @db.VarChar(20)
+  refundAmount Decimal? @db.Decimal(12, 2)
+  refundTargetDate DateTime? @db.Date
+  refundNote String? @db.VarChar(2000)
+  events WithdrawalEvent[]
+  payouts WithdrawalPayout[]
+  releases WithdrawalScheduleRelease[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, createdAt, id])
+  @@index([clientId, createdAt, id])
+}
+model WithdrawalEvent {
+  id String @id @default(uuid()) @db.Uuid
+  withdrawalId String @db.Uuid
+  withdrawal WithdrawalRequest @relation(fields: [withdrawalId], references: [id], onDelete: Restrict)
+  actorId String @db.Uuid
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action String @db.VarChar(60)
+  note String @db.VarChar(5000)
+  internal Boolean @default(false)
+  data Json?
+  createdAt DateTime @default(now())
+  @@index([withdrawalId, createdAt, id])
+}
+model WithdrawalPayout {
+  id String @id @default(uuid()) @db.Uuid
+  requestId String @unique @db.Uuid
+  withdrawalId String @db.Uuid
+  withdrawal WithdrawalRequest @relation(fields: [withdrawalId], references: [id], onDelete: Restrict)
+  amount Decimal @db.Decimal(12, 2)
+  paymentDate DateTime @db.Date
+  method String @db.VarChar(40)
+  reference String @db.VarChar(120)
+  note String @db.VarChar(2000)
+  recordedById String @db.Uuid
+  recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@unique([method, reference])
+  @@index([withdrawalId, createdAt, id])
+}
+model WithdrawalScheduleRelease {
+  id String @id @default(uuid()) @db.Uuid
+  withdrawalId String @db.Uuid
+  withdrawal WithdrawalRequest @relation(fields: [withdrawalId], references: [id], onDelete: Restrict)
+  scheduleItemId String @unique @db.Uuid
+  scheduleItem ScheduleItem @relation("WithdrawalReleaseSource", fields: [scheduleItemId], references: [id], onDelete: Restrict)
+  destinationScheduleItemId String? @unique @db.Uuid
+  destinationScheduleItem ScheduleItem? @relation("WithdrawalReleaseDestination", fields: [destinationScheduleItemId], references: [id], onDelete: Restrict)
+  amount Decimal @db.Decimal(12, 2)
+  originalExpectedAmount Decimal @db.Decimal(12, 2)
+  paidAtCutover Decimal @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+  @@index([withdrawalId])
+}
+
+model PaymentOperationalReview {
+  id String @id @default(uuid()) @db.Uuid
+  paymentId String @db.Uuid
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  reviewerId String @db.Uuid
+  reviewer User @relation(fields: [reviewerId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  stage String @db.VarChar(16)
+  decision String @db.VarChar(16)
+  notes String @db.VarChar(1000)
+  evidenceVersion Int
+  paymentVersion Int
+  batchVersion Int
+  createdAt DateTime @default(now())
+  @@unique([paymentId, paymentVersion, stage])
 }

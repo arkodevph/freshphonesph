@@ -3,15 +3,17 @@
 import { pesoFormat as currency } from "@/lib/currency";
 import {
   Bell,
-  CalendarBlank,
-  ChatCircleText,
+  Calendar as CalendarBlank,
+  ChatRoundDots as ChatCircleText,
   FileText,
-  GearSix,
-  House,
-  Package,
-  Truck,
+  Settings as GearSix,
+  HomeAngle as House,
+  Box as Package,
+  Smartphone as DeviceMobile,
+  Delivery as Truck,
   Wallet,
-} from "@phosphor-icons/react";
+} from "@/components/SolarIcons";
+import { ArrowBendUpLeft } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useState } from "react";
 import styles from "./portal.module.css";
@@ -26,6 +28,12 @@ export const SUPPORT_PAGE_SIZE = 3;
 
 export const portalNav = [
   { id: "overview", label: "Overview", icon: House, group: "Workspace" },
+  {
+    id: "catalog",
+    label: "Phones & plans",
+    icon: DeviceMobile,
+    group: "Workspace",
+  },
   {
     id: "membership",
     label: "My membership",
@@ -60,6 +68,12 @@ export const portalNav = [
     typescriptOnly: true,
   },
   { id: "support", label: "Support", icon: ChatCircleText, group: "Updates" },
+  {
+    id: "withdrawals",
+    label: "Withdrawals",
+    icon: ArrowBendUpLeft,
+    group: "Account",
+  },
   { id: "settings", label: "Settings", icon: GearSix, group: "Account" },
 ] as const;
 
@@ -77,10 +91,12 @@ export type ViewTransitionDocument = Document & {
 export type PortalSection = (typeof portalNav)[number]["id"];
 
 export const moreToolDetails: Partial<Record<PortalSection, string>> = {
+  catalog: "Browse models, availability, and sample payments",
   documents: "Upload requirements",
   release: "Track your unit",
   notifications: "Recent account updates",
   support: "Get help with a concern",
+  withdrawals: "Request withdrawal and follow its review",
   settings: "Profile, appearance, and security",
 };
 
@@ -88,10 +104,17 @@ export const sectionCopy: Record<
   Exclude<PortalSection, "overview">,
   { eyebrow: string; title: string; description: string }
 > = {
+  catalog: {
+    eyebrow: "Explore",
+    title: "Phones & plans",
+    description:
+      "Find your next device and explore sample installments before joining a batch.",
+  },
   membership: {
     eyebrow: "Workspace",
     title: "My membership",
-    description: "Your enrolled unit, batch, and current account balance.",
+    description:
+      "Your enrollment record, requirements, and collection updates.",
   },
   schedule: {
     eyebrow: "Workspace",
@@ -122,6 +145,12 @@ export const sectionCopy: Record<
     eyebrow: "Updates",
     title: "Support",
     description: "Send a concern and follow its status here.",
+  },
+  withdrawals: {
+    eyebrow: "Account",
+    title: "Withdrawal requests",
+    description:
+      "Explain your request, follow its review, and track any separate refund decision.",
   },
   settings: {
     eyebrow: "Account",

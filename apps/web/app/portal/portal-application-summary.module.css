@@ -1,0 +1,90 @@
+.panel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 22px 0;
+  border: 1px solid var(--portal-border, #e5e7ec);
+  border-radius: 20px;
+  background: var(--portal-surface, #fff);
+  padding: 20px;
+  color: var(--portal-text, #17181c);
+}
+
+.copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--portal-accent-soft, #f0edff);
+  color: var(--portal-accent, #6d35d9);
+}
+
+.icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.copy h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.copy p {
+  margin: 3px 0 0;
+  color: var(--portal-muted, #60636e);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--portal-border, #e5e7ec);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--portal-text, #17181c);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.link svg {
+  flex-shrink: 0;
+}
+
+.link:hover {
+  border-color: var(--portal-accent, #6d35d9);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--portal-accent, #6d35d9);
+  outline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .link {
+    width: 100%;
+  }
+}

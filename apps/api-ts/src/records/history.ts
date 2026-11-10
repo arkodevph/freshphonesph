@@ -8,8 +8,11 @@ const fields = {
     contractPrice: "Contract price (PHP)",
     installmentCount: "Installments",
     cadence: "Cadence",
+    firstDueDate: "First installment due date",
+    monthEnd: "Month-end alignment",
     startDate: "Start date",
     endDate: "End date",
+    managerId: "Batch manager",
     handlerId: "Handler",
     agentId: "Agent",
   },
@@ -34,6 +37,10 @@ const object = (value: unknown): Record<string, unknown> => {
 function value(snapshot: Record<string, unknown>, key: string) {
   const raw = snapshot[key];
 
+  if (key === "monthEnd" && typeof raw === "boolean") {
+    return raw ? "Yes" : "No";
+  }
+
   if (raw === null || raw === undefined || raw === "") {
     return null;
   }
@@ -42,7 +49,15 @@ function value(snapshot: Record<string, unknown>, key: string) {
     return null;
   }
 
-  if (["startDate", "endDate", "joinedAt", "collectionDate"].includes(key)) {
+  if (
+    [
+      "startDate",
+      "endDate",
+      "firstDueDate",
+      "joinedAt",
+      "collectionDate",
+    ].includes(key)
+  ) {
     return String(raw).slice(0, 10);
   }
 
@@ -106,6 +121,10 @@ export function historyChanges(
 
       if (field === "batchId") {
         return value(object(snapshot.batch), "code") ?? raw;
+      }
+
+      if (field === "managerId") {
+        return value(object(snapshot.manager), "name") ?? raw;
       }
 
       if (field === "handlerId") {

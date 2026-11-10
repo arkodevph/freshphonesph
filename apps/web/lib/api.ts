@@ -1,3 +1,4 @@
+import { previewInstallments } from "@freshphones/contracts";
 import type {
   Agent,
   AgentInput,
@@ -13,6 +14,8 @@ import type {
   CollectionReport,
   FinanceAlertPage,
   Page,
+  PortalBatchSummary,
+  PortalApplicationSummary,
   PaymentDuplicateMatch,
   PaymentReport,
   PaymentResultDetail,
@@ -23,8 +26,11 @@ import type {
   ReconciliationReport,
   RecordHistoryEntry,
   ReportAnalysis,
+  ChartMonths,
+  ExecutiveChartData,
   ReportBatchOption,
   ReportKind,
+  InstallmentEarningsReport,
   ReportSnapshot,
   ReportSnapshotInput,
   Role,
@@ -270,6 +276,7 @@ export type Payment = {
   adjustment_revision?: number;
   adjustments?: import("@freshphones/contracts").PaymentAdjustment[];
   duplicate_reference?: boolean;
+  workflow?: import("@freshphones/contracts").PaymentWorkflow;
 };
 
 export type Paginated<T> = {
@@ -319,6 +326,7 @@ const toPayment = (payment: TsPayment): Payment => {
     verified_at: payment.verifiedAt,
     version: payment.version,
     duplicate_reference: payment.duplicateReference,
+    workflow: payment.workflow,
   };
 };
 
@@ -432,6 +440,16 @@ export function findDuplicatePayments(
   return tsRequest<PaymentDuplicateMatch[]>(`/payments/duplicates?${query}`);
 }
 
+export function reviewPaymentOperations(
+  id: RecordId,
+  input: import("@freshphones/contracts").PaymentOperationalReviewInput,
+) {
+  return tsRequest<TsPayment>(`/payments/${id}/operational-review`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  }).then(toPayment);
+}
+
 export function decidePayment(
   id: RecordId,
   decision: PaymentStatus,
@@ -473,6 +491,10 @@ export function getBalance(clientId: RecordId) {
 }
 
 // ── Reporting (M7) ─────────────────────────────────────────────────────────
+export function getExecutiveCharts(months: ChartMonths) {
+  return tsRequest<ExecutiveChartData>(`/reports/charts?months=${months}`);
+}
+
 export type DashboardCards = {
   active_batches: number;
   verified_payments: number;
@@ -541,13 +563,15 @@ export const readStaffAlert = (alert: StaffAlert) => {
   const body: StaffAlertReadInput =
     alert.entity === "payment"
       ? { entity: "payment", version: alert.version }
-      : alert.entity === "payment-result"
-        ? { entity: "payment-result" }
-        : alert.entity === "support"
-          ? { entity: "support" }
-          : alert.entity === "account"
-            ? { entity: "account" }
-            : { entity: "task", kind: alert.kind, deadline: alert.deadline };
+      : alert.entity === "enrollment"
+        ? { entity: "enrollment", version: alert.version }
+        : alert.entity === "payment-result"
+          ? { entity: "payment-result" }
+          : alert.entity === "support"
+            ? { entity: "support" }
+            : alert.entity === "account"
+              ? { entity: "account" }
+              : { entity: "task", kind: alert.kind, deadline: alert.deadline };
 
   return tsRequest<{ id: string; readAt: string }>(
     `/staff/alerts/${alert.id}/read`,
@@ -581,6 +605,8 @@ export type Batch = {
   created_at: string;
   version?: number;
   terms_locked?: boolean;
+  first_due_date?: string | null;
+  month_end?: boolean;
   handler_name?: string | null;
   agent_name?: string | null;
   handler_available?: boolean;
@@ -604,6 +630,8 @@ export type ClientRecord = {
 };
 
 export type ScheduleItem = {
+  original_expected_amount?: string;
+  released_amount?: string;
   id: RecordId;
   sequence_no: number;
   due_date: string;
@@ -725,39 +753,45 @@ export async function listBatchChoices(): Promise<Batch[]> {
 }
 
 export function createBatch(body: {
-  batch_number: string;
+  agent_id: string;
   unit_model: string;
   status: string;
   contract_price: string;
   num_installments: number;
   cadence: string;
   start_date: string;
+  first_due_date?: string;
+  month_end?: boolean;
 }) {
   const cadence = body.cadence.toUpperCase() as NonNullable<
     BatchInput["cadence"]
   >;
 
-  const endDate = new Date(body.start_date);
+  let endDate: string;
 
-  const days = { WEEKLY: 7, SEMIMONTHLY: 15, MONTHLY: 30 }[cadence];
+  try {
+    if (body.first_due_date !== undefined && !body.first_due_date) {
+      throw new Error("Choose the first installment due date.");
+    }
 
-  if (
-    !days ||
-    !Number.isInteger(body.num_installments) ||
-    body.num_installments < 1 ||
-    body.num_installments > 600
-  ) {
-    return Promise.reject(
-      new Error("Choose a cadence and 1–600 installments."),
-    );
+    const items = previewInstallments({
+      contractPrice: body.contract_price,
+      installmentCount: body.num_installments,
+      cadence,
+      startDate: body.start_date,
+      firstDueDate: body.first_due_date,
+      monthEnd: body.month_end,
+    });
+
+    endDate = items[items.length - 1].dueDate;
+  } catch (error) {
+    return Promise.reject(error);
   }
-
-  endDate.setUTCDate(endDate.getUTCDate() + days * body.num_installments);
 
   return tsRequest<TsBatch>("/batches", {
     method: "POST",
     body: JSON.stringify({
-      code: body.batch_number,
+      agentId: body.agent_id,
       model: body.unit_model,
       status: (
         {
@@ -768,7 +802,13 @@ export function createBatch(body: {
         } as const
       )[body.status as "forming" | "active" | "closed" | "cancelled"],
       startDate: body.start_date,
-      endDate: endDate.toISOString().slice(0, 10),
+      endDate,
+      ...(body.first_due_date !== undefined
+        ? {
+            firstDueDate: body.first_due_date,
+            monthEnd: body.month_end ?? false,
+          }
+        : {}),
       contractPrice: body.contract_price,
       installmentCount: body.num_installments,
       cadence,
@@ -894,6 +934,7 @@ export function fetchMe() {
 
 // ── Customer portal (M5) ───────────────────────────────────────────────────
 export type PortalSummary = {
+  membership_id?: string;
   full_name: string;
   batch_number: string;
   unit_model: string;
@@ -905,7 +946,20 @@ export type PortalSummary = {
   joined_at?: string | null;
   batch_start_date?: string | null;
   batch_end_date?: string | null;
+  individual_plan?: boolean;
 };
+
+export function getPortalBatchSummary(membershipId: string) {
+  return tsRequest<PortalBatchSummary>("/portal/batch-summary", {
+    headers: { "X-Membership-Id": membershipId },
+  });
+}
+
+export function getPortalApplicationSummary(membershipId: string) {
+  return tsRequest<PortalApplicationSummary>("/portal/application-summary", {
+    headers: { "X-Membership-Id": membershipId },
+  });
+}
 
 export async function getPortalRecords(paymentPage = 1) {
   const user = await tsRequest<User>("/auth/me");
@@ -914,9 +968,13 @@ export async function getPortalRecords(paymentPage = 1) {
     throw new Error("A customer account is required.");
   }
 
+  const { currentMembership } = await import("./membership-selection");
+
+  const clientId = currentMembership(user.id, user.clientId)!;
+
   const [client, schedule, balance, payments] = await Promise.all([
-    tsRequest<TsClient>(`/clients/${user.clientId}`),
-    tsRequest<ClientSchedule>(`/clients/${user.clientId}/schedule`).catch(
+    tsRequest<TsClient>(`/clients/${clientId}`),
+    tsRequest<ClientSchedule>(`/clients/${clientId}/schedule`).catch(
       (error: unknown) => {
         if (error instanceof ApiError && error.status === 409) {
           return null;
@@ -925,7 +983,7 @@ export async function getPortalRecords(paymentPage = 1) {
         throw error;
       },
     ),
-    getBalance(user.clientId),
+    getBalance(clientId),
     listPayments({ status: "verified", page: String(paymentPage) }),
   ]);
 
@@ -933,6 +991,8 @@ export async function getPortalRecords(paymentPage = 1) {
 }
 
 export type PortalScheduleItem = {
+  original_expected_amount?: string;
+  released_amount?: string;
   sequence_no: number;
   due_date: string;
   expected_amount: string;
@@ -1819,6 +1879,8 @@ export type Employee = {
   version?: number;
   client_id?: string | null;
   hr_confidential_access?: boolean;
+  supervisor_id?: string | null;
+  agent_profile_id?: string | null;
 };
 
 type TsAccount = {
@@ -1828,14 +1890,25 @@ type TsAccount = {
   role: Role;
   active: boolean;
   hrConfidentialAccess: boolean;
+  supervisorId?: string | null;
+  agentProfileId?: string | null;
   version: number;
   clientId: string | null;
   createdAt: string;
 };
 
 const formToApiRole: Record<string, Role> = {
-  owner: "OWNER",
+  ceo: "CEO",
+  system_admin: "SYSTEM_ADMIN",
+  owner: "CEO",
   coo: "COO",
+  batch_manager: "BATCH_MANAGER",
+  batch_handler: "BATCH_HANDLER",
+  csr: "CSR",
+  kpi_officer: "KPI_OFFICER",
+  operations_coordinator: "OPERATIONS_COORDINATOR",
+  pioneer_agent: "PIONEER_AGENT",
+  agent: "AGENT",
   general_manager: "GENERAL_MANAGER",
   hr_payroll: "HR_PAYROLL",
   finance_officer: "FINANCE_OFFICER",
@@ -1848,7 +1921,11 @@ const formToApiRole: Record<string, Role> = {
 };
 
 const apiToFormRole = (role: Role) => {
-  return role === "RECORDS" ? "records_monitoring" : role.toLowerCase();
+  return role === "RECORDS"
+    ? "records_monitoring"
+    : role === "OWNER"
+      ? "ceo"
+      : role.toLowerCase();
 };
 
 const toEmployee = (account: TsAccount): Employee => {
@@ -1862,20 +1939,25 @@ const toEmployee = (account: TsAccount): Employee => {
     version: account.version,
     client_id: account.clientId,
     hr_confidential_access: account.hrConfidentialAccess,
+    supervisor_id: account.supervisorId,
+    agent_profile_id: account.agentProfileId,
   };
 };
 
 export const ROLES: [string, string][] = [
-  ["owner", "Owner"],
+  ["ceo", "Owner / CEO"],
+  ["system_admin", "System administrator"],
   ["coo", "COO"],
-  ["general_manager", "General Manager"],
-  ["hr_payroll", "HR / Payroll"],
+  ["batch_manager", "Batch Manager"],
+  ["hr_payroll", "HR & Payroll Officer"],
   ["finance_officer", "Finance Officer"],
-  ["records_monitoring", "Records & Monitoring"],
-  ["analytics", "Analytics"],
-  ["cs_head", "Customer Service Head"],
-  ["cs_team", "Customer Service Team"],
-  ["core_handler", "Core Team / Handler"],
+  ["records_monitoring", "Records & Monitoring Officer"],
+  ["kpi_officer", "KPI Officer"],
+  ["operations_coordinator", "Operations Coordinator & Moderator"],
+  ["csr", "CSR"],
+  ["pioneer_agent", "Pioneer Agent"],
+  ["agent", "Agent"],
+  ["batch_handler", "Batch Handler"],
 ];
 
 export function listEmployees(params: Record<string, string> = {}) {
@@ -1929,6 +2011,8 @@ export function updateEmployee(
     version?: number;
     hr_confidential_access?: boolean;
     hr_access_reason?: string;
+    supervisor_id?: string | null;
+    agent_profile_id?: string | null;
   },
 ) {
   if (!body.version) {
@@ -1947,6 +2031,12 @@ export function updateEmployee(
             hrConfidentialAccess: body.hr_confidential_access,
             hrAccessReason: body.hr_access_reason,
           }
+        : {}),
+      ...(body.supervisor_id !== undefined
+        ? { supervisorId: body.supervisor_id }
+        : {}),
+      ...(body.agent_profile_id !== undefined
+        ? { agentProfileId: body.agent_profile_id }
         : {}),
       version: body.version,
     }),
@@ -1994,6 +2084,24 @@ export const getCollectionReport = (params: Record<string, string> = {}) => {
     `/reports/collections?${new URLSearchParams(params)}`,
   );
 };
+
+export function getInstallmentEarnings(params: Record<string, string>) {
+  return tsRequest<InstallmentEarningsReport>(
+    `/reports/installment-earnings?${new URLSearchParams(params)}`,
+  );
+}
+
+export function downloadInstallmentEarnings(
+  params: Record<string, string>,
+  format: "csv" | "xlsx",
+) {
+  const query = new URLSearchParams({ ...params, format });
+
+  return downloadReportFile(
+    `/reports/installment-earnings/export?${query}`,
+    `installment-earnings-${params.groupBy}.${format}`,
+  );
+}
 
 export const getReconciliationReport = (
   params: Record<string, string> = {},
@@ -2044,7 +2152,11 @@ export async function downloadReportExport(
 ) {
   const query = new URLSearchParams({ ...params, kind, format });
 
-  const blob = await tsDownload(`/reports/export?${query}`);
+  return downloadReportFile(`/reports/export?${query}`, `${kind}.${format}`);
+}
+
+async function downloadReportFile(path: string, filename: string) {
+  const blob = await tsDownload(path);
 
   const url = URL.createObjectURL(blob);
 
@@ -2052,7 +2164,7 @@ export async function downloadReportExport(
 
   link.href = url;
 
-  link.download = `${kind}.${format}`;
+  link.download = filename;
 
   document.body.appendChild(link);
 
@@ -2075,3 +2187,5 @@ export const downloadOperationsExport = (
 ) => {
   return downloadReportExport(kind, format, params);
 };
+
+export * from "./gcash-history";

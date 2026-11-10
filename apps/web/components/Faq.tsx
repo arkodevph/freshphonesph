@@ -1,178 +1,332 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { faqs, faqTopics, filterFaqs, type FaqTopicFilter } from "@/lib/faq";
-import SectionHeading from "./SectionHeading";
+import PublicNavigationLink from "./PublicNavigationLink";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { CaretLeft, CaretRight, MagnifyingGlass } from "@phosphor-icons/react";
+import { faqs, faqTopics, filterFaqs, type FaqTopic } from "@/lib/faq";
+import DoodleIcon, { type DoodleName } from "./DoodleIcon";
 import styles from "./Faq.module.css";
+
+const topicDetails: Record<FaqTopic, { summary: string; icon: DoodleName }> = {
+  "getting-started": {
+    summary: "Get to know Fresh Phones PH before you join.",
+    icon: "application",
+  },
+  payments: {
+    summary: "Understand your schedule and payment options.",
+    icon: "wallet-heart",
+  },
+  devices: {
+    summary: "Find out more about our iPhone and iPad units.",
+    icon: "phone-heart",
+  },
+  delivery: {
+    summary: "Know what comes next when your unit is ready.",
+    icon: "package-check",
+  },
+};
 
 export default function Faq() {
   const search = useRef<HTMLInputElement>(null);
 
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const [enhanced, setEnhanced] = useState(false);
+
   const [query, setQuery] = useState("");
 
-  const [topic, setTopic] = useState<FaqTopicFilter>("all");
+  const [topic, setTopic] = useState<FaqTopic>("getting-started");
 
-  const [open, setOpen] = useState<string | null>(faqs[0].id);
+  const [questionId, setQuestionId] = useState(faqs[0].id);
 
-  const results = filterFaqs(query, topic);
+  const results = filterFaqs(query);
 
-  const filtered = query.length > 0 || topic !== "all";
+  useEffect(() => {
+    setEnhanced(true);
+  }, []);
 
-  function clearFilters() {
-    setQuery("");
+  function selectTopic(next: FaqTopic) {
+    setTopic(next);
 
-    setTopic("all");
+    setQuestionId(filterFaqs(query, next)[0]?.id ?? "");
+  }
 
-    setOpen(null);
+  function updateSearch(value: string) {
+    setQuery(value);
+
+    const first = filterFaqs(value)[0];
+
+    if (first) {
+      setTopic(first.topic);
+
+      setQuestionId(first.id);
+    }
+  }
+
+  function clearSearch() {
+    updateSearch("");
 
     search.current?.focus({ preventScroll: true });
   }
 
+  function navigateTopics(
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) {
+    let next: number;
+
+    switch (event.key) {
+      case "ArrowDown":
+        next = (index + 1) % faqTopics.length;
+
+        break;
+      case "ArrowUp":
+        next = (index + faqTopics.length - 1) % faqTopics.length;
+
+        break;
+      case "Home":
+        next = 0;
+
+        break;
+      case "End":
+        next = faqTopics.length - 1;
+
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+
+    selectTopic(faqTopics[next].id);
+
+    tabs.current[next]?.focus();
+  }
+
   return (
-    <section id="faq" className="landing-content-section relative scroll-mt-24">
-      <SectionHeading
-        eyebrow="Good to know"
-        title={
-          <>
-            Frequently asked <span className="holo-text">questions</span>
-          </>
-        }
-        subtitle="Choose a topic or search for an answer before you join."
-      />
+    <section
+      id="faq"
+      className={`landing-content-section ${styles.section}`}
+      aria-labelledby="faq-heading"
+    >
+      <header className={styles.intro}>
+        <div>
+          <p className={styles.eyebrow}>Frequently asked questions</p>
+          <h2 id="faq-heading">
+            Got questions?
+            <br />
+            We&apos;ve got answers.
+          </h2>
+        </div>
+        <div className={styles.aside}>
+          <span className={styles.introIcon}>
+            <DoodleIcon name="chat-heart" size={44} />
+          </span>
+          <p>
+            Get to know our units, payment schedules and how to get started.
+          </p>
+        </div>
+      </header>
 
-      <div className={styles.content}>
+      <div className={styles.layout} hidden={!enhanced}>
         <div
-          className={styles.searchRow}
-          role="search"
-          aria-label="Frequently asked questions"
+          className={styles.topics}
+          role="tablist"
+          aria-label="FAQ topics"
+          aria-orientation="vertical"
         >
-          <label className={styles.searchLabel}>
-            Search FAQs
-            <span className={styles.searchField}>
-              <MagnifyingGlass aria-hidden="true" />
-              <input
-                ref={search}
-                type="search"
-                maxLength={100}
-                value={query}
-                placeholder="Try GCash, brand new or delivery"
-                aria-describedby="faq-search-help"
-                aria-controls="faq-results"
-                onChange={(event) => {
-                  setQuery(event.target.value);
+          {faqTopics.map((option, index) => {
+            const selected = topic === option.id;
 
-                  setOpen(null);
-                }}
-              />
-            </span>
-          </label>
-          <button
-            type="button"
-            className={styles.clear}
-            disabled={!filtered}
-            onClick={clearFilters}
-          >
-            Clear filters
-          </button>
-        </div>
-        <p id="faq-search-help" className={styles.help}>
-          Search questions, answers and topics.
-        </p>
-        <div className={styles.topics} role="group" aria-label="FAQ topics">
-          {[{ id: "all" as const, label: "All topics" }, ...faqTopics].map(
-            (option) => {
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  aria-pressed={topic === option.id}
-                  aria-controls="faq-results"
-                  onClick={() => {
-                    setTopic(option.id);
-
-                    setOpen(null);
-                  }}
-                >
-                  {option.label}
-                </button>
-              );
-            },
-          )}
-        </div>
-        <p
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className={styles.count}
-        >
-          {results.length} of {faqs.length} questions
-          {topic !== "all"
-            ? ` · ${
-                faqTopics.find((option) => {
-                  return option.id === topic;
-                })!.label
-              }`
-            : ""}
-        </p>
-
-        <div id="faq-results" className={styles.results}>
-          {results.map((entry) => {
-            const isOpen = open === entry.id;
-
-            const questionId = `faq-question-${entry.id}`,
-              answerId = `faq-answer-${entry.id}`;
+            const detail = topicDetails[option.id];
 
             return (
-              <article key={entry.id} className={`glass ${styles.card}`}>
-                <h3>
-                  <button
-                    id={questionId}
-                    type="button"
-                    aria-expanded={isOpen}
-                    aria-controls={answerId}
-                    onClick={() => {
-                      return setOpen(isOpen ? null : entry.id);
-                    }}
-                    className={styles.question}
-                  >
-                    <span className="font-display">{entry.question}</span>
-                    <span
-                      aria-hidden="true"
-                      className={`${styles.plus} chrome ${isOpen ? styles.expanded : ""}`}
-                    >
-                      <Plus weight="bold" />
-                    </span>
-                  </button>
-                </h3>
-                <div
-                  id={answerId}
-                  role="region"
-                  aria-labelledby={questionId}
-                  aria-hidden={!isOpen}
-                  inert={!isOpen}
-                  data-open={isOpen}
-                  className={styles.answer}
-                >
-                  <div className={styles.answerContent}>
-                    <p>{entry.answer}</p>
-                  </div>
-                </div>
-              </article>
+              <button
+                key={option.id}
+                ref={(node) => {
+                  tabs.current[index] = node;
+                }}
+                id={`faq-topic-${option.id}`}
+                type="button"
+                role="tab"
+                aria-label={option.label}
+                aria-selected={selected}
+                aria-controls={`faq-panel-${option.id}`}
+                tabIndex={selected ? 0 : -1}
+                className={styles.topic}
+                onClick={() => {
+                  selectTopic(option.id);
+                }}
+                onKeyDown={(event) => {
+                  navigateTopics(event, index);
+                }}
+              >
+                <span className={styles.topicIcon}>
+                  <DoodleIcon name={detail.icon} size={40} />
+                </span>
+                <span>
+                  <span className={styles.topicTitle}>{option.label}</span>
+                  <span className={styles.topicSummary}>{detail.summary}</span>
+                </span>
+              </button>
             );
           })}
-          {results.length === 0 && (
-            <div className={`glass ${styles.empty}`}>
-              <h3>No matching questions</h3>
-              <p>Try another phrase or clear the filters to see every topic.</p>
-              <button type="button" onClick={clearFilters}>
-                Show all questions
-              </button>
-            </div>
-          )}
         </div>
-        <p className={styles.contact}>
-          Still need help? <a href="/support">Visit Help & Support</a>.
+
+        <div id="faq-panels" className={styles.panels}>
+          {faqTopics.map((option, index) => {
+            const entries = filterFaqs(query, option.id);
+
+            const entry =
+              entries.find((item) => {
+                return item.id === questionId;
+              }) ?? entries[0];
+
+            const questionIndex = entries.indexOf(entry);
+
+            return (
+              <div
+                key={option.id}
+                id={`faq-panel-${option.id}`}
+                role="tabpanel"
+                aria-labelledby={`faq-topic-${option.id}`}
+                tabIndex={0}
+                hidden={topic !== option.id}
+                className={styles.panel}
+              >
+                <p className={styles.category}>
+                  {String(index + 1).padStart(2, "0")} / {option.label}
+                </p>
+                {entry ? (
+                  <>
+                    <div
+                      key={entry.id}
+                      className={styles.answerCopy}
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
+                      <h3>{entry.question}</h3>
+                      <p>{entry.answer}</p>
+                    </div>
+                    {entries.length > 1 && (
+                      <div className={styles.questionNav}>
+                        <p>
+                          Question {questionIndex + 1} of {entries.length}
+                        </p>
+                        <div>
+                          <button
+                            type="button"
+                            aria-label="Previous question"
+                            disabled={questionIndex === 0}
+                            onClick={() => {
+                              setQuestionId(entries[questionIndex - 1].id);
+                            }}
+                          >
+                            <CaretLeft size={20} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Next question"
+                            disabled={questionIndex === entries.length - 1}
+                            onClick={() => {
+                              setQuestionId(entries[questionIndex + 1].id);
+                            }}
+                          >
+                            <CaretRight size={20} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className={styles.empty}>
+                    <h3>No matching questions</h3>
+                    <p>
+                      {results.length > 0
+                        ? "Try another topic to see the matching answers, or clear your search."
+                        : "Try another phrase or clear your search to see every question."}
+                    </p>
+                    <button type="button" onClick={clearSearch}>
+                      Show all questions
+                    </button>
+                  </div>
+                )}
+                <div className={styles.panelFooter}>
+                  <p>
+                    Real people. Clear answers.
+                    <br />
+                    From application to release.
+                  </p>
+                  <PublicNavigationLink
+                    href="/support"
+                    className={styles.contact}
+                  >
+                    <DoodleIcon name="chat-heart" size={24} />
+                    Let&apos;s talk
+                  </PublicNavigationLink>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className={styles.utilities} hidden={!enhanced}>
+        <PublicNavigationLink href="/support" className={styles.helpIntro}>
+          <span className={styles.helpIcon}>
+            <DoodleIcon name="chat-heart" size={32} />
+          </span>
+          <span>
+            <strong>Prefer a conversation?</strong>
+            <span>Our team can help you get started.</span>
+          </span>
+        </PublicNavigationLink>
+        <div className={styles.search} hidden={!enhanced} role="search">
+          <label htmlFor="faq-search">Search FAQs</label>
+          <div className={styles.searchField}>
+            <MagnifyingGlass size={20} aria-hidden="true" />
+            <input
+              id="faq-search"
+              ref={search}
+              type="search"
+              maxLength={100}
+              value={query}
+              placeholder="Try GCash, brand new or delivery"
+              aria-describedby="faq-search-status"
+              aria-controls="faq-panels"
+              onChange={(event) => {
+                updateSearch(event.target.value);
+              }}
+            />
+            {query && (
+              <button type="button" onClick={clearSearch}>
+                Clear
+              </button>
+            )}
+          </div>
+          <p id="faq-search-status" role="status" aria-live="polite">
+            {query
+              ? `${results.length} matching ${results.length === 1 ? "answer" : "answers"} across all topics`
+              : `${faqs.length} questions. Choose a topic or search.`}
+          </p>
+        </div>
+      </div>
+
+      <div className={styles.fallback} hidden={enhanced}>
+        {faqs.map((entry) => {
+          return (
+            <details key={entry.id}>
+              <summary>{entry.question}</summary>
+              <p>{entry.answer}</p>
+            </details>
+          );
+        })}
+        <p>
+          Still need help?{" "}
+          <PublicNavigationLink href="/support">
+            Visit Help &amp; Support
+          </PublicNavigationLink>
+          .
         </p>
       </div>
     </section>
