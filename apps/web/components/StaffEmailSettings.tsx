@@ -219,12 +219,8 @@ export default function StaffEmailSettings() {
 
     const timer = setInterval(refresh, 30_000);
 
-    window.addEventListener("focus", refresh);
-
     return () => {
       clearInterval(timer);
-
-      window.removeEventListener("focus", refresh);
 
       deliverySequence.current++;
     };

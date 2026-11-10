@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 import type { LegalDocument } from "@freshphones/contracts";
 import { publicSiteHref, type PublicSiteBase } from "@/lib/public-site-links";
 import styles from "./legal-document.module.css";

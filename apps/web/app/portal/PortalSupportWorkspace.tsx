@@ -1,10 +1,14 @@
 "use client";
 
 import { type SupportCase, type SupportCaseDetail } from "@/lib/api";
-import { ChatCircleText, Plus } from "@phosphor-icons/react";
+import {
+  ChatRoundDots as ChatCircleText,
+  Add as Plus,
+} from "@/components/SolarIcons";
 import type * as React from "react";
 import type { Dispatch, SetStateAction } from "react";
 import styles from "./portal.module.css";
+import Select from "@/components/Select";
 import { PortalLoadingRows } from "./PortalSkeleton";
 import { SUPPORT_PAGE_SIZE } from "./portal-view";
 
@@ -63,7 +67,7 @@ export default function PortalSupportWorkspace({
       >
         <div className={styles.sectionHeading}>
           <span className={`${styles.sectionIcon} ${styles.supportIcon}`}>
-            <ChatCircleText weight="duotone" aria-hidden="true" />
+            <ChatCircleText aria-hidden="true" />
           </span>
           <div>
             <p className={styles.eyebrow}>Need help?</p>
@@ -71,23 +75,28 @@ export default function PortalSupportWorkspace({
           </div>
         </div>
         <form onSubmit={submitConcern} className={styles.supportForm}>
-          <label className={styles.supportField}>
-            Category
-            <select
+          <div className={styles.supportField}>
+            <label id="support-category-label" htmlFor="support-category">
+              Category
+            </label>
+            <Select
+              id="support-category"
+              labelId="support-category-label"
               value={concern.category}
-              onChange={(event) => {
-                return setConcern({
-                  ...concern,
-                  category: event.target.value,
+              options={[
+                { value: "Payment", label: "Payment" },
+                { value: "Unit / device", label: "Unit / device" },
+                { value: "Account", label: "Account" },
+                { value: "Other", label: "Other" },
+              ]}
+              onValueChange={(category) => {
+                setConcern((current) => {
+                  return { ...current, category };
                 });
               }}
-            >
-              <option>Payment</option>
-              <option>Unit / device</option>
-              <option>Account</option>
-              <option>Other</option>
-            </select>
-          </label>
+              disabled={submitting}
+            />
+          </div>
           <label className={styles.supportField}>
             Describe your concern
             <textarea
@@ -106,7 +115,7 @@ export default function PortalSupportWorkspace({
           </label>
           <div className={styles.supportFormActions}>
             <button type="submit" disabled={submitting}>
-              <Plus weight="bold" aria-hidden="true" />{" "}
+              <Plus aria-hidden="true" />{" "}
               {submitting ? "Sending…" : "Send request"}
             </button>
           </div>
@@ -141,7 +150,7 @@ export default function PortalSupportWorkspace({
         ) : cases.length === 0 ? (
           <div className={styles.supportEmpty}>
             <span>
-              <ChatCircleText weight="duotone" aria-hidden="true" />
+              <ChatCircleText aria-hidden="true" />
             </span>
             <h3>No requests yet</h3>
             <p>Requests and replies from Customer Service will appear here.</p>

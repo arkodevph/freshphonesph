@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:safe": "bash ../../scripts/dev-web-safe.sh",
+    "preview": "bash ../../scripts/preview-web-safe.sh",
+    "preview:build": "bash ../../scripts/preview-local-safe.sh web build",
+    "preview:local": "bash ../../scripts/preview-local-safe.sh web start",
     "build": "next build",
     "start": "next start",
     "test": "tsx --test test/*.test.ts"
@@ -16,6 +19,7 @@
     "gsap": "3.15.0",
     "next": "16.2.9",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "5.6.205",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-qr-code": "2.0.18"

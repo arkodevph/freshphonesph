@@ -1,17 +1,12 @@
 import Image from "next/image";
-import {
-  CalendarCheck,
-  ChatCircleDots,
-  CheckCircle,
-  IdentificationCard,
-  ShieldCheck,
-} from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import SectionHeading from "./SectionHeading";
 import AgentVerification from "./AgentVerification";
 import ProcessStack from "./ProcessStack";
 import Testimonials from "./Testimonials";
 import styles from "./LandingContent.module.css";
 import DoodleIcon from "./DoodleIcon";
+import verification from "./AgentVerification.module.css";
 
 export function Process() {
   return (
@@ -107,43 +102,71 @@ export function RequirementsAndPayments() {
 
 export function VerifyAndBenefits() {
   const benefits = [
-    [ShieldCheck, "Transparent process"],
-    [IdentificationCard, "Verified agents"],
-    [CalendarCheck, "Organized paluwagan"],
-    [ChatCircleDots, "Customer support"],
+    {
+      icon: "application",
+      title: "Transparent process",
+      body: "Unit details and payment options, explained before you commit.",
+    },
+    {
+      icon: "id-heart",
+      title: "Verified agents",
+      body: "Check an agent's name, masked code, and current status in our directory.",
+    },
+    {
+      icon: "calendar-heart",
+      title: "Organized paluwagan",
+      body: "Keep track of due dates and verified payments in your customer portal.",
+    },
+    {
+      icon: "chat-heart",
+      title: "Customer support",
+      body: "From choosing a unit to understanding your plan, questions are welcome.",
+    },
   ] as const;
 
   return (
-    <section id="verify" className="scroll-mt-24 px-4 py-20">
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[.85fr_1.15fr]">
-        <div>
-          <span className="pill inline-flex rounded-full px-4 py-1.5 text-sm font-800 text-blue">
-            VERIFY BEFORE YOU TRANSACT
-          </span>
-          <h2 className="mt-4 font-display text-4xl font-700 text-blue-ink">
-            Is your agent official?
-          </h2>
-          <p className="mt-3 font-500 leading-relaxed text-ink-soft">
-            Enter their complete name or Agent ID before transacting. Private
-            contact and identity records are never displayed.
-          </p>
-        </div>
+    <section
+      id="verify"
+      className={verification.section}
+      aria-labelledby="agent-verification-title"
+    >
+      <header className={verification.intro}>
+        <p className={verification.eyebrow}>Verify before you transact</p>
+        <h2 id="agent-verification-title" className={verification.title}>
+          Is your agent <span>official?</span>
+        </h2>
+        <p className={verification.subtitle}>
+          Enter their complete name or Agent ID before transacting.
+          <br className={verification.desktopBreak} /> A quick check for a
+          little more peace of mind.
+        </p>
+      </header>
+      <div className={verification.layout}>
         <AgentVerification />
-      </div>
-      <div className="mx-auto mt-12 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {benefits.map(([Icon, title]) => {
-          return (
-            <article key={title} className="rounded-3xl bg-white/55 p-5">
-              <Icon className="h-7 w-7 text-blue" weight="duotone" />
-              <h3 className="mt-3 font-display text-lg font-700 text-blue-ink">
-                {title}
-              </h3>
-              <p className="mt-1 text-sm font-500 text-ink-soft">
-                Clear, human guidance designed to keep customers informed.
-              </p>
-            </article>
-          );
-        })}
+        <aside
+          className={verification.assurances}
+          aria-labelledby="agent-assurances-title"
+        >
+          <p className={verification.eyebrow}>The Fresh Phones way</p>
+          <h3
+            id="agent-assurances-title"
+            className={verification.assurancesTitle}
+          >
+            A little clarity.
+            <br /> A lot of care.
+          </h3>
+          <div className={verification.benefits}>
+            {benefits.map((item) => {
+              return (
+                <article key={item.title} className={verification.benefit}>
+                  <DoodleIcon name={item.icon} size={40} />
+                  <h4>{item.title}</h4>
+                  <p>{item.body}</p>
+                </article>
+              );
+            })}
+          </div>
+        </aside>
       </div>
     </section>
   );

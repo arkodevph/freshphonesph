@@ -327,9 +327,17 @@ export class RetentionService {
         operation:
           target.scope === "PRIVATE_FILE"
             ? "Purge the private file and detach download references."
-            : "Erase the profile and linked personal details; retain pseudonymous operational references.",
+            : target.scope === "PUBLIC_ENROLLMENT"
+              ? "Erase the closed, unconverted application's contact details, answers and linked personal copies."
+              : "Erase the profile and linked personal details; retain pseudonymous operational references.",
         retained: [
           "Deletion approvals, policy revisions, record identifiers and event timestamps.",
+          ...(target.scope === "PUBLIC_ENROLLMENT"
+            ? [
+                "Published form revisions, question definitions, routing and submission references.",
+                "Existing enrollment decisions, issued memberships, payments and schedules are unchanged. Forwarded applications cannot be erased by this category.",
+              ]
+            : []),
           ...(target.scope === "CUSTOMER"
             ? [
                 "Payment amounts, verification facts, schedules and aggregate reports.",
@@ -364,7 +372,28 @@ export class RetentionService {
       async (tx) => {
         let ids: string[], total: number;
 
-        if (query.scope === "APPLICANT") {
+        if (query.scope === "PUBLIC_ENROLLMENT") {
+          const where: Prisma.PublicEnrollmentApplicationWhereInput = {
+            retentionErasedAt: null,
+            ...(query.q
+              ? { name: { contains: query.q, mode: "insensitive" } }
+              : {}),
+          };
+
+          ids = (
+            await tx.publicEnrollmentApplication.findMany({
+              where,
+              select: { id: true },
+              orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
+              skip,
+              take: 20,
+            })
+          ).map((row) => {
+            return row.id;
+          });
+
+          total = await tx.publicEnrollmentApplication.count({ where });
+        } else if (query.scope === "APPLICANT") {
           const where: Prisma.ApplicantWhereInput = {
             retentionErasedAt: null,
             ...(query.q
@@ -740,6 +769,22 @@ export class RetentionService {
       where: { storedFileId: { in: fileIds } },
     });
 
+    if (m.target.scope === "PUBLIC_ENROLLMENT") {
+      await tx.publicEnrollmentApplication.update({
+        where: { id: m.target.subjectId },
+        data: {
+          name: "Erased enrollment applicant",
+          email: "",
+          phone: "",
+          answers: {},
+          reviewedContact: Prisma.DbNull,
+          closeReason: "",
+          retentionErasedAt: now,
+          version: { increment: 1 },
+        },
+      });
+    }
+
     if (m.target.scope === "APPLICANT") {
       await tx.legalAcknowledgement.deleteMany({
         where: { applicantId: m.target.subjectId },
@@ -860,7 +905,7 @@ export class RetentionService {
     }
 
     if (m.target.scope === "CUSTOMER") {
-      await tx.client.update({
+      const erased = await tx.client.update({
         where: { id: m.target.subjectId },
         data: {
           name: "Erased customer",
@@ -870,6 +915,11 @@ export class RetentionService {
           retentionErasedAt: now,
           version: { increment: 1 },
         },
+      });
+
+      await tx.member.update({
+        where: { id: erased.memberId },
+        data: { name: "Erased customer", email: "", phone: "" },
       });
     }
 
@@ -904,6 +954,11 @@ export class RetentionService {
       },
     });
 
+    const privateFields =
+      m.target.scope === "PUBLIC_ENROLLMENT"
+        ? ["answers", "reviewedContact"]
+        : [];
+
     for (const id of m.auditIds) {
       const row = await tx.auditEntry.findUniqueOrThrow({ where: { id } });
 
@@ -911,8 +966,13 @@ export class RetentionService {
         where: { id },
         data: {
           before:
-            row.before === null ? Prisma.DbNull : redactSnapshot(row.before),
-          after: row.after === null ? Prisma.DbNull : redactSnapshot(row.after),
+            row.before === null
+              ? Prisma.DbNull
+              : redactSnapshot(row.before, privateFields),
+          after:
+            row.after === null
+              ? Prisma.DbNull
+              : redactSnapshot(row.after, privateFields),
         },
       });
     }
@@ -922,6 +982,7 @@ export class RetentionService {
       CUSTOMER: "client",
       EMPLOYEE: "account",
       PRIVATE_FILE: "retention",
+      PUBLIC_ENROLLMENT: "public_enrollment_application",
     }[m.target.scope];
 
     await tx.changeEvent.create({

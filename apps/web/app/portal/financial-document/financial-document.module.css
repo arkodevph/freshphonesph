@@ -170,7 +170,7 @@
 
 /* The on-screen document frame follows the customer and staff workspaces. */
 .page {
-  --document-bg: #f4f5f7;
+  --document-bg: #fff;
   --document-surface: #fff;
   --document-border: #e5e7ec;
   --document-text: #17181c;
@@ -181,7 +181,7 @@
   color: var(--document-text);
 }
 :global(html[data-system-theme="dark"]) .page {
-  --document-bg: #15161a;
+  --document-bg: #000;
   --document-surface: #1c1d22;
   --document-border: #303138;
   --document-text: #f3f3f5;

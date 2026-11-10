@@ -1,8 +1,14 @@
 "use client";
 
 import { landingHref } from "@/lib/site-links";
+import { publicSiteHref, type PublicSiteBase } from "@/lib/public-site-links";
 import { fetchMe, login, MfaChallenge } from "@/lib/api";
-import { roleLabels, roles, type Role } from "@freshphones/contracts";
+import {
+  roleLabels,
+  roles,
+  businessRoles,
+  type Role,
+} from "@freshphones/contracts";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,7 +20,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { safeSupportReturn, signInDestination } from "@/lib/support-entry";
@@ -22,6 +28,13 @@ import { tsRequest } from "@/lib/ts-api";
 import { PRESENTATION_MODE } from "@/lib/presentation";
 import LoginCharacters, { type CharacterMood } from "./LoginCharacters";
 import styles from "./login.module.css";
+
+const demoAccounts = [
+  { label: "Owner", email: "demo@freshphones.test" },
+  { label: "Finance", email: "demo.finance@freshphones.test" },
+  { label: "Records", email: "demo.records@freshphones.test" },
+  { label: "Customer", email: "demo.customer@freshphones.test" },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,6 +49,12 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false);
 
+  const [localDemo, setLocalDemo] = useState(false);
+
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
+
+  const [demoError, setDemoError] = useState<string | null>(null);
+
   const [challenge, setChallenge] = useState(false);
 
   const [recoveryCode, setRecoveryCode] = useState(false);
@@ -44,27 +63,45 @@ export default function LoginPage() {
 
   const [supportEntry, setSupportEntry] = useState(false);
 
+  const [websiteBase, setWebsiteBase] = useState<PublicSiteBase>("");
+
+  const websiteHref = publicSiteHref(landingHref, websiteBase);
+
   const [focusedField, setFocusedField] = useState<
     "username" | "password" | null
   >(null);
 
   const mood: CharacterMood = showPassword
     ? "private"
-    : error
+    : error || demoError
       ? "error"
-      : loading
+      : loading || demoLoading
         ? "loading"
         : focusedField
           ? "typing"
           : "idle";
 
   useEffect(() => {
+    setWebsiteBase(
+      new URLSearchParams(window.location.search).get("site") === "v2"
+        ? "/v2"
+        : "",
+    );
+
     setSupportEntry(
       Boolean(
         safeSupportReturn(
           new URLSearchParams(window.location.search).get("next"),
         ),
       ),
+    );
+
+    setLocalDemo(
+      process.env.NODE_ENV === "development" &&
+        process.env.NEXT_PUBLIC_LOCAL_DEMO_AUTH === "true" &&
+        ["localhost", "127.0.0.1", "::1", "[::1]"].includes(
+          window.location.hostname,
+        ),
     );
   }, []);
 
@@ -81,13 +118,37 @@ export default function LoginPage() {
       }
     }
 
-    if (safeSupportReturn(destination)) {
-      window.location.assign(destination);
-
-      return;
-    }
-
     router.push(destination);
+  }
+
+  async function onDemoLogin(email: string) {
+    setDemoError(null);
+
+    setDemoLoading(email);
+
+    try {
+      await tsRequest("/auth/local-demo-login", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+
+      const me = await fetchMe();
+
+      await navigateAfterSignIn(
+        signInDestination(
+          me,
+          new URLSearchParams(window.location.search).get("next"),
+        ),
+      );
+    } catch (caughtError) {
+      setDemoError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not open this local account.",
+      );
+    } finally {
+      setDemoLoading(null);
+    }
   }
 
   async function onSubmit(event: React.FormEvent) {
@@ -204,11 +265,11 @@ export default function LoginPage() {
       <div className={styles.card}>
         <section className={styles.story} aria-label="Fresh Phones PH">
           <Link
-            href={landingHref}
+            href={websiteHref}
             className={styles.brand}
             aria-label="Fresh Phones PH home"
           >
-            <span className={styles.brandMark}>
+            <span className={styles.brandMark} data-landing-logo>
               <Image
                 src="/brand/fresh-phones-logo.png"
                 alt=""
@@ -226,7 +287,7 @@ export default function LoginPage() {
 
         <section className={styles.panel} aria-labelledby="login-title">
           <Link
-            href={landingHref}
+            href={websiteHref}
             className={styles.backLink}
             aria-label="Back to website"
           >
@@ -249,7 +310,9 @@ export default function LoginPage() {
                   : "Your Fresh Phones workspace is waiting."}
             </p>
 
-            {(PRESENTATION_MODE || process.env.NODE_ENV === "development") &&
+            {(PRESENTATION_MODE ||
+              process.env.NODE_ENV === "development" ||
+              process.env.NEXT_PUBLIC_LOCAL_PREVIEW === "true") &&
               !challenge && (
                 <details
                   className={styles.demo}
@@ -258,20 +321,26 @@ export default function LoginPage() {
                   <summary>Preview a workspace</summary>
                   <p>One-click preview. No password needed.</p>
                   <div className={styles.demoRoles}>
-                    {roles.map((role) => {
-                      return (
-                        <button
-                          key={role}
-                          type="button"
-                          disabled={loading}
-                          onClick={() => {
-                            return openDemo(role);
-                          }}
-                        >
-                          {roleLabels[role]} <ArrowRight aria-hidden="true" />
-                        </button>
-                      );
-                    })}
+                    {roles
+                      .filter((role) => {
+                        return (
+                          businessRoles.includes(role) || role === "ANALYTICS"
+                        );
+                      })
+                      .map((role) => {
+                        return (
+                          <button
+                            key={role}
+                            type="button"
+                            disabled={loading}
+                            onClick={() => {
+                              return openDemo(role);
+                            }}
+                          >
+                            {roleLabels[role]} <ArrowRight aria-hidden="true" />
+                          </button>
+                        );
+                      })}
                   </div>
                 </details>
               )}
@@ -467,17 +536,68 @@ export default function LoginPage() {
                     Need your account details? <ArrowRight aria-hidden="true" />
                   </Link>
                 </form>
+
+                {localDemo && (
+                  <section
+                    className="login-demo"
+                    aria-labelledby="login-demo-title"
+                  >
+                    <p className="login-eyebrow">Local development</p>
+                    <h2 id="login-demo-title">Choose a demo account</h2>
+                    <p>
+                      Sign in to a seeded local role. These accounts are
+                      available only on this machine.
+                    </p>
+                    <div className="login-demo-grid">
+                      {demoAccounts.map((account) => {
+                        return (
+                          <button
+                            key={account.email}
+                            type="button"
+                            disabled={loading || Boolean(demoLoading)}
+                            onClick={() => {
+                              return onDemoLogin(account.email);
+                            }}
+                          >
+                            <strong>
+                              {demoLoading === account.email
+                                ? "Opening…"
+                                : account.label}
+                            </strong>
+                            <span>{account.email}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {demoError && (
+                      <p className="login-demo-error" role="alert">
+                        {demoError}
+                      </p>
+                    )}
+                  </section>
+                )}
               </>
             )}
 
             <p className={styles.helpLinks}>
-              <Link href="/support#contact">Need help signing in?</Link>
+              <Link href={publicSiteHref("/support#contact", websiteBase)}>
+                Need help signing in?
+              </Link>
             </p>
             <p className={styles.legalLinks}>
               Review the{" "}
-              <Link href="/privacy/customer">customer privacy notice</Link>,{" "}
-              <Link href="/privacy/employee">employee privacy notice</Link> and{" "}
-              <Link href="/terms">portal terms</Link>.
+              <Link href={publicSiteHref("/privacy/customer", websiteBase)}>
+                customer privacy notice
+              </Link>
+              ,{" "}
+              <Link href={publicSiteHref("/privacy/employee", websiteBase)}>
+                employee privacy notice
+              </Link>{" "}
+              and{" "}
+              <Link href={publicSiteHref("/terms", websiteBase)}>
+                portal terms
+              </Link>
+              .
             </p>
           </div>
           <p className={styles.footer}>

@@ -30,6 +30,7 @@ import {
   type FormEvent,
 } from "react";
 import ReconciliationResults from "./ReconciliationResults";
+import ReportVisuals from "./ReportVisuals";
 import styles from "./reports.module.css";
 
 export type LoadedReport =
@@ -533,9 +534,9 @@ export function CollectionResults({
       <Metrics
         items={[
           {
-            label: "Clients in scoped batches",
+            label: "Membership records",
             value: totals.clients,
-            note: `${total} batches · ${totals.scheduledClients} clients with issued schedules`,
+            note: `${total} batches · ${totals.scheduledClients} issued schedules · includes historical memberships`,
           },
           {
             label: "Without issued schedule",
@@ -543,8 +544,9 @@ export function CollectionResults({
             note: "Agreed amounts are unknown until Records issues a schedule",
           },
           {
-            label: "Agreed / issued total",
+            label: "Issued installment obligation",
             value: currency(totals.agreedAmount),
+            note: "After recorded replacement releases",
           },
           { label: "Verified overall", value: currency(totals.verifiedAmount) },
           {
@@ -598,8 +600,8 @@ export function CollectionResults({
                   {[
                     "Batch",
                     "Status",
-                    "Clients",
-                    "Agreed / issued",
+                    "Membership records",
+                    "Issued obligation",
                     "Verified overall",
                     "Pending overall",
                     "Remaining overall",
@@ -677,10 +679,12 @@ export function CollectionResults({
         </>
       )}
       <p className={styles.help}>
-        Balances use issued schedule amounts and verified payments across all
-        dates. Each client belongs to their current batch. Overpayments cannot
+        Balances use issued obligations after recorded replacement releases and
+        verified payments across all dates. Membership counts include retained
+        history and do not measure current batch occupancy. Overpayments cannot
         offset another client’s balance. Overpaid amounts are not a refund
-        authorization.
+        authorization. External refund records are tracked separately and are
+        not deducted from incoming collections.
       </p>
       {live ? (
         <p className={styles.help}>
@@ -698,7 +702,15 @@ export function CollectionResults({
   );
 }
 
-export function ReportHistory({ kind }: { kind: ReportKind }) {
+export function ReportHistory({
+  kind,
+  canWriteReports = false,
+  showVisuals = false,
+}: {
+  kind: ReportKind;
+  canWriteReports?: boolean;
+  showVisuals?: boolean;
+}) {
   const [page, setPage] = useState(1);
 
   const [result, setResult] = useState<Page<ReportSnapshot> | null>(null);
@@ -809,6 +821,8 @@ export function ReportHistory({ kind }: { kind: ReportKind }) {
               <SavedReport
                 key={item.id}
                 item={item}
+                canWriteReports={canWriteReports}
+                showVisuals={showVisuals}
                 onSubmitted={() => {
                   return void load();
                 }}
@@ -818,8 +832,9 @@ export function ReportHistory({ kind }: { kind: ReportKind }) {
         </div>
       ) : (
         <p className={styles.empty}>
-          No saved reports yet. Choose a period and use “Save period report” to
-          retain its figures.
+          {canWriteReports
+            ? "No saved reports yet. Choose a period and use ‘Save period report’ to retain its figures."
+            : "No saved reports are available for this report type yet."}
         </p>
       )}
       <nav className={styles.pagination} aria-label="Saved report pages">
@@ -859,9 +874,13 @@ export function ReportHistory({ kind }: { kind: ReportKind }) {
 export function SavedReport({
   item,
   onSubmitted,
+  canWriteReports = false,
+  showVisuals = false,
 }: {
   item: ReportSnapshot;
   onSubmitted: () => void;
+  canWriteReports?: boolean;
+  showVisuals?: boolean;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -872,7 +891,7 @@ export function SavedReport({
   async function submit(event: FormEvent) {
     event.preventDefault();
 
-    if (busy || draft.trim().length < 20) {
+    if (!canWriteReports || busy || draft.trim().length < 20) {
       return;
     }
 
@@ -961,7 +980,7 @@ export function SavedReport({
               (Manila)
             </small>
           </section>
-        ) : (
+        ) : canWriteReports ? (
           <form onSubmit={submit} className={styles.analysisEntry}>
             <label htmlFor={`analysis-${item.id}`}>
               Submit analysis for this saved period
@@ -997,7 +1016,12 @@ export function SavedReport({
               {busy ? "Submitting…" : "Submit analysis"}
             </button>
           </form>
+        ) : (
+          <p className={styles.help}>
+            No analysis has been submitted for this saved period.
+          </p>
         )}
+        {showVisuals && <ReportVisuals report={report} />}
         <ReportResults report={report} />
       </div>
     </details>

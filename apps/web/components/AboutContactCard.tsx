@@ -29,7 +29,7 @@ export default function AboutContactCard() {
             rel="noopener noreferrer"
             className={`${scene.primary} ${styles.messenger}`}
           >
-            <MessengerLogo weight="fill" aria-hidden="true" />
+            <MessengerLogo weight="fill" aria-hidden="true" data-button-icon />
             Open Messenger
           </a>
         </div>

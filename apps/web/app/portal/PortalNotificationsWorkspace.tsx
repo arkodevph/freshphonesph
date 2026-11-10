@@ -6,7 +6,7 @@ import {
   type PortalScheduleItem,
   type PortalSummary,
 } from "@/lib/api";
-import { ArrowRight, Bell } from "@phosphor-icons/react";
+import { ArrowRight, Bell } from "@/components/SolarIcons";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { NotificationRecordPanel } from "./NotificationRecordPanel";
 import styles from "./portal.module.css";
@@ -59,7 +59,7 @@ export default function PortalNotificationsWorkspace({
       >
         <div className={styles.sectionHeading}>
           <span className={`${styles.sectionIcon} ${styles.notificationIcon}`}>
-            <Bell weight="duotone" aria-hidden="true" />
+            <Bell aria-hidden="true" />
           </span>
           <div>
             <p className={styles.eyebrow}>Updates</p>
@@ -130,8 +130,7 @@ export default function PortalNotificationsWorkspace({
                           setSelectedNotificationId(item.id);
                         }}
                       >
-                        View record{" "}
-                        <ArrowRight weight="bold" aria-hidden="true" />
+                        View record <ArrowRight aria-hidden="true" />
                       </button>
                     )}
                     {!item.readAt && (

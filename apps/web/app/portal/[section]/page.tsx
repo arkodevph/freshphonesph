@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import PortalDashboard, { type PortalSection } from "../PortalDashboard";
+import { type PortalSection } from "../portal-view";
 
 const sections: PortalSection[] = [
+  "catalog",
   "membership",
   "schedule",
   "payments",
@@ -9,8 +10,15 @@ const sections: PortalSection[] = [
   "release",
   "notifications",
   "support",
+  "withdrawals",
   "settings",
 ];
+
+export function generateStaticParams() {
+  return sections.map((section) => {
+    return { section };
+  });
+}
 
 export default async function PortalSectionPage({
   params,
@@ -27,5 +35,5 @@ export default async function PortalSectionPage({
     notFound();
   }
 
-  return <PortalDashboard section={section as PortalSection} />;
+  return null;
 }

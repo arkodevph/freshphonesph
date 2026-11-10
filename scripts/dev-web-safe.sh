@@ -9,7 +9,7 @@ if ! command -v systemd-run >/dev/null || ! systemctl --user show-environment >/
 fi
 
 # Node's heap limit does not cover native compiler allocations or child processes.
-export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=1536"
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=2048"
 export RAYON_NUM_THREADS=2
 export UV_THREADPOOL_SIZE=2
 export NEXT_TELEMETRY_DISABLED=1

@@ -6,7 +6,7 @@ import {
   Query,
 } from "@nestjs/common";
 import type { User } from "@freshphones/contracts";
-import { CurrentUser } from "../auth/access";
+import { CurrentUser, RequiresAny, Requires } from "../auth/access";
 import {
   CustomerWorkService,
   type CustomerWorkKind,
@@ -18,7 +18,9 @@ export class CustomerWorkController {
     @Inject(CustomerWorkService) private readonly work: CustomerWorkService,
   ) {}
 
-  @Get("operations/customer-work") list(
+  @Get("operations/customer-work")
+  @RequiresAny("SUPPORT_MANAGE", "PAYMENT_VERIFY", "DOCUMENT_REVIEW")
+  list(
     @CurrentUser() user: User,
     @Query("kind") kind?: string,
     @Query("page") rawPage?: string,

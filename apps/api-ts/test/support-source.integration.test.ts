@@ -78,6 +78,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     JWT_SECRET: "support-source-test-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local",
@@ -125,7 +126,12 @@ before(async () => {
 
   const passwordHash = await hashPassword(password);
 
-  for (const role of ["OWNER", "CS_TEAM", "ANALYTICS", "CUSTOMER"] as const) {
+  for (const role of [
+    "SYSTEM_ADMIN",
+    "CS_TEAM",
+    "ANALYTICS",
+    "CUSTOMER",
+  ] as const) {
     const user = await db.user.create({
       data: {
         name: `Synthetic ${role}`,

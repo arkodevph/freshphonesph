@@ -1,5 +1,13 @@
 # Fresh Phones PH missing features and required revisions
 
+**Current access implementation, 2026-10-28:** Jaycee approved COO business role
+administration and Agent enrollment requests approved by the assigned Batch Manager
+with COO oversight. [Role access alignment](66-role-access-alignment.md) records the
+implemented roles, hierarchy, API/UI scopes and remaining workflow limits. It supersedes
+conflicting historical cells below; HR role delegation, legacy Analytics reassignment
+and catalog ownership remain undecided.
+
+
 Updated 2026-10-16. This is the actionable gap list for the existing project, based on **Fresh_Phones_PH_Basic_Website_Workflow.docx** and **Fresh_Phones_PH_Organizational_Structure_V4.pdf**. Work through the sections in the PDF's development priority order. Existing functionality is listed as a starting point rather than as completed tasks.
 
 The [detailed implementation checklist](58-workflow-v4-implementation-checklist.md) retains technical dependencies, migration work and supporting runbooks. This shorter list groups its work into deliverable features; the two documents are different views of the same backlog, not additional scope. Update both when a feature is delivered.
@@ -17,15 +25,15 @@ Baseline: the current working tree on `feature/careers-job-board`, including exi
 
 ## 1 Login roles and access permissions
 
-**Already available:** individual login, sessions, MFA, backend permission guards, account management and audit history. **Gap:** stored roles and permissions do not match the twelve V4 roles.
+**Already available:** individual login, sessions, MFA, backend permission guards, account management and audit history. **Current foundation:** canonical roles, hierarchy, navigation and existing-workflow access are aligned locally as of 2026-10-28; unfinished business stages remain below.
 
 Evidence: [role contracts](../packages/contracts/src/index.ts), [Prisma roles](../apps/api-ts/prisma/schema.prisma), [access guard](../apps/api-ts/src/auth/access.ts), [confidential HR policy](42-confidential-hr-access.md). Requirements: O1–O4. Detailed checklist: 01–04, 10–16.
 
-- [ ] **G01 — Revise:** Align stored roles, account forms and labels with CEO, COO, Batch Manager, HR & Payroll, Records & Monitoring, Finance, KPI, Operations Coordinator & Moderator, CSR, Pioneer Agent, Agent and Batch Handler. Map existing accounts deliberately; keep customer accounts separate.
-- [x] **G02 — Confirm:** Role specification resolved from V4: CEO has business oversight and executive approvals; technical administration is separately controlled and Finance alone verifies money. The legacy Owner-to-CEO migration specification is recorded in [the role matrix](61-v4-role-and-permission-matrix.md). Application changes remain G01/G03/G05.
+- [x] **G01 — Revise:** Align stored roles, account forms and labels with CEO, COO, Batch Manager, HR & Payroll, Records & Monitoring, Finance, KPI, Operations Coordinator & Moderator, CSR, Pioneer Agent, Agent and Batch Handler. Map existing accounts deliberately; keep customer accounts separate.
+- [x] **G02 — Confirm:** The 2026-10-26 client update makes CEO report-only, superseding V4 executive approvals. Technical administration remains separate and Finance alone verifies money. The CEO role, existing business Owner migration and report-only portal are described in [CEO access](62-ceo-report-only-access.md). Remaining role/action changes stay in G01/G03/G05.
 - [ ] **G03 — Revise:** Split broad permissions into Batch ID creation, enrollment, activation, handler assignment, recording, Records review, Manager review and Finance verification. Match tasks and report access to the V4 matrix, including Finance/Records task creation and Agent read-only work views.
-- [ ] **G04 — Missing:** Store the reporting hierarchy and assignment relationships. Restrict records, queues, files, counts, exports and live updates to each role's permitted scope.
-- [ ] **G05 — Revise:** Make Finance the exclusive final financial verifier across all relevant endpoints. Update role navigation and test that CEO, COO, Managers, Records, Handlers and Agents cannot bypass their grants through API calls.
+- [x] **G04 — Missing:** Store the reporting hierarchy and assignment relationships. Restrict records, queues, files, counts, exports and live updates to each role's permitted scope.
+- [x] **G05 — Revise:** Make Finance the exclusive final financial verifier across all relevant endpoints. Update role navigation and test that CEO, COO, Managers, Records, Handlers and Agents cannot bypass their grants through API calls.
 
 ## 2 Batch ID member enrollment and activation
 
@@ -36,18 +44,18 @@ Evidence: [batch/client models](../apps/api-ts/prisma/schema.prisma), [Records s
 - [ ] **G06 — Missing:** Track prospective members and their confirmation to continue joining, before official customer enrollment. Preserve who confirmed them and any withdrawal; prevent duplicate people from inflating counts.
 - [ ] **G07 — Revise:** Let Records assign the official unique Batch ID only after eight prospects are confirmed. Enforce this in the API and retain the confirmation evidence. Creating the ID must leave the batch unactivated.
 - [ ] **G08 — Confirm:** Specify actual batch capacity, required documents/conditions, withdrawal/replacement rules and which changes require reapproval. Eight confirmations are the Batch ID trigger, not a documented capacity or activation rule.
-- [ ] **G09 — Revise:** Let the Batch Manager enroll approved members under the existing Batch ID. Enforce capacity during simultaneous enrollments; keep enrollment unavailable to Handlers and Agents.
+- [ ] **G09 — Revise:** Let the Batch Manager enroll approved members under the existing Batch ID. Enforce capacity during simultaneous enrollments; keep direct enrollment unavailable to Handlers and Agents. Agents can now submit requests for assigned Manager approval with COO oversight; capacity/prospect gates remain pending.
 - [ ] **G10 — Missing:** Display confirmed prospects, enrolled members, remaining slots and outstanding requirements separately. Record a minimal manual acknowledgement that the member was added to the official GC.
 - [ ] **G11 — Revise:** Add explicit Batch Manager activation with start-date confirmation and validated readiness. Prevent ordinary batch editing from bypassing activation conditions; align schedule issuance without changing existing issued agreements.
 - [ ] **G12 — Revise:** Give the assigned Batch Manager handler assignment and authorized batch task/release oversight. Test reassignment, incomplete batches, overbooking, repeated activation and existing active-batch migration.
 
 ## 3 Handler payment recording
 
-**Already available:** payment recording, private receipt upload, optional OCR and duplicate-reference checks for currently authorized roles. **Gap:** Handler lacks payment permissions, and Finance service staff scope does not enforce Handler assignments.
+**Already available:** payment recording, private receipt upload, optional OCR and duplicate-reference checks for currently authorized roles. **Access update:** Handler payment entry and assignment enforcement are implemented locally; later operational reviews and PDF-history workflow remain open.
 
 Evidence: [payment permissions](../packages/contracts/src/index.ts), [Finance service](../apps/api-ts/src/finance/finance.service.ts), [Finance endpoints](../apps/api-ts/src/finance/finance.controller.ts). Requirements: W3; O3–O4, O6. Detailed checklist: 37–43.
 
-- [ ] **G13 — Revise:** Enforce assigned-batch scope on payment/client lookup, creation, correction, receipt access, totals, balance and document reads before granting Handler payment access. Reject guessed IDs and access after reassignment.
+- [x] **G13 — Revise:** Enforce assigned-batch scope on payment/client lookup, creation, correction, receipt access, totals, balance and document reads before granting Handler payment access. Reject guessed IDs and access after reassignment.
 - [ ] **G14 — Revise:** Give Handlers an assigned-batch payment screen with member, amount, date, method/reference and receipt upload. Preserve drafts and show pending status clearly.
 - [ ] **G15 — Confirm:** Specify when a receipt becomes mandatory, any allowed alternative evidence and who may correct submitted records. Define recovery when the payment saves but its upload fails.
 - [ ] **G16 — Missing:** Add explicit submission for review, with recorder, timestamp and captured payment/proof version. Prevent repeated submissions from creating duplicate entries or review work.
@@ -152,3 +160,4 @@ Deployment provisioning, capacity, email delivery, privacy/retention approval an
 | 2026-10-16 | Gap baseline | Compared the two supplied documents with current role/schema/Records/Finance code and module runbooks. Listed 51 unchecked gap/decision/verification tasks in business priority order. No application implementation performed. |
 | 2026-10-16 | G02, G35; S1 01 | Resolved role specification from the supplied V4 requirements in docs/61. Marked these two specification questions complete; application permissions, projections and migration remain open. |
 | 2026-10-16 | G05 partial | Removed Owner's financial verification/adjustment grant and derived Finance-review queue/email authority. Finance remains the sole verifier; complete V4 role migration/navigation and other access work remain open. |
+| 2026-10-28 | Role access foundation | Canonical roles, audited alias conversion, COO business accounts, assigned scope, report families and reviewed Agent enrollment implemented. G01/G04/G05/G13 completed for existing workflows; G03 and later business stages remain partial/open. See docs/66 for verification and limits. |

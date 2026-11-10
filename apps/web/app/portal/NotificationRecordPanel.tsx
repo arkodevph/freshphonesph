@@ -4,7 +4,7 @@ import { formatPeso as money } from "@/lib/currency";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, CheckCircle, X } from "@phosphor-icons/react";
+import { ArrowRight, CheckCircle, Close as X } from "@/components/SolarIcons";
 import type { Payment } from "@freshphones/contracts";
 import {
   getCustomerDocuments,
@@ -257,7 +257,7 @@ export function NotificationRecordPanel({
           onClick={onClose}
           aria-label="Close record details"
         >
-          <X weight="bold" aria-hidden="true" />
+          <X aria-hidden="true" />
         </button>
       </header>
       <div className={styles.notificationContext}>
@@ -310,7 +310,7 @@ export function NotificationRecordPanel({
               </span>
             </div>
             <span className={styles.verifiedBadge}>
-              <CheckCircle weight="fill" aria-hidden="true" /> Finance verified
+              <CheckCircle aria-hidden="true" /> Finance verified
             </span>
           </div>
           <dl className={styles.sheetDetails}>
@@ -465,7 +465,7 @@ export function NotificationRecordPanel({
           {detail?.kind === "payment"
             ? "Open document for PDF or print"
             : "Open full record"}{" "}
-          <ArrowRight weight="bold" aria-hidden="true" />
+          <ArrowRight aria-hidden="true" />
         </Link>
       )}
     </aside>

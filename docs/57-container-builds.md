@@ -39,3 +39,69 @@ docker run --rm --env-file /path/to/private/api.env freshphones-migrations
 
 Apply the documented migration-history reconciliation before upgrading databases that
 already recorded the conflicting September migrations.
+
+## Run the real production services together
+
+`docker-compose.production.yml` connects the prebuilt Next.js web image to the
+NestJS API and its separate worker. This configuration does not use presentation
+records or development servers. The web Docker build explicitly disables
+`NEXT_PUBLIC_PRESENTATION_MODE`.
+
+Copy `deploy/production.env.example` to the ignored root `.env.production` and
+replace its placeholders with the intended production service configuration.
+Use the real HTTPS system origin for `WEB_ORIGIN` and the matching
+`BETTER_AUTH_URL` ending in `/api/auth`. The browser talks to that origin;
+Next.js forwards `/api/*` to `http://api:4100` inside the Compose network.
+Only API/worker receive the private environment file. The API is not published
+directly on the host.
+
+```bash
+pnpm production:config
+pnpm production:build
+```
+
+The public HTTPS gateway must forward to the loopback-only web listener
+(`127.0.0.1:3000` by default). Configure TLS, streaming, upload limits and trusted
+proxy handling for the actual host. Keep these processes running on a host that
+does not suspend idle application services; a prebuilt image removes development
+compilation, but cannot prevent hosting suspension or database wake-up delays.
+This Compose file does not provision a gateway, PostgreSQL, Redis, S3 or email.
+
+After confirming the intended database, backup and approved release, apply the
+committed migrations explicitly:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml \
+  --profile migrate build migrate
+docker compose --env-file .env.production -f docker-compose.production.yml \
+  --profile migrate run --rm migrate
+pnpm production:start
+```
+
+Starting the stack does not automatically apply migrations. `production:start`
+uses `up -d --wait`; the web and worker wait for a healthy API. API and web have
+HTTP health checks, processes restart unless deliberately stopped, and shutdown
+allows 30 seconds for NestJS hooks. The worker uses the API runtime image with
+`node dist/worker.js`; verify `/api/health/redis` through the web gateway to check
+Redis and the worker heartbeat, then perform the authenticated release checks.
+A running worker container alone is not an end-to-end delivery check.
+
+Stop application services without deleting data with `pnpm production:stop`.
+All production build arguments are fixed when the image is built; rebuild the web
+image when its origins change. Run the Compose wiring checks without creating
+services using `node --test scripts/production-config.test.mjs`.
+
+### Current readiness boundary
+
+The API deliberately refuses `NODE_ENV=production` while the four legal documents
+in `packages/contracts/src/legal.ts` remain drafts. Business-approved text,
+versions and publication dates are required. Do not mark drafts published just
+to start the service. Production also needs a real database, generated Better Auth
+secret, MFA, authenticated Redis, verified email sender/key and private S3 storage.
+The development `.env` and demo-account seeder are not production credentials or
+an account-provisioning plan.
+
+Use [the Render release checklist](56-render-deployment.md) and existing launch
+acceptance documents for cookie/MFA checks, account provisioning, file access,
+worker delivery, backup/restore and named business acceptance. Container wiring
+and image builds alone do not establish readiness for customer data.

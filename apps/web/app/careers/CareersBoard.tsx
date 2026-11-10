@@ -1,297 +1,342 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArrowDown,
   ArrowRight,
-  Briefcase,
+  ArrowClockwise,
   Clock,
   MagnifyingGlass,
   MapPin,
-  ShieldCheck,
-  UsersThree,
+  X,
 } from "@phosphor-icons/react";
-import { getCareers, type JobOpening } from "@/lib/api";
+import DoodleIcon from "@/components/DoodleIcon";
+import Link from "@/components/PublicNavigationLink";
 import { publicSiteHref, type PublicSiteBase } from "@/lib/public-site-links";
-import styles from "./careers.module.css";
-
-type LoadState = "loading" | "ready" | "error";
+import { useCareersBoard } from "./useCareersBoard";
+import CareersPreparation from "./CareersPreparation";
+import styles from "./CareersBoard.module.css";
 
 export default function CareersBoard({
   siteBasePath = "",
 }: {
   siteBasePath?: PublicSiteBase;
 }) {
-  const [jobs, setJobs] = useState<JobOpening[]>([]);
-
-  const [loadState, setLoadState] = useState<LoadState>("loading");
-
-  const [query, setQuery] = useState("");
-
-  const [type, setType] = useState("all");
-
-  const [location, setLocation] = useState("all");
-
-  const loadJobs = useCallback(async () => {
-    setLoadState("loading");
-
-    try {
-      setJobs(await getCareers());
-
-      setLoadState("ready");
-    } catch {
-      setLoadState("error");
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadJobs();
-  }, [loadJobs]);
-
-  const types = useMemo(() => {
-    return Array.from(
-      new Set(
-        jobs
-          .map((job) => {
-            return job.employment_type;
-          })
-          .filter(Boolean),
-      ),
-    ).sort();
-  }, [jobs]);
-
-  const locations = useMemo(() => {
-    return Array.from(
-      new Set(
-        jobs
-          .map((job) => {
-            return job.location;
-          })
-          .filter(Boolean),
-      ),
-    ).sort();
-  }, [jobs]);
-
-  const filteredJobs = useMemo(() => {
-    const search = query.trim().toLowerCase();
-
-    return jobs.filter((job) => {
-      const matchesSearch =
-        !search ||
-        [job.title, job.description, job.location, job.employment_type].some(
-          (value) => {
-            return value.toLowerCase().includes(search);
-          },
-        );
-
-      return (
-        matchesSearch &&
-        (type === "all" || job.employment_type === type) &&
-        (location === "all" || job.location === location)
-      );
-    });
-  }, [jobs, location, query, type]);
-
-  const clearFilters = () => {
-    setQuery("");
-
-    setType("all");
-
-    setLocation("all");
-  };
+  const board = useCareersBoard();
 
   return (
-    <section className={styles.boardPage} aria-labelledby="careers-title">
+    <div className={styles.boardPage} data-careers-page>
       <div className={styles.boardShell}>
         <header className={styles.boardHeader}>
           <div className={styles.headerCopy}>
-            <span className={styles.eyebrow}>Careers at Fresh Phones PH</span>
-            <h1 id="careers-title">Find work that fits you.</h1>
-            <p>
-              Help make iPhone and iPad ownership more manageable. Explore
-              opportunities with our growing team.
+            <p className={styles.eyebrow}>
+              <DoodleIcon name="id-heart" /> CAREERS AT FRESH PHONES PH
             </p>
-          </div>
-          <div className={styles.reviewNote}>
-            <ShieldCheck weight="duotone" aria-hidden="true" />
-            <div>
-              <strong>People review every application</strong>
-              <span>Our recruitment team reviews your experience.</span>
+            <h1>
+              Your next chapter,
+              <br />
+              <span>a little fresher.</span>
+            </h1>
+            <p className={styles.intro}>
+              Help make iPhone and iPad ownership more manageable. Find your
+              place on the Fresh Phones team.
+            </p>
+            <div className={styles.heroActions}>
+              <Link href="#open-roles" className={styles.primaryAction}>
+                Browse open roles <ArrowDown weight="bold" aria-hidden="true" />
+              </Link>
+              <Link
+                href={publicSiteHref("/about", siteBasePath)}
+                className={styles.textAction}
+              >
+                Get to know us <ArrowRight aria-hidden="true" />
+              </Link>
             </div>
+          </div>
+          <div className={styles.heroVisual} aria-hidden="true">
+            <div className={styles.artHalo} />
+            <Image
+              src="/brand/mascot/cloud-boy-meet-team-v1.png"
+              alt=""
+              width={1280}
+              height={1254}
+              sizes="(max-width: 700px) 200px, (max-width: 1000px) 320px, 440px"
+              priority
+              className={styles.mascot}
+            />
+            <span className={styles.artNote}>
+              <DoodleIcon name="heart" size={24} /> Fresh faces welcome.
+            </span>
           </div>
         </header>
 
+        <div className={styles.reviewNote}>
+          <DoodleIcon name="shield-heart" size={32} />
+          <p>
+            <strong>A person behind every application.</strong>
+            <span>Our recruitment team reviews your experience.</span>
+          </p>
+        </div>
+
         <section
+          id="open-roles"
+          tabIndex={-1}
           className={styles.openings}
           aria-labelledby="openings-heading"
-          aria-live="polite"
-          aria-busy={loadState === "loading"}
         >
           <div className={styles.openingsHeading}>
             <div>
-              <h2 id="openings-heading">Open roles</h2>
-              <p>Search by role, employment type, or location.</p>
+              <p className={styles.sectionLabel}>
+                <DoodleIcon name="application" size={25} /> FIND YOUR FIT
+              </p>
+              <h2 id="openings-heading">A fresh opportunity.</h2>
+              <p>Explore our current openings.</p>
             </div>
-            {loadState === "ready" && (
-              <span>
-                {filteredJobs.length} of {jobs.length} roles shown
+            {board.loadState === "ready" && board.jobs.length > 0 && (
+              <span className={styles.roleCount}>
+                {board.jobs.length} open{" "}
+                {board.jobs.length === 1 ? "role" : "roles"}
               </span>
             )}
           </div>
 
-          <div className={styles.filters} aria-label="Filter open roles">
-            <label className={styles.searchField}>
-              <span className={styles.srOnly}>Search roles</span>
-              <MagnifyingGlass aria-hidden="true" />
-              <input
-                value={query}
-                onChange={(event) => {
-                  return setQuery(event.target.value);
-                }}
-                placeholder="Search roles"
-              />
-            </label>
-            <label>
-              <span className={styles.srOnly}>Employment type</span>
-              <select
-                value={type}
-                onChange={(event) => {
-                  return setType(event.target.value);
-                }}
-              >
-                <option value="all">All types</option>
-                {types.map((item) => {
-                  return (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-            <label>
-              <span className={styles.srOnly}>Location</span>
-              <select
-                value={location}
-                onChange={(event) => {
-                  return setLocation(event.target.value);
-                }}
-              >
-                <option value="all">All locations</option>
-                {locations.map((item) => {
-                  return (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
+          {board.loadState === "ready" && board.jobs.length > 0 && (
+            <div
+              className={styles.filters}
+              role="search"
+              aria-label="Filter open roles"
+            >
+              <label className={styles.searchField}>
+                <span>Search roles</span>
+                <span className={styles.inputWrap}>
+                  <MagnifyingGlass aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={board.query}
+                    onChange={(event) => {
+                      return board.setQuery(event.target.value);
+                    }}
+                    placeholder="Role or keyword"
+                    aria-controls="careers-results"
+                  />
+                </span>
+              </label>
+              <label>
+                <span>Employment type</span>
+                <select
+                  value={board.type}
+                  onChange={(event) => {
+                    return board.setType(event.target.value);
+                  }}
+                  aria-controls="careers-results"
+                >
+                  <option value="all">All types</option>
+                  {board.types.map((item) => {
+                    return (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <label>
+                <span>Location</span>
+                <select
+                  value={board.location}
+                  onChange={(event) => {
+                    return board.setLocation(event.target.value);
+                  }}
+                  aria-controls="careers-results"
+                >
+                  <option value="all">All locations</option>
+                  {board.locations.map((item) => {
+                    return (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+            </div>
+          )}
+
+          <div className={styles.resultsBar}>
+            <p role="status" aria-live="polite" aria-atomic="true">
+              {board.status}
+            </p>
+            {board.hasFilters && (
+              <button type="button" onClick={board.clearFilters}>
+                Clear filters <X aria-hidden="true" />
+              </button>
+            )}
           </div>
 
-          {loadState === "loading" && (
-            <div
-              className={styles.loadingGrid}
-              aria-label="Loading job openings"
-            >
-              {[0, 1, 2, 3, 4, 5].map((item) => {
-                return <span key={item} />;
-              })}
-            </div>
-          )}
+          <div id="careers-results" aria-busy={board.loadState === "loading"}>
+            {board.loadState === "loading" && (
+              <div className={styles.loadingGrid} aria-hidden="true">
+                {[0, 1].map((item) => {
+                  return (
+                    <div key={item}>
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-          {loadState === "error" && (
-            <div className={styles.stateMessage} role="alert">
-              <Briefcase weight="duotone" aria-hidden="true" />
-              <strong>Open roles are temporarily unavailable.</strong>
-              <p>Check your connection and try loading them again.</p>
-              <button type="button" onClick={loadJobs}>
-                Try again
-              </button>
-            </div>
-          )}
-
-          {loadState === "ready" && jobs.length === 0 && (
-            <div className={styles.stateMessage}>
-              <Briefcase weight="duotone" aria-hidden="true" />
-              <strong>No roles are open right now.</strong>
-              <p>Please check back soon for new opportunities.</p>
-            </div>
-          )}
-
-          {loadState === "ready" &&
-            jobs.length > 0 &&
-            filteredJobs.length === 0 && (
-              <div className={styles.stateMessage}>
-                <MagnifyingGlass aria-hidden="true" />
-                <strong>No roles match those filters.</strong>
-                <p>Clear the filters to see every current opportunity.</p>
-                <button type="button" onClick={clearFilters}>
-                  Clear filters
+            {board.loadState === "error" && (
+              <div className={styles.stateMessage} role="alert">
+                <DoodleIcon name="chat-heart" size={56} />
+                <h3>A small bump in the road.</h3>
+                <p>
+                  We couldn’t load the openings. Check your connection and give
+                  it another try.
+                </p>
+                <button
+                  className={styles.secondaryAction}
+                  type="button"
+                  onClick={board.loadJobs}
+                >
+                  <ArrowClockwise aria-hidden="true" /> Try again
                 </button>
               </div>
             )}
 
-          {loadState === "ready" && filteredJobs.length > 0 && (
-            <div className={styles.jobGrid}>
-              {filteredJobs.map((job) => {
-                return (
-                  <article key={job.id} className={styles.jobCard}>
-                    <div className={styles.companyLine}>
-                      <span className={styles.companyLogo}>
-                        <Image
-                          src="/brand/fresh-phones-logo.png"
-                          alt=""
-                          width={44}
-                          height={44}
-                        />
-                      </span>
-                      <div>
-                        <strong>Fresh Phones PH</strong>
-                        <small>FP Gadget Center</small>
+            {board.loadState === "ready" && board.jobs.length === 0 && (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyArt} aria-hidden="true">
+                  <DoodleIcon name="calendar-heart" size={84} />
+                  <span>GOOD THINGS TAKE A LITTLE TIME</span>
+                </div>
+                <div>
+                  <h3>
+                    Our next opening
+                    <br />
+                    is still on the way.
+                  </h3>
+                  <p>
+                    There are no open roles right now. Check back here for new
+                    opportunities — we’d love for you to find your fit.
+                  </p>
+                  <Link
+                    href={publicSiteHref("/about", siteBasePath)}
+                    className={styles.secondaryAction}
+                  >
+                    Meet Fresh Phones <ArrowRight aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {board.loadState === "ready" &&
+              board.jobs.length > 0 &&
+              board.filteredJobs.length === 0 && (
+                <div className={styles.stateMessage}>
+                  <MagnifyingGlass size={40} aria-hidden="true" />
+                  <h3>Let’s widen the search.</h3>
+                  <p>
+                    No roles match these filters. Try another keyword or clear
+                    your filters to see all openings.
+                  </p>
+                  <button
+                    className={styles.secondaryAction}
+                    type="button"
+                    onClick={board.clearFilters}
+                  >
+                    Show all roles <ArrowRight aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+
+            {board.loadState === "ready" && board.filteredJobs.length > 0 && (
+              <div className={styles.jobGrid}>
+                {board.filteredJobs.map((job) => {
+                  return (
+                    <article key={job.id} className={styles.jobCard}>
+                      <div className={styles.companyLine}>
+                        <DoodleIcon name="id-heart" size={36} />
+                        <span>Fresh Phones PH</span>
+                        <span className={styles.openBadge}>Open role</span>
                       </div>
-                      <span className={styles.openBadge}>Open</span>
-                    </div>
-                    <h3>{job.title}</h3>
-                    <div className={styles.meta}>
-                      {job.employment_type && (
-                        <span>
-                          <Clock weight="fill" aria-hidden="true" />
-                          {job.employment_type}
-                        </span>
+                      <h3>{job.title}</h3>
+                      <div className={styles.meta}>
+                        {job.employment_type && (
+                          <span>
+                            <Clock aria-hidden="true" />
+                            {job.employment_type}
+                          </span>
+                        )}
+                        {job.location && (
+                          <span>
+                            <MapPin aria-hidden="true" />
+                            {job.location}
+                          </span>
+                        )}
+                      </div>
+                      {job.description && (
+                        <p className={styles.description}>{job.description}</p>
                       )}
-                      {job.location && (
-                        <span>
-                          <MapPin weight="fill" aria-hidden="true" />
-                          {job.location}
-                        </span>
-                      )}
-                    </div>
-                    {job.description && (
-                      <p className={styles.description}>{job.description}</p>
-                    )}
-                    <div className={styles.cardFooter}>
-                      <span>
-                        <UsersThree weight="duotone" aria-hidden="true" />
-                        Human-reviewed
-                      </span>
                       <Link
+                        className={styles.jobApply}
                         href={publicSiteHref(
                           `/careers/apply?job=${encodeURIComponent(String(job.id))}`,
                           siteBasePath,
                         )}
+                        aria-label={`Apply for ${job.title}`}
                       >
-                        Apply <ArrowRight weight="bold" aria-hidden="true" />
+                        <span>Explore &amp; apply</span>{" "}
+                        <ArrowRight weight="bold" aria-hidden="true" />
                       </Link>
-                    </div>
-                  </article>
-                );
-              })}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <noscript>
+            <div className={styles.stateMessage}>
+              <h3>Let’s get you connected.</h3>
+              <p>
+                Enable JavaScript to see current roles, or contact the team for
+                help.
+              </p>
+              <Link
+                href={publicSiteHref("/support#contact", siteBasePath)}
+                className={styles.secondaryAction}
+              >
+                Talk to the team
+              </Link>
             </div>
-          )}
+          </noscript>
         </section>
+
+        <section
+          className={styles.preparation}
+          aria-labelledby="prepare-heading"
+        >
+          <div className={styles.preparationHeading}>
+            <p className={styles.sectionLabel}>ONE STEP AT A TIME</p>
+            <h2 id="prepare-heading">From hello to what’s next.</h2>
+            <p>Here’s how to get started when a role catches your eye.</p>
+          </div>
+          <CareersPreparation />
+        </section>
+        <div className={styles.contactNote}>
+          <p>A question before you apply?</p>
+          <Link
+            href={publicSiteHref("/support#contact", siteBasePath)}
+            className={styles.contactPill}
+          >
+            <DoodleIcon name="chat-heart" size={24} />
+            <span>Talk to the team</span>
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

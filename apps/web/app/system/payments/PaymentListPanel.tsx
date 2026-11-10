@@ -18,6 +18,7 @@ import { inputCls } from "@/components/FormField";
 import { FILTERS, ReviewDecision, STATUS_STYLES } from "./payment-view";
 
 type Props = {
+  reviewStage: "RECORDS" | "MANAGER" | "FINANCE";
   focusedPayment: string | null;
   setFocusedPayment: Dispatch<SetStateAction<string | null>>;
   setFilter: Dispatch<SetStateAction<string>>;
@@ -60,6 +61,7 @@ type Props = {
 };
 
 export default function PaymentListPanel({
+  reviewStage,
   focusedPayment,
   setFocusedPayment,
   setFilter,
@@ -341,6 +343,15 @@ export default function PaymentListPanel({
                       >
                         {p.status.replace("_", " ")}
                       </span>
+                      {p.status === "pending" && (
+                        <span className="mt-1 block text-xs text-ink-soft">
+                          {!p.workflow?.recordsApproved
+                            ? "Awaiting Records"
+                            : !p.workflow.managerApproved
+                              ? "Awaiting Manager"
+                              : "Ready for Finance"}
+                        </span>
+                      )}
                     </td>
                     <td className="px-2 py-2.5 text-right">
                       <div className="inline-flex max-w-[410px] flex-wrap items-center justify-end gap-1.5">
@@ -377,7 +388,9 @@ export default function PaymentListPanel({
                             Proof
                           </button>
                         )}
-                        {p.status === "pending" && canVerify ? (
+                        {p.status === "pending" &&
+                        canVerify &&
+                        p.workflow?.managerApproved ? (
                           <>
                             <button
                               type="button"
@@ -437,6 +450,24 @@ export default function PaymentListPanel({
                             <span className="text-xs text-ink-soft">—</span>
                           )
                         )}
+                        {p.status === "pending" &&
+                          p.recorded_by !== me?.id &&
+                          (reviewStage === "RECORDS" ||
+                            (reviewStage === "MANAGER" &&
+                              p.workflow?.recordsApproved &&
+                              p.workflow.managerId === me?.id)) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                openFinanceReview(p);
+                              }}
+                              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700 hover:bg-violet-200"
+                            >
+                              {reviewStage === "RECORDS"
+                                ? "Review completeness"
+                                : "Cross-check"}
+                            </button>
+                          )}
                         {canRecord &&
                           ["pending", "needs_clarification"].includes(
                             p.status,

@@ -18,7 +18,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 import type { User } from "@freshphones/contracts";
 import { z } from "zod";
-import { CurrentUser, Requires } from "../auth/access";
+import { CurrentUser, Requires, RequiresAny } from "../auth/access";
 import { Validate } from "../http";
 import type { PrivateUpload } from "../storage/private-storage.service";
 import { TasksService } from "./tasks.service";
@@ -71,13 +71,13 @@ export class TasksController {
   ) {
     return this.tasks.assignees(user);
   }
-  @Get("tasks") list(
+  @Get("tasks") @Requires("TASK_READ") list(
     @CurrentUser() user: User,
     @Query(new Validate(taskListSchema)) query: z.infer<typeof taskListSchema>,
   ) {
     return this.tasks.list(user, query);
   }
-  @Get("tasks/:id") detail(
+  @Get("tasks/:id") @Requires("TASK_READ") detail(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
@@ -89,7 +89,7 @@ export class TasksController {
   ) {
     return this.tasks.create(user, body);
   }
-  @Patch("tasks/:id/start") @HttpCode(200) start(
+  @Patch("tasks/:id/start") @HttpCode(200) @Requires("TASK_SUBMIT") start(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new Validate(versionSchema)) body: z.infer<typeof versionSchema>,
@@ -104,6 +104,7 @@ export class TasksController {
       limits: { fileSize: 5 * 1024 * 1024, files: 1 },
     }),
   )
+  @Requires("TASK_SUBMIT")
   submit(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,
@@ -124,6 +125,7 @@ export class TasksController {
   }
   @AbusePolicy("download")
   @Get("tasks/:id/attachment")
+  @Requires("TASK_READ")
   async attachment(
     @CurrentUser() user: User,
     @Param("id", ParseUUIDPipe) id: string,

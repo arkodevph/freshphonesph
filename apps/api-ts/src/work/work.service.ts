@@ -1,3 +1,5 @@
+import { staffScope, taskScope } from "../records/scope";
+import { businessRole } from "@freshphones/contracts";
 import {
   ConflictException,
   ForbiddenException,
@@ -35,8 +37,21 @@ const taskInclude = {
 
 const projectTask = <T extends { review: unknown }>(
   task: T,
-  user: Pick<User, "role" | "hrConfidentialAccess">,
+  user: Pick<User, "role" | "hrConfidentialAccess"> & { id?: string },
 ) => {
+  if (
+    businessRole(user.role) === "KPI_OFFICER" &&
+    (!("assigneeId" in task) || task.assigneeId !== user.id)
+  ) {
+    return {
+      ...task,
+      instructions: "",
+      report: "",
+      attachments: [],
+      review: task.review,
+    };
+  }
+
   return { ...task, review: allowed(user, "KPI_REVIEW") ? task.review : null };
 };
 
@@ -55,7 +70,7 @@ export class WorkService {
     permission: Permission,
     run: (
       tx: Prisma.TransactionClient,
-      current: Pick<User, "role" | "hrConfidentialAccess">,
+      current: Pick<User, "id" | "role" | "hrConfidentialAccess">,
     ) => Promise<T>,
   ) {
     return this.db.$transaction(async (tx) => {
@@ -72,12 +87,12 @@ export class WorkService {
   }
 
   private scope(user: User): Prisma.TaskWhereInput {
-    return allowed(user, "TASK_ASSIGN") ? {} : { assigneeId: user.id };
+    return taskScope(user);
   }
 
-  staff() {
+  staff(user: User) {
     return this.db.user.findMany({
-      where: { active: true, role: { not: "CUSTOMER" } },
+      where: staffScope(user),
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },
     });
@@ -145,8 +160,7 @@ export class WorkService {
       const assignee = await tx.user.findFirst({
         where: {
           id: input.assigneeId,
-          active: true,
-          role: { not: "CUSTOMER" },
+          ...staffScope({ id: user.id, role: current.role }),
         },
       });
 
@@ -323,7 +337,9 @@ export class WorkService {
 
     try {
       return await this.write(user, "TASK_SUBMIT", async (tx, current) => {
-        const task = await tx.task.findUnique({ where: { id } });
+        const task = await tx.task.findFirst({
+          where: { id, ...taskScope({ id: user.id, role: current.role }) },
+        });
 
         if (
           !task ||
@@ -384,8 +400,14 @@ export class WorkService {
   }
 
   async attachment(user: User, id: string) {
-    const attachment = await this.db.taskAttachment.findUnique({
-      where: { id },
+    const attachment = await this.db.taskAttachment.findFirst({
+      where: {
+        id,
+        task:
+          businessRole(user.role) === "KPI_OFFICER"
+            ? { assigneeId: user.id }
+            : taskScope(user),
+      },
       include: { task: true, storedFile: true },
     });
 
@@ -406,12 +428,21 @@ export class WorkService {
   }
 
   async kpiQueue(user: User) {
-    await requireCurrentUser(this.db, user, "KPI_REVIEW");
+    user = await requireCurrentUser(this.db, user, "KPI_REVIEW");
 
-    return this.db.task.findMany({
-      where: { status: "SUBMITTED", lateFlag: true, review: null },
+    const tasks = await this.db.task.findMany({
+      where: {
+        ...taskScope(user),
+        status: "SUBMITTED",
+        lateFlag: true,
+        review: null,
+      },
       include: taskInclude,
       orderBy: { submittedAt: "asc" },
+    });
+
+    return tasks.map((task) => {
+      return projectTask(task, user);
     });
   }
 
@@ -424,11 +455,20 @@ export class WorkService {
       decision: "PENDING" | "NOTED" | "ACTION_RECOMMENDED";
     },
   ) {
-    return this.write(user, "KPI_REVIEW", async (tx) => {
-      const task = await tx.task.findUnique({ where: { id: input.taskId } });
+    return this.write(user, "KPI_REVIEW", async (tx, current) => {
+      const task = await tx.task.findFirst({
+        where: { id: input.taskId, ...taskScope(current) },
+        include: { review: { select: { id: true } } },
+      });
 
       if (!task) {
         throw new NotFoundException("Task not found.");
+      }
+
+      if (task.status !== "SUBMITTED" || task.review) {
+        throw new ConflictException(
+          "Only an unreviewed submission can be reviewed.",
+        );
       }
 
       const evidence = task.submittedAt

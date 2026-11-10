@@ -1,5 +1,6 @@
 "use client";
 
+import { useMe } from "@/lib/useMe";
 import { ROLES } from "@/lib/api";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { type FormEvent } from "react";
@@ -46,6 +47,8 @@ export default function CreateAccountDialog({
   setForm,
   validateField,
 }: Props) {
+  const me = useMe();
+
   return (
     <dialog
       ref={createDialogRef}
@@ -128,7 +131,9 @@ export default function CreateAccountDialog({
                 return validateField("role", event.target.value);
               }}
             >
-              {ROLES.map(([value, label]) => {
+              {ROLES.filter(([value]) => {
+                return value !== "system_admin" || me?.role === "system_admin";
+              }).map(([value, label]) => {
                 return (
                   <option key={value} value={value}>
                     {label}

@@ -3,6 +3,7 @@
 import {
   createPayment,
   decidePayment,
+  reviewPaymentOperations,
   findDuplicatePayments,
   getBalance,
   getProofUrl,
@@ -32,6 +33,15 @@ export function usePaymentsWorkspace() {
   const canVerify = can(me, "PAYMENT_VERIFY");
 
   const canRead = can(me, "PAYMENT_READ");
+
+  const reviewStage: "RECORDS" | "MANAGER" | "FINANCE" = can(
+    me,
+    "PAYMENT_COMPLETENESS_REVIEW",
+  )
+    ? "RECORDS"
+    : can(me, "PAYMENT_MANAGER_REVIEW")
+      ? "MANAGER"
+      : "FINANCE";
 
   const [payments, setPayments] = useState<Payment[]>([]);
 
@@ -103,6 +113,8 @@ export function usePaymentsWorkspace() {
   const [receiptType, setReceiptType] = useState<ReceiptType>("gcash");
 
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
+
+  const [receiptError, setReceiptError] = useState<string | null>(null);
 
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
@@ -391,7 +403,9 @@ export function usePaymentsWorkspace() {
     }
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setError("Use a JPG, PNG, or WebP receipt image.");
+      setReceiptError(
+        "Image not selected. Use a JPG, PNG, or WebP receipt image.",
+      );
 
       if (receiptInput.current) {
         receiptInput.current.value = "";
@@ -401,7 +415,21 @@ export function usePaymentsWorkspace() {
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("Receipt image must be 5 MB or smaller.");
+      setReceiptError(
+        `Image not selected. This file is ${(file.size / (1024 * 1024)).toFixed(1)} MB; the maximum is 5 MB. Choose a smaller image.`,
+      );
+
+      if (receiptInput.current) {
+        receiptInput.current.value = "";
+      }
+
+      return;
+    }
+
+    if (file.size === 0) {
+      setReceiptError(
+        "Image not selected. This file is empty. Choose another receipt image.",
+      );
 
       if (receiptInput.current) {
         receiptInput.current.value = "";
@@ -415,6 +443,8 @@ export function usePaymentsWorkspace() {
     setScanning(false);
 
     setError(null);
+
+    setReceiptError(null);
 
     clearExtractedCandidates();
 
@@ -526,6 +556,8 @@ export function usePaymentsWorkspace() {
 
       setReceiptImage(null);
 
+      setReceiptError(null);
+
       if (receiptInput.current) {
         receiptInput.current.value = "";
       }
@@ -571,7 +603,7 @@ export function usePaymentsWorkspace() {
 
   async function scanReceipt() {
     if (!receiptImage) {
-      setError("Choose a receipt image first.");
+      setReceiptError("Choose a receipt image first.");
 
       return;
     }
@@ -585,6 +617,8 @@ export function usePaymentsWorkspace() {
     setScanning(true);
 
     setError(null);
+
+    setReceiptError(null);
 
     setScanResult(null);
 
@@ -614,7 +648,7 @@ export function usePaymentsWorkspace() {
         return;
       }
 
-      setError(
+      setReceiptError(
         e instanceof Error ? e.message : "Receipt could not be scanned.",
       );
     } finally {
@@ -659,7 +693,7 @@ export function usePaymentsWorkspace() {
     const reviewNote = reviewNotes[paymentId]?.trim() ?? "";
 
     if (reviewNote.length < 2) {
-      setReviewError("Add a Finance review note before deciding.");
+      setReviewError("Add a review note before deciding.");
 
       financeNoteInput.current?.focus();
 
@@ -671,14 +705,27 @@ export function usePaymentsWorkspace() {
     setReviewSaving(true);
 
     try {
-      await decidePayment(
-        reviewPayment.id,
-        reviewDecision,
-        reviewPayment.version,
-        reviewNote,
-      );
+      if (reviewStage === "FINANCE") {
+        await decidePayment(
+          reviewPayment.id,
+          reviewDecision,
+          reviewPayment.version,
+          reviewNote,
+        );
+      } else {
+        await reviewPaymentOperations(reviewPayment.id, {
+          stage: reviewStage,
+          decision: reviewDecision === "verified" ? "APPROVED" : "RETURNED",
+          notes: reviewNote,
+          version: reviewPayment.version!,
+        });
+      }
 
-      flash(`Payment ${reviewDecision.replace("_", " ")}.`);
+      flash(
+        reviewStage === "FINANCE"
+          ? `Payment ${reviewDecision.replace("_", " ")}.`
+          : "Operational review saved.",
+      );
 
       setReviewNotes((current) => {
         const next = { ...current };
@@ -753,6 +800,7 @@ export function usePaymentsWorkspace() {
       receiptPreview,
       receiptDialog,
       receiptImage,
+      receiptError,
       scanReceipt,
       scanResult,
       recordClient,
@@ -776,6 +824,7 @@ export function usePaymentsWorkspace() {
       form,
     },
     financeReviewDialogProps: {
+      reviewStage,
       financeDialog,
       setReviewPayment,
       setReviewDecision,
@@ -796,6 +845,7 @@ export function usePaymentsWorkspace() {
       viewProof,
     },
     paymentListPanelProps: {
+      reviewStage,
       focusedPayment,
       setFocusedPayment,
       setFilter,

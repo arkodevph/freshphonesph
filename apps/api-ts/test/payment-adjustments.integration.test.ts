@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { prepareFinanceReview } from "./helpers/payment-workflow";
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -77,14 +78,20 @@ async function verified(amount = "10.00", clientId = linkedClientId) {
       method: "GCash",
       referenceNumber: `PRIVATE-${randomUUID()}`,
       paymentDate: new Date("2049-03-01"),
-      recordedById: sessions.get("OWNER")!.id,
+      recordedById: sessions.get("SYSTEM_ADMIN")!.id,
     },
   });
+
+  const reviewed = await prepareFinanceReview(db, row.id);
 
   const response = await request(
     "FINANCE_OFFICER",
     `/payments/${row.id}/verify`,
-    { decision: "VERIFIED", version: 1, notes: "Synthetic receipt checked." },
+    {
+      decision: "VERIFIED",
+      version: reviewed.version,
+      notes: "Synthetic receipt checked.",
+    },
   );
 
   assert.equal(response.status, 200);
@@ -115,7 +122,10 @@ async function newClient(due = "100.00") {
 }
 
 async function balance(clientId: string) {
-  const response = await request("OWNER", `/clients/${clientId}/balance`);
+  const response = await request(
+    "SYSTEM_ADMIN",
+    `/clients/${clientId}/balance`,
+  );
 
   assert.equal(response.status, 200);
 
@@ -207,15 +217,17 @@ test("only Finance can verify payments or use the receipt review queue, includin
         amount: "10.00",
         method: "Cash",
         paymentDate: new Date("2049-03-01"),
-        recordedById: sessions.get("OWNER")!.id,
+        recordedById: sessions.get("SYSTEM_ADMIN")!.id,
       },
     });
+
+    const reviewed = await prepareFinanceReview(db, pending.id);
 
     const permitted = role === "FINANCE_OFFICER";
 
     const response = await request(role, `/payments/${pending.id}/verify`, {
       decision: "VERIFIED",
-      version: 1,
+      version: reviewed.version,
       notes: "Checked by the permitted financial reviewer.",
     });
 
@@ -235,7 +247,10 @@ test("only Finance can verify payments or use the receipt review queue, includin
     );
   }
 
-  assert.equal((await request("OWNER", "/payments/summary")).status, 200);
+  assert.equal(
+    (await request("SYSTEM_ADMIN", "/payments/summary")).status,
+    200,
+  );
 });
 
 test("only current PAYMENT_VERIFY grants permit an adjustment, with authentication and the full role matrix", async () => {
@@ -297,7 +312,7 @@ test("signed decimal corrections, overpayment, reversal and restoration leave th
   assert.equal((await balance(clientId)).remainingBalance, "19.75");
 
   const schedule = await (
-    await request("OWNER", `/clients/${clientId}/schedule`)
+    await request("SYSTEM_ADMIN", `/clients/${clientId}/schedule`)
   ).json();
 
   assert.equal(schedule.items[0].paidApplied, "80.25");
@@ -359,7 +374,7 @@ test("signed decimal corrections, overpayment, reversal and restoration leave th
       amount: "500.00",
       method: "Cash",
       paymentDate: new Date("2049-03-01"),
-      recordedById: sessions.get("OWNER")!.id,
+      recordedById: sessions.get("SYSTEM_ADMIN")!.id,
     },
   });
 
@@ -378,7 +393,7 @@ test("signed decimal corrections, overpayment, reversal and restoration leave th
   assert.equal(
     (
       await request(
-        "OWNER",
+        "SYSTEM_ADMIN",
         `/payments/${original.id}`,
         {
           version: 2,
@@ -415,7 +430,7 @@ test("strict input rejects negative, oversized, fractional, missing and no-op re
     { reason: "x".repeat(1001) },
     { requestId: "invalid" },
     { paymentVersion: 0 },
-    { actorId: sessions.get("OWNER")!.id },
+    { actorId: sessions.get("SYSTEM_ADMIN")!.id },
   ]) {
     assert.equal(
       (await request("FINANCE_OFFICER", path, { ...input("9.99"), ...facet }))
@@ -695,16 +710,18 @@ test("all live report/export totals reconcile to net credit; original claims and
       amount: "125.50",
       method: "GCash",
       paymentDate: new Date("2049-03-01"),
-      recordedById: sessions.get("OWNER")!.id,
+      recordedById: sessions.get("SYSTEM_ADMIN")!.id,
     },
   });
+
+  const reviewed = await prepareFinanceReview(db, pending.id);
 
   assert.equal(
     (
       await request("FINANCE_OFFICER", `/payments/${pending.id}/verify`, {
         decision: "VERIFIED",
         notes: "Synthetic Finance review.",
-        version: 1,
+        version: reviewed.version,
       })
     ).status,
     200,
@@ -749,7 +766,7 @@ test("all live report/export totals reconcile to net credit; original claims and
   assert.equal(paymentReport.adjustmentAmount, "-45.25");
 
   const dashboard = await (
-    await request("OWNER", `/reports/dashboard?${scope}`)
+    await request("SYSTEM_ADMIN", `/reports/dashboard?${scope}`)
   ).json();
 
   assert.equal(dashboard.verifiedAmount, "80.25");
@@ -862,7 +879,7 @@ test("all live report/export totals reconcile to net credit; original claims and
   assert.equal(gap.totals.unmatchedVerifiedPayments, 0);
 
   const exceptions = await (
-    await request("OWNER", `/reports/reconciliation/exceptions?${scope}`)
+    await request("SYSTEM_ADMIN", `/reports/reconciliation/exceptions?${scope}`)
   ).json();
 
   assert.deepEqual(exceptions.items[0].flags, ["UNMATCHED_ADJUSTMENT_AUDIT"]);
@@ -954,7 +971,7 @@ test("database constraints preserve append-only credit chains and reject invalid
 
   const data = {
     paymentId: payment.id,
-    actorId: sessions.get("OWNER")!.id,
+    actorId: sessions.get("SYSTEM_ADMIN")!.id,
     requestId: randomUUID(),
     sequence: 2,
     paymentVersion: 2,

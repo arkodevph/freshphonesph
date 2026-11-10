@@ -17,6 +17,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 import {
+  paymentOperationalReviewSchema,
   paymentCorrectionSchema,
   paymentAdjustmentSchema,
   paymentDecisionSchema,
@@ -27,7 +28,7 @@ import {
   type User,
 } from "@freshphones/contracts";
 import type { z } from "zod";
-import { CurrentUser, Requires } from "../auth/access";
+import { CurrentUser, Requires, RequiresAny } from "../auth/access";
 import { Validate } from "../http";
 import { FinanceService } from "./finance.service";
 import { ReceiptService } from "./receipt.service";
@@ -104,7 +105,9 @@ export class FinanceController {
     return this.finance.payments(user, query);
   }
 
-  @Get("payments/duplicates") @Requires("PAYMENT_RECORD") duplicateMatches(
+  @Get("payments/duplicates")
+  @RequiresAny("PAYMENT_RECORD", "PAYMENT_VERIFY")
+  duplicateMatches(
     @CurrentUser() user: User,
     @Query(new Validate(paymentDuplicateQuerySchema))
     query: z.infer<typeof paymentDuplicateQuerySchema>,
@@ -117,7 +120,9 @@ export class FinanceController {
     );
   }
 
-  @Get("portal/payments/review") pendingForCustomer(@CurrentUser() user: User) {
+  @Get("portal/payments/review") @Requires("PAYMENT_READ") pendingForCustomer(
+    @CurrentUser() user: User,
+  ) {
     return this.finance.customerPending(user);
   }
 
@@ -141,6 +146,18 @@ export class FinanceController {
     body: z.infer<typeof paymentCorrectionSchema>,
   ) {
     return this.finance.correct(user, id, body.record, body.version);
+  }
+
+  @Post("payments/:id/operational-review")
+  @HttpCode(200)
+  @RequiresAny("PAYMENT_COMPLETENESS_REVIEW", "PAYMENT_MANAGER_REVIEW")
+  operationalReview(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new Validate(paymentOperationalReviewSchema))
+    body: z.infer<typeof paymentOperationalReviewSchema>,
+  ) {
+    return this.finance.operationalReview(user, id, body);
   }
 
   @Post("payments/:id/verify")

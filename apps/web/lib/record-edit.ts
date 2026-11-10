@@ -12,6 +12,8 @@ export type RecordDraft = {
   contractPrice: string;
   installmentCount: string;
   cadence: string;
+  firstDueDate?: string;
+  monthEnd?: string;
   startDate: string;
   endDate: string;
   name: string;
@@ -32,7 +34,10 @@ export function recordChanged(
   }
 
   if ("code" in previous && "code" in latest) {
-    return Boolean(previous.termsLocked) !== Boolean(latest.termsLocked);
+    return (
+      Boolean(previous.termsLocked) !== Boolean(latest.termsLocked) ||
+      previous._count.clients !== latest._count.clients
+    );
   }
 
   if ("name" in previous && "name" in latest) {
@@ -69,6 +74,8 @@ export function recordDraft(record: Batch | Client): RecordDraft {
       contractPrice: record.contractPrice ?? "",
       installmentCount: record.installmentCount?.toString() ?? "",
       cadence: record.cadence ?? "",
+      firstDueDate: record.firstDueDate ?? "",
+      monthEnd: String(record.monthEnd ?? false),
       startDate: record.startDate,
       endDate: record.endDate,
     };
@@ -93,6 +100,12 @@ export function batchEditInput(draft: RecordDraft): BatchInput {
     status: draft.status as BatchInput["status"],
     startDate: draft.startDate,
     endDate: draft.endDate,
+    ...(draft.firstDueDate
+      ? {
+          firstDueDate: draft.firstDueDate,
+          monthEnd: draft.monthEnd === "true",
+        }
+      : {}),
     ...(draft.contractPrice || draft.installmentCount || draft.cadence
       ? {
           contractPrice: draft.contractPrice,

@@ -40,10 +40,6 @@
   background: #f5d4e5;
   color: #19334e;
 }
-.summaryCard .statement:hover {
-  border-color: #ffe8f3;
-  background: #ffe8f3;
-}
 .summaryCard .ringTrack {
   stroke: #ffffff26;
 }
@@ -192,12 +188,6 @@
   flex: 0 0 17px;
   width: 17px;
   height: 17px;
-}
-.statement:hover,
-.confirmation:hover,
-.pagination button:not(:disabled):hover {
-  border-color: var(--payments-accent);
-  background: var(--payments-soft);
 }
 .ring {
   position: relative;

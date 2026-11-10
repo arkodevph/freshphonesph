@@ -1,0 +1,132 @@
+[data-solar-icon] {
+  --solar-motion: solar-nudge;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-solar-icon="bell-linear"] {
+  --solar-motion: solar-ring;
+  transform-origin: center top;
+}
+[data-solar-icon="settings-linear"],
+[data-solar-icon="sun-linear"] {
+  --solar-motion: solar-turn;
+}
+[data-solar-icon="arrow-right-linear"],
+[data-solar-icon="alt-arrow-right-linear"],
+[data-solar-icon="logout-linear"] {
+  --solar-motion: solar-right;
+}
+[data-solar-icon="arrow-left-linear"],
+[data-solar-icon="alt-arrow-left-linear"] {
+  --solar-motion: solar-left;
+}
+[data-solar-icon="arrow-down-linear"],
+[data-solar-icon="alt-arrow-down-linear"],
+[data-solar-icon="download-minimalistic-linear"] {
+  --solar-motion: solar-down;
+}
+[data-solar-icon="arrow-up-linear"],
+[data-solar-icon="file-send-linear"] {
+  --solar-motion: solar-up;
+}
+[data-solar-icon="arrow-right-up-linear"] {
+  --solar-motion: solar-diagonal;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :is(a, button, summary, [role="button"]):focus-visible > [data-solar-icon],
+  :is(a, button, summary, [role="button"]):focus-visible
+    > span
+    > [data-solar-icon] {
+    animation: var(--solar-motion) 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :is(a, button, summary, [role="button"]):not(:disabled):hover
+    > [data-solar-icon],
+  :is(a, button, summary, [role="button"]):not(:disabled):hover
+    > span
+    > [data-solar-icon] {
+    animation: var(--solar-motion) 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes solar-nudge {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-2px) scale(1.06);
+  }
+}
+@keyframes solar-ring {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(14deg);
+  }
+  40% {
+    transform: rotate(-11deg);
+  }
+  60% {
+    transform: rotate(7deg);
+  }
+  80% {
+    transform: rotate(-3deg);
+  }
+}
+@keyframes solar-turn {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  45% {
+    transform: rotate(35deg);
+  }
+}
+@keyframes solar-right {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(3px);
+  }
+}
+@keyframes solar-left {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(-3px);
+  }
+}
+@keyframes solar-down {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(3px);
+  }
+}
+@keyframes solar-up {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes solar-diagonal {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  45% {
+    transform: translate(2px, -2px);
+  }
+}

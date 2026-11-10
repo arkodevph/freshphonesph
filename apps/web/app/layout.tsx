@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
-import PublicNavigationLoader from "@/components/PublicNavigationLoader";
 import { PresentationNotice } from "@/components/PresentationNotice";
 import { PRESENTATION_MODE } from "@/lib/presentation";
+import PublicNavigationLoader from "@/components/PublicNavigationLoader";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -45,6 +45,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${nunito.variable} h-full antialiased`}
       suppressHydrationWarning
     >

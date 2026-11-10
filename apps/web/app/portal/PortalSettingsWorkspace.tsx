@@ -9,7 +9,7 @@ import {
   Moon,
   Sun,
   UserCircle,
-} from "@phosphor-icons/react";
+} from "@/components/SolarIcons";
 import Link from "next/link";
 import { type MouseEvent } from "react";
 import { CustomerSecuritySettings } from "./CustomerSecuritySettings";
@@ -38,7 +38,7 @@ export default function PortalSettingsWorkspace({
       >
         <div className={styles.sectionHeading}>
           <span className={`${styles.sectionIcon} ${styles.settingsIcon}`}>
-            <UserCircle weight="duotone" aria-hidden="true" />
+            <UserCircle aria-hidden="true" />
           </span>
           <div>
             <p className={styles.eyebrow}>Account</p>
@@ -60,7 +60,7 @@ export default function PortalSettingsWorkspace({
           account record.
         </p>
         <Link className={styles.settingsLink} href="/portal/support">
-          Contact support <ArrowRight weight="bold" aria-hidden="true" />
+          Contact support <ArrowRight aria-hidden="true" />
         </Link>
       </section>
       <section
@@ -69,7 +69,7 @@ export default function PortalSettingsWorkspace({
       >
         <div className={styles.sectionHeading}>
           <span className={`${styles.sectionIcon} ${styles.settingsIcon}`}>
-            <Sun weight="duotone" aria-hidden="true" />
+            <Sun aria-hidden="true" />
           </span>
           <div>
             <p className={styles.eyebrow}>Display</p>
@@ -95,9 +95,7 @@ export default function PortalSettingsWorkspace({
           >
             <Sun aria-hidden="true" />
             <span>Light</span>
-            {theme === "light" && (
-              <CheckCircle weight="fill" aria-hidden="true" />
-            )}
+            {theme === "light" && <CheckCircle aria-hidden="true" />}
           </button>
           <button
             type="button"
@@ -110,9 +108,7 @@ export default function PortalSettingsWorkspace({
           >
             <Moon aria-hidden="true" />
             <span>Dark</span>
-            {theme === "dark" && (
-              <CheckCircle weight="fill" aria-hidden="true" />
-            )}
+            {theme === "dark" && <CheckCircle aria-hidden="true" />}
           </button>
         </div>
       </section>
@@ -123,7 +119,7 @@ export default function PortalSettingsWorkspace({
       >
         <div className={styles.sectionHeading}>
           <span className={`${styles.sectionIcon} ${styles.settingsIcon}`}>
-            <FileText weight="duotone" aria-hidden="true" />
+            <FileText aria-hidden="true" />
           </span>
           <div>
             <p className={styles.eyebrow}>Your information</p>
@@ -135,12 +131,19 @@ export default function PortalSettingsWorkspace({
           workspace.
         </p>
         <Link className={styles.settingsLink} href="/privacy/customer">
-          Customer Privacy Notice{" "}
-          <ArrowRight weight="bold" aria-hidden="true" />
+          Customer Privacy Notice <ArrowRight aria-hidden="true" />
         </Link>
         <Link className={styles.settingsLink} href="/terms">
-          Portal Terms of Use <ArrowRight weight="bold" aria-hidden="true" />
+          Portal Terms of Use <ArrowRight aria-hidden="true" />
         </Link>
+        <p className={styles.settingsDescription}>
+          Solar icons by{" "}
+          <a href="https://www.figma.com/community/file/1166831539721848736">
+            480 Design
+          </a>
+          , licensed under{" "}
+          <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+        </p>
       </section>
     </div>
   );

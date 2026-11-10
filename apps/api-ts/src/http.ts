@@ -7,7 +7,7 @@ import {
   type PipeTransform,
 } from "@nestjs/common";
 import { Prisma } from "./generated/prisma/client";
-import { ZodError, type ZodTypeAny } from "zod";
+import { z, ZodError, type ZodTypeAny } from "zod";
 import type { Response } from "express";
 
 @Injectable()
@@ -42,7 +42,33 @@ export class Errors implements ExceptionFilter {
     }
 
     if (error instanceof HttpException) {
-      response.status(error.getStatus()).json({ message: error.message });
+      const details = error.getResponse();
+
+      const enrollmentError = z
+        .object({
+          code: z.enum(["FORM_VERSION_CHANGED", "ENROLLMENT_ANSWERS_INVALID"]),
+          issues: z
+            .array(
+              z.object({
+                questionId: z.string().uuid().nullable(),
+                message: z.string().max(200),
+              }),
+            )
+            .max(60)
+            .optional(),
+        })
+        .safeParse(details);
+
+      response.status(error.getStatus()).json({
+        message: error.message,
+        ...(enrollmentError.success &&
+        ((error.getStatus() === 409 &&
+          enrollmentError.data.code === "FORM_VERSION_CHANGED") ||
+          (error.getStatus() === 400 &&
+            enrollmentError.data.code === "ENROLLMENT_ANSWERS_INVALID"))
+          ? enrollmentError.data
+          : {}),
+      });
 
       return;
     }

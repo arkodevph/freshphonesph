@@ -303,7 +303,7 @@ export async function presentationResponse(
                 name: task.assigneeName,
                 role: "RECORDS",
               },
-              creator: demoUser("OWNER"),
+              creator: demoUser("SYSTEM_ADMIN"),
               createdAt: demoDate,
               attachments: [],
             };

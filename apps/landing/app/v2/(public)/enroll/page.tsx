@@ -1,5 +1,1 @@
-import { redirect } from "next/navigation";
-
-export default function EnrollPage() {
-  redirect("/inquire");
-}
+export { default, metadata } from "@/app/v2/(public)/enroll/page";

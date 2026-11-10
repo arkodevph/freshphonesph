@@ -4,6 +4,7 @@ import { reportFilterQuery, type ReportFilters } from "@/lib/report-filters";
 import type { ReportBatchOption, ReportKind } from "@freshphones/contracts";
 import { DownloadSimple, FloppyDisk } from "@phosphor-icons/react";
 import styles from "./reports.module.css";
+import ReportVisuals from "./ReportVisuals";
 import {
   LoadedReport,
   names,
@@ -26,6 +27,8 @@ type Props = {
   notice: string | null;
   error: string | null;
   canReviewPayments: boolean;
+  canWriteReports: boolean;
+  showVisuals: boolean;
   onPage: (page: number) => void;
   analysisDraft: string;
   onAnalysisChange: (value: string) => void;
@@ -45,6 +48,8 @@ export default function ReportResultsPanel({
   notice,
   error,
   canReviewPayments,
+  canWriteReports,
+  showVisuals,
   onPage,
   analysisDraft,
   onAnalysisChange,
@@ -94,24 +99,26 @@ export default function ReportResultsPanel({
               </button>
             );
           })}
-          <button
-            type="button"
-            className={styles.primary}
-            disabled={
-              loading ||
-              !report ||
-              dirty ||
-              Boolean(busy) ||
-              !applied.dateFrom ||
-              !applied.dateTo
-            }
-            onClick={() => {
-              return void runAction("save");
-            }}
-          >
-            <FloppyDisk aria-hidden="true" />
-            {busy === "save" ? "Saving…" : "Save period report"}
-          </button>
+          {canWriteReports && (
+            <button
+              type="button"
+              className={styles.primary}
+              disabled={
+                loading ||
+                !report ||
+                dirty ||
+                Boolean(busy) ||
+                !applied.dateFrom ||
+                !applied.dateTo
+              }
+              onClick={() => {
+                return void runAction("save");
+              }}
+            >
+              <FloppyDisk aria-hidden="true" />
+              {busy === "save" ? "Saving…" : "Save period report"}
+            </button>
+          )}
         </div>
       </div>
       {actionError && (
@@ -142,62 +149,76 @@ export default function ReportResultsPanel({
         </p>
       ) : (
         report && (
-          <ReportResults
-            report={report}
-            scope={reportFilterQuery(kind, applied).params ?? undefined}
-            canReviewPayments={canReviewPayments}
-            pageDisabled={dirty || Boolean(busy)}
-            onPage={onPage}
-          />
+          <>
+            {showVisuals && <ReportVisuals report={report} />}
+            <ReportResults
+              report={report}
+              scope={reportFilterQuery(kind, applied).params ?? undefined}
+              canReviewPayments={canReviewPayments}
+              pageDisabled={dirty || Boolean(busy)}
+              onPage={onPage}
+            />
+          </>
         )
       )}
-      <label className={styles.analysisEntry}>
-        Analysis for this saved period{" "}
-        <span className={styles.help}>
-          Optional. Human-written; visible to all report viewers. Summarize
-          trends and actions without customer names, contact details or private
-          task evidence.
-        </span>
-        <textarea
-          value={analysisDraft}
-          onChange={(event) => {
-            onAnalysisChange(event.target.value);
-          }}
-          disabled={loading || Boolean(busy)}
-          maxLength={4000}
-          rows={5}
-          placeholder="What do the figures mean for this period?"
-        />
-        <small>{analysisDraft.length}/4000 characters</small>
-      </label>
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.primary}
-          disabled={
-            loading ||
-            !report ||
-            dirty ||
-            Boolean(busy) ||
-            !applied.dateFrom ||
-            !applied.dateTo
-          }
-          onClick={() => {
-            return void runAction("save");
-          }}
-        >
-          <FloppyDisk aria-hidden="true" />
-          {busy === "save"
-            ? "Saving…"
-            : analysisDraft.trim()
-              ? "Save period and analysis"
-              : "Save period report"}
-        </button>
-      </div>
+      {canWriteReports && (
+        <>
+          <label className={styles.analysisEntry}>
+            Analysis for this saved period{" "}
+            <span className={styles.help}>
+              Optional. Human-written; visible to all report viewers. Summarize
+              trends and actions without customer names, contact details or
+              private task evidence.
+            </span>
+            <textarea
+              value={analysisDraft}
+              onChange={(event) => {
+                onAnalysisChange(event.target.value);
+              }}
+              disabled={loading || Boolean(busy)}
+              maxLength={4000}
+              rows={5}
+              placeholder="What do the figures mean for this period?"
+            />
+            <small>{analysisDraft.length}/4000 characters</small>
+          </label>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.primary}
+              disabled={
+                loading ||
+                !report ||
+                dirty ||
+                Boolean(busy) ||
+                !applied.dateFrom ||
+                !applied.dateTo
+              }
+              onClick={() => {
+                return void runAction("save");
+              }}
+            >
+              <FloppyDisk aria-hidden="true" />
+              {busy === "save"
+                ? "Saving…"
+                : analysisDraft.trim()
+                  ? "Save period and analysis"
+                  : "Save period report"}
+            </button>
+          </div>
+        </>
+      )}
       <p className={styles.help}>
-        Downloads contain only report fields. Choose both dates to save a period
-        report; saved figures and submitted analysis stay as they were at
-        submission. You can add analysis later to a saved report that has none.
+        {canWriteReports ? (
+          <>
+            Downloads contain only report fields. Choose both dates to save a
+            period report; saved figures and submitted analysis stay as they
+            were at submission. You can add analysis later to a saved report
+            that has none.
+          </>
+        ) : (
+          "Downloads contain only report fields. Saved figures and submitted analysis are available in the report history below."
+        )}
       </p>
     </section>
   );

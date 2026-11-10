@@ -12,6 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import styles from "./customer-portal-tour.module.css";
+import glass from "./portal-glass.module.css";
 
 type TourMode = "desktop" | "tablet" | "mobile";
 
@@ -505,7 +506,7 @@ export function useCustomerPortalTour({
   const overlay =
     open && typeof document !== "undefined"
       ? createPortal(
-          <div className={styles.tourLayer}>
+          <div className={`${styles.tourLayer} ${glass.interactions}`}>
             {position.spotlight ? (
               <div
                 className={styles.tourSpotlight}

@@ -15,19 +15,35 @@ export function installmentState(
 
   const remaining = Math.max(0, expected - applied);
 
+  const released = cents(item.released_amount ?? "0");
+
   const payment =
-    remaining === 0 ? "Paid" : applied > 0 ? "Partially paid" : "Unpaid";
+    released > 0
+      ? expected === 0
+        ? "Handed over"
+        : remaining === 0
+          ? "Settled after handover"
+          : applied > 0
+            ? "Partially paid"
+            : "Unpaid"
+      : remaining === 0
+        ? "Paid"
+        : applied > 0
+          ? "Partially paid"
+          : "Unpaid";
 
   const dueDate = item.due_date.slice(0, 10);
 
   const timing =
-    remaining === 0
-      ? "Settled"
-      : dueDate < today
-        ? "Overdue"
-        : dueDate === today
-          ? "Due today"
-          : "Upcoming";
+    released > 0 && remaining === 0
+      ? "Replacement joined"
+      : remaining === 0
+        ? "Settled"
+        : dueDate < today
+          ? "Overdue"
+          : dueDate === today
+            ? "Due today"
+            : "Upcoming";
 
   return {
     remaining: remaining / 100,

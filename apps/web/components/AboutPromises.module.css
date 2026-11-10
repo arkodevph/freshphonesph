@@ -17,15 +17,6 @@
   scroll-margin-top: 7rem;
 }
 
-.card::after {
-  content: "";
-  position: absolute;
-  inset: 0.375rem;
-  border: 2px solid transparent;
-  border-radius: 0.625rem;
-  pointer-events: none;
-}
-
 .grid[data-ready="true"] {
   grid-template-columns: minmax(0, 2.12fr) minmax(0, 1fr) minmax(0, 1fr) minmax(
       0,
@@ -62,27 +53,6 @@
 
 .grid[data-ready="true"] .card[data-active="true"] {
   padding-inline: 2.25rem;
-}
-
-.grid[data-ready="true"] .card[data-active="true"]::after,
-.card:has(.toggle:focus-visible)::after {
-  border-color: currentColor;
-}
-
-.card:has(.toggle:focus-visible)::after {
-  border-width: 3px;
-}
-
-.number {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  font-size: 3rem;
-  font-weight: 800;
-  line-height: 1;
-  white-space: nowrap;
-  opacity: 0.2;
-  pointer-events: none;
 }
 
 .copy {
@@ -134,8 +104,10 @@
   cursor: pointer;
 }
 
-.toggle:focus-visible {
-  outline: none;
+.card .toggle:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid currentColor;
+  outline-offset: 0.375rem;
 }
 
 .details {
@@ -175,19 +147,8 @@
   justify-content: flex-end;
 }
 
-.card:nth-child(2) .icon svg {
-  border-radius: 50%;
-  padding: 0.75rem;
-  background: rgb(255 255 255 / 30%);
-}
-
 .card:nth-child(3) .icon {
   justify-content: center;
-}
-
-.card:nth-child(4) .icon svg {
-  width: 5rem;
-  height: 5rem;
 }
 
 .art {
@@ -356,12 +317,6 @@
 
   .grid[data-ready="true"] .card[data-active="true"] {
     padding: 7.5rem 1.5rem 1.625rem;
-  }
-
-  .number {
-    top: 1.5rem;
-    right: 1.25rem;
-    font-size: 2.5rem;
   }
 
   .grid[data-ready="true"] .card[data-active="true"] .body {

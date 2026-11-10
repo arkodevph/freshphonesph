@@ -1,4 +1,5 @@
 import Image from "next/image";
+import PublicNavigationLink from "./PublicNavigationLink";
 import {
   ArrowRight,
   FacebookLogo,
@@ -52,6 +53,7 @@ export default function Footer({
 }) {
   return (
     <footer
+      data-landing-version="2"
       className={`landing-footer ${styles.footer} ${landingV2Font.variable} ${typography.root} ${standalone ? scene.footerScene : ""}`}
     >
       <div className={styles.inner}>
@@ -88,7 +90,12 @@ export default function Footer({
                       aria-label={s.label}
                       className={styles.social}
                     >
-                      <s.icon weight="fill" className="h-5 w-5" />
+                      <s.icon
+                        weight="fill"
+                        className="h-5 w-5"
+                        aria-hidden="true"
+                        data-button-icon
+                      />
                     </a>
                   );
                 })}
@@ -106,9 +113,12 @@ export default function Footer({
                     {group.links.map((l) => {
                       return (
                         <li key={l.href}>
-                          <a href={l.href} className={styles.navLink}>
+                          <PublicNavigationLink
+                            href={l.href}
+                            className={styles.navLink}
+                          >
                             {l.label}
-                          </a>
+                          </PublicNavigationLink>
                         </li>
                       );
                     })}
@@ -131,7 +141,11 @@ export default function Footer({
               >
                 Message our team
                 <span>
-                  <ArrowRight weight="bold" aria-hidden="true" />
+                  <ArrowRight
+                    weight="bold"
+                    aria-hidden="true"
+                    data-button-icon
+                  />
                 </span>
               </a>
               <a className={styles.phone} href="tel:+639624791649">

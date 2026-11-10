@@ -70,9 +70,6 @@
   color: #19334e;
   font-size: 14px;
 }
-.plan .planFooter button:hover {
-  background: #ffe8f3;
-}
 .plan :focus-visible {
   outline-color: #f5d4e5;
 }
@@ -332,9 +329,6 @@
   background: var(--portal-surface-alt);
   color: var(--portal-text);
   cursor: pointer;
-}
-.days > button:hover {
-  border-color: var(--schedule-accent);
 }
 .days .outside {
   background: var(--portal-surface);
@@ -798,9 +792,6 @@
   outline: 2px solid var(--schedule-accent);
   outline-offset: 3px;
 }
-.workspace button:hover {
-  filter: brightness(1.05);
-}
 .skeletonPlan {
   min-height: 262px;
 }
@@ -1006,5 +997,498 @@
   .skeleton .calendar,
   .skeleton .preview {
     animation: none;
+  }
+}
+
+/* Compact month workspace: summary, view switcher, calendar and day inspector. */
+.workspace .plan {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.65fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  background: var(--portal-surface);
+  color: var(--portal-text);
+  --schedule-accent: var(--portal-accent);
+  --schedule-soft: var(--portal-accent-soft);
+  --schedule-overdue: var(--portal-danger, #ad3d35);
+}
+:global(html[data-system-theme="dark"]) .workspace .plan {
+  --schedule-overdue: #f2a998;
+}
+.workspace .plan .icon {
+  display: none;
+}
+.workspace .plan .heading {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.workspace .plan .heading > div {
+  flex: 1 0 100%;
+}
+.workspace .plan .heading h2 {
+  font-size: 15px;
+  margin: 0;
+}
+.workspace .plan .heading p {
+  display: none;
+}
+.workspace .plan .count {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--portal-muted);
+  font-weight: 400;
+}
+.workspace .planMain {
+  margin: 0;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(105px, 0.8fr) auto;
+}
+.workspace .planBalance {
+  gap: 2px;
+}
+.workspace .planBalance p,
+.workspace .planDue > span {
+  font-size: 12px;
+}
+.workspace .planBalance > strong {
+  font-size: 25px;
+}
+.workspace .planDue > strong {
+  font-size: 14px;
+}
+.workspace .planStatus {
+  gap: 4px;
+  font-size: 12px;
+}
+.workspace .plan .planStatus .badge {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.workspace .planFooter {
+  display: block;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.workspace .plan .planFooter button {
+  background: var(--portal-surface-alt);
+  border-color: var(--portal-border);
+  color: var(--portal-text);
+  font-size: 13px;
+}
+.viewToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 14px 0;
+}
+.viewSwitcher {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 11px;
+  background: var(--portal-surface-alt);
+  border: 1px solid var(--portal-border);
+}
+.viewSwitcher button {
+  min-height: 36px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  color: var(--portal-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.viewSwitcher button[aria-pressed="true"] {
+  background: var(--portal-surface);
+  color: var(--portal-text);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 10%);
+}
+.viewSwitcher button span {
+  margin-left: 6px;
+  color: var(--portal-muted);
+  font-variant-numeric: tabular-nums;
+}
+.viewHint {
+  color: var(--portal-muted);
+  font-size: 12px;
+}
+.workspace .layout {
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
+  gap: 16px;
+}
+.workspace .calendar,
+.workspace .preview {
+  padding: 16px 20px;
+  border-radius: 18px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.workspace .monthNav {
+  margin: 0 0 14px;
+  flex-wrap: nowrap;
+}
+.workspace .monthNav h3 {
+  font-size: 18px;
+}
+.workspace .monthNav > button {
+  width: auto;
+  min-height: 38px;
+}
+.workspace .weekdays {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.workspace .days {
+  gap: 4px;
+}
+.workspace .days > button {
+  min-height: 54px;
+  padding: 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-color: transparent;
+  background: transparent;
+  border-radius: 10px;
+}
+.workspace .days .outside {
+  color: var(--portal-muted);
+}
+.workspace .days .outside .dayNumber {
+  opacity: 0.55;
+}
+.workspace .days .selectedDay {
+  background: var(--portal-surface-alt);
+  border-color: var(--portal-border);
+}
+.workspace .dayNumber {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 14px;
+}
+.workspace .dayEvents {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 14px;
+}
+.workspace .dayEvent {
+  display: block;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 14px;
+}
+.workspace .moreEvents {
+  font-size: 10px;
+  line-height: 14px;
+}
+.workspace .legend {
+  margin-top: 12px;
+  gap: 14px;
+  font-size: 11px;
+}
+.workspace .dueNow {
+  margin: 0 0 14px;
+  justify-items: start;
+  text-align: left;
+  gap: 4px;
+}
+.workspace .dueNow > span {
+  font-size: 12px;
+}
+.workspace .dueNow > strong {
+  font-size: 27px;
+}
+.workspace .dueNow p {
+  max-width: none;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.workspace .completion > div {
+  height: 4px;
+  margin-top: 6px;
+}
+.workspace .agenda {
+  margin-top: 18px;
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 1px solid var(--portal-border);
+  border-radius: 0;
+  background: transparent;
+}
+.workspace .agenda h3 {
+  font-size: 14px;
+}
+.workspace .agenda ul {
+  margin-top: 12px;
+}
+.workspace .agendaHeading > strong {
+  font-size: 14px;
+}
+.workspace .agenda dl {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.workspace .agenda dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.workspace .agenda dd {
+  margin: 0;
+  font-size: 14px;
+}
+.workspace .agendaActions {
+  margin-top: 14px;
+}
+.workspace .logs {
+  margin-top: 0;
+}
+.workspace .logsHeader p {
+  display: none;
+}
+.workspace .logsHeader h2 {
+  font-size: 17px;
+}
+.workspace .tableScroll {
+  margin-top: 14px;
+}
+.workspace .tableScroll table {
+  min-width: 850px;
+  font-size: 13px;
+}
+.workspace .tableScroll th,
+.workspace .tableScroll td {
+  padding: 8px 10px;
+}
+.workspace .tableScroll caption {
+  padding: 10px;
+  font-size: 12px;
+}
+.workspace .tableScroll button {
+  min-height: 36px;
+  padding: 6px 10px;
+}
+.workspace.skeleton .skeletonPlan {
+  min-height: 92px;
+}
+.workspace.skeleton .skeletonCalendar {
+  min-height: 380px;
+}
+.workspace.skeleton .skeletonPreview {
+  min-height: 380px;
+}
+@media (max-width: 1100px) {
+  .workspace .plan {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .workspace .plan .heading {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .workspace .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace .preview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    column-gap: 24px;
+    align-items: start;
+  }
+  .workspace .preview .agenda {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 0;
+    padding: 0 0 0 20px;
+    border-top: 0;
+    border-left: 1px solid var(--portal-border);
+  }
+  .workspace .planMain {
+    gap: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .workspace .plan {
+    padding: 14px;
+    gap: 12px;
+  }
+  .workspace .planMain {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .workspace .planBalance > strong {
+    font-size: 24px;
+  }
+  .workspace .planDue {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .workspace .planStatus {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .workspace .planFooter {
+    grid-column: 1 / -1;
+  }
+  .workspace .plan .planFooter button {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 10px;
+  }
+  .viewToolbar {
+    margin: 12px 0;
+  }
+  .viewSwitcher {
+    width: 100%;
+  }
+  .viewSwitcher button {
+    flex: 1;
+    min-height: 38px;
+    padding: 6px 10px;
+  }
+  .viewHint {
+    display: none;
+  }
+  .workspace .calendar,
+  .workspace .preview {
+    padding: 14px;
+  }
+  .workspace .monthNav > div {
+    flex: none;
+    gap: 8px;
+  }
+  .workspace .monthNav h3 {
+    font-size: 16px;
+  }
+  .workspace .monthNav > button {
+    min-height: 38px;
+    padding: 6px 10px;
+  }
+  .workspace .weekdays,
+  .workspace .days {
+    gap: 2px;
+  }
+  .workspace .days > button {
+    min-height: 44px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .workspace .dayEvents {
+    min-height: 6px;
+    gap: 2px;
+  }
+  .workspace .dayEvent {
+    width: 5px;
+    height: 5px;
+    padding: 0;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .workspace .dayEvent > span {
+    display: none;
+  }
+  .workspace .preview {
+    display: block;
+  }
+  .workspace .preview .agenda {
+    border-left: 0;
+    border-top: 1px solid var(--portal-border);
+    padding: 14px 0 0;
+    margin-top: 14px;
+  }
+  .workspace .agenda dl {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .workspace .agenda dl > div {
+    display: block;
+  }
+  .workspace .agenda dd {
+    font-size: 13px;
+  }
+  .workspace .dueNow p {
+    font-size: 12px;
+  }
+  .workspace .logsHeader {
+    flex-direction: row;
+    align-items: center;
+  }
+  .workspace .logsHeader > button {
+    width: auto;
+  }
+}
+.installmentList {
+  display: none;
+}
+@media (max-width: 600px) {
+  .workspace .tableScroll {
+    display: none;
+  }
+  .installmentList {
+    display: grid;
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+  }
+  .installmentList li + li {
+    border-top: 1px solid var(--portal-border);
+  }
+  .installmentList button {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 12px;
+    width: 100%;
+    padding: 14px 0;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .installmentList button > span:not(.badge) {
+    display: grid;
+    gap: 4px;
+  }
+  .installmentList button > span:nth-child(2) {
+    text-align: right;
+  }
+  .installmentList strong {
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .installmentList small {
+    font-size: 12px;
+    color: var(--portal-muted);
+  }
+  .installmentList .badge {
+    justify-self: start;
+  }
+  .installmentList button > small {
+    text-align: right;
   }
 }

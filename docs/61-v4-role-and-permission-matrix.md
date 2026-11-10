@@ -1,5 +1,23 @@
 # V4 role and permission matrix
 
+**Owner / CEO correction, 2026-10-28:** These names identify one report-only business
+role. Technical maintenance uses internal SYSTEM_ADMIN. [Current role merge](67-owner-ceo-role.md)
+supersedes older OWNER-as-administrator code references.
+
+
+**Current access implementation, 2026-10-28:** Jaycee approved COO business role
+administration and Agent enrollment requests approved by the assigned Batch Manager
+with COO oversight. [Role access alignment](66-role-access-alignment.md) records the
+implemented roles, hierarchy, API/UI scopes and remaining workflow limits. It supersedes
+conflicting historical cells below; HR role delegation, legacy Analytics reassignment
+and catalog ownership remain undecided.
+
+
+**CEO update, 2026-10-26:** Client agreement makes CEO access report-only and
+supersedes V4 executive approvals. The user authorized this implementation slice.
+See [CEO access](62-ceo-report-only-access.md) for the distinct role, business Owner
+migration, report write separation and portal restrictions. Other role changes remain separate work.
+
 Completed S1 01 documentation on 2026-10-16. The user directed that the supplied files provide the role requirements; use Organizational Structure V4 as the target business model. Existing code differences are implementation work, not a reason to request the same role decisions again.
 
 Sources: [Organizational Structure V4](../../../../../Documents/PDFs/Fresh_Phones_PH_Organizational_Structure_V4.pdf), sections 1–6, and [Basic Website Workflow](../../../../../Documents/PDFs/Fresh_Phones_PH_Basic_Website_Workflow.docx), sections 1–4. The access table below transcribes V4 section 4; the action rules use the more specific role descriptions and workflows. This document records the target; it does not claim the current API already enforces it.
@@ -8,7 +26,7 @@ Sources: [Organizational Structure V4](../../../../../Documents/PDFs/Fresh_Phone
 
 | Business role | Reports to | Required responsibility and scope |
 |---|---|---|
-| CEO | Executive role | Company-wide financial, operational, personnel, KPI and audit reports; executive approvals. Technical administration is controlled separately. |
+| CEO | Executive role | Report-only business oversight. No executive approvals or technical administration; see the 2026-10-26 update. |
 | COO | CEO | Supervise all operational departments/officers; operational dashboards, tasks, schedules, authorized approvals and escalated complaints. No final financial verification. |
 | Batch Manager | COO | Approved enrollment, assigned batches, Handler assignment, batch tasks, delivery/release monitoring, GC cross-check and operational payment approval. |
 | HR & Payroll Officer | COO | Approved/trained personnel enrollment, personnel accounts and authorized roles, HR records, payroll preparation and commission summaries. |
@@ -29,7 +47,7 @@ Customer remains a separate external role: own membership, schedule, payments, d
 
 | Role | Personnel | Batches | Payments | Tasks / KPI |
 |---|---|---|---|---|
-| CEO | V | V | V | V/A |
+| CEO | Reports only | Reports only | Reports only | Reports only |
 | COO | V | V/A | V | E/A |
 | Batch Manager | — | E/A | V/A* | E |
 | HR & Payroll | E | — | — | V |
@@ -77,7 +95,7 @@ These are implementation mappings for the existing vocabulary, not claims that t
 
 | Existing code | V4 target | Migration treatment |
 |---|---|---|
-| `OWNER` | CEO for the business oversight role | Replace the all-permissions business grant. Handle any separately provisioned technical administration capability independently. |
+| `OWNER` | Distinct `CEO` for existing business oversight accounts | The 2026-10-26 migration moves existing business Owner accounts to report-only CEO. Legacy `OWNER` is separately controlled technical administration, not a CEO grant. |
 | `COO` | COO | Retain identity; apply V4 action grants and field scope. |
 | `GENERAL_MANAGER` | Batch Manager as the V4 operational replacement | Convert the role vocabulary; establish actual batch assignments rather than granting every batch automatically. |
 | `HR_PAYROLL` | HR & Payroll Officer | Retain identity; add constrained personnel provisioning and remove unrelated grants. |
@@ -96,7 +114,7 @@ This supplies the engineering mapping without pretending the documents provide a
 
 ## CEO administration and KPI confidentiality
 
-**CEO:** V4 explicitly provides oversight and executive approvals and explicitly separates technical administration. Therefore `OWNER: permissions` is not a suitable CEO grant. Implement administration with separately controlled capabilities; do not add automatic Finance verification or unrestricted configuration writes to CEO. Existing specifically scoped executive approval workflows can remain where consistent with V4.
+**CEO:** The 2026-10-26 client update supersedes V4 executive approvals. The distinct `CEO` role has `REPORT_VIEW` without `REPORT_WRITE` or operational permissions. Technical administration is separately controlled; existing business Owner identities move to CEO without a technical-administrator grant.
 
 **KPI Officer:** V4 explicitly authorizes necessary personnel KPI data and human evaluations. Provide a distinct KPI data scope: staff identity needed for evaluation, assigned targets, deadlines, submission/completion facts, objective timeliness, productivity and relevant evaluation/progress records. This is an implementation interpretation of “necessary” data, not permission to expose all personnel fields or attachments.
 

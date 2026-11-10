@@ -1,45 +1,40 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
-import {
-  CheckCircle,
-  Heart,
-  ShieldCheck,
-  UsersThree,
-} from "@phosphor-icons/react/dist/ssr";
+import { useId } from "react";
+import { useExpandingCards } from "@/lib/useExpandingCards";
+import DoodleIcon from "./DoodleIcon";
 import styles from "./AboutPromises.module.css";
 
 const commitments = [
   {
-    icon: ShieldCheck,
+    icon: "shield-heart",
     eyebrow: "Legit & accountable",
     title: "A registered local business",
     body: "Fresh Phones PH operates under the DTI-registered business name FP Gadget Center, giving customers a clear business identity behind every transaction.",
     className: "bg-[#3157c8] text-white",
   },
   {
-    icon: UsersThree,
+    icon: "chat-heart",
     eyebrow: "Customer-first",
     title: "Support that stays human",
     body: "Questions are welcome. From choosing a unit to understanding a payment schedule, our goal is to make every next step easy to follow.",
     className: "bg-[#67d2f1] text-blue-ink",
   },
   {
-    icon: CheckCircle,
+    icon: "application",
     eyebrow: "Clear process",
     title: "No confusing surprises",
     body: "We share unit details, requirements, payment options, and availability clearly before a customer commits to a paluwagan plan.",
     className: "bg-[#c7a6ff] text-blue-ink",
   },
   {
-    icon: Heart,
+    icon: "phone-heart",
     eyebrow: "The Fresh Phones way",
     title: "Gadgets made manageable",
     body: "The business is built around a simple purpose: help more Filipinos work toward a quality iPhone or iPad through manageable payment options.",
     className: "bg-[#ff92c8] text-blue-ink",
   },
-];
+] as const;
 
 function PromiseArtwork({ index }: { index: number }) {
   return (
@@ -76,107 +71,8 @@ function PromiseArtwork({ index }: { index: number }) {
 export default function AboutPromises() {
   const id = useId();
 
-  const [active, setActive] = useState(0);
-
-  const [ready, setReady] = useState(false);
-
-  const [compact, setCompact] = useState(false);
-
-  const cards = useRef<Array<HTMLElement | null>>([]);
-
-  const toggles = useRef<Array<HTMLButtonElement | null>>([]);
-
-  const userSelection = useRef(false);
-
-  useEffect(() => {
-    const query = window.matchMedia("(max-width: 1199px)");
-
-    function syncLayout() {
-      setCompact(query.matches);
-    }
-
-    syncLayout();
-
-    setReady(true);
-
-    query.addEventListener("change", syncLayout);
-
-    return () => {
-      query.removeEventListener("change", syncLayout);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!compact) {
-      userSelection.current = false;
-
-      return;
-    }
-
-    if (!userSelection.current) {
-      return;
-    }
-
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    const timer = setTimeout(
-      () => {
-        userSelection.current = false;
-
-        const card = cards.current[active];
-
-        const top = card?.getBoundingClientRect().top;
-
-        if (
-          top !== undefined &&
-          (top < 100 || top > window.innerHeight - 100)
-        ) {
-          card?.scrollIntoView({
-            block: "start",
-            behavior: motion.matches ? "instant" : "smooth",
-          });
-        }
-      },
-      motion.matches ? 0 : 680,
-    );
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [active, compact]);
-
-  function select(index: number) {
-    if (!ready || index === active) {
-      return;
-    }
-
-    userSelection.current = compact;
-
-    setActive(index);
-  }
-
-  function handleKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    const next =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? commitments.length - 1
-          : ["ArrowRight", "ArrowDown"].includes(event.key)
-            ? (index + 1) % commitments.length
-            : ["ArrowLeft", "ArrowUp"].includes(event.key)
-              ? (index + commitments.length - 1) % commitments.length
-              : null;
-
-    if (next === null) {
-      return;
-    }
-
-    event.preventDefault();
-
-    toggles.current[next]?.focus({ preventScroll: true });
-
-    select(next);
-  }
+  const { active, ready, compact, cards, toggles, select, handleKey } =
+    useExpandingCards(4, "(max-width: 1199px)");
 
   return (
     <div
@@ -214,9 +110,6 @@ export default function AboutPromises() {
             }}
           >
             <PromiseArtwork index={index} />
-            <span className={styles.number} aria-hidden="true">
-              0{index + 1}
-            </span>
             <div className={styles.copy}>
               <p className={styles.eyebrow}>{item.eyebrow}</p>
               <h3 id={titleId} className={styles.title}>
@@ -253,7 +146,7 @@ export default function AboutPromises() {
                 <div className={styles.detailsInner}>
                   <p className={styles.body}>{item.body}</p>
                   <div className={styles.icon} aria-hidden="true">
-                    <item.icon weight={index === 1 ? "fill" : "duotone"} />
+                    <DoodleIcon name={item.icon} size={64} />
                   </div>
                 </div>
               </div>

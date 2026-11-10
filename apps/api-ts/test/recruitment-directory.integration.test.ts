@@ -66,7 +66,7 @@ const request = (
 };
 
 const read = async (path: string) => {
-  const response = await request("OWNER", path);
+  const response = await request("SYSTEM_ADMIN", path);
 
   assert.equal(response.status, 200);
 
@@ -412,7 +412,7 @@ test("strict query/UUID validation rejects invalid or irrelevant facets and exac
       "anything=ignored",
     ]) {
       assert.equal(
-        (await request("OWNER", `/recruitment/${kind}?${query}`)).status,
+        (await request("SYSTEM_ADMIN", `/recruitment/${kind}?${query}`)).status,
         400,
         `${kind} ${query}`,
       );
@@ -420,23 +420,24 @@ test("strict query/UUID validation rejects invalid or irrelevant facets and exac
   }
 
   assert.equal(
-    (await request("OWNER", "/recruitment/applicants?jobId=bad")).status,
+    (await request("SYSTEM_ADMIN", "/recruitment/applicants?jobId=bad")).status,
     400,
   );
 
   assert.equal(
-    (await request("OWNER", `/recruitment/jobs?jobId=${jobId}`)).status,
+    (await request("SYSTEM_ADMIN", `/recruitment/jobs?jobId=${jobId}`)).status,
     400,
   );
 
   for (const kind of ["jobs", "applicants"]) {
     assert.equal(
-      (await request("OWNER", `/recruitment/${kind}/bad`)).status,
+      (await request("SYSTEM_ADMIN", `/recruitment/${kind}/bad`)).status,
       400,
     );
 
     assert.equal(
-      (await request("OWNER", `/recruitment/${kind}/${randomUUID()}`)).status,
+      (await request("SYSTEM_ADMIN", `/recruitment/${kind}/${randomUUID()}`))
+        .status,
       404,
     );
   }
@@ -558,7 +559,7 @@ test("reviews preserve captured versions and complete detail responses, reject c
   }
 
   const results = await Promise.all([
-    request("OWNER", paths[0], {
+    request("SYSTEM_ADMIN", paths[0], {
       status: "SHORTLISTED",
       reviewerNotes: "Human Owner review",
       version: before.version,
@@ -593,7 +594,7 @@ test("reviews preserve captured versions and complete detail responses, reject c
 
   assert.equal(
     (
-      await request("OWNER", paths[0], {
+      await request("SYSTEM_ADMIN", paths[0], {
         status: "HIRED",
         version: before.version,
       })
@@ -631,14 +632,18 @@ test("reviews preserve captured versions and complete detail responses, reject c
   };
 
   assert.equal(
-    (await request("OWNER", paths[1], { record, version: opening.version }))
-      .status,
+    (
+      await request("SYSTEM_ADMIN", paths[1], {
+        record,
+        version: opening.version,
+      })
+    ).status,
     200,
   );
 
   assert.equal(
     (
-      await request("OWNER", paths[1], {
+      await request("SYSTEM_ADMIN", paths[1], {
         record: { ...record, isOpen: true },
         version: opening.version,
       })

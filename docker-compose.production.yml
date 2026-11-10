@@ -1,0 +1,104 @@
+name: freshphones-production
+
+x-api-build: &api-build
+  context: .
+  dockerfile: apps/api-ts/Dockerfile
+  target: runner
+
+x-api-environment: &api-environment
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  PORT: "4100"
+  AUTH_REQUIRE_STAFF_MFA: "true"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: runner
+      args:
+        NEXT_PUBLIC_API_URL: ${WEB_ORIGIN:?Set WEB_ORIGIN to the public HTTPS system origin}
+        NEXT_PUBLIC_LANDING_URL: ${PUBLIC_SITE_ORIGIN:?Set PUBLIC_SITE_ORIGIN to the HTTPS landing origin}
+        API_PROXY_URL: http://api:4100
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_PRESENTATION_MODE: "false"
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/login').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  api:
+    build: *api-build
+    env_file: .env.production
+    environment: *api-environment
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:4100/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  worker:
+    build: *api-build
+    command: [node, dist/worker.js]
+    env_file: .env.production
+    environment: *api-environment
+    depends_on:
+      api:
+        condition: service_healthy
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  migrate:
+    profiles: [migrate]
+    build:
+      context: .
+      dockerfile: apps/api-ts/Dockerfile
+      target: migrations
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set the intended production DATABASE_URL}
+    init: true
+    restart: "no"

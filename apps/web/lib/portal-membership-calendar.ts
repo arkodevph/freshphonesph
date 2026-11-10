@@ -36,22 +36,46 @@ export function calendarDate(value: string | null | undefined): string | null {
 export function membershipMilestones(
   summary: Pick<
     PortalSummary,
-    "joined_at" | "batch_start_date" | "batch_end_date"
+    "joined_at" | "batch_start_date" | "batch_end_date" | "individual_plan"
   >,
 ): MembershipMilestone[] {
   return [
     { key: "joined", label: "Joined", date: calendarDate(summary.joined_at) },
     {
       key: "batch-start",
-      label: "Batch start",
+      label: summary.individual_plan ? "Plan start" : "Batch start",
       date: calendarDate(summary.batch_start_date),
     },
     {
       key: "batch-end",
-      label: "Planned batch end",
+      label: summary.individual_plan ? "Planned plan end" : "Planned batch end",
       date: calendarDate(summary.batch_end_date),
     },
   ];
+}
+
+export function groupedMembershipMilestones(milestones: MembershipMilestone[]) {
+  const joined = milestones.find((item) => {
+    return item.key === "joined";
+  });
+
+  const start = milestones.find((item) => {
+    return item.key === "batch-start";
+  });
+
+  if (!joined?.date || joined.date !== start?.date) {
+    return milestones;
+  }
+
+  return milestones
+    .filter((item) => {
+      return item.key !== "batch-start";
+    })
+    .map((item) => {
+      return item.key === "joined"
+        ? { ...item, label: "Joined & batch start" }
+        : item;
+    });
 }
 
 export function membershipCalendarEvents(

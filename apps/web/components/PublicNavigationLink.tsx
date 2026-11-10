@@ -1,24 +1,47 @@
 "use client";
 
-import Link from "next/link";
-import type { AnchorHTMLAttributes, MouseEvent } from "react";
+import Link, { type LinkProps } from "next/link";
+import {
+  useEffect,
+  useState,
+  type AnchorHTMLAttributes,
+  type MouseEvent,
+} from "react";
 import {
   publicNavigationKind,
   publicNavigationEvent,
   publicNavigationResetEvent,
+  publicPreviewHref,
 } from "@/lib/public-navigation";
+
+type Props = AnchorHTMLAttributes<HTMLAnchorElement> &
+  Pick<LinkProps, "prefetch" | "replace" | "scroll">;
 
 export default function PublicNavigationLink({
   href,
   onClick,
   children,
+  prefetch,
+  replace,
+  scroll,
   ...props
-}: AnchorHTMLAttributes<HTMLAnchorElement>) {
+}: Props) {
+  const [previewDevice, setPreviewDevice] = useState(false);
+
+  useEffect(() => {
+    setPreviewDevice(new URLSearchParams(window.location.search).has("_mvua"));
+  }, []);
+
+  // Keep the server and initial client render identical before reading preview state.
+  const navigationHref = previewDevice
+    ? publicPreviewHref(window.location.href, href)
+    : href;
+
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     onClick?.(event);
 
     if (
-      !href ||
+      !navigationHref ||
       event.defaultPrevented ||
       event.button !== 0 ||
       event.metaKey ||
@@ -31,7 +54,7 @@ export default function PublicNavigationLink({
       return;
     }
 
-    const kind = publicNavigationKind(window.location.href, href);
+    const kind = publicNavigationKind(window.location.href, navigationHref);
 
     if (kind) {
       window.dispatchEvent(
@@ -42,16 +65,29 @@ export default function PublicNavigationLink({
     }
   }
 
-  if (!href) {
+  const nativeAnchor =
+    previewDevice &&
+    navigationHref?.startsWith("#") &&
+    !replace &&
+    scroll !== false;
+
+  if (!navigationHref || nativeAnchor) {
     return (
-      <a {...props} onClick={handleClick}>
+      <a {...props} href={navigationHref} onClick={handleClick}>
         {children}
       </a>
     );
   }
 
   return (
-    <Link {...props} href={href} onClick={handleClick}>
+    <Link
+      {...props}
+      href={navigationHref}
+      prefetch={prefetch}
+      replace={replace}
+      scroll={scroll}
+      onClick={handleClick}
+    >
       {children}
     </Link>
   );

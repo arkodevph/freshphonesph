@@ -3,6 +3,9 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
+.dates.sharedStart {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .dates > button {
   position: relative;
   display: grid;
@@ -35,10 +38,6 @@
   width: 17px;
   height: 17px;
   color: var(--portal-accent);
-}
-.dates > button:hover:not(:disabled) {
-  border-color: var(--portal-accent);
-  background: var(--portal-accent-soft);
 }
 .dates > button:disabled {
   cursor: default;
@@ -127,11 +126,6 @@
   width: 18px;
   height: 18px;
 }
-.header > button:hover,
-.monthNav button:hover {
-  border-color: var(--calendar-accent);
-  color: var(--calendar-accent);
-}
 .body {
   padding: 20px 24px;
 }
@@ -177,9 +171,6 @@
   line-height: 1;
   cursor: pointer;
 }
-.grid > button:hover {
-  background: var(--calendar-soft);
-}
 .grid .outside {
   color: var(--portal-muted);
   font-weight: 400;
@@ -187,8 +178,7 @@
 .grid .today {
   border-color: var(--calendar-accent);
 }
-.grid .selected,
-.grid .selected:hover {
+.grid .selected {
   background: var(--calendar-selected);
   color: var(--calendar-selected-text);
 }
@@ -264,9 +254,6 @@
   font-weight: 700;
   text-decoration: none;
 }
-.agenda a:hover {
-  text-decoration: underline;
-}
 .agenda a svg {
   flex: 0 0 16px;
   width: 16px;
@@ -324,12 +311,14 @@
   outline-offset: 3px;
 }
 @container (max-width: 600px) {
-  .dates {
+  .dates,
+  .dates.sharedStart {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 700px) {
-  .dates {
+  .dates,
+  .dates.sharedStart {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
   }

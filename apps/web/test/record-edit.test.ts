@@ -105,6 +105,32 @@ test("issuing a schedule invalidates an open editor even when the record version
 
 const originalFetch = globalThis.fetch;
 
+test("real-member occupancy changes invalidate a batch editor without replacing its saved draft", () => {
+  const draft = recordDraft(batch);
+
+  draft.model = "Unsaved model correction";
+
+  const latest = { ...batch, _count: { clients: 1 } };
+
+  assert.equal(latest.version, batch.version);
+
+  assert.equal(recordChanged(batch, latest), true);
+
+  assert.equal(
+    recordChanged(latest, { ...latest, _count: { clients: 0 } }),
+    true,
+  );
+
+  assert.equal(
+    recordChanged(latest, { ...latest, _count: { clients: 1 } }),
+    false,
+  );
+
+  assert.equal(draft.model, "Unsaved model correction");
+
+  assert.equal(batch._count.clients, 0);
+});
+
 after(() => {
   globalThis.fetch = originalFetch;
 });

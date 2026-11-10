@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/PublicNavigationLink";
 import type { Metadata } from "next";
 import { legalDocuments } from "@freshphones/contracts";
 import styles from "./privacy.module.css";

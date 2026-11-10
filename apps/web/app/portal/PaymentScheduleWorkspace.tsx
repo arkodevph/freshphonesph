@@ -20,9 +20,19 @@ import InstallmentPlanSummary from "./InstallmentPlanSummary";
 import styles from "./payment-schedule.module.css";
 import PaymentScheduleCalendar from "./PaymentScheduleCalendar";
 import PaymentScheduleLogs from "./PaymentScheduleLogs";
-import SchedulePreviewPanel from "./SchedulePreviewPanel";
+import ScheduleDayInspector from "./ScheduleDayInspector";
 
 export { PaymentScheduleSkeleton } from "./schedule-view";
+
+function installmentTarget(sequence: number) {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      `[data-schedule-installment="${sequence}"]`,
+    ),
+  ).find((element) => {
+    return element.getClientRects().length > 0;
+  });
+}
 
 export default function PaymentScheduleWorkspace({
   schedule,
@@ -51,17 +61,6 @@ export default function PaymentScheduleWorkspace({
   const completed = items.filter((item) => {
     return installmentState(item, today).payment === "Paid";
   }).length;
-
-  const firstUnpaid = items.findIndex((item) => {
-    return installmentState(item, today).remaining > 0;
-  });
-
-  const previewStart = Math.min(
-    firstUnpaid < 0 ? Math.max(0, items.length - 4) : firstUnpaid,
-    Math.max(0, items.length - 4),
-  );
-
-  const previewItems = items.slice(previewStart, previewStart + 4);
 
   const [selectedDate, setSelectedDate] = useState(today);
 
@@ -145,9 +144,9 @@ export default function PaymentScheduleWorkspace({
 
       if (expanded) {
         window.requestAnimationFrame(() => {
-          return document
-            .getElementById(hash)
-            ?.scrollIntoView({ block: "center" });
+          return installmentTarget(item.sequence_no)?.scrollIntoView({
+            block: "center",
+          });
         });
       }
     }
@@ -168,7 +167,7 @@ export default function PaymentScheduleWorkspace({
 
     const target =
       hashTargetRef.current != null
-        ? document.getElementById(`installment-${hashTargetRef.current}`)
+        ? installmentTarget(hashTargetRef.current)
         : logsRef.current;
 
     target?.focus({ preventScroll: true });
@@ -297,18 +296,47 @@ export default function PaymentScheduleWorkspace({
 
   return (
     <div className={styles.workspace}>
-      <div className={styles.layout}>
-        <div className={styles.main}>
-          <InstallmentPlanSummary
-            status={status}
-            items={items}
-            featured={featured}
-            featuredState={featuredState}
-            onRetry={onRetry}
-            selectDay={selectDay}
-            calendarRef={calendarRef}
-          />
+      <InstallmentPlanSummary
+        status={status}
+        items={items}
+        featured={featured}
+        featuredState={featuredState}
+        onRetry={onRetry}
+        selectDay={selectDay}
+        calendarRef={calendarRef}
+        onViewCalendar={() => {
+          setExpanded(false);
+        }}
+      />
 
+      <div className={styles.viewToolbar}>
+        <div
+          className={styles.viewSwitcher}
+          role="group"
+          aria-label="Schedule view"
+        >
+          <button
+            ref={expandRef}
+            type="button"
+            aria-pressed={!expanded}
+            onClick={collapseSchedule}
+          >
+            Calendar
+          </button>
+          <button
+            type="button"
+            aria-pressed={expanded}
+            onClick={() => {
+              setExpanded(true);
+            }}
+          >
+            Installments <span>{items.length}</span>
+          </button>
+        </div>
+        <span className={styles.viewHint}>Select a date for details</span>
+      </div>
+      {!expanded && (
+        <div className={styles.layout}>
           <PaymentScheduleCalendar
             calendarRef={calendarRef}
             status={status}
@@ -320,26 +348,20 @@ export default function PaymentScheduleWorkspace({
             monthDays={monthDays}
             month={month}
             navigateDay={navigateDay}
+          />
+          <ScheduleDayInspector
+            status={status}
+            onRetry={onRetry}
+            selectedDate={selectedDate}
             selectedDayItems={selectedDayItems}
+            today={today}
+            dueNow={dueNow}
+            completed={completed}
+            total={items.length}
             showDetails={showDetails}
           />
         </div>
-
-        <SchedulePreviewPanel
-          status={status}
-          items={items}
-          onRetry={onRetry}
-          dueNow={dueNow}
-          completed={completed}
-          previewItems={previewItems}
-          today={today}
-          showDetails={showDetails}
-          expandRef={expandRef}
-          expanded={expanded}
-          collapseSchedule={collapseSchedule}
-          setExpanded={setExpanded}
-        />
-      </div>
+      )}
 
       {expanded && (
         <PaymentScheduleLogs

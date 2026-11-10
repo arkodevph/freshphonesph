@@ -4,6 +4,7 @@ import { createBatch, listBatches, type Batch } from "@/lib/api";
 import { can, useMe } from "@/lib/useMe";
 import { Plus, Stack } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BatchAgentField } from "@/components/BatchAgentField";
 import { BatchAssignments } from "@/components/BatchAssignments";
 import { RecordDetails } from "@/components/RecordDetails";
 import { RecordFilters } from "@/components/RecordFilters";
@@ -19,7 +20,13 @@ import { useLiveRecords } from "@/lib/useLiveRecords";
 import { useRecordFilterText } from "@/lib/useRecordFilterText";
 import Link from "next/link";
 import { Field, inputCls } from "@/components/FormField";
-import { today } from "@/lib/date";
+import { defaultBatchForm, batchSchedulePlan } from "@/lib/batch-schedule";
+import { BatchScheduleFields } from "@/components/BatchScheduleFields";
+import { BatchSchedulePreview } from "@/components/BatchSchedulePreview";
+import {
+  BATCH_INTERNAL_PLACEHOLDER_COUNT,
+  BATCH_REAL_MEMBER_CAPACITY,
+} from "@freshphones/contracts";
 
 export default function RecordsPage() {
   const me = useMe();
@@ -63,15 +70,7 @@ export default function RecordsPage() {
     mode: "edit" | "history";
   } | null>(null);
 
-  const [form, setForm] = useState({
-    batch_number: "",
-    unit_model: "",
-    contract_price: "",
-    num_installments: "6",
-    cadence: "monthly",
-    status: "active",
-    start_date: today(),
-  });
+  const [form, setForm] = useState(defaultBatchForm);
 
   const clearPrivate = useCallback(() => {
     ++privateVersion.current;
@@ -92,15 +91,7 @@ export default function RecordsPage() {
 
     setLoading(false);
 
-    setForm({
-      batch_number: "",
-      unit_model: "",
-      contract_price: "",
-      num_installments: "6",
-      cadence: "monthly",
-      status: "active",
-      start_date: today(),
-    });
+    setForm(defaultBatchForm());
   }, []);
 
   const load = useCallback(async () => {
@@ -208,15 +199,7 @@ export default function RecordsPage() {
 
     setAssignmentId(null);
 
-    setForm({
-      batch_number: "",
-      unit_model: "",
-      contract_price: "",
-      num_installments: "6",
-      cadence: "monthly",
-      status: "active",
-      start_date: today(),
-    });
+    setForm(defaultBatchForm());
   }, [me, canManage]);
 
   function changeFilter(key: keyof RecordFiltersValue, value: string) {
@@ -251,24 +234,26 @@ export default function RecordsPage() {
     setError(null);
 
     try {
-      await createBatch({
-        batch_number: form.batch_number,
+      const created = await createBatch({
+        agent_id: form.agent_id,
         unit_model: form.unit_model,
         status: form.status,
         contract_price: form.contract_price,
         num_installments: Number(form.num_installments),
         cadence: form.cadence,
         start_date: form.start_date,
+        first_due_date: form.first_due_date,
+        month_end: form.month_end,
       });
 
       if (access !== privateVersion.current) {
         return;
       }
 
-      flash("Batch created.");
+      flash(`Batch ${created.batch_number} created.`);
 
       setForm((f) => {
-        return { ...f, batch_number: "", unit_model: "", contract_price: "" };
+        return { ...f, agent_id: "", unit_model: "", contract_price: "" };
       });
 
       load();
@@ -313,7 +298,9 @@ export default function RecordsPage() {
             Paluwagan Records
           </h1>
           <p className="text-xs text-ink-soft">
-            {me?.role === "core_handler"
+            {["core_handler", "batch_handler", "batch_manager"].includes(
+              me?.role ?? "",
+            )
               ? "Your assigned batches and members"
               : "Batches — the plan terms drive each member's schedule & balance"}
           </p>
@@ -332,24 +319,28 @@ export default function RecordsPage() {
         </div>
       )}
 
-      {canManage && (
+      {can(me, "BATCH_CREATE") && (
         <form onSubmit={onCreate} className="glass mb-4 rounded-3xl p-5">
           <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
             <Plus weight="bold" className="h-4 w-4" /> New batch
           </h2>
           <fieldset
             disabled={saving}
-            className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4"
+            className="grid min-w-0 grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:grid-cols-4"
           >
+            <BatchAgentField
+              value={form.agent_id}
+              onChange={(agent_id) => {
+                setForm((current) => {
+                  return { ...current, agent_id };
+                });
+              }}
+            />
             <Field label="Batch number">
               <input
-                required
-                value={form.batch_number}
-                onChange={(e) => {
-                  return setForm({ ...form, batch_number: e.target.value });
-                }}
+                readOnly
+                value="Assigned on creation"
                 className={inputCls}
-                placeholder="B-2026-01"
               />
             </Field>
             <Field label="Unit / model">
@@ -389,19 +380,6 @@ export default function RecordsPage() {
                 className={inputCls}
               />
             </Field>
-            <Field label="Cadence">
-              <select
-                value={form.cadence}
-                onChange={(e) => {
-                  return setForm({ ...form, cadence: e.target.value });
-                }}
-                className={inputCls}
-              >
-                <option value="weekly">Weekly</option>
-                <option value="semimonthly">Semi-monthly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </Field>
             <Field label="Start date">
               <input
                 type="date"
@@ -413,6 +391,14 @@ export default function RecordsPage() {
                 className={inputCls}
               />
             </Field>
+            <BatchScheduleFields
+              value={form}
+              onChange={(change) => {
+                setForm((current) => {
+                  return { ...current, ...change };
+                });
+              }}
+            />
             <Field label="Status">
               <select
                 value={form.status}
@@ -427,9 +413,13 @@ export default function RecordsPage() {
               </select>
             </Field>
           </fieldset>
+          <BatchSchedulePreview
+            plan={batchSchedulePlan(form)}
+            requireFirstDate
+          />
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !form.agent_id}
             className="btn-candy mt-4 inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-700 disabled:opacity-70"
           >
             <Plus weight="bold" className="h-4 w-4" />
@@ -501,7 +491,9 @@ export default function RecordsPage() {
                   colSpan={canManage ? 10 : 9}
                   className="px-2 py-6 text-center text-ink-soft"
                 >
-                  {me?.role === "core_handler"
+                  {["core_handler", "batch_handler", "batch_manager"].includes(
+                    me?.role ?? "",
+                  )
                     ? "No assigned batches match these filters."
                     : "No batches match these filters."}
                 </td>
@@ -523,16 +515,35 @@ export default function RecordsPage() {
                       {b.num_installments ?? "—"}
                     </td>
                     <td className="px-2 py-2.5 capitalize text-ink-soft">
-                      {b.cadence}
+                      {b.cadence === "semimonthly"
+                        ? b.first_due_date
+                          ? "Bi-monthly"
+                          : "Every 15 days (existing plan)"
+                        : b.cadence === "monthly"
+                          ? b.first_due_date
+                            ? "Monthly"
+                            : "Every 30 days (existing plan)"
+                          : b.cadence === "weekly"
+                            ? "Weekly"
+                            : "Terms not set"}
                     </td>
                     <td className="px-2 py-2.5">
                       <Link
                         href={`/system/clients?batch=${b.id}`}
                         className="text-blue underline"
-                        aria-label={`View members of ${b.batch_number}`}
+                        aria-label={`View ${b.member_count} real members of ${b.batch_number}`}
                       >
-                        {b.member_count} members
+                        {b.member_count} / {BATCH_REAL_MEMBER_CAPACITY} real
+                        members
                       </Link>
+                      <small className="block text-ink-soft">
+                        {BATCH_INTERNAL_PLACEHOLDER_COUNT} internal placeholders
+                      </small>
+                      {b.member_count > BATCH_REAL_MEMBER_CAPACITY && (
+                        <small className="block font-600 text-blue-ink">
+                          Existing batch above capacity
+                        </small>
+                      )}
                     </td>
                     <>
                       <td className="px-2 py-2.5">
@@ -570,16 +581,18 @@ export default function RecordsPage() {
                           >
                             Assign
                           </button>
-                          <button
-                            type="button"
-                            className="rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
-                            aria-label={`Edit batch ${b.batch_number}`}
-                            onClick={() => {
-                              return setDetails({ id: b.id, mode: "edit" });
-                            }}
-                          >
-                            Edit
-                          </button>
+                          {can(me, "BATCH_ASSIGN") && (
+                            <button
+                              type="button"
+                              className="rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
+                              aria-label={`Edit batch ${b.batch_number}`}
+                              onClick={() => {
+                                return setDetails({ id: b.id, mode: "edit" });
+                              }}
+                            >
+                              Edit
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="rounded-lg bg-white/70 px-2 py-1 text-xs font-700 text-blue"

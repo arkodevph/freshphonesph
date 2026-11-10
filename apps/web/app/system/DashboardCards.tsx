@@ -25,12 +25,27 @@ const formatPeso = (value: string) => {
   }).format(Number(value));
 };
 
-export default function DashboardCards() {
+export default function DashboardCards({
+  summary = false,
+}: {
+  summary?: boolean;
+}) {
   const me = useMe();
 
-  const handler = me?.role === "core_handler";
+  const handler = [
+    "core_handler",
+    "batch_handler",
+    "batch_manager",
+    "general_manager",
+    "records",
+    "records_monitoring",
+  ].includes(me?.role ?? "");
 
-  const reportAccess = can(me, "REPORT_VIEW");
+  const reportAccess =
+    can(me, "REPORT_VIEW") &&
+    ["system_admin", "coo", "ceo", "analytics", "finance_officer"].includes(
+      me?.role ?? "",
+    );
 
   const [cards, setCards] = useState<Cards | null>(null);
 
@@ -74,7 +89,23 @@ export default function DashboardCards() {
 
   useEffect(load, [load]);
 
-  useLiveRecords(load, handler || reportAccess);
+  useLiveRecords(load, (handler || reportAccess) && me?.role !== "ceo");
+
+  useEffect(() => {
+    if (me?.role !== "ceo") {
+      return;
+    }
+
+    const timer = window.setInterval(load, 30_000);
+
+    window.addEventListener("focus", load);
+
+    return () => {
+      window.clearInterval(timer);
+
+      window.removeEventListener("focus", load);
+    };
+  }, [load, me?.role]);
 
   if (!handler && !reportAccess) {
     return null;
@@ -139,9 +170,12 @@ export default function DashboardCards() {
         },
       ];
 
+  const displayedItems =
+    summary && !handler ? [items[3], ...items.slice(0, 3)] : items;
+
   return (
     <section className="system-metrics" aria-label="Operations overview">
-      {items.map(({ icon: Icon, label, value, note, tone }) => {
+      {displayedItems.map(({ icon: Icon, label, value, note, tone }) => {
         return (
           <article key={label} className="system-metric-card">
             <div className={`system-metric-icon tone-${tone}`}>

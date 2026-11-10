@@ -67,7 +67,7 @@ export function portalAttention(
         due.length === 1
           ? `Installment ${due[0].sequence_no} has an amount due`
           : `${due.length} installments have amounts due`,
-      detail: `${new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(total)} remaining across installments due by today. Payments are coordinated in Messenger; this amount reflects Finance-verified records.`,
+      detail: `${new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(total)} remaining across installments due by today.`,
       href: `/portal/schedule#installment-${due[0].sequence_no}`,
       action: "Review payment schedule",
     });

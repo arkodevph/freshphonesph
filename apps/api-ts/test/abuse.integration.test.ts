@@ -198,6 +198,7 @@ before(async () => {
     DATABASE_URL: databaseUrl!,
     WEB_ORIGIN: origin,
     BETTER_AUTH_SECRET: "abuse-test-secret-at-least-32-characters",
+    LOCAL_DEMO_AUTH: false,
     EMAIL_FROM: "synthetic@example.test",
     CUSTOMER_REMINDER_DAYS_BEFORE: "",
     PRIVATE_STORAGE_PROVIDER: "local",
@@ -239,7 +240,7 @@ before(async () => {
     data: {
       name: "Synthetic abuse Owner",
       email: `abuse-owner-${suffix}@example.test`,
-      role: "OWNER",
+      role: "SYSTEM_ADMIN",
       passwordHash: hash,
     },
   });
@@ -353,6 +354,7 @@ test("configuration rejects blanket proxy trust, unknown policies and invalid qu
       DATABASE_URL: databaseUrl,
       WEB_ORIGIN: origin,
       NODE_ENV: "test",
+      LOCAL_DEMO_AUTH: "false",
       BETTER_AUTH_SECRET: config.BETTER_AUTH_SECRET,
       REDIS_URL: redisUrl,
       TRUSTED_PROXY_CIDRS: "0.0.0.0/0",

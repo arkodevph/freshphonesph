@@ -137,16 +137,12 @@ export function RecruitmentDesk({
 
     void readCounts();
 
-    window.addEventListener("focus", refresh);
-
     return () => {
       mounted.current = false;
 
       countsSequence.current++;
 
       reviewSequence.current++;
-
-      window.removeEventListener("focus", refresh);
     };
   }, [readCounts, refresh]);
 

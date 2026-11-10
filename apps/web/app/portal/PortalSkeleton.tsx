@@ -1,10 +1,12 @@
 import styles from "./portal.module.css";
+import glass from "./portal-glass.module.css";
 import { DashboardNextStepsSkeleton } from "./DashboardNextSteps";
 import { PaymentOverviewSkeleton } from "./PaymentOverview";
 import { PaymentScheduleSkeleton } from "./PaymentScheduleWorkspace";
 import { VerifiedPaymentsSkeleton } from "./VerifiedPaymentsWorkspace";
 
 type Section =
+  | "catalog"
   | "overview"
   | "membership"
   | "schedule"
@@ -13,9 +15,11 @@ type Section =
   | "release"
   | "notifications"
   | "support"
+  | "withdrawals"
   | "settings";
 
 const titles: Record<Section, string> = {
+  catalog: "Phones & plans",
   overview: "Dashboard",
   membership: "My membership",
   schedule: "Payment schedule",
@@ -24,6 +28,7 @@ const titles: Record<Section, string> = {
   release: "Release status",
   notifications: "Notifications",
   support: "Support",
+  withdrawals: "Withdrawals",
   settings: "Settings",
 };
 
@@ -122,7 +127,8 @@ export default function PortalSkeleton({
 
   return (
     <main
-      className={`${styles.shell} ${styles.skeletonShell} portal-shell`}
+      className={`${styles.shell} ${styles.skeletonShell} ${styles.macDashboard} ${glass.material} ${glass.interactions} portal-shell`}
+      data-glass-portal=""
       role="status"
       aria-label={`Loading ${titles[section]}`}
     >
@@ -184,14 +190,22 @@ export default function PortalSkeleton({
           {showMembershipWorkspace && (
             <div className={styles.dashboardLayout}>
               <div className={styles.dashboardMain}>
-                <MembershipPlaceholder />
+                {section === "overview" ? (
+                  <MembershipPlaceholder />
+                ) : (
+                  <Card rows={2} />
+                )}
                 {section === "overview" ? (
                   <DashboardNextStepsSkeleton />
                 ) : (
                   <Card rows={3} className={styles.membershipDatesCard} />
                 )}
               </div>
-              <PaymentOverviewSkeleton />
+              {section === "overview" ? (
+                <PaymentOverviewSkeleton />
+              ) : (
+                <Card rows={4} />
+              )}
             </div>
           )}
           {section === "payments" && <VerifiedPaymentsSkeleton />}
@@ -211,6 +225,7 @@ export default function PortalSkeleton({
           {(section === "documents" ||
             section === "notifications" ||
             section === "support" ||
+            section === "withdrawals" ||
             section === "settings") && (
             <Card rows={section === "documents" ? 4 : 3} />
           )}
