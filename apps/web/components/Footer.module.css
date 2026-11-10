@@ -1,6 +1,6 @@
 .footer {
   --landing-gutter: max(1.25rem, calc((100vw - 90rem) / 2));
-  padding: clamp(1.5rem, 3vh, 4rem) var(--landing-gutter) 1.5rem;
+  padding: clamp(1.5rem, 3vh, 4rem) var(--landing-gutter) 1rem;
   color: #14266b;
   overflow-wrap: anywhere;
 }
