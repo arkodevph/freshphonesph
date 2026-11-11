@@ -1,3 +1,8 @@
+import { captureHandlerInbox } from "../staff/handler-inbox";
+import {
+  requireCompleteSubmission,
+  submissionReady,
+} from "../submission-checklists/evidence";
 import { requireOpenMembership } from "../withdrawals/withdrawal-tools";
 import { batchScope, clientScope } from "../records/scope";
 import { safeUser } from "../auth/auth.service";
@@ -18,6 +23,7 @@ import type {
   PaymentAdjustmentInput,
   Permission,
   User,
+  PaymentSortField,
 } from "@freshphones/contracts";
 import { allowed } from "../auth/access";
 import { Database } from "../database";
@@ -30,6 +36,7 @@ import { notifyCustomer } from "../portal/notifications.service";
 import { notifyPaymentResult } from "../staff/payment-results";
 import { queuePendingEmails } from "../staff/email-queue";
 import { adjustmentInclude, effectiveAmount, verifiedTotals } from "./ledger";
+import { paymentListOrder } from "./payment-list-order";
 
 const pageSize = 20;
 
@@ -58,11 +65,14 @@ type Query = {
   page: number;
   q: string;
   id?: string;
+  proof?: "missing";
   status?: string;
   batchId?: string;
   clientId?: string;
   dateFrom?: string;
   dateTo?: string;
+  sortBy?: PaymentSortField;
+  sortDirection?: "asc" | "desc";
 };
 
 type PaymentRow = Prisma.PaymentGetPayload<{ include: typeof paymentInclude }>;
@@ -223,6 +233,11 @@ export class FinanceService {
         ? {
             workflow: {
               ...workflow(payment),
+              submissionComplete: await submissionReady(
+                tx,
+                payment.batchId,
+                payment.paymentDate,
+              ),
               evidenceVersion: payment.evidenceVersion,
               managerId: batch.managerId,
               history: operationalReviews.map((review) => {
@@ -314,6 +329,7 @@ export class FinanceService {
     const where: Prisma.PaymentWhereInput = {
       ...this.scope(user),
       ...(query.id ? { id: query.id } : {}),
+      ...(query.proof === "missing" ? { proofFileId: null } : {}),
       OR: query.q
         ? [
             { referenceNumber: { contains: query.q, mode: "insensitive" } },
@@ -360,7 +376,7 @@ export class FinanceService {
       this.db.payment.findMany({
         where,
         include: paymentInclude,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        orderBy: paymentListOrder(query),
         skip: (query.page - 1) * pageSize,
         take: pageSize,
       }),
@@ -590,6 +606,10 @@ export class FinanceService {
         );
       }
 
+      if (input.stage === "MANAGER" && input.decision === "APPROVED") {
+        await requireCompleteSubmission(tx, before.batchId, before.paymentDate);
+      }
+
       const changed = await tx.payment.updateMany({
         where: { id, version: input.version, status: "PENDING" },
         data: {
@@ -634,6 +654,15 @@ export class FinanceService {
         after,
       );
 
+      const recipient = await tx.batch.findUnique({
+        where: { id: after.batchId },
+        select: { handlerId: true },
+      });
+
+      if (recipient?.handlerId) {
+        await captureHandlerInbox(tx, recipient.handlerId);
+      }
+
       return this.view(tx, after);
     });
   }
@@ -673,6 +702,10 @@ export class FinanceService {
         throw new ConflictException(
           "Records completeness approval and the assigned Manager cross-check are required before Finance review.",
         );
+      }
+
+      if (decision === "VERIFIED") {
+        await requireCompleteSubmission(tx, before.batchId, before.paymentDate);
       }
 
       const changed = await tx.payment.updateMany({

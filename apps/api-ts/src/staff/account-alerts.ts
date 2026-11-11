@@ -103,7 +103,7 @@ export function accountAlertVisibleSql(userId: string) {
 }
 
 export function accountAlertRows(userId: string) {
-  return Prisma.sql`SELECT r.id, NULL::uuid AS "paymentId", NULL::uuid AS "caseId", r."accountId", r."accountVersion" AS version,
+  return Prisma.sql`SELECT r.id, NULL::uuid AS "paymentId", NULL::uuid AS "caseId", r."accountId", NULL::uuid AS "sourceId", NULL::text AS "sourceType", r."accountVersion" AS version,
     'account'::text AS entity, r.kind::text AS kind, NULL::text AS amount, r."accountName" AS "clientName", r."actorName" AS "batchCode",
     CASE r.kind WHEN 'ACCOUNT_ROLE_CHANGED' THEN REPLACE(LOWER(r."previousRole"::text), '_', ' ') || ' → ' || REPLACE(LOWER(r.role::text), '_', ' ')
       WHEN 'ACCOUNT_CREATED' THEN 'Created with ' || REPLACE(LOWER(r.role::text), '_', ' ') || ' access'

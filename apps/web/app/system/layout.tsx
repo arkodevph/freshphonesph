@@ -1,8 +1,16 @@
 "use client";
 
+import HandlerSystemLayout from "./handler/HandlerSystemLayout";
+import { isBatchHandler } from "@/lib/handler-workspace";
+import SystemSidebar from "./SystemSidebar";
+import { systemNavigation } from "./system-navigation";
+import CeoDashboardSkeleton from "./ceo-dashboard/CeoDashboardSkeleton";
+import CooDashboardSkeleton from "./coo-dashboard/CooDashboardSkeleton";
+import WorkspacePageSearch from "@/components/WorkspacePageSearch";
 import { LegalGate } from "@/components/LegalGate";
+import WorkspacePopover from "@/components/WorkspacePopover";
 import { StaffAlerts } from "@/components/StaffAlerts";
-import { WorkspaceSessionSkeleton } from "@/components/WorkspaceSkeleton";
+import WorkspaceSessionPending from "@/components/WorkspaceSessionPending";
 import {
   listNotifications,
   readAllNotifications,
@@ -11,163 +19,26 @@ import {
 } from "@/lib/api";
 import { logoutSession } from "@/lib/auth";
 import { availableRoute } from "@/lib/backend";
-import { can, useMe } from "@/lib/useMe";
+import { can, useMe, CurrentUserContext } from "@/lib/useMe";
 import { canOpenWorkspace } from "@/lib/workspace-access";
 import {
   Bell,
-  Briefcase,
   CaretDown,
   ChartBar,
-  Headset,
-  ListChecks,
-  MagnifyingGlass,
   Moon,
-  Receipt,
-  ShieldCheck,
   SignOut,
   Sparkle,
   SquaresFour,
-  Stack,
   Sun,
-  TrayArrowDown,
-  Users,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import ceoStyles from "./ceo-portal.module.css";
-
-const NAV = [
-  {
-    icon: Users,
-    label: "Personnel",
-    href: "/system/personnel",
-    perms: ["STAFF_READ"],
-  },
-  {
-    icon: Users,
-    label: "Agent network",
-    href: "/system/agent-network",
-    perms: ["AGENT_NETWORK_READ"],
-  },
-  {
-    icon: Users,
-    label: "Enrollments",
-    href: "/system/enrollments",
-    perms: [
-      "ENROLLMENT_SUBMIT",
-      "ENROLLMENT_REVIEW",
-      "AGENT_NETWORK_READ",
-      "ENROLLMENT_FORM_MANAGE",
-      "ENROLLMENT_APPLICATION_READ",
-    ],
-  },
-  {
-    icon: Users,
-    label: "Withdrawals",
-    href: "/system/withdrawals",
-    perms: ["WITHDRAWAL_READ"],
-  },
-  {
-    icon: Stack,
-    label: "Public catalog",
-    href: "/system/catalog",
-    perms: ["CATALOG_MANAGE"],
-  },
-  {
-    icon: SquaresFour,
-    label: "Dashboard",
-    href: "/system",
-    perms: [] as string[],
-  },
-  {
-    icon: Stack,
-    label: "Paluwagan Records",
-    href: "/system/records",
-    perms: ["BATCH_MANAGE", "BATCH_READ"],
-  },
-  {
-    icon: Receipt,
-    label: "Payments & Finance",
-    href: "/system/payments",
-    perms: ["PAYMENT_READ", "PAYMENT_RECORD", "PAYMENT_VERIFY"],
-  },
-  {
-    icon: Receipt,
-    label: "GCash history",
-    href: "/system/gcash-history",
-    perms: ["GCASH_HISTORY_READ"],
-  },
-  {
-    icon: Users,
-    label: "Clients",
-    href: "/system/clients",
-    perms: ["CLIENT_MANAGE", "CLIENT_READ"],
-  },
-  {
-    icon: ShieldCheck,
-    label: "Agents",
-    href: "/system/agents",
-    perms: ["AGENT_MANAGE"],
-  },
-  { icon: ListChecks, label: "Tasks & KPI", href: "/system/tasks", perms: [] },
-  {
-    icon: ShieldCheck,
-    label: "HR action approvals",
-    href: "/system/hr-actions",
-    perms: ["HR_CONFIDENTIAL"],
-  },
-  {
-    icon: ChartBar,
-    label: "Reports",
-    href: "/system/reports",
-    perms: ["REPORT_VIEW"],
-  },
-  {
-    icon: Headset,
-    label: "Device inquiries",
-    href: "/system/inquiries",
-    perms: ["SUPPORT_MANAGE"],
-  },
-  {
-    icon: Headset,
-    label: "Customer Service",
-    href: "/system/support",
-    perms: ["SUPPORT_MANAGE"],
-  },
-  {
-    icon: TrayArrowDown,
-    label: "Customer work",
-    href: "/system/customer-work",
-    perms: ["SUPPORT_MANAGE", "PAYMENT_VERIFY", "CLIENT_MANAGE"],
-  },
-  {
-    icon: Briefcase,
-    label: "Recruitment",
-    href: "/system/recruitment",
-    perms: ["RECRUITMENT_MANAGE", "AGENT_MANAGE"],
-  },
-  {
-    icon: Bell,
-    label: "Notification settings",
-    href: "/system/notification-settings",
-    perms: ["ACCOUNT_MANAGE"],
-  },
-  { icon: Sparkle, label: "AI Assistant", href: null, perms: [] },
-  {
-    icon: ShieldCheck,
-    label: "User Management",
-    href: "/system/team",
-    perms: ["ROLE_ASSIGN", "ACCOUNT_MANAGE"],
-  },
-  {
-    icon: ShieldCheck,
-    label: "Retention & deletion",
-    href: "/system/retention",
-    perms: ["RETENTION_MANAGE"],
-  },
-] as const;
+import "./ios-menus.css";
+import "./coo-workspace.css";
+import "./workspace-modals.css";
 
 const formatRole = (role?: string | null) => {
   if (role === "ceo") {
@@ -186,7 +57,10 @@ const formatRole = (role?: string | null) => {
 };
 
 type ViewTransitionDocument = Document & {
-  startViewTransition?: (update: () => void) => { finished: Promise<void> };
+  startViewTransition?: (update: () => void) => {
+    ready: Promise<void>;
+    finished: Promise<void>;
+  };
 };
 
 export default function SystemLayout({
@@ -194,6 +68,16 @@ export default function SystemLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const me = useMe();
+
+  return isBatchHandler(me?.role) ? (
+    <HandlerSystemLayout>{children}</HandlerSystemLayout>
+  ) : (
+    <StandardSystemLayout>{children}</StandardSystemLayout>
+  );
+}
+
+function StandardSystemLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const pathname = usePathname();
@@ -206,8 +90,6 @@ export default function SystemLayout({
     "search" | "notifications" | "profile" | null
   >(null);
 
-  const [query, setQuery] = useState("");
-
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
@@ -215,6 +97,8 @@ export default function SystemLayout({
   const [unread, setUnread] = useState(0);
 
   const actionsRef = useRef<HTMLDivElement>(null);
+
+  const sidebarSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setReady(true);
@@ -298,7 +182,10 @@ export default function SystemLayout({
 
   useEffect(() => {
     function closeOnOutsideClick(event: PointerEvent) {
-      if (!actionsRef.current?.contains(event.target as Node)) {
+      if (
+        !actionsRef.current?.contains(event.target as Node) &&
+        !sidebarSearchRef.current?.contains(event.target as Node)
+      ) {
         setOpenPanel(null);
       }
     }
@@ -378,16 +265,21 @@ export default function SystemLayout({
 
     root.classList.add("system-theme-iris-transition");
 
-    void transition.finished.finally(() => {
-      return root.classList.remove("system-theme-iris-transition");
-    });
+    // Resizing or navigating can skip the animation after the theme is applied.
+    void transition.ready.catch(() => {});
+
+    const finish = () => {
+      root.classList.remove("system-theme-iris-transition");
+    };
+
+    void transition.finished.then(finish, finish);
   }
 
   if (!ready || !me) {
-    return <WorkspaceSessionSkeleton />;
+    return <WorkspaceSessionPending />;
   }
 
-  const visibleNav = NAV.filter((item) => {
+  const visibleNav = systemNavigation.filter((item) => {
     return (
       item.href &&
       canOpenWorkspace(me.role, item.href, me.permissions) &&
@@ -400,16 +292,22 @@ export default function SystemLayout({
     );
   });
 
+  const ownerNav = [
+    { href: "/system", icon: SquaresFour },
+    { href: "/system/assistant", icon: Sparkle },
+    { href: "/system/reports", icon: ChartBar },
+  ].flatMap(({ href, icon }) => {
+    const item = visibleNav.find((candidate) => {
+      return candidate.href === href;
+    });
+
+    return item ? [{ ...item, icon }] : [];
+  });
+
   const current =
     visibleNav.find((item) => {
       return item.href === pathname;
     })?.label ?? "Workspace";
-
-  const searchResults = visibleNav.filter((item) => {
-    return (
-      item.href && item.label.toLowerCase().includes(query.trim().toLowerCase())
-    );
-  });
 
   const initials = (me?.full_name ?? "Fresh Phones")
     .split(" ")
@@ -422,90 +320,35 @@ export default function SystemLayout({
 
   return (
     <div
-      className={`system-shell${me.role === "ceo" ? ` ${ceoStyles.shell}` : ""}`}
+      className={`system-shell${me.role === "ceo" ? ` ${ceoStyles.shell}` : ""}${pathname === "/system/assistant" ? ` ${ceoStyles.assistantShell}` : ""}`}
+      data-workspace-theme="monex"
+      data-workspace-role={me.role}
     >
-      <aside className="system-sidebar">
-        {me.role !== "ceo" && (
-          <Link
-            href="/system"
-            className="system-brand"
-            aria-label="Fresh Phones PH dashboard"
-          >
-            <span className="system-brand-mark">
-              <Image
-                src="/brand/fresh-phones-logo.png"
-                alt=""
-                width={38}
-                height={38}
-                className="h-9 w-9 scale-150 object-cover"
-              />
-            </span>
-            <span>
-              <strong>Fresh Phones</strong>
-              <small>Operations</small>
-            </span>
-          </Link>
-        )}
-
-        <div className="system-workspace-label">Workspace</div>
-        <nav className="system-nav" aria-label="System navigation">
-          {visibleNav.map(({ icon: Icon, label, href }) => {
-            const active = href === pathname;
-
-            const content = (
-              <>
-                <Icon
-                  weight={active ? "fill" : "regular"}
-                  className="h-[18px] w-[18px]"
-                />
-                <span>{label}</span>
-                {!href && <span className="system-soon">Soon</span>}
-              </>
-            );
-
-            return href ? (
-              <Link
-                key={label}
-                href={href}
-                className={`system-nav-item${active ? " is-active" : ""}`}
-                aria-current={active ? "page" : undefined}
-              >
-                {content}
-              </Link>
-            ) : (
-              <span
-                key={label}
-                className="system-nav-item is-disabled"
-                title="Coming soon"
-              >
-                {content}
-              </span>
-            );
-          })}
-        </nav>
-
-        {me.role !== "ceo" && (
-          <div className="system-sidebar-footer">
-            <div className="system-profile">
-              <span className="system-avatar">{initials}</span>
-              <span className="min-w-0 flex-1">
-                <strong className="block truncate">
-                  {me?.full_name ?? "Loading profile"}
-                </strong>
-                <small className="block truncate">{formatRole(me?.role)}</small>
-              </span>
-              <button
-                onClick={logout}
-                className="system-icon-button"
-                aria-label="Log out"
-                title="Log out"
-              >
-                <SignOut className="h-[18px] w-[18px]" />
-              </button>
-            </div>
+      <SystemSidebar
+        accountId={String(me.id)}
+        trackUpdates={me.role === "coo"}
+        items={visibleNav}
+        search={
+          <div ref={sidebarSearchRef}>
+            <WorkspacePageSearch
+              label="Search workspace"
+              open={openPanel === "search"}
+              onOpenChange={(open) => {
+                return setOpenPanel(open ? "search" : null);
+              }}
+              pages={visibleNav.map(({ label, href, icon }) => {
+                return { label, href: href!, icon };
+              })}
+            />
           </div>
-        )}
-      </aside>
+        }
+        pathname={pathname}
+        showAccount={me.role !== "ceo"}
+        name={me.full_name ?? "Fresh Phones"}
+        role={formatRole(me.role)}
+        initials={initials}
+        onLogout={logout}
+      />
 
       <section className="system-main">
         <header className="system-topbar">
@@ -535,68 +378,35 @@ export default function SystemLayout({
               <h1>{current}</h1>
             </div>
           )}
+          {me.role === "ceo" && (
+            <nav className={ceoStyles.headerNav} aria-label="Owner navigation">
+              {ownerNav.map(({ icon: Icon, label, href }) => {
+                return (
+                  <Link
+                    key={href}
+                    href={href!}
+                    aria-current={pathname === href ? "page" : undefined}
+                  >
+                    <Icon aria-hidden="true" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
           <div className="system-topbar-actions" ref={actionsRef}>
-            <div className="system-search-wrap">
-              <button
-                className="system-search"
-                type="button"
-                aria-expanded={openPanel === "search"}
-                aria-controls="workspace-search-panel"
-                aria-label={
-                  me.role === "ceo" ? "Search pages" : "Search workspace"
-                }
-                onClick={() => {
-                  return setOpenPanel(openPanel === "search" ? null : "search");
+            {me.role === "ceo" && (
+              <WorkspacePageSearch
+                label="Search pages"
+                open={openPanel === "search"}
+                onOpenChange={(open) => {
+                  return setOpenPanel(open ? "search" : null);
                 }}
-              >
-                <MagnifyingGlass className="h-4 w-4" />
-                <span>
-                  {me.role === "ceo" ? "Search pages" : "Search workspace"}
-                </span>
-                <kbd>⌘ K</kbd>
-              </button>
-              {openPanel === "search" && (
-                <section
-                  id="workspace-search-panel"
-                  className="system-popover system-search-popover"
-                  aria-label="Workspace search"
-                >
-                  <div className="system-popover-search">
-                    <MagnifyingGlass className="h-4 w-4" />
-                    <input
-                      autoFocus
-                      value={query}
-                      onChange={(event) => {
-                        return setQuery(event.target.value);
-                      }}
-                      placeholder="Search accessible pages"
-                      aria-label="Search accessible pages"
-                    />
-                  </div>
-                  <div className="system-search-results">
-                    {searchResults.length ? (
-                      searchResults.map(({ icon: Icon, label, href }) => {
-                        return (
-                          <Link
-                            key={label}
-                            href={href!}
-                            onClick={() => {
-                              return setOpenPanel(null);
-                            }}
-                          >
-                            <Icon className="h-[18px] w-[18px]" />
-                            <span>{label}</span>
-                            <span>Open</span>
-                          </Link>
-                        );
-                      })
-                    ) : (
-                      <p>No accessible pages match “{query}”.</p>
-                    )}
-                  </div>
-                </section>
-              )}
-            </div>
+                pages={visibleNav.map(({ label, href, icon }) => {
+                  return { label, href: href!, icon };
+                })}
+              />
+            )}
             <button
               className="system-icon-button"
               type="button"
@@ -613,6 +423,15 @@ export default function SystemLayout({
             {me.role !== "ceo" &&
               (me?.account_type === "employee" ? (
                 <StaffAlerts
+                  canWorkflow={can(
+                    me,
+                    "PAYMENT_COMPLETENESS_REVIEW",
+                    "PAYMENT_MANAGER_REVIEW",
+                    "PAYMENT_RECORD",
+                    "PAYMENT_VERIFY",
+                    "GCASH_HISTORY_REVIEW",
+                    "OPERATIONS_MONITOR",
+                  )}
                   canFinance={can(me, "PAYMENT_VERIFY")}
                   canResults={
                     can(me, "PAYMENT_READ") &&
@@ -725,46 +544,45 @@ export default function SystemLayout({
                 </span>
                 <CaretDown className="hidden h-3.5 w-3.5 sm:block" />
               </button>
-              {openPanel === "profile" && (
-                <section
-                  id="profile-panel"
-                  className="system-popover system-profile-popover"
-                  aria-label="Account menu"
+              <WorkspacePopover
+                open={openPanel === "profile"}
+                id="profile-panel"
+                className="system-popover system-profile-popover"
+                aria-label="Account menu"
+              >
+                <div className="system-profile-summary">
+                  <span className="system-avatar">{initials}</span>
+                  <div>
+                    <strong>{me?.full_name ?? "Staff"}</strong>
+                    <small>{me?.email}</small>
+                  </div>
+                </div>
+                <div className="system-profile-role">
+                  <span>Access level</span>
+                  <strong>{formatRole(me?.role)}</strong>
+                </div>
+                <Link
+                  href="/privacy/employee"
+                  onClick={() => {
+                    return setOpenPanel(null);
+                  }}
+                  className="system-profile-legal-link"
                 >
-                  <div className="system-profile-summary">
-                    <span className="system-avatar">{initials}</span>
-                    <div>
-                      <strong>{me?.full_name ?? "Staff"}</strong>
-                      <small>{me?.email}</small>
-                    </div>
-                  </div>
-                  <div className="system-profile-role">
-                    <span>Access level</span>
-                    <strong>{formatRole(me?.role)}</strong>
-                  </div>
-                  <Link
-                    href="/privacy/employee"
-                    onClick={() => {
-                      return setOpenPanel(null);
-                    }}
-                    className="system-profile-legal-link"
-                  >
-                    Employee privacy notice
-                  </Link>
-                  <Link
-                    href="/security"
-                    onClick={() => {
-                      return setOpenPanel(null);
-                    }}
-                    className="system-profile-legal-link"
-                  >
-                    Account security
-                  </Link>
-                  <button type="button" onClick={logout}>
-                    <SignOut /> Log out
-                  </button>
-                </section>
-              )}
+                  Employee privacy notice
+                </Link>
+                <Link
+                  href="/security"
+                  onClick={() => {
+                    return setOpenPanel(null);
+                  }}
+                  className="system-profile-legal-link"
+                >
+                  Account security
+                </Link>
+                <button type="button" onClick={logout}>
+                  <SignOut /> Log out
+                </button>
+              </WorkspacePopover>
             </div>
           </div>
         </header>
@@ -781,7 +599,19 @@ export default function SystemLayout({
               </Link>
             </section>
           ) : availableRoute(pathname) ? (
-            <LegalGate>{children}</LegalGate>
+            <CurrentUserContext.Provider value={me}>
+              <LegalGate
+                fallback={
+                  me.role === "ceo" && pathname === "/system" ? (
+                    <CeoDashboardSkeleton name={me.full_name} />
+                  ) : me.role === "coo" && pathname === "/system" ? (
+                    <CooDashboardSkeleton me={me} />
+                  ) : undefined
+                }
+              >
+                {children}
+              </LegalGate>
+            </CurrentUserContext.Provider>
           ) : (
             <section className="glass rounded-3xl p-10 text-center">
               <h1 className="font-display text-xl font-700 text-blue-ink">
@@ -796,7 +626,7 @@ export default function SystemLayout({
       </section>
       {me.role === "ceo" && (
         <nav className={ceoStyles.mobileNav} aria-label="CEO mobile navigation">
-          {visibleNav.map(({ icon: Icon, label, href }) => {
+          {ownerNav.map(({ icon: Icon, label, href }) => {
             return (
               <Link
                 key={href}

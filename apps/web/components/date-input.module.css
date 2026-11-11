@@ -1,0 +1,264 @@
+.root {
+  position: relative;
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+.root[data-date-input] .input {
+  width: 100%;
+  min-width: 0;
+  padding-right: 42px;
+}
+.input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+.root[data-date-input] button.trigger {
+  position: absolute;
+  inset: 1px 1px 1px auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+}
+.trigger svg {
+  width: 18px;
+  height: 18px;
+}
+.dialog[data-calendar] {
+  --date-text: var(--system-text, var(--portal-text, #20242b));
+  --date-muted: var(--system-muted, var(--portal-muted, #626975));
+  --date-border: var(--system-border, #d5d9df);
+  --date-surface: var(
+    --workspace-menu,
+    var(--ceo-menu, var(--system-surface, #fff))
+  );
+  position: fixed;
+  inset: auto;
+  width: 324px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--date-border);
+  border-radius: 18px;
+  background: var(--date-surface);
+  box-shadow: 0 12px 48px #0003;
+  color: var(--date-text);
+  font-family: var(--font-workspace, var(--font-body, sans-serif));
+  font-size: 14px;
+  font-weight: 400;
+  opacity: var(--dialog-progress, 1);
+  transform: translateY(calc((1 - var(--dialog-progress, 1)) * -6px))
+    scale(calc(0.97 + var(--dialog-progress, 1) * 0.03));
+  transform-origin: top center;
+}
+.dialog::backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+.calendarFields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.monthControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dialog[data-calendar] .monthControls select,
+.dialog[data-calendar] .monthControls input {
+  width: auto;
+  height: 36px;
+  min-width: 0;
+  margin: 0;
+  padding: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--date-text);
+  font: inherit;
+  font-weight: 550;
+  box-shadow: none;
+}
+.dialog[data-calendar] .monthControls input {
+  width: 64px;
+}
+.dialog[data-calendar] button.nav,
+.dialog[data-calendar] button.day,
+.dialog[data-calendar] button.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--date-text);
+  font: inherit;
+  cursor: pointer;
+}
+.dialog[data-calendar] button.nav {
+  flex: none;
+  width: 32px;
+}
+.nav svg {
+  width: 16px;
+  height: 16px;
+}
+.dialog[data-calendar] table.grid {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 2px;
+  table-layout: fixed;
+  font-size: 13px;
+}
+.dialog[data-calendar] .grid th,
+.dialog[data-calendar] .grid td {
+  padding: 0;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-weight: 400;
+}
+.grid th {
+  color: var(--date-muted);
+  font-size: 12px;
+}
+.grid abbr {
+  text-decoration: none;
+}
+.dialog[data-calendar] button.day {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.dialog[data-calendar] button.day[data-outside="true"] {
+  color: var(--date-muted);
+}
+.dialog[data-calendar] button.day[data-selected="true"] {
+  background: var(--date-text);
+  color: var(--date-surface);
+  font-weight: 650;
+}
+.dialog[data-calendar]
+  button.day[aria-current="date"]:not([data-selected="true"]) {
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.dialog[data-calendar] button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 14px;
+  margin-top: 12px;
+  border-top: 1px solid var(--date-border);
+}
+.time > span:first-child {
+  margin-right: auto;
+  color: var(--date-muted);
+  font-size: 12px;
+}
+.dialog[data-calendar] .time input {
+  width: 48px;
+  height: 36px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--date-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--date-text);
+  text-align: center;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  box-shadow: none;
+}
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--date-border);
+}
+.dialog[data-calendar] button.action {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.footer > button:last-child {
+  margin-left: auto;
+}
+.dialog[data-calendar] button.apply {
+  background: var(--date-text);
+  color: var(--date-surface);
+}
+.error {
+  margin-top: 12px;
+  color: var(--system-danger, #c34751);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.root button:focus-visible,
+.dialog :is(button, input, select):focus-visible {
+  outline: 2px solid var(--system-accent, #5689d8);
+  outline-offset: 2px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .dialog[data-calendar]
+    button:is(.nav, .action, .day):hover:not(:disabled):not(
+      [data-selected="true"]
+    ):not(.apply) {
+    background: color-mix(in srgb, var(--date-text) 8%, transparent);
+  }
+}
+
+.dialog[data-calendar] .monthControls [role="combobox"] {
+  min-height: 36px;
+  height: 36px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--date-text);
+  font: inherit;
+  font-weight: 550;
+}
+.monthControls > div {
+  width: 140px;
+}

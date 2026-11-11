@@ -53,11 +53,8 @@ export class FinanceAlertsService {
         LIMIT ${pageSize} OFFSET ${(query.page - 1) * pageSize}
       `,
         this.db.$queryRaw<{ pending: bigint; unread: bigint }[]>`
-        SELECT COUNT(*) AS pending,
-          COUNT(*) FILTER (WHERE COALESCE(r."seenVersion", 0) < p.version) AS unread
-        FROM "Payment" p
-        LEFT JOIN "FinanceAlertRead" r ON r."paymentId" = p.id AND r."userId" = ${user.id}::uuid
-        WHERE p.status = 'PENDING'
+        SELECT COUNT(*) AS pending, COUNT(*) FILTER (WHERE "readAt" IS NULL) AS unread
+        FROM (${financeAlertRows(user.id)}) a
       `,
       ],
       { isolationLevel: "RepeatableRead" },
@@ -116,12 +113,10 @@ export class FinanceAlertsService {
 
   async read(user: User, id: string, version: number) {
     return this.write(user, async (tx) => {
-      const payment = await tx.payment.findUnique({
-        where: { id },
-        select: { version: true, status: true },
-      });
+      const [payment] = await tx.$queryRaw<{ version: number }[]>`
+        SELECT version FROM (${financeAlertRows(user.id)}) visible WHERE id = ${id}::uuid`;
 
-      if (!payment || payment.status !== "PENDING") {
+      if (!payment) {
         throw new NotFoundException("Pending payment alert not found.");
       }
 

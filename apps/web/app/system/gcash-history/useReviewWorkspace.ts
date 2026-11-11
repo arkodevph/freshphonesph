@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   GcashCorrection,
@@ -33,7 +34,7 @@ export function useReviewWorkspace(
 
   const [error, setError] = useState("");
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   const [saving, setSaving] = useState(false);
 

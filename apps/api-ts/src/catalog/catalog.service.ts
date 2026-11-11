@@ -96,6 +96,17 @@ const json = (value: unknown): Prisma.InputJsonValue => {
 
 @Injectable()
 export class CatalogService {
+  private readonly catalogCache = new Map<
+    string,
+    {
+      total: number;
+      page: number;
+      pageSize: number;
+      expiresAt: number;
+      items: PublicCatalogItem[];
+    }
+  >();
+
   constructor(
     @Inject(Database) private readonly db: Database,
     @Inject(PrivateStorageService)
@@ -144,6 +155,8 @@ export class CatalogService {
     );
   }
   async publicList(query: CatalogQuery) {
+    const cacheKey = JSON.stringify([query.page, query.q, query.availability]);
+
     const { rows, ...page } = await this.list(query, true);
 
     return { ...page, items: rows.map(publicView) };

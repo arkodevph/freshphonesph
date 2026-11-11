@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { can, useMe } from "@/lib/useMe";
 import styles from "./catalog.module.css";
 import { CatalogWorkspace } from "./CatalogWorkspace";
@@ -8,7 +9,7 @@ export default function CatalogPage() {
   const me = useMe();
 
   if (!me) {
-    return <p role="status">Loading catalog access…</p>;
+    return <WorkspaceProgress label="Loading catalog access…" />;
   }
 
   if (!can(me, "CATALOG_MANAGE")) {

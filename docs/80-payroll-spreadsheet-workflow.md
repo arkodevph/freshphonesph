@@ -98,3 +98,23 @@ provisional implementation.
 The workbooks and generator are local files; app/API permissions, financial
 records, database schema and running services are unaffected. Client alignment
 and acceptance remain separate from implementation.
+
+## F18 verification follow-up — November 10, 2026
+
+The user retained the **current Excel workbook format**. Both delivered workbook
+archives match the generator's content after excluding creation/modification
+timestamps and ZIP container metadata; their formulas, preview caches, validation,
+protection and layout are unchanged. The verifier now enforces that comparison
+and records separate delivered/generated hashes.
+
+**21 calculation scenarios / 100 assertions pass**, plus the existing 13
+worked-example cached values, using independent LibreOffice recalculation with
+no formula errors. Added scenarios cover repeated employee/method/payment
+references, negative net pay requiring review, and the final supported
+staff/payroll/adjustment/payment rows. Two synthetic integrity probes confirm
+that an altered formula and a missing example are rejected.
+
+Use the [F18 Excel acceptance checklist](134-f18-payroll-acceptance.md) for the
+remaining actual-Excel walkthrough and client rules/signoff. Neither Microsoft
+Excel runtime nor client acceptance was established by this local verification.
+Delivered workbooks and application business data were preserved.

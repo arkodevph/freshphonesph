@@ -1,5 +1,15 @@
 "use client";
 
+import HandlerClientTable from "./HandlerClientTable";
+import { isBatchHandler } from "@/lib/handler-workspace";
+import type { ClientSortField } from "@freshphones/contracts";
+import type { HandlerTableSort } from "@/lib/handler-table";
+import WorkspaceProgress, {
+  TableSkeletonRows,
+} from "@/components/WorkspaceProgress";
+import FormSelect from "@/components/FormSelect";
+import AnimatedDisclosure from "@/components/AnimatedDisclosure";
+import DateInput from "@/components/DateInput";
 import { DocumentChecklist } from "@/components/DocumentChecklist";
 import type { Me } from "@/lib/api";
 import { type ClientRecord, type RecordId, type ScheduleItem } from "@/lib/api";
@@ -7,10 +17,17 @@ import { can } from "@/lib/useMe";
 import { CalendarBlank } from "@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from "react";
 import { Fragment } from "react";
+import styles from "./clients.module.css";
 import { inputCls } from "@/components/FormField";
 
 type Props = {
   loading: boolean;
+  error: string | null;
+  sort: HandlerTableSort<ClientSortField>;
+  onSort: (key: ClientSortField) => void;
+  onResetSort: () => void;
+  onRetry: () => void;
+  scheduleLoading: boolean;
   clients: ClientRecord[];
   me: Me | null;
   canManage: boolean;
@@ -46,6 +63,12 @@ type Props = {
 
 export default function ClientRecordsTable({
   loading,
+  error,
+  sort,
+  onSort,
+  onResetSort,
+  onRetry,
+  scheduleLoading,
   clients,
   me,
   canManage,
@@ -62,30 +85,64 @@ export default function ClientRecordsTable({
   saveRelease,
   saving,
 }: Props) {
+  if (isBatchHandler(me?.role) && me) {
+    return (
+      <HandlerClientTable
+        key={String(me.id)}
+        clients={clients}
+        loading={loading}
+        error={error}
+        userId={String(me.id)}
+        sort={sort}
+        onSort={onSort}
+        onResetSort={onResetSort}
+        onRetry={onRetry}
+        onRequirements={can(me, "DOCUMENT_READ") ? setManagedClient : undefined}
+      />
+    );
+  }
+
   return (
-    <div className="glass overflow-x-auto rounded-3xl p-5">
-      <table className="w-full min-w-[800px] text-left text-sm">
+    <div
+      className={styles.tableScroll}
+      role="region"
+      aria-label="Client records"
+      tabIndex={0}
+    >
+      <table className={styles.table}>
+        <caption className="sr-only">
+          Clients, batch membership, status, release and records
+        </caption>
         <thead className="text-xs uppercase tracking-wide text-ink-soft">
           <tr className="border-b border-white/60">
-            <th className="px-2 py-2">#</th>
-            <th className="px-2 py-2">Name</th>
-            <th className="px-2 py-2">Batch</th>
-            <th className="px-2 py-2">Email</th>
-            <th className="px-2 py-2">Status</th>
-            <th className="px-2 py-2">Release</th>
-            <th className="px-2 py-2 text-right">Records</th>
+            <th scope="col" className="px-2 py-2">
+              Client
+            </th>
+            <th scope="col" className="px-2 py-2">
+              Batch
+            </th>
+            <th scope="col" className="px-2 py-2">
+              Status
+            </th>
+            <th scope="col" className="px-2 py-2">
+              Release
+            </th>
+            <th scope="col" className="px-2 py-2 text-right">
+              Records
+            </th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
-            <tr>
-              <td colSpan={7} className="px-2 py-6 text-center text-ink-soft">
-                Loading…
-              </td>
-            </tr>
+            <TableSkeletonRows
+              identity
+              columns={5}
+              cellClassName="px-2 py-2.5"
+              label="Loading…"
+            />
           ) : clients.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-2 py-6 text-center text-ink-soft">
+              <td colSpan={5} className="px-2 py-6 text-center text-ink-soft">
                 {["core_handler", "batch_handler", "batch_manager"].includes(
                   me?.role ?? "",
                 )
@@ -98,20 +155,30 @@ export default function ClientRecordsTable({
               return (
                 <Fragment key={c.id}>
                   <tr className="border-b border-white/40">
-                    <td
-                      className="px-2 py-2.5 font-600 text-blue-ink"
-                      title={String(c.id)}
-                    >
-                      {typeof c.id === "string" ? c.id.slice(0, 8) : c.id}
-                    </td>
-                    <td className="px-2 py-2.5 font-700 text-blue-ink">
-                      {c.full_name}
-                    </td>
+                    <th scope="row" className={styles.identity}>
+                      <span className={styles.avatar} aria-hidden="true">
+                        {c.full_name
+                          .trim()
+                          .split(/\s+/)
+                          .slice(0, 2)
+                          .map((part) => {
+                            return part[0];
+                          })
+                          .join("")}
+                      </span>
+                      <span className={styles.clientText}>
+                        <strong>{c.full_name}</strong>
+                        {c.contact_email && <span>{c.contact_email}</span>}
+                        <span
+                          className={styles.identifier}
+                          title={String(c.id)}
+                        >
+                          #{typeof c.id === "string" ? c.id.slice(0, 8) : c.id}
+                        </span>
+                      </span>
+                    </th>
                     <td className="px-2 py-2.5 text-ink-soft">
                       {c.batch_number}
-                    </td>
-                    <td className="px-2 py-2.5 text-ink-soft">
-                      {c.contact_email || "—"}
                     </td>
                     <td className="px-2 py-2.5 capitalize">
                       <span className="rounded-full bg-sky-2/70 px-2.5 py-1 text-xs font-700 text-blue-ink">
@@ -125,7 +192,7 @@ export default function ClientRecordsTable({
                       {canManage && (
                         <button
                           type="button"
-                          className="ml-2 rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
+                          className={styles.releaseButton}
                           disabled={releasing}
                           onClick={() => {
                             return setReleaseDraft((current) => {
@@ -152,73 +219,88 @@ export default function ClientRecordsTable({
                       )}
                     </td>
                     <td className="px-2 py-2.5 text-right">
-                      {canManage && (
-                        <>
-                          <button
-                            type="button"
-                            className="mr-2 rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
-                            aria-label={`Edit client ${c.full_name}`}
-                            onClick={() => {
-                              return setDetails({ id: c.id, mode: "edit" });
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="mr-2 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue"
-                            aria-label={`Change history for client ${c.full_name}`}
-                            onClick={() => {
-                              return setDetails({
-                                id: c.id,
-                                mode: "history",
-                              });
-                            }}
-                          >
-                            History
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => {
-                          return toggleSchedule(c.id);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
+                      <AnimatedDisclosure
+                        className={styles.records}
+                        title="Records"
                       >
-                        <CalendarBlank weight="bold" className="h-3.5 w-3.5" />
-                        {schedule?.id === c.id ? "Hide" : "View"}
-                      </button>
-                      {can(me, "DOCUMENT_READ") && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            return setManagedClient(c);
-                          }}
-                          className="ml-2 rounded-full bg-white/70 px-2.5 py-1 text-xs text-blue"
-                        >
-                          Configured requirements
-                        </button>
-                      )}
-                      {canReadDocuments && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            return setDocumentClient((current) => {
-                              return current === c.id ? null : c.id;
-                            });
-                          }}
-                          className="ml-2 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
-                        >
-                          {documentClient === c.id
-                            ? "Hide documents"
-                            : "Documents"}
-                        </button>
-                      )}
+                        <div className={styles.recordActions}>
+                          {canManage && (
+                            <>
+                              <button
+                                type="button"
+                                className="mr-2 rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
+                                aria-label={`Edit client ${c.full_name}`}
+                                onClick={() => {
+                                  return setDetails({ id: c.id, mode: "edit" });
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="mr-2 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue"
+                                aria-label={`Change history for client ${c.full_name}`}
+                                onClick={() => {
+                                  return setDetails({
+                                    id: c.id,
+                                    mode: "history",
+                                  });
+                                }}
+                              >
+                                History
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            aria-expanded={schedule?.id === c.id}
+                            aria-label={`Installment schedule for ${c.full_name}`}
+                            onClick={() => {
+                              return toggleSchedule(c.id);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
+                          >
+                            <CalendarBlank
+                              weight="bold"
+                              className="h-3.5 w-3.5"
+                            />
+                            {schedule?.id === c.id
+                              ? "Hide schedule"
+                              : "Schedule"}
+                          </button>
+                          {can(me, "DOCUMENT_READ") && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                return setManagedClient(c);
+                              }}
+                              className="ml-2 rounded-full bg-white/70 px-2.5 py-1 text-xs text-blue"
+                            >
+                              Requirements
+                            </button>
+                          )}
+                          {canReadDocuments && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                return setDocumentClient((current) => {
+                                  return current === c.id ? null : c.id;
+                                });
+                              }}
+                              className="ml-2 rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
+                            >
+                              {documentClient === c.id
+                                ? "Hide documents"
+                                : "Documents"}
+                            </button>
+                          )}
+                        </div>
+                      </AnimatedDisclosure>
                     </td>
                   </tr>
                   {releaseDraft?.id === c.id && (
                     <tr>
-                      <td colSpan={7} className="px-2 pb-3">
+                      <td colSpan={5} className="px-2 pb-3">
                         <form
                           onSubmit={(event) => {
                             event.preventDefault();
@@ -235,28 +317,32 @@ export default function ClientRecordsTable({
                               Release update for {c.full_name}
                             </h2>
                             <div className="grid gap-3 md:grid-cols-3">
-                              <label className="grid gap-1 text-xs text-blue-ink">
+                              <div className="grid gap-1 text-xs text-blue-ink">
                                 Status
-                                <select
+                                <FormSelect
+                                  label="Release status"
                                   value={releaseDraft.status}
-                                  onChange={(event) => {
+                                  onValueChange={(next) => {
                                     return setReleaseDraft({
                                       ...releaseDraft,
-                                      status: event.target
-                                        .value as typeof releaseDraft.status,
+                                      status:
+                                        next as typeof releaseDraft.status,
                                     });
                                   }}
-                                  className={inputCls}
-                                >
-                                  <option value="NOT_READY">Not ready</option>
-                                  <option value="PROCESSING">Processing</option>
-                                  <option value="READY">Ready</option>
-                                  <option value="RELEASED">Released</option>
-                                </select>
-                              </label>
+                                  options={[
+                                    { value: "NOT_READY", label: "Not ready" },
+                                    {
+                                      value: "PROCESSING",
+                                      label: "Processing",
+                                    },
+                                    { value: "READY", label: "Ready" },
+                                    { value: "RELEASED", label: "Released" },
+                                  ]}
+                                />
+                              </div>
                               <label className="grid gap-1 text-xs text-blue-ink md:col-span-2">
                                 Collection date, if confirmed
-                                <input
+                                <DateInput
                                   type="date"
                                   value={releaseDraft.collectionDate}
                                   onChange={(event) => {
@@ -329,7 +415,7 @@ export default function ClientRecordsTable({
                   )}
                   {schedule?.id === c.id && (
                     <tr>
-                      <td colSpan={7} className="px-2 pb-3">
+                      <td colSpan={5} className="px-2 pb-3">
                         <div className="glass-tint rounded-2xl p-3">
                           <table className="w-full text-left text-xs">
                             <thead className="text-ink-soft">
@@ -361,7 +447,7 @@ export default function ClientRecordsTable({
                   )}
                   {canReadDocuments && documentClient === c.id && (
                     <tr>
-                      <td colSpan={7} className="px-2 pb-3">
+                      <td colSpan={5} className="px-2 pb-3">
                         <div className="glass-tint rounded-2xl p-4">
                           <DocumentChecklist clientId={c.id} reviewer />
                         </div>

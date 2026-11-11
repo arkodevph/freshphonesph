@@ -24,7 +24,11 @@ async function sourceFiles(directory) {
   const files = [];
 
   for (const entry of entries) {
-    if (excluded.has(entry.name) || entry.isSymbolicLink()) {
+    if (
+      excluded.has(entry.name) ||
+      entry.name.startsWith(".next-") ||
+      entry.isSymbolicLink()
+    ) {
       continue;
     }
 

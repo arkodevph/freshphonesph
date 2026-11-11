@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import styles from "./recruitment.module.css";
 import { useRecruitmentDirectory } from "./useRecruitmentDirectory";
 
@@ -43,9 +44,10 @@ export function DirectoryState<T>({
 }) {
   if (directory.loading) {
     return (
-      <p className={styles.scopeNote} role="status">
-        Loading {name}…
-      </p>
+      <WorkspaceProgress
+        className={styles.scopeNote}
+        label={`Loading ${name}…`}
+      />
     );
   }
 

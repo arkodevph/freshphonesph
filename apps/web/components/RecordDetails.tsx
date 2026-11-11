@@ -1,6 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import ModalCloseButton from "@/components/ModalCloseButton";
+import RecordDetailsSkeleton from "@/components/RecordDetailsSkeleton";
+import WorkspaceDetails from "@/components/WorkspaceDetails";
+import FormSelect from "@/components/FormSelect";
+import DateInput from "@/components/DateInput";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { batchSchema, clientSchema } from "@freshphones/contracts";
 import {
   getBatchDetails,
@@ -28,6 +41,26 @@ import { BatchSchedulePreview } from "./BatchSchedulePreview";
 import { BatchCapacity } from "./BatchCapacity";
 import type { InstallmentCadence } from "@freshphones/contracts";
 
+function BatchTermsSection({
+  locked,
+  children,
+}: {
+  locked: boolean;
+  children: ReactNode;
+}) {
+  return locked ? (
+    <WorkspaceDetails className={styles.section}>
+      <summary>View locked payment terms</summary>
+      {children}
+    </WorkspaceDetails>
+  ) : (
+    <section className={styles.section}>
+      <h3>Payment terms</h3>
+      {children}
+    </section>
+  );
+}
+
 export function RecordDetails({
   kind,
   id,
@@ -42,6 +75,10 @@ export function RecordDetails({
   onSaved: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+
+  const [open, setOpen] = useState(true);
+
+  useSpringDialog(dialog, open, onClose);
 
   const titleId = useId();
 
@@ -114,8 +151,6 @@ export function RecordDetails({
   }, [read]);
 
   useEffect(() => {
-    dialog.current?.showModal();
-
     const overflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -163,7 +198,7 @@ export function RecordDetails({
 
   function requestClose() {
     if (!saving) {
-      dirty ? setDiscard("close") : onClose();
+      dirty ? setDiscard("close") : setOpen(false);
     }
   }
 
@@ -223,7 +258,7 @@ export function RecordDetails({
 
       onSaved();
 
-      onClose();
+      setOpen(false);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         try {
@@ -252,30 +287,35 @@ export function RecordDetails({
     required = false,
     extra: React.InputHTMLAttributes<HTMLInputElement> = {},
   ) => {
+    const inputProps: React.InputHTMLAttributes<HTMLInputElement> = {
+      id: `${titleId}-${key}`,
+      "aria-labelledby": `${titleId}-${key}-label`,
+      required,
+      value: draft?.[key] ?? "",
+      onChange: (event) => {
+        setDraft((current) => {
+          return (
+            current && {
+              ...current,
+              [key]: event.target.value,
+              ...(key === "cadence" && event.target.value !== "MONTHLY"
+                ? { monthEnd: "false" }
+                : {}),
+            }
+          );
+        });
+      },
+      ...extra,
+    };
+
     return (
       <label className={styles.field} htmlFor={`${titleId}-${key}`}>
         <span id={`${titleId}-${key}-label`}>{label}</span>
-        <input
-          id={`${titleId}-${key}`}
-          aria-labelledby={`${titleId}-${key}-label`}
-          type={type}
-          required={required}
-          value={draft?.[key] ?? ""}
-          onChange={(event) => {
-            return setDraft((current) => {
-              return (
-                current && {
-                  ...current,
-                  [key]: event.target.value,
-                  ...(key === "cadence" && event.target.value !== "MONTHLY"
-                    ? { monthEnd: "false" }
-                    : {}),
-                }
-              );
-            });
-          }}
-          {...extra}
-        />
+        {type === "date" ? (
+          <DateInput {...inputProps} type="date" />
+        ) : (
+          <input {...inputProps} type={type} />
+        )}
       </label>
     );
   };
@@ -288,37 +328,33 @@ export function RecordDetails({
     required = true,
   ) => {
     return (
-      <label className={styles.field} htmlFor={`${titleId}-${key}`}>
+      <div className={styles.field}>
         <span id={`${titleId}-${key}-label`}>{label}</span>
-        <select
+        <FormSelect
           id={`${titleId}-${key}`}
-          aria-labelledby={`${titleId}-${key}-label`}
+          label={label}
+          labelId={`${titleId}-${key}-label`}
           required={required}
           value={draft?.[key] ?? ""}
           disabled={disabled}
-          onChange={(event) => {
+          options={options.map(([value, label]) => {
+            return { value, label };
+          })}
+          onValueChange={(next) => {
             return setDraft((current) => {
               return (
                 current && {
                   ...current,
-                  [key]: event.target.value,
-                  ...(key === "cadence" && event.target.value !== "MONTHLY"
+                  [key]: next,
+                  ...(key === "cadence" && next !== "MONTHLY"
                     ? { monthEnd: "false" }
                     : {}),
                 }
               );
             });
           }}
-        >
-          {options.map(([value, text]) => {
-            return (
-              <option key={value} value={value}>
-                {text}
-              </option>
-            );
-          })}
-        </select>
-      </label>
+        />
+      </div>
     );
   };
 
@@ -332,6 +368,9 @@ export function RecordDetails({
 
   return (
     <dialog
+      data-workspace-modal
+      onClose={onClose}
+      data-modal-size="wide"
       ref={dialog}
       aria-labelledby={titleId}
       className={styles.dialog}
@@ -341,22 +380,14 @@ export function RecordDetails({
         requestClose();
       }}
     >
-      <header className={styles.header}>
+      <header data-modal-header className={styles.header}>
         <div>
           <p className={styles.help}>
             {kind === "batch" ? "Paluwagan batch" : "Client record"}
           </p>
           <h2 id={titleId}>{title}</h2>
         </div>
-        <button
-          type="button"
-          className={styles.secondary}
-          disabled={saving}
-          onClick={requestClose}
-          aria-label="Close record details"
-        >
-          Close
-        </button>
+        <ModalCloseButton disabled={saving} onClick={requestClose} />
       </header>
       <div className={styles.tabs} aria-label="Record views">
         <button
@@ -398,6 +429,7 @@ export function RecordDetails({
             </button>
             <button
               type="button"
+              data-variant="primary"
               className={styles.primary}
               onClick={() => {
                 const action = discard;
@@ -405,7 +437,7 @@ export function RecordDetails({
                 setDiscard(null);
 
                 if (action === "close") {
-                  onClose();
+                  setOpen(false);
                 } else {
                   void load();
                 }
@@ -417,7 +449,7 @@ export function RecordDetails({
         </div>
       )}
       {loading ? (
-        <p role="status">Loading record details…</p>
+        <RecordDetailsSkeleton kind={kind} />
       ) : !record || !draft ? (
         <div role="alert" className={styles.error}>
           {error}
@@ -463,10 +495,15 @@ export function RecordDetails({
           >
             {kind === "batch" && "code" in record ? (
               <>
-                <BatchCapacity
-                  realMembers={record._count.clients}
-                  status={record.status}
-                />
+                <WorkspaceDetails className={styles.section}>
+                  <summary>
+                    Membership · {record._count.clients} enrolled
+                  </summary>
+                  <BatchCapacity
+                    realMembers={record._count.clients}
+                    status={record.status}
+                  />
+                </WorkspaceDetails>
                 <div className={styles.grid}>
                   {field("Batch number", "code", "text", true, {
                     minLength: 2,
@@ -494,73 +531,83 @@ export function RecordDetails({
                     plan.
                   </p>
                 )}
-                <fieldset disabled={record.termsLocked} className={styles.grid}>
-                  {field("Unit / model", "model", "text", true, {
-                    minLength: 2,
-                    maxLength: 100,
-                  })}
-                  {field(
-                    "Contract price (PHP)",
-                    "contractPrice",
-                    "number",
-                    Boolean(draft.installmentCount || draft.cadence),
-                    { min: "0.01", step: "0.01" },
-                  )}
-                  {field(
-                    "Installments",
-                    "installmentCount",
-                    "number",
-                    Boolean(draft.contractPrice || draft.cadence),
-                    { min: 1, max: 600, step: 1 },
-                  )}
-                  {select(
-                    "Cadence",
-                    "cadence",
-                    [
-                      ["", "Terms not set"],
-                      ["WEEKLY", "Weekly"],
-                      ["SEMIMONTHLY", "Bi-monthly — 15th and month end"],
-                      ["MONTHLY", "Monthly"],
-                    ],
-                    false,
-                    Boolean(draft.contractPrice || draft.installmentCount),
-                  )}
-                  {field("Start date", "startDate", "date", true)}
-                  {field(
-                    "First installment due date",
-                    "firstDueDate",
-                    "date",
-                    Boolean(record.firstDueDate),
-                    { min: draft.startDate, max: draft.endDate },
-                  )}
-                  {draft.cadence === "MONTHLY" &&
-                    select("Monthly alignment", "monthEnd", [
-                      ["false", "Same day of every month"],
-                      ["true", "Last day of every month"],
-                    ])}
-                  {field("End date", "endDate", "date", true, {
-                    min: draft.startDate,
-                  })}
-                </fieldset>
-                <p className={styles.help}>
-                  {record.firstDueDate || draft.firstDueDate
-                    ? "The chosen first due date is installment 1. Bi-monthly dates fall on the 15th and month end. Include the final installment in the batch end date."
-                    : "This batch retains its original fixed-interval schedule. For a batch without issued schedules or payments, choose a first due date to use calendar scheduling."}
-                </p>
+                <BatchTermsSection locked={Boolean(record.termsLocked)}>
+                  <fieldset
+                    disabled={record.termsLocked}
+                    className={styles.grid}
+                  >
+                    {field("Unit / model", "model", "text", true, {
+                      minLength: 2,
+                      maxLength: 100,
+                    })}
+                    {field(
+                      "Contract price (PHP)",
+                      "contractPrice",
+                      "number",
+                      Boolean(draft.installmentCount || draft.cadence),
+                      { min: "0.01", step: "0.01" },
+                    )}
+                    {field(
+                      "Installments",
+                      "installmentCount",
+                      "number",
+                      Boolean(draft.contractPrice || draft.cadence),
+                      { min: 1, max: 600, step: 1 },
+                    )}
+                    {select(
+                      "Cadence",
+                      "cadence",
+                      [
+                        ["", "Terms not set"],
+                        ["WEEKLY", "Weekly"],
+                        ["SEMIMONTHLY", "Bi-monthly — 15th and month end"],
+                        ["MONTHLY", "Monthly"],
+                      ],
+                      false,
+                      Boolean(draft.contractPrice || draft.installmentCount),
+                    )}
+                    {field("Start date", "startDate", "date", true)}
+                    {field(
+                      "First installment due date",
+                      "firstDueDate",
+                      "date",
+                      Boolean(record.firstDueDate),
+                      { min: draft.startDate, max: draft.endDate },
+                    )}
+                    {draft.cadence === "MONTHLY" &&
+                      select("Monthly alignment", "monthEnd", [
+                        ["false", "Same day of every month"],
+                        ["true", "Last day of every month"],
+                      ])}
+                    {field("End date", "endDate", "date", true, {
+                      min: draft.startDate,
+                    })}
+                  </fieldset>
+                  <p className={styles.help}>
+                    {record.firstDueDate || draft.firstDueDate
+                      ? "The chosen first due date is installment 1. Bi-monthly dates fall on the 15th and month end. Include the final installment in the batch end date."
+                      : "This batch retains its original fixed-interval schedule. For a batch without issued schedules or payments, choose a first due date to use calendar scheduling."}
+                  </p>
+                </BatchTermsSection>
                 {draft.contractPrice &&
                   draft.installmentCount &&
                   draft.cadence && (
-                    <BatchSchedulePreview
-                      requireFirstDate={Boolean(record.firstDueDate)}
-                      plan={{
-                        contractPrice: draft.contractPrice,
-                        installmentCount: Number(draft.installmentCount),
-                        cadence: draft.cadence as InstallmentCadence,
-                        startDate: draft.startDate,
-                        firstDueDate: draft.firstDueDate || null,
-                        monthEnd: draft.monthEnd === "true",
-                      }}
-                    />
+                    <WorkspaceDetails className={styles.section}>
+                      <summary>
+                        Installment schedule · {draft.installmentCount} payments
+                      </summary>
+                      <BatchSchedulePreview
+                        requireFirstDate={Boolean(record.firstDueDate)}
+                        plan={{
+                          contractPrice: draft.contractPrice,
+                          installmentCount: Number(draft.installmentCount),
+                          cadence: draft.cadence as InstallmentCadence,
+                          startDate: draft.startDate,
+                          firstDueDate: draft.firstDueDate || null,
+                          monthEnd: draft.monthEnd === "true",
+                        }}
+                      />
+                    </WorkspaceDetails>
                   )}
               </>
             ) : kind === "client" && "name" in record ? (
@@ -639,6 +686,7 @@ export function RecordDetails({
             </button>
             <button
               type="submit"
+              data-variant="primary"
               className={styles.primary}
               disabled={saving || !dirty || outdated || Boolean(discard)}
             >

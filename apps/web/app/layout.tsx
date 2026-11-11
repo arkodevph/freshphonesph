@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import "./workspace-theme.css";
 import { PresentationNotice } from "@/components/PresentationNotice";
 import { PRESENTATION_MODE } from "@/lib/presentation";
+import AppToaster from "@/components/AppToaster";
 import PublicNavigationLoader from "@/components/PublicNavigationLoader";
 
 const nunito = Nunito({
@@ -59,6 +61,7 @@ export default function RootLayout({
       <body className="min-h-full overflow-x-hidden">
         <PublicNavigationLoader />
         {children}
+        <AppToaster />
         <PresentationNotice />
       </body>
     </html>

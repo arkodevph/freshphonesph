@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   EnrollmentFormConfig,
@@ -37,7 +38,7 @@ export function useEnrollmentApplication(id: string, me: Me) {
 
   const [error, setError] = useState("");
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   const clear = useCallback(() => {
     setApplication(null);

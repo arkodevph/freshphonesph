@@ -94,6 +94,10 @@ class Session {
 
   cookies = new Map<string, string>();
   async request(path: string, options: RequestInit = {}, apiBase = base) {
+    if (path === "/auth/login") {
+      this.cookies.clear();
+    }
+
     const response = await fetch(`${apiBase}/api${path}`, {
       ...options,
       headers: {
@@ -2584,6 +2588,218 @@ test("customer documents stay private through clarification, resubmission and re
         return item.status === "MISSING";
       },
     ),
+  );
+});
+
+test("signed agreements accept private PDFs and corrected images with Records review and retained history", async () => {
+  const email = `${suffix}-signed-agreement@example.test`;
+
+  const client = await db.client.create({
+    data: {
+      name: "Synthetic signed agreement customer",
+      email,
+      phone: "+63 900 000 0099",
+      batchId,
+    },
+  });
+
+  await db.user.create({
+    data: {
+      name: "Synthetic signed agreement customer",
+      email,
+      passwordHash: await hashPassword(password),
+      role: "CUSTOMER",
+      clientId: client.id,
+    },
+  });
+
+  const customer = new Session();
+
+  assert.equal(
+    (await customer.request("/auth/login", post({ email, password }))).status,
+    200,
+  );
+
+  const records = await new Session().login("RECORDS");
+
+  const other = await new Session().login("CUSTOMER");
+
+  const unsupported = new FormData();
+
+  unsupported.append(
+    "file",
+    new Blob(["not a PDF"], { type: "application/pdf" }),
+    "agreement.pdf",
+  );
+
+  assert.equal(
+    (await customer.upload("/portal/documents/SIGNED_AGREEMENT", unsupported))
+      .status,
+    400,
+  );
+
+  const pdfBytes =
+    "%PDF-1.4\n% Synthetic agreement upload fixture; no legal terms or signature validation.\n%%EOF";
+
+  const pdf = new FormData();
+
+  pdf.append(
+    "file",
+    new Blob([pdfBytes], { type: "application/pdf" }),
+    "signed-agreement.pdf",
+  );
+
+  const uploaded = await customer.upload(
+    "/portal/documents/SIGNED_AGREEMENT",
+    pdf,
+  );
+
+  assert.equal(uploaded.status, 201);
+
+  const first = await uploaded.json();
+
+  assert.equal(first.requirementKey, "SIGNED_AGREEMENT");
+
+  assert.equal(first.status, "SUBMITTED");
+
+  const file = await customer.request(`/documents/${first.id}/file`);
+
+  assert.equal(file.status, 200);
+
+  assert.match(file.headers.get("content-type") ?? "", /application\/pdf/);
+
+  assert.equal(await file.text(), pdfBytes);
+
+  assert.equal(
+    (await records.request(`/documents/${first.id}/file`)).status,
+    200,
+  );
+
+  assert.equal(
+    (await other.request(`/documents/${first.id}/file`)).status,
+    404,
+  );
+
+  assert.equal(
+    (await new Session().request(`/documents/${first.id}/file`)).status,
+    401,
+  );
+
+  assert.equal(
+    (
+      await customer.request(
+        `/documents/${first.id}/review`,
+        post({ status: "APPROVED", version: 1 }),
+      )
+    ).status,
+    403,
+  );
+
+  assert.equal(
+    (await customer.upload("/portal/documents/SIGNED_AGREEMENT", pdf)).status,
+    409,
+  );
+
+  assert.equal(
+    (
+      await records.request(
+        `/documents/${first.id}/review`,
+        post({
+          status: "NEEDS_CLARIFICATION",
+          version: 1,
+          clarification: "Please upload a clear copy of every signed page.",
+        }),
+      )
+    ).status,
+    200,
+  );
+
+  const image = new FormData();
+
+  const imageBytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 7]);
+
+  image.append(
+    "file",
+    new Blob([imageBytes], { type: "image/png" }),
+    "corrected-signed-agreement.png",
+  );
+
+  const replaced = await customer.upload(
+    "/portal/documents/SIGNED_AGREEMENT",
+    image,
+  );
+
+  assert.equal(replaced.status, 201);
+
+  const replacement = await replaced.json();
+
+  assert.notEqual(replacement.id, first.id);
+
+  assert.equal(
+    (
+      await records.request(
+        `/documents/${replacement.id}/review`,
+        post({ status: "APPROVED", version: 1 }),
+      )
+    ).status,
+    200,
+  );
+
+  assert.equal(
+    (
+      await records.request(
+        `/documents/${replacement.id}/review`,
+        post({ status: "APPROVED", version: 1 }),
+      )
+    ).status,
+    409,
+  );
+
+  const checklist = await (await customer.request("/portal/documents")).json();
+
+  const agreement = checklist.find((item: { key: string }) => {
+    return item.key === "SIGNED_AGREEMENT";
+  });
+
+  assert.equal(agreement.status, "APPROVED");
+
+  assert.equal(agreement.latest.id, replacement.id);
+
+  assert.deepEqual(
+    agreement.history.map((item: { id: string }) => {
+      return item.id;
+    }),
+    [replacement.id, first.id],
+  );
+
+  assert.equal(
+    await (await customer.request(`/documents/${first.id}/file`)).text(),
+    pdfBytes,
+  );
+
+  assert.deepEqual(
+    new Uint8Array(
+      await (
+        await customer.request(`/documents/${replacement.id}/file`)
+      ).arrayBuffer(),
+    ),
+    imageBytes,
+  );
+
+  assert.equal(
+    (await customer.upload("/portal/documents/SIGNED_AGREEMENT", pdf)).status,
+    409,
+  );
+
+  assert.equal(
+    await db.auditEntry.count({
+      where: {
+        entity: "document",
+        recordId: { in: [first.id, replacement.id] },
+        action: { in: ["document.submitted", "document.reviewed"] },
+      },
+    }),
+    4,
   );
 });
 
@@ -5120,6 +5336,8 @@ test("Finance alerts enforce every role, origin, strict input and current review
     },
   });
 
+  await prepareFinanceReview(db, payment.id);
+
   const anonymous = new Session();
 
   for (const [path, options] of [
@@ -5236,7 +5454,12 @@ test("Finance alerts enforce every role, origin, strict input and current review
     0,
   );
 
-  await db.payment.delete({ where: { id: payment.id } });
+  await db.financeAlertRead.deleteMany({ where: { paymentId: payment.id } });
+
+  await db.payment.update({
+    where: { id: payment.id },
+    data: { status: "REJECTED" },
+  });
 });
 
 test("Finance pending backlog is paginated, private per reviewer and reads leave all financial records untouched", async () => {
@@ -5245,6 +5468,8 @@ test("Finance pending backlog is paginated, private per reviewer and reads leave
   const first = await alertAccount("backlog-one");
 
   const other = await alertAccount("backlog-two");
+
+  const pendingBefore = (await alertSnapshot(first.session)).pendingCount;
 
   const ids: string[] = Array.from({ length: 25 }, () => {
     return randomUUID();
@@ -5268,8 +5493,12 @@ test("Finance pending backlog is paginated, private per reviewer and reads leave
     }),
   });
 
+  for (const id of ids) {
+    await prepareFinanceReview(db, id);
+  }
+
   try {
-    const pending = await db.payment.count({ where: { status: "PENDING" } });
+    const pending = pendingBefore + ids.length;
 
     const initial = await alertSnapshot(first.session);
 
@@ -5402,7 +5631,13 @@ test("Finance pending backlog is paginated, private per reviewer and reads leave
 
     assert.equal(await db.notification.count(), notificationCount);
   } finally {
-    await db.payment.deleteMany({ where: { id: { in: ids } } });
+    // Preserve immutable review history while retiring synthetic alert fixtures.
+    await db.financeAlertRead.deleteMany({ where: { paymentId: { in: ids } } });
+
+    await db.payment.updateMany({
+      where: { id: { in: ids } },
+      data: { status: "REJECTED" },
+    });
   }
 
   assert.equal(
@@ -5411,7 +5646,7 @@ test("Finance pending backlog is paginated, private per reviewer and reads leave
   );
 });
 
-test("pending Finance alerts become unread on correction/proof, reappear after clarification and leave after decisions", async () => {
+test("Finance alerts return only after corrected evidence is reviewed again and leave after decisions", async () => {
   await resetAlertLoginLimit();
 
   const { session: finance, user } = await alertAccount("lifecycle");
@@ -5437,6 +5672,8 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
 
   const payment = await create.json();
 
+  await prepareFinanceReview(db, payment.id);
+
   const pending = (await alertSnapshot(finance)).pendingCount;
 
   assert.equal((await alertSnapshot(finance)).unreadCount, 1);
@@ -5457,6 +5694,15 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
   );
 
   assert.equal(correction.status, 200);
+
+  assert.equal((await alertSnapshot(finance)).unreadCount, 0);
+
+  assert.equal(
+    (await finance.request(readPath, post({ version: 1 }))).status,
+    404,
+  );
+
+  await prepareFinanceReview(db, payment.id);
 
   assert.equal((await alertSnapshot(finance)).unreadCount, 1);
 
@@ -5499,6 +5745,10 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
     (await recorder.upload(`/payments/${payment.id}/proof`, proof)).status,
     201,
   );
+
+  assert.equal((await alertSnapshot(finance)).unreadCount, 0);
+
+  await prepareFinanceReview(db, payment.id);
 
   assert.equal((await alertSnapshot(finance)).unreadCount, 1);
 
@@ -5546,6 +5796,10 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
     ).status,
     200,
   );
+
+  assert.equal((await alertSnapshot(finance)).unreadCount, 0);
+
+  await prepareFinanceReview(db, payment.id);
 
   assert.equal((await alertSnapshot(finance)).unreadCount, 1);
 
@@ -5600,6 +5854,8 @@ test("pending Finance alerts become unread on correction/proof, reappear after c
     )
   ).json();
 
+  await prepareFinanceReview(db, rejected.id);
+
   assert.equal((await alertSnapshot(finance)).unreadCount, 1);
 
   assert.equal(
@@ -5648,6 +5904,8 @@ test("Finance alert reads refresh only the same reviewer across instances and se
     assert.equal(created.status, 201);
 
     const payment = await created.json();
+
+    await prepareFinanceReview(db, payment.id);
 
     await ownFeed.wait(() => {
       return ownFeed.text.includes(payment.id);
@@ -5716,7 +5974,7 @@ test("Finance alert reads refresh only the same reviewer across instances and se
       queue.items.some((item) => {
         return item.id === payment.id;
       }),
-      receipt.seenVersion < current.version,
+      false,
     );
 
     await ownFeed.wait(() => {
@@ -5749,17 +6007,25 @@ async function staffAlertSnapshot(
 
 function staffRead(alert: StaffAlert): RequestInit {
   return post(
-    alert.entity === "payment"
-      ? { entity: "payment", version: alert.version }
-      : alert.entity === "enrollment"
-        ? { entity: "enrollment", version: alert.version }
-        : alert.entity === "payment-result"
-          ? { entity: "payment-result" }
-          : alert.entity === "support"
-            ? { entity: "support" }
-            : alert.entity === "account"
-              ? { entity: "account" }
-              : { entity: "task", kind: alert.kind, deadline: alert.deadline },
+    alert.entity === "workflow"
+      ? { entity: "workflow", kind: alert.kind, version: alert.version }
+      : alert.entity === "payment"
+        ? { entity: "payment", version: alert.version }
+        : alert.entity === "payment-review"
+          ? { entity: "payment-review", version: alert.version }
+          : alert.entity === "enrollment"
+            ? { entity: "enrollment", version: alert.version }
+            : alert.entity === "payment-result"
+              ? { entity: "payment-result" }
+              : alert.entity === "support"
+                ? { entity: "support" }
+                : alert.entity === "account"
+                  ? { entity: "account" }
+                  : {
+                      entity: "task",
+                      kind: alert.kind,
+                      deadline: alert.deadline,
+                    },
   );
 }
 
@@ -6327,6 +6593,19 @@ test("task alerts retain reads on start, advance once at deadlines, and stop on 
 test("combined staff alerts share existing Finance receipts and mark-all respects its selected scope", async () => {
   await resetAlertLoginLimit();
 
+  const ready = await db.payment.create({
+    data: {
+      clientId: firstClient,
+      batchId,
+      amount: "1.00",
+      paymentDate: new Date("2026-10-06"),
+      method: "GCash",
+      recordedById: accounts.get("RECORDS")!,
+    },
+  });
+
+  await prepareFinanceReview(db, ready.id);
+
   const first = await alertAccount("combined");
 
   const other = await alertAccount("combined-other");
@@ -6789,7 +7068,7 @@ test("Finance decisions notify active Records and the recorder once and retain h
 
   assert.equal(snapshot.resultCount, 3);
 
-  assert.equal(snapshot.unreadCount, 3);
+  assert.equal(snapshot.filteredUnreadCount, 3);
 
   assert.deepEqual(
     snapshot.items
@@ -7211,7 +7490,10 @@ test("Finance result history pages and scoped mark-all preserve other alerts, pa
 
   assert.equal(first.total, 25);
 
-  assert.equal(first.unreadCount, 25 + 2 + first.financeCount);
+  assert.equal(
+    first.unreadCount,
+    25 + 2 + first.financeCount + first.workflowCount,
+  );
 
   assert.equal(
     new Set(
@@ -7297,7 +7579,10 @@ test("Finance result history pages and scoped mark-all preserve other alerts, pa
 
   const afterResults = await staffAlertSnapshot(reviewer.session);
 
-  assert.equal(afterResults.unreadCount, first.financeCount + 2);
+  assert.equal(
+    afterResults.unreadCount,
+    first.financeCount + first.workflowCount + 2,
+  );
 
   assert.equal(afterResults.resultCount, 25);
 
@@ -7327,7 +7612,7 @@ test("Finance result history pages and scoped mark-all preserve other alerts, pa
 
   assert.equal(
     (await staffAlertSnapshot(reviewer.session)).unreadCount,
-    first.financeCount,
+    first.financeCount + first.workflowCount,
   );
 
   assert.equal(

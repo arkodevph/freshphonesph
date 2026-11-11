@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useId, useState } from "react";
 import type {
   EnrollmentFormDefinition,
@@ -258,7 +259,7 @@ export default function EnrollmentFormEditor({
           <legend className={styles.srOnly}>Add a question</legend>
           <label className={styles.field} htmlFor={`${id}-new-type`}>
             Answer type
-            <select
+            <WorkspaceNativeSelect
               id={`${id}-new-type`}
               value={newType}
               onChange={(event) => {
@@ -274,7 +275,7 @@ export default function EnrollmentFormEditor({
                   </option>
                 );
               })}
-            </select>
+            </WorkspaceNativeSelect>
           </label>
           <button
             id={`${id}-add-question`}

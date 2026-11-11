@@ -37,7 +37,7 @@
 }
 .layout {
   display: grid;
-  grid-template-columns: minmax(250px, 0.85fr) minmax(0, 1.7fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
@@ -61,8 +61,8 @@
   line-height: 1.6;
 }
 .cardSelected {
-  border-color: var(--withdrawal-accent);
-  box-shadow: 0 0 0 1px var(--withdrawal-accent);
+  background: var(--withdrawal-surface);
+  box-shadow: none;
 }
 .card footer {
   margin-top: 14px;
@@ -430,8 +430,233 @@
   margin-bottom: 16px;
 }
 .workspace .table {
-  max-height: 420px;
+  max-height: none;
+}
+.selected .queue {
+  display: none;
+}
+.workspace:not(.selected) .detail {
+  display: none;
+}
+.list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
 .workspace .pagination {
   flex-wrap: wrap;
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  .workspace {
+  --withdrawal-surface: var(--system-surface);
+  --withdrawal-muted: var(--system-muted);
+  --withdrawal-text: var(--system-text);
+  --withdrawal-border: var(--system-border);
+  --withdrawal-accent: var(--system-accent);
+}
+
+/* A case journal and a financial ledger, adapted from the inspected refund case. */
+.workspace > .header {
+  border: 0;
+  border-radius: 0;
+  padding: 4px 0 24px;
+  background: transparent;
+}
+.workspace > .header h1 {
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.workspace > .header p {
+  max-width: 80ch;
+  line-height: 1.65;
+}
+.workspace .casePage {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+.casePage > .heading {
+  margin: 0;
+  padding-block: 4px 16px;
+}
+.casePage > .heading h2 {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.casePage > .badges {
+  margin-bottom: 24px;
+}
+.casePage .badge {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--withdrawal-accent);
+  font-weight: 500;
+  font-size: 13px;
+}
+.caseLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  align-items: start;
+  gap: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--withdrawal-border);
+}
+.caseLedger {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--withdrawal-border);
+  border-radius: 16px;
+  background: var(--withdrawal-surface);
+  box-shadow: 0 10px 26px -18px rgb(0 0 0 / 30%);
+}
+.caseLedger > section + section {
+  border-top: 1px solid var(--withdrawal-border);
+  margin-top: 28px;
+  padding-top: 24px;
+}
+.caseLedger h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.caseLedger .ledgerStatus {
+  margin: 0 0 24px;
+  color: var(--withdrawal-muted);
+  font-size: 13px;
+}
+.ledgerAmount {
+  margin: 0 0 24px;
+}
+.ledgerAmount dt {
+  color: var(--withdrawal-muted);
+  font-size: 12px;
+}
+.ledgerAmount dd {
+  margin: 6px 0 0;
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.ledgerRows {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ledgerRows > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
+}
+.ledgerRows dt {
+  color: var(--withdrawal-muted);
+}
+.ledgerRows dd {
+  margin: 0;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.ledgerNote {
+  margin-top: 24px;
+}
+.ledgerNote h4 {
+  margin-bottom: 8px;
+  color: var(--withdrawal-muted);
+  font-weight: 500;
+}
+.caseJournal {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.caseJournal > :is(.notice, .consequence) {
+  border: 0;
+  border-radius: 0;
+  padding: 0 0 24px;
+  margin: 0;
+  background: transparent;
+}
+.caseJournal > :is(.notice, .consequence) strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.caseJournal > :is(.notice, .consequence) p {
+  margin: 0;
+  color: var(--withdrawal-muted);
+}
+.caseJournal .section {
+  margin-top: 0;
+  padding-block: 24px;
+}
+.caseJournal .section h3 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.journalHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.journalHeading :is(time, span) {
+  color: var(--withdrawal-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.journalHeading span {
+  margin-left: 8px;
+}
+.caseJournal .reason {
+  margin: 0;
+  line-height: 1.75;
+}
+.casePage .summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.casePage .summary > div {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.casePage .summary dd {
+  font-weight: 500;
+}
+@media (max-width: 900px) {
+  .caseLayout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .caseLedger,
+  .caseJournal {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .caseLedger {
+    padding: 20px;
+  }
+}
+@media (max-width: 380px) {
+  .ledgerRows > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .ledgerRows dd {
+    text-align: left;
+  }
 }

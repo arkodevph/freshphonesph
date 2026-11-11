@@ -781,6 +781,19 @@ test("customer erasure preserves exact financial facts and clears linked records
     },
   });
 
+  const inboxCopy = await db.staffInboxNotification.create({
+    data: {
+      recipientId: owner.id,
+      sourceKey: `privacy-payment:${payment.id}`,
+      entity: "payment-result",
+      sourceId: payment.id,
+      kind: "PAYMENT_VERIFIED",
+      paymentId: payment.id,
+      payload: { message: client.name, reference: "private-reference" },
+      occurredAt: old,
+    },
+  });
+
   const support = await db.supportCase.create({
     data: {
       clientId: client.id,
@@ -891,6 +904,11 @@ test("customer erasure preserves exact financial facts and clears linked records
 
   assert.equal(
     await db.supportMessage.count({ where: { caseId: support.id } }),
+    0,
+  );
+
+  assert.equal(
+    await db.staffInboxNotification.count({ where: { id: inboxCopy.id } }),
     0,
   );
 
@@ -1035,6 +1053,19 @@ test("inactive employee erasure preserves task facts and disables credentials; u
     },
   });
 
+  const inboxCopy = await db.staffInboxNotification.create({
+    data: {
+      recipientId: owner.id,
+      sourceKey: `privacy-task:${task.id}`,
+      entity: "task",
+      sourceId: task.id,
+      kind: "TASK_ASSIGNED",
+      taskId: task.id,
+      payload: { message: "Personal task title" },
+      occurredAt: old,
+    },
+  });
+
   const reviewed = await db.kpiReview.create({
     data: {
       taskId: task.id,
@@ -1052,6 +1083,11 @@ test("inactive employee erasure preserves task facts and disables credentials; u
   );
 
   assert.equal(completed.status, "COMPLETED");
+
+  assert.equal(
+    await db.staffInboxNotification.count({ where: { id: inboxCopy.id } }),
+    0,
+  );
 
   const erased = await db.user.findUniqueOrThrow({
     where: { id: employee.id },

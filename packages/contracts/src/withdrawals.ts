@@ -204,6 +204,7 @@ export interface WithdrawalActions {
   refund: boolean;
   policy: boolean;
   proposeReplacement: boolean;
+  viewReplacementEnrollment: boolean;
   payout: boolean;
   resubmit: boolean;
   cancel: boolean;

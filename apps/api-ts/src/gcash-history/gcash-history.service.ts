@@ -1,3 +1,4 @@
+import { statementState } from "../submission-checklists/evidence";
 import {
   BadRequestException,
   ConflictException,
@@ -19,6 +20,7 @@ import type {
 } from "@freshphones/contracts";
 import { gcashReadingSchema, gcashTimeForEdit } from "@freshphones/contracts";
 import { GcashPdfService } from "./gcash-pdf.service";
+import { paymentMatches } from "./payment-matches";
 import { reconcileReading } from "./reconcile-reading";
 import { Database } from "../database";
 import { Prisma } from "../generated/prisma/client";
@@ -39,7 +41,7 @@ const pdfPolicy = {
 const submissionInclude = {
   file: { select: { originalName: true, size: true } },
   uploadedBy: { select: { id: true, name: true } },
-  reviewedBy: { select: { id: true, name: true } },
+  reviewedBy: { select: { id: true, name: true, active: true, role: true } },
 } as const;
 
 const historyInclude = {
@@ -72,7 +74,9 @@ const submissionView = (row: Submission) => {
     reviewNote: row.reviewNote,
     uploadedBy: row.uploadedBy,
     submittedAt: row.submittedAt.toISOString(),
-    reviewedBy: row.reviewedBy,
+    reviewedBy: row.reviewedBy
+      ? { id: row.reviewedBy.id, name: row.reviewedBy.name }
+      : null,
     reviewedAt: row.reviewedAt?.toISOString() ?? null,
   };
 };
@@ -87,6 +91,10 @@ const historyView = (row: History) => {
     version: row.version,
     revision: row.revision,
     current: submissionView(row.submissions[0]),
+    reviewRequired:
+      !row.archivedAt &&
+      (row.status === "SUBMITTED" ||
+        (row.status === "REVIEWED" && statementState(row) !== "COMPLETE")),
     archivedAt: row.archivedAt?.toISOString() ?? null,
     archiveReason: row.archiveReason,
     archivedBy: row.archivedBy,
@@ -368,7 +376,7 @@ export class GcashHistoryService {
       if (
         before.archivedAt ||
         before.version !== input.version ||
-        before.status !== "SUBMITTED"
+        !historyView(before).reviewRequired
       ) {
         throw new ConflictException(
           "This submission has changed. Load its latest state before reviewing.",
@@ -411,39 +419,58 @@ export class GcashHistoryService {
   }
 
   async reading(user: User, id: string, page: number, source = "current") {
-    user = await requireCurrentUser(this.db, user, "GCASH_HISTORY_READ");
+    return this.db.$transaction(
+      async (tx) => {
+        user = await requireCurrentUser(tx, user, "GCASH_HISTORY_READ");
 
-    const row = await this.db.gcashHistorySubmission.findFirst({
-      where: { id, history: { batch: batchScope(user) } },
-      include: { reading: true, history: true },
-    });
+        await requireCurrentUser(tx, user, "PAYMENT_READ");
 
-    if (!row?.reading) {
-      throw new NotFoundException(
-        "This upload has no extracted transaction table. Review the original PDF.",
-      );
-    }
+        const row = await tx.gcashHistorySubmission.findFirst({
+          where: { id, history: { batch: batchScope(user) } },
+          include: { reading: true, history: true },
+        });
 
-    const { rows, ...metadata } = gcashReadingSchema.parse(
-      source === "original"
-        ? row.reading.data
-        : (row.reading.correctedData ?? row.reading.data),
+        if (!row?.reading) {
+          throw new NotFoundException(
+            "This upload has no extracted transaction table. Review the original PDF.",
+          );
+        }
+
+        const { rows, ...metadata } = gcashReadingSchema.parse(
+          source === "original"
+            ? row.reading.data
+            : (row.reading.correctedData ?? row.reading.data),
+        );
+
+        const suggestions = await paymentMatches(
+          tx,
+          row.history.batchId,
+          rows,
+          {
+            from: row.history.periodStart.toISOString().slice(0, 10),
+            to: row.history.periodEnd.toISOString().slice(0, 10),
+          },
+        );
+
+        return {
+          ...metadata,
+          paymentMatches: suggestions.matches.slice((page - 1) * 25, page * 25),
+          unmatchedPayments: suggestions.unmatchedPayments,
+          items: rows.slice((page - 1) * 25, page * 25),
+          total: rows.length,
+          page,
+          pageSize: 25,
+          correctionVersion: row.reading.correctionVersion,
+          historyVersion: row.history.version,
+          editable:
+            allowed(user, "GCASH_HISTORY_REVIEW") &&
+            !row.history.archivedAt &&
+            row.revision === row.history.revision &&
+            source !== "original",
+        };
+      },
+      { isolationLevel: "RepeatableRead" },
     );
-
-    return {
-      ...metadata,
-      items: rows.slice((page - 1) * 25, page * 25),
-      total: rows.length,
-      page,
-      pageSize: 25,
-      correctionVersion: row.reading.correctionVersion,
-      historyVersion: row.history.version,
-      editable:
-        allowed(user, "GCASH_HISTORY_REVIEW") &&
-        !row.history.archivedAt &&
-        row.revision === row.history.revision &&
-        source !== "original",
-    };
   }
 
   async corrections(user: User, id: string, page: number) {

@@ -9,10 +9,12 @@ export const API_URL = PRESENTATION_MODE
 
 export function availableRoute(path: string) {
   return [
+    "/system/operations-monitor",
     "/system/retention",
     "/system/catalog",
     "/system/inquiries",
     "/system",
+    "/system/assistant",
     "/system/personnel",
     "/system/agent-network",
     "/system/enrollments",
@@ -27,6 +29,7 @@ export function availableRoute(path: string) {
     "/system/customer-work",
     "/system/team",
     "/system/notification-settings",
+    "/system/notifications",
     "/system/tasks",
     "/system/hr-actions",
     "/system/recruitment",

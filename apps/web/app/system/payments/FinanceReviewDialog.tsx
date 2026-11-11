@@ -1,11 +1,14 @@
 "use client";
 
+import ModalCloseButton from "@/components/ModalCloseButton";
 import { type Payment } from "@/lib/api";
 import { X } from "@phosphor-icons/react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { REVIEW_ACTIONS, ReviewDecision } from "./payment-view";
 
 type Props = {
+  closeReview: () => void;
+  finishReview: () => void;
   reviewStage: "RECORDS" | "MANAGER" | "FINANCE";
   financeDialog: RefObject<HTMLDialogElement | null>;
   setReviewPayment: Dispatch<SetStateAction<Payment | null>>;
@@ -22,6 +25,8 @@ type Props = {
 };
 
 export default function FinanceReviewDialog({
+  closeReview,
+  finishReview,
   reviewStage,
   financeDialog,
   setReviewPayment,
@@ -58,24 +63,21 @@ export default function FinanceReviewDialog({
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-size="standard"
       ref={financeDialog}
       className="finance-review-dialog"
       aria-labelledby="finance-review-title"
-      onClose={() => {
-        setReviewPayment(null);
-
-        setReviewDecision(null);
-
-        setReviewError(null);
-      }}
+      onClose={finishReview}
       onCancel={(event) => {
-        if (reviewSaving) {
-          event.preventDefault();
-        }
+        event.preventDefault();
+
+        closeReview();
       }}
       onClick={(event) => {
         if (event.target === event.currentTarget && !reviewSaving) {
-          financeDialog.current?.close();
+          closeReview();
         }
       }}
     >
@@ -87,21 +89,17 @@ export default function FinanceReviewDialog({
             void decide();
           }}
         >
-          <header className="finance-review-heading">
+          <header data-modal-header className="finance-review-heading">
             <div>
               <p>Payment decision</p>
               <h2 id="finance-review-title">{title}</h2>
             </div>
-            <button
-              type="button"
+            <ModalCloseButton
               onClick={() => {
-                return financeDialog.current?.close();
+                return closeReview();
               }}
               disabled={reviewSaving}
-              aria-label={`Close ${title}`}
-            >
-              <X weight="bold" />
-            </button>
+            />
           </header>
           <div className="finance-review-body">
             <dl className="finance-review-payment">
@@ -154,6 +152,14 @@ export default function FinanceReviewDialog({
                 characters
               </small>
             </label>
+            {reviewStage !== "RECORDS" &&
+              reviewPayment.workflow?.submissionComplete === false && (
+                <p className="finance-review-error" role="status">
+                  Submission incomplete. Open the submission checklist to
+                  resolve missing receipts or required statements before
+                  approval or verification.
+                </p>
+              )}
             <fieldset className="finance-review-choices">
               <legend>Decision</legend>
               <div>
@@ -170,6 +176,10 @@ export default function FinanceReviewDialog({
                       aria-pressed={reviewDecision === value}
                       disabled={
                         reviewSaving ||
+                        (value === "verified" &&
+                          reviewStage !== "RECORDS" &&
+                          reviewPayment.workflow?.submissionComplete ===
+                            false) ||
                         (value === "verified" &&
                           (reviewStage === "RECORDS"
                             ? reviewPayment.workflow?.recordsApproved
@@ -192,15 +202,15 @@ export default function FinanceReviewDialog({
           </div>
           <footer className="finance-review-actions">
             <button
-              type="button"
-              onClick={() => {
-                return financeDialog.current?.close();
-              }}
-              disabled={reviewSaving}
+              type="submit"
+              disabled={
+                !reviewDecision ||
+                reviewSaving ||
+                (reviewDecision === "verified" &&
+                  reviewStage !== "RECORDS" &&
+                  reviewPayment.workflow?.submissionComplete === false)
+              }
             >
-              Close
-            </button>
-            <button type="submit" disabled={!reviewDecision || reviewSaving}>
               {reviewSaving
                 ? "Saving…"
                 : reviewDecision

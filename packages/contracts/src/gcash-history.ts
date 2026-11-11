@@ -68,6 +68,7 @@ export interface GcashSubmission {
 }
 
 export interface GcashHistory {
+  reviewRequired?: boolean;
   id: string;
   batch: { id: string; code: string };
   periodStart: string;
@@ -143,6 +144,8 @@ export type GcashReadingPage = Omit<GcashReading, "rows"> & {
   correctionVersion: number;
   historyVersion: number;
   editable: boolean;
+  paymentMatches: GcashPaymentMatch[];
+  unmatchedPayments: number;
 };
 
 export const gcashCorrectionSchema = z
@@ -238,4 +241,16 @@ export function gcashTimeForEdit(value: string) {
   }
 
   return `${String(hour).padStart(2, "0")}:${match[2]}${match[3] ? `:${match[3]}` : ""}`;
+}
+
+export interface GcashPaymentMatch {
+  rowIndex: number;
+  status:
+    | "SUGGESTED"
+    | "AMBIGUOUS"
+    | "UNMATCHED"
+    | "MISSING_REFERENCE"
+    | "CHECK_DATE"
+    | "NOT_INCOMING";
+  paymentId: string | null;
 }

@@ -20,6 +20,13 @@
   justify-content: space-between;
   gap: 16px;
 }
+.header > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.header > div {
+  min-width: 0;
+}
 .header h2 {
   margin: 4px 0 0;
   font-size: 22px;
@@ -36,17 +43,20 @@
   display: flex;
   gap: 8px;
   margin: 20px 0;
-  border-bottom: 1px solid var(--system-border, #e5e2f0);
 }
 .tabs button {
   padding: 10px 12px;
-  border-bottom: 2px solid transparent;
+  border: 0;
+  border-radius: 9px;
+  color: var(--system-muted);
+  background: transparent;
   font-size: 14px;
 }
 .tabs button[aria-pressed="true"] {
-  color: var(--system-accent, #6e55cc);
-  border-bottom-color: currentColor;
-  font-weight: 700;
+  color: var(--system-text);
+  background: var(--workspace-control-hover, var(--system-surface));
+  font-weight: 600;
+  box-shadow: none;
 }
 .formBody {
   border: 0;
@@ -147,7 +157,6 @@
 }
 .timeline > li {
   padding: 18px 0;
-  border-bottom: 1px solid var(--system-border, #e5e2f0);
 }
 .historyHeading {
   flex-wrap: wrap;
@@ -212,4 +221,29 @@
 :global(html[data-system-theme="dark"]) .warning {
   background: #3f3320;
   color: #f7d994;
+}
+
+.section {
+  margin-block: 12px;
+}
+.section > summary {
+  padding: 12px 0;
+  color: var(--system-text);
+  font-weight: 500;
+  cursor: pointer;
+}
+.skeletonControl,
+.skeletonButton {
+  display: block;
+  height: 43px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--system-text) 11%, transparent);
+}
+.skeletonButton {
+  width: 100px;
+}
+.skeletonTerms {
+  display: grid;
+  gap: 24px;
+  margin-block: 24px;
 }

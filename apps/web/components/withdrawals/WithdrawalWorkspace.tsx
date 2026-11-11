@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useEffect, useRef, useState } from "react";
 import {
   withdrawalStatuses,
@@ -224,7 +226,7 @@ export function WithdrawalWorkspace({
           <div className={styles.toolbar}>
             <label className={styles.field}>
               Filter withdrawal status
-              <select
+              <WorkspaceNativeSelect
                 value={state.status}
                 onChange={(event) => {
                   state.setStatus(event.target.value as WithdrawalStatus | "");
@@ -240,7 +242,7 @@ export function WithdrawalWorkspace({
                     </option>
                   );
                 })}
-              </select>
+              </WorkspaceNativeSelect>
             </label>
             {!customer && (
               <label className={styles.field}>
@@ -259,7 +261,7 @@ export function WithdrawalWorkspace({
             )}
           </div>
           {state.loading ? (
-            <p role="status">Loading withdrawal requests…</p>
+            <WorkspaceProgress label="Loading withdrawal requests…" />
           ) : (
             <>
               <div className={styles.list}>
@@ -351,9 +353,10 @@ export function WithdrawalWorkspace({
         </section>
         <div ref={panel} tabIndex={-1} className={styles.detail}>
           {state.detailLoading ? (
-            <p className={styles.panel} role="status">
-              Loading request details…
-            </p>
+            <WorkspaceProgress
+              className={styles.panel}
+              label="Loading request details…"
+            />
           ) : state.row ? (
             <WithdrawalDetail
               row={state.row}

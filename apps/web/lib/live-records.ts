@@ -2,8 +2,12 @@ import { API_URL } from "./backend";
 import { PRESENTATION_MODE } from "./presentation";
 import { ApiError, tsRequest } from "./ts-api";
 import { membershipHeaders } from "./membership-selection";
+import {
+  parseLiveRecordChange,
+  type LiveRecordChange,
+} from "./navigation-updates";
 
-const listeners = new Set<() => void>();
+const listeners = new Set<(change?: LiveRecordChange) => void>();
 
 let source: EventSource | undefined;
 
@@ -13,9 +17,9 @@ let failures = 0;
 
 let generation = 0;
 
-function notify() {
+function notify(change?: LiveRecordChange) {
   for (const listener of listeners) {
-    listener();
+    listener(change);
   }
 }
 
@@ -78,9 +82,9 @@ function connect() {
     notify();
   });
 
-  connection.addEventListener("change", () => {
+  connection.addEventListener("change", (event) => {
     if (source === connection) {
-      notify();
+      notify(parseLiveRecordChange(event.data) ?? undefined);
     }
   });
 
@@ -98,7 +102,9 @@ function connect() {
 }
 
 /** Share the browser connection; each consumer still reloads its authorized snapshot. */
-export function subscribeLiveRecords(listener: () => void) {
+export function subscribeLiveRecords(
+  listener: (change?: LiveRecordChange) => void,
+) {
   if (PRESENTATION_MODE) {
     return () => {};
   }

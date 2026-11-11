@@ -1,5 +1,7 @@
 "use client";
 
+import ModalCloseButton from "@/components/ModalCloseButton";
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { X } from "@phosphor-icons/react";
@@ -126,26 +128,25 @@ export function PaymentResultDetails({ enabled }: { enabled: boolean }) {
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-size="wide"
       ref={dialog}
       className="finance-review-dialog payment-details-dialog"
       aria-labelledby="finance-result-title"
       onClose={close}
     >
       <div className="payment-details-shell">
-        <header className="finance-review-heading">
+        <header data-modal-header className="finance-review-heading">
           <div>
             <p>Saved Finance decision</p>
             <h2 id="finance-result-title">Finance result</h2>
           </div>
-          <button
-            type="button"
+          <ModalCloseButton
             onClick={() => {
               return dialog.current?.close();
             }}
-            aria-label="Close Finance result"
-          >
-            <X weight="bold" />
-          </button>
+          />
         </header>
         <div className="payment-details-body">
           {error ? (
@@ -162,7 +163,7 @@ export function PaymentResultDetails({ enabled }: { enabled: boolean }) {
               </button>
             </p>
           ) : !result ? (
-            <p role="status">Loading Finance result…</p>
+            <WorkspaceProgress label="Loading Finance result…" />
           ) : (
             <>
               <section aria-label="Saved decision">

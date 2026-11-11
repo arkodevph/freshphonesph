@@ -1,6 +1,16 @@
 import { effectivePermissions, roleSchema } from "@freshphones/contracts";
 
 export const workspacePermissions: Record<string, readonly string[]> = {
+  "/system/notifications": [
+    "TASK_READ",
+    "SUPPORT_MANAGE",
+    "PAYMENT_RECORD",
+    "PAYMENT_VERIFY",
+    "ACCOUNT_MANAGE",
+    "ENROLLMENT_SUBMIT",
+    "ENROLLMENT_REVIEW",
+  ],
+  "/system/operations-monitor": ["OPERATIONS_MONITOR"],
   "/system/records": ["BATCH_READ"],
   "/system/clients": ["CLIENT_READ"],
   "/system/agents": ["AGENT_MANAGE"],
@@ -41,6 +51,10 @@ export function canOpenWorkspace(
 ) {
   if (!role || role.toLowerCase() === "customer") {
     return false;
+  }
+
+  if (pathname === "/system/assistant") {
+    return ["ceo", "owner"].includes(role.toLowerCase());
   }
 
   if (pathname === "/system") {

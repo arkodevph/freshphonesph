@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -85,6 +86,8 @@ export function PasswordRecovery({ mode }: { mode: "request" | "reset" }) {
       }
 
       setSuccess(true);
+
+      toast.success("Password reset successfully.");
 
       setToken("");
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "sonner";
+import viewStyles from "../people/people.module.css";
 import {
   createJob,
   getApplicant,
@@ -19,26 +21,26 @@ import {
 } from "@/lib/recruitment-review";
 import { ApiError } from "@/lib/ts-api";
 import type { RecruitmentSummary } from "@freshphones/contracts";
-import {
-  Briefcase,
-  MagnifyingGlass,
-  Plus,
-  UsersThree,
-} from "@phosphor-icons/react";
+import { Plus, UsersThree } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorText } from "./recruitment-view";
 import styles from "./recruitment.module.css";
 import ApplicantReviewPanel from "./ApplicantReviewPanel";
 import JobOpeningsPanel from "./JobOpeningsPanel";
 import { useRecruitmentDirectory } from "./useRecruitmentDirectory";
+import JobOpeningComposer from "./JobOpeningComposer";
 
 export function RecruitmentDesk({
+  isCoo,
   onDenied,
   canReadApplicants,
 }: {
+  isCoo: boolean;
   onDenied: () => void;
   canReadApplicants: boolean;
 }) {
+  const [view, setView] = useState<"jobs" | "applicants">("jobs");
+
   const jobs = useRecruitmentDirectory(listJobs, onDenied);
 
   const applicants = useRecruitmentDirectory(
@@ -61,10 +63,14 @@ export function RecruitmentDesk({
 
   const [busy, setBusy] = useState("");
 
-  const [feedback, setFeedback] = useState<{
-    error: boolean;
-    text: string;
-  } | null>(null);
+  const setFeedback = useCallback(
+    (feedback: { error: boolean; text: string } | null) => {
+      if (feedback) {
+        toast[feedback.error ? "error" : "success"](feedback.text);
+      }
+    },
+    [],
+  );
 
   const [jobFilter, setJobFilter] = useState({ q: "", status: "" });
 
@@ -397,182 +403,197 @@ export function RecruitmentDesk({
 
   return (
     <>
-      {feedback && (
-        <p
-          className={feedback.error ? styles.error : styles.success}
-          role={feedback.error ? "alert" : "status"}
-        >
-          {feedback.text}
-        </p>
-      )}
-      <section aria-label="Recruitment summary">
-        <div className={styles.panelHeading}>
-          <p>Counts cover all roles and applicants.</p>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            disabled={disabled}
-            onClick={refresh}
-          >
-            Refresh recruitment
-          </button>
-        </div>
+      <section
+        className={styles.recruitmentSummary}
+        aria-label="Recruitment summary"
+      >
         {countsError ? (
           <p className={styles.error} role="alert">
             {countsError}{" "}
             <button
               type="button"
               onClick={() => {
-                return void readCounts();
+                void readCounts();
               }}
             >
               Retry counts
             </button>
           </p>
         ) : (
-          <div className={styles.metrics} aria-busy={countsLoading}>
+          <dl className={styles.recruitmentCounts} aria-busy={countsLoading}>
             {[
-              { label: "Open roles", value: counts?.openJobs, Icon: Briefcase },
-              {
-                label: "Applicants",
-                value: counts?.applicants,
-                Icon: UsersThree,
-              },
-              {
-                label: "Awaiting review",
-                value: counts?.awaitingReview,
-                Icon: MagnifyingGlass,
-              },
-            ].map(({ label, value, Icon }) => {
+              { label: "Open roles", value: counts?.openJobs },
+              { label: "Applicants", value: counts?.applicants },
+              { label: "Awaiting review", value: counts?.awaitingReview },
+            ].map(({ label, value }) => {
               return (
-                <article key={label}>
-                  <Icon aria-hidden="true" />
-                  <div>
-                    <span>{label}</span>
-                    <strong>{value === undefined ? "…" : value}</strong>
-                  </div>
-                </article>
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value === undefined ? "…" : value}</dd>
+                </div>
               );
             })}
-          </div>
+          </dl>
         )}
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          disabled={disabled}
+          onClick={refresh}
+        >
+          Refresh recruitment
+        </button>
       </section>
-      <section className={styles.panel} aria-labelledby="publish-job-heading">
-        <div className={styles.panelHeading}>
-          <div>
-            <span>Public board</span>
-            <h2 id="publish-job-heading">Post a job opening</h2>
-          </div>
-        </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-
-            void addJob();
+      <div
+        className={viewStyles.views}
+        role="group"
+        aria-label="Recruitment view"
+      >
+        <button
+          type="button"
+          aria-pressed={view === "jobs"}
+          onClick={() => {
+            return setView("jobs");
           }}
         >
-          <fieldset disabled={disabled} className={styles.jobForm}>
-            <label>
-              <span>Job title</span>
-              <input
-                required
-                minLength={2}
-                maxLength={160}
-                value={jobForm.title}
-                onChange={(event) => {
-                  return setJobForm({ ...jobForm, title: event.target.value });
-                }}
-              />
-            </label>
-            <label>
-              <span>Employment type</span>
-              <input
-                maxLength={60}
-                value={jobForm.employment_type}
-                onChange={(event) => {
-                  return setJobForm({
-                    ...jobForm,
-                    employment_type: event.target.value,
-                  });
-                }}
-              />
-            </label>
-            <label>
-              <span>Location</span>
-              <input
-                maxLength={120}
-                value={jobForm.location}
-                onChange={(event) => {
-                  return setJobForm({
-                    ...jobForm,
-                    location: event.target.value,
-                  });
-                }}
-              />
-            </label>
-            <label className={styles.wideField}>
-              <span>Role description</span>
-              <textarea
-                aria-label="Role description"
-                rows={5}
-                maxLength={4000}
-                value={jobForm.description}
-                onChange={(event) => {
-                  return setJobForm({
-                    ...jobForm,
-                    description: event.target.value,
-                  });
-                }}
-              />
-            </label>
-            <button className={styles.primaryButton} type="submit">
-              <Plus aria-hidden="true" />
-              {busy === "publish" ? "Publishing…" : "Publish opening"}
-            </button>
-          </fieldset>
-        </form>
-      </section>
-      <JobOpeningsPanel
-        disabled={disabled}
-        jobs={jobs}
-        jobFilter={jobFilter}
-        setJobFilter={setJobFilter}
-        toggleJob={toggleJob}
-        busy={busy}
-        setRoleFilter={setRoleFilter}
-        setApplicantFilter={setApplicantFilter}
-        applicants={applicants}
-      />
-      {canReadApplicants ? (
-        <ApplicantReviewPanel
+          Job openings
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === "applicants"}
+          onClick={() => {
+            return setView("applicants");
+          }}
+        >
+          Applicants
+        </button>
+      </div>
+      <div className={styles.jobWorkspace} hidden={view !== "jobs"}>
+        <JobOpeningComposer isCoo={isCoo}>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+
+              void addJob();
+            }}
+          >
+            <fieldset disabled={disabled} className={styles.jobForm}>
+              <label>
+                <span>Job title</span>
+                <input
+                  required
+                  minLength={2}
+                  maxLength={160}
+                  value={jobForm.title}
+                  onChange={(event) => {
+                    return setJobForm({
+                      ...jobForm,
+                      title: event.target.value,
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                <span>Employment type</span>
+                <input
+                  maxLength={60}
+                  value={jobForm.employment_type}
+                  onChange={(event) => {
+                    return setJobForm({
+                      ...jobForm,
+                      employment_type: event.target.value,
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                <span>Location</span>
+                <input
+                  maxLength={120}
+                  value={jobForm.location}
+                  onChange={(event) => {
+                    return setJobForm({
+                      ...jobForm,
+                      location: event.target.value,
+                    });
+                  }}
+                />
+              </label>
+              <label className={styles.wideField}>
+                <span>Role description</span>
+                <textarea
+                  aria-label="Role description"
+                  rows={5}
+                  maxLength={4000}
+                  value={jobForm.description}
+                  onChange={(event) => {
+                    return setJobForm({
+                      ...jobForm,
+                      description: event.target.value,
+                    });
+                  }}
+                />
+              </label>
+              <button
+                data-variant="primary"
+                className={styles.primaryButton}
+                type="submit"
+              >
+                <Plus aria-hidden="true" />
+                {busy === "publish" ? "Publishing…" : "Publish opening"}
+              </button>
+            </fieldset>
+          </form>
+        </JobOpeningComposer>
+        <JobOpeningsPanel
+          isCoo={isCoo}
           disabled={disabled}
-          applicants={applicants}
-          applicantFilter={applicantFilter}
-          roleFilter={roleFilter}
-          setApplicantFilter={setApplicantFilter}
-          setRoleFilter={setRoleFilter}
-          selected={selected}
-          selectApplicant={selectApplicant}
-          drafts={drafts}
-          draft={draft}
-          offPage={offPage}
-          reviewLoading={reviewLoading}
-          setDrafts={setDrafts}
-          loadLatest={loadLatest}
-          saveReview={saveReview}
-          editReview={editReview}
+          jobs={jobs}
+          jobFilter={jobFilter}
+          setJobFilter={setJobFilter}
+          toggleJob={toggleJob}
           busy={busy}
+          setRoleFilter={(value) => {
+            setRoleFilter(value);
+
+            setView("applicants");
+          }}
+          setApplicantFilter={setApplicantFilter}
+          applicants={applicants}
         />
-      ) : (
-        <section className={styles.noAccess}>
-          <UsersThree aria-hidden="true" />
-          <h2>Owner approval required</h2>
-          <p>
-            Applicant records, review notes and attachments require confidential
-            HR access. You can continue managing job openings.
-          </p>
-        </section>
-      )}
+      </div>
+      <div hidden={view !== "applicants"}>
+        {canReadApplicants ? (
+          <ApplicantReviewPanel
+            disabled={disabled}
+            applicants={applicants}
+            applicantFilter={applicantFilter}
+            roleFilter={roleFilter}
+            setApplicantFilter={setApplicantFilter}
+            setRoleFilter={setRoleFilter}
+            selected={selected}
+            selectApplicant={selectApplicant}
+            drafts={drafts}
+            draft={draft}
+            offPage={offPage}
+            reviewLoading={reviewLoading}
+            setDrafts={setDrafts}
+            loadLatest={loadLatest}
+            saveReview={saveReview}
+            editReview={editReview}
+            busy={busy}
+          />
+        ) : (
+          <section className={styles.noAccess}>
+            <UsersThree aria-hidden="true" />
+            <h2>Owner approval required</h2>
+            <p>
+              Applicant records, review notes and attachments require
+              confidential HR access. You can continue managing job openings.
+            </p>
+          </section>
+        )}
+      </div>
     </>
   );
 }

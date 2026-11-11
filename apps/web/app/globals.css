@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./scrollbars.css";
 
 [data-landing-logo] {
   transition: opacity 180ms ease;
@@ -1061,7 +1062,6 @@ html.portal-theme-iris-transition::view-transition-old(root) {
   flex-direction: column;
   gap: 3px;
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 
 .system-nav-item {
@@ -3140,7 +3140,13 @@ html[data-system-theme="dark"] .finance-review-error {
   backdrop-filter: blur(1.5px);
 }
 .team-manage-dialog[open] {
-  animation: team-sheet-in 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: none;
+  opacity: calc(0.72 + var(--dialog-progress, 1) * 0.28);
+  transform: translateX(calc((1 - var(--dialog-progress, 1)) * 100%));
+}
+.team-manage-dialog[open]::backdrop {
+  animation: none;
+  opacity: var(--dialog-progress, 1);
 }
 .team-manage-dialog form {
   height: 100dvh;

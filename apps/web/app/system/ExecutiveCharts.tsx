@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import type { ChartMonths } from "@freshphones/contracts";
 import { BarChart } from "@/components/charts/BarChart";
 import { MonthlyCollectionsChart } from "@/components/charts/MonthlyCollectionsChart";
@@ -37,7 +38,7 @@ export default function ExecutiveCharts() {
         <div className={styles.actions}>
           <label>
             Chart period
-            <select
+            <WorkspaceNativeSelect
               value={months}
               onChange={(event) => {
                 return selectMonths(Number(event.target.value) as ChartMonths);
@@ -46,7 +47,7 @@ export default function ExecutiveCharts() {
               <option value={3}>Last 3 months</option>
               <option value={6}>Last 6 months</option>
               <option value={12}>Last 12 months</option>
-            </select>
+            </WorkspaceNativeSelect>
           </label>
           <button
             type="button"

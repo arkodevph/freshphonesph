@@ -13,6 +13,7 @@ import {
   type ApplicationSummaryState,
 } from "@/lib/application-summary";
 import { downloadApplicationSummaryPdf } from "@/lib/application-summary-pdf";
+import SplitButton from "@/components/SplitButton";
 import ApplicationSummarySheet from "./ApplicationSummarySheet";
 import styles from "./application-summary.module.css";
 
@@ -123,25 +124,25 @@ function ApplicationSummaryWorkspace() {
           <Link href={backHref}>
             <ArrowLeft aria-hidden="true" /> Back to documents
           </Link>
-          <button
-            type="button"
+          <SplitButton
+            primary
+            label={downloading ? "Preparing PDF…" : "Download PDF"}
+            icon={<DownloadSimple aria-hidden="true" />}
             disabled={!summary || downloading}
-            onClick={() => {
+            onAction={() => {
               void download();
             }}
-          >
-            <DownloadSimple aria-hidden="true" />{" "}
-            {downloading ? "Preparing PDF…" : "Download PDF"}
-          </button>
-          <button
-            type="button"
-            disabled={!summary}
-            onClick={() => {
-              window.print();
-            }}
-          >
-            <Printer aria-hidden="true" /> Print
-          </button>
+            menuLabel="Application document options"
+            actions={[
+              {
+                label: "Print application summary",
+                icon: <Printer aria-hidden="true" />,
+                onAction: () => {
+                  return window.print();
+                },
+              },
+            ]}
+          />
         </div>
       </header>
       {downloading && (

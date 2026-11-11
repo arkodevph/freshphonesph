@@ -1,5 +1,8 @@
 "use client";
 
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import ModalCloseButton from "@/components/ModalCloseButton";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import {
   createCatalogItem,
   getCatalogItem,
@@ -35,6 +38,14 @@ export function CatalogEditor({
   onSaved: (item: CatalogItem) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+
+  const body = useRef<HTMLDivElement>(null);
+
+  const [open, setOpen] = useState(true);
+
+  const [pane, setPane] = useState<"listing" | "plan" | "photo">("listing");
+
+  useSpringDialog(dialog, open, onClose);
 
   const alive = useRef(true);
 
@@ -109,8 +120,6 @@ export function CatalogEditor({
   useEffect(() => {
     alive.current = true;
 
-    dialog.current?.showModal();
-
     const overflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -130,7 +139,7 @@ export function CatalogEditor({
 
   function close() {
     if (!busy.current) {
-      dirty || file ? setConfirm("close") : onClose();
+      dirty || file ? setConfirm("close") : setOpen(false);
     }
   }
 
@@ -262,6 +271,14 @@ export function CatalogEditor({
     const parsed = catalogItemSchema.safeParse(draft);
 
     if (!parsed.success) {
+      setPane(
+        parsed.error.issues.some((issue) => {
+          return issue.path[0] === "installmentPlan";
+        })
+          ? "plan"
+          : "listing",
+      );
+
       setError(
         parsed.error.issues
           .map((issue) => {
@@ -280,6 +297,12 @@ export function CatalogEditor({
     });
   }
 
+  useEffect(() => {
+    if (confirm || error) {
+      body.current?.scrollTo({ top: 0 });
+    }
+  }, [confirm, error]);
+
   const photo = item ? catalogPhoto(item, true) : null;
 
   const parsedPlan = catalogPlanSchema.safeParse(draft.installmentPlan);
@@ -290,8 +313,13 @@ export function CatalogEditor({
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-sections
+      data-modal-size="wide"
+      onClose={onClose}
       ref={dialog}
-      className={styles.dialog}
+      className={`${styles.dialog} ${styles.sectionedEditor}`}
       aria-labelledby="catalog-editor-title"
       onCancel={(event) => {
         event.preventDefault();
@@ -299,247 +327,406 @@ export function CatalogEditor({
         close();
       }}
     >
-      <header className={styles.editorHeading}>
+      <header data-modal-header className={styles.editorHeading}>
         <div>
           <h2 id="catalog-editor-title">
             {item ? `Edit ${item.name}` : "Add catalog listing"}
           </h2>
           <p>Published details appear on the public website.</p>
         </div>
-        <button type="button" disabled={saving} onClick={close}>
-          Close listing
-        </button>
+        <ModalCloseButton disabled={saving} onClick={close} />
       </header>
-      {confirm && (
-        <div role="alert" className={styles.warning}>
-          <p>
-            {confirm === "photo"
-              ? "Remove the current product photo?"
-              : "Discard unsaved changes?"}
+      <nav className={styles.editorTabs} aria-label="Listing sections">
+        {[
+          ["listing", "Listing"],
+          ["plan", "Payment plan"],
+          ["photo", "Photo"],
+        ].map(([value, label]) => {
+          return (
+            <button
+              type="button"
+              key={value}
+              aria-pressed={pane === value}
+              disabled={saving || Boolean(confirm)}
+              onClick={() => {
+                setPane(value as typeof pane);
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </nav>
+      <div data-modal-body ref={body} className={styles.editorBody}>
+        {confirm && (
+          <div role="alert" className={styles.warning}>
+            <p>
+              {confirm === "photo"
+                ? "Remove the current product photo?"
+                : "Discard unsaved changes?"}
+            </p>
+            <div className={styles.actions}>
+              <button
+                type="button"
+                onClick={() => {
+                  return setConfirm(null);
+                }}
+              >
+                Keep editing
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirm;
+
+                  setConfirm(null);
+
+                  if (action === "close") {
+                    setOpen(false);
+                  } else if (action === "reload") {
+                    void reload();
+                  } else if (item) {
+                    void run(() => {
+                      return removeCatalogPhoto(item);
+                    }, true);
+                  }
+                }}
+              >
+                {confirm === "photo" ? "Remove photo" : "Discard changes"}
+              </button>
+            </div>
+          </div>
+        )}
+        {outdated && (
+          <div className={styles.warning} role="alert">
+            This listing changed. Your draft is preserved. Review the latest
+            version before saving.{" "}
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => {
+                return dirty || file ? setConfirm("reload") : void reload();
+              }}
+            >
+              Load latest listing
+            </button>
+          </div>
+        )}
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
           </p>
+        )}
+        {saved && (
+          <p className={styles.notice} role="status">
+            {saved}
+          </p>
+        )}
+        <form
+          id="catalog-listing-form"
+          onSubmit={save}
+          onInvalidCapture={(event) => {
+            const target = event.target;
+
+            if (
+              target instanceof HTMLInputElement ||
+              target instanceof HTMLSelectElement ||
+              target instanceof HTMLTextAreaElement
+            ) {
+              const section = target.closest<HTMLElement>("[data-catalog-pane]")
+                ?.dataset.catalogPane;
+
+              if (
+                section &&
+                section !== pane &&
+                (section === "listing" || section === "plan")
+              ) {
+                event.preventDefault();
+
+                setPane(section);
+
+                requestAnimationFrame(() => {
+                  target.focus();
+
+                  target.reportValidity();
+                });
+              }
+            }
+          }}
+        >
+          <fieldset
+            disabled={saving || Boolean(confirm)}
+            className={styles.editorFieldset}
+          >
+            <div
+              data-catalog-pane="listing"
+              hidden={pane !== "listing"}
+              className={styles.form}
+            >
+              <label>
+                Model / listing name
+                <input
+                  required
+                  minLength={2}
+                  maxLength={100}
+                  value={draft.name}
+                  onChange={(event) => {
+                    return setDraft({ ...draft, name: event.target.value });
+                  }}
+                />
+              </label>
+              <label>
+                Listing code
+                <input
+                  required
+                  minLength={2}
+                  maxLength={40}
+                  pattern="[A-Za-z0-9-]+"
+                  placeholder="IPHONE-13-128-PRE"
+                  value={draft.code}
+                  onChange={(event) => {
+                    return setDraft({ ...draft, code: event.target.value });
+                  }}
+                />
+                <small>
+                  Use a different code for each model, storage or condition
+                  offer.
+                </small>
+              </label>
+              <label>
+                Condition
+                <WorkspaceNativeSelect
+                  value={draft.condition}
+                  onChange={(event) => {
+                    return setDraft({
+                      ...draft,
+                      condition: event.target
+                        .value as CatalogInput["condition"],
+                    });
+                  }}
+                >
+                  {Object.entries(catalogConditionLabels).map(
+                    ([value, label]) => {
+                      return (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      );
+                    },
+                  )}
+                </WorkspaceNativeSelect>
+              </label>
+              <label>
+                Daily advertised rate (PHP)
+                <input
+                  type="number"
+                  min="0.01"
+                  max="9999999999.99"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={draft.dailyAmount ?? ""}
+                  onChange={(event) => {
+                    return setDraft({
+                      ...draft,
+                      dailyAmount: event.target.value || null,
+                    });
+                  }}
+                />
+                <small>Leave blank to show “Ask for pricing”.</small>
+              </label>
+              <label>
+                Availability
+                <WorkspaceNativeSelect
+                  value={draft.availability}
+                  onChange={(event) => {
+                    return setDraft({
+                      ...draft,
+                      availability: event.target
+                        .value as CatalogInput["availability"],
+                    });
+                  }}
+                >
+                  {catalogAvailability.map((value) => {
+                    return (
+                      <option key={value} value={value}>
+                        {catalogAvailabilityLabels[value]}
+                      </option>
+                    );
+                  })}
+                </WorkspaceNativeSelect>
+              </label>
+              <label>
+                Display order
+                <input
+                  type="number"
+                  min="0"
+                  max="9999"
+                  step="1"
+                  required
+                  value={
+                    Number.isFinite(draft.sortOrder) ? draft.sortOrder : ""
+                  }
+                  onChange={(event) => {
+                    return setDraft({
+                      ...draft,
+                      sortOrder:
+                        event.target.value === ""
+                          ? NaN
+                          : Number(event.target.value),
+                    });
+                  }}
+                />
+                <small>Lower numbers appear first.</small>
+              </label>
+              <label className={styles.wide}>
+                Public details
+                <textarea
+                  maxLength={240}
+                  rows={3}
+                  value={draft.description}
+                  placeholder="Storage, color or details customers should know"
+                  onChange={(event) => {
+                    return setDraft({
+                      ...draft,
+                      description: event.target.value,
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                Existing product artwork
+                <WorkspaceNativeSelect
+                  value={draft.imageAsset ?? ""}
+                  onChange={(event) => {
+                    return setDraft({
+                      ...draft,
+                      imageAsset:
+                        (event.target.value as CatalogInput["imageAsset"]) ||
+                        null,
+                    });
+                  }}
+                >
+                  <option value="">Generic device illustration</option>
+                  {catalogAssets.map((asset) => {
+                    return (
+                      <option key={asset} value={asset}>
+                        {asset.replaceAll("-", " ")}
+                      </option>
+                    );
+                  })}
+                </WorkspaceNativeSelect>
+                <small>An uploaded photo takes priority.</small>
+              </label>
+              <label className={styles.check}>
+                <input
+                  type="checkbox"
+                  checked={draft.published}
+                  onChange={(event) => {
+                    return setDraft({
+                      ...draft,
+                      published: event.target.checked,
+                    });
+                  }}
+                />
+                Published on the public website
+              </label>
+            </div>
+            <div data-catalog-pane="plan" hidden={pane !== "plan"}>
+              <CatalogPaymentTermsForm
+                draft={draft}
+                setDraft={setDraft}
+                planPreview={planPreview}
+              />{" "}
+            </div>
+          </fieldset>
+        </form>
+        <section
+          data-catalog-pane="photo"
+          hidden={pane !== "photo"}
+          className={styles.photoSection}
+          aria-label="Product photo"
+        >
+          <h3>Product photo</h3>
+          <p>
+            Upload a JPG, PNG or WebP up to 5 MB. Use a product photo suitable
+            for public display.
+          </p>
+          {photo && (
+            <img
+              src={photo}
+              crossOrigin={item?.hasImage ? "use-credentials" : undefined}
+              alt={`${item?.name} current product photo`}
+              className={styles.photo}
+            />
+          )}
+          {!item ? (
+            <p>Save the listing first to upload a photo.</p>
+          ) : (
+            <>
+              <label className={styles.file}>
+                Choose product photo
+                <input
+                  key={fileKey}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={saving || outdated || Boolean(confirm)}
+                  onChange={(event) => {
+                    setFile(event.target.files?.[0] ?? null);
+
+                    setSaved("");
+                  }}
+                />
+              </label>
+              {dirty && (
+                <p>Save your listing changes before changing the photo.</p>
+              )}
+            </>
+          )}
+        </section>
+      </div>
+      <footer data-modal-footer className={styles.editorFooter}>
+        {pane === "photo" && item ? (
           <div className={styles.actions}>
             <button
               type="button"
+              disabled={
+                !file || saving || outdated || dirty || Boolean(confirm)
+              }
               onClick={() => {
-                return setConfirm(null);
-              }}
-            >
-              Keep editing
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const action = confirm;
-
-                setConfirm(null);
-
-                if (action === "close") {
-                  onClose();
-                } else if (action === "reload") {
-                  void reload();
-                } else if (item) {
+                if (file) {
                   void run(() => {
-                    return removeCatalogPhoto(item);
+                    return uploadCatalogPhoto(item, file);
                   }, true);
                 }
               }}
             >
-              {confirm === "photo" ? "Remove photo" : "Discard changes"}
+              Upload photo
+            </button>
+            <button
+              type="button"
+              disabled={
+                !photo || saving || outdated || dirty || Boolean(confirm)
+              }
+              onClick={() => {
+                return setConfirm("photo");
+              }}
+            >
+              Remove current photo
             </button>
           </div>
-        </div>
-      )}
-      {outdated && (
-        <div className={styles.warning} role="alert">
-          This listing changed. Your draft is preserved. Review the latest
-          version before saving.{" "}
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => {
-              return dirty || file ? setConfirm("reload") : void reload();
-            }}
-          >
-            Load latest listing
-          </button>
-        </div>
-      )}
-      {error && (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      )}
-      {saved && (
-        <p className={styles.notice} role="status">
-          {saved}
-        </p>
-      )}
-      <form onSubmit={save}>
-        <fieldset disabled={saving || Boolean(confirm)} className={styles.form}>
-          <label>
-            Model / listing name
-            <input
-              required
-              minLength={2}
-              maxLength={100}
-              value={draft.name}
-              onChange={(event) => {
-                return setDraft({ ...draft, name: event.target.value });
-              }}
-            />
-          </label>
-          <label>
-            Listing code
-            <input
-              required
-              minLength={2}
-              maxLength={40}
-              pattern="[A-Za-z0-9-]+"
-              placeholder="IPHONE-13-128-PRE"
-              value={draft.code}
-              onChange={(event) => {
-                return setDraft({ ...draft, code: event.target.value });
-              }}
-            />
-            <small>
-              Use a different code for each model, storage or condition offer.
-            </small>
-          </label>
-          <label>
-            Condition
-            <select
-              value={draft.condition}
-              onChange={(event) => {
-                return setDraft({
-                  ...draft,
-                  condition: event.target.value as CatalogInput["condition"],
-                });
-              }}
-            >
-              {Object.entries(catalogConditionLabels).map(([value, label]) => {
-                return (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <label>
-            Daily advertised rate (PHP)
-            <input
-              type="number"
-              min="0.01"
-              max="9999999999.99"
-              step="0.01"
-              inputMode="decimal"
-              value={draft.dailyAmount ?? ""}
-              onChange={(event) => {
-                return setDraft({
-                  ...draft,
-                  dailyAmount: event.target.value || null,
-                });
-              }}
-            />
-            <small>Leave blank to show “Ask for pricing”.</small>
-          </label>
-          <label>
-            Availability
-            <select
-              value={draft.availability}
-              onChange={(event) => {
-                return setDraft({
-                  ...draft,
-                  availability: event.target
-                    .value as CatalogInput["availability"],
-                });
-              }}
-            >
-              {catalogAvailability.map((value) => {
-                return (
-                  <option key={value} value={value}>
-                    {catalogAvailabilityLabels[value]}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <label>
-            Display order
-            <input
-              type="number"
-              min="0"
-              max="9999"
-              step="1"
-              required
-              value={Number.isFinite(draft.sortOrder) ? draft.sortOrder : ""}
-              onChange={(event) => {
-                return setDraft({
-                  ...draft,
-                  sortOrder:
-                    event.target.value === ""
-                      ? NaN
-                      : Number(event.target.value),
-                });
-              }}
-            />
-            <small>Lower numbers appear first.</small>
-          </label>
-          <label className={styles.wide}>
-            Public details
-            <textarea
-              maxLength={240}
-              rows={3}
-              value={draft.description}
-              placeholder="Storage, color or details customers should know"
-              onChange={(event) => {
-                return setDraft({ ...draft, description: event.target.value });
-              }}
-            />
-          </label>
-          <label>
-            Existing product artwork
-            <select
-              value={draft.imageAsset ?? ""}
-              onChange={(event) => {
-                return setDraft({
-                  ...draft,
-                  imageAsset:
-                    (event.target.value as CatalogInput["imageAsset"]) || null,
-                });
-              }}
-            >
-              <option value="">Generic device illustration</option>
-              {catalogAssets.map((asset) => {
-                return (
-                  <option key={asset} value={asset}>
-                    {asset.replaceAll("-", " ")}
-                  </option>
-                );
-              })}
-            </select>
-            <small>An uploaded photo takes priority.</small>
-          </label>
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={draft.published}
-              onChange={(event) => {
-                return setDraft({ ...draft, published: event.target.checked });
-              }}
-            />
-            Published on the public website
-          </label>
-          <CatalogPaymentTermsForm
-            draft={draft}
-            setDraft={setDraft}
-            planPreview={planPreview}
-          />
+        ) : (
           <div className={`${styles.actions} ${styles.wide}`}>
             <button
+              data-variant="primary"
               className={styles.primary}
               type="submit"
-              disabled={outdated || (!dirty && Boolean(item))}
+              form="catalog-listing-form"
+              disabled={
+                saving ||
+                Boolean(confirm) ||
+                outdated ||
+                (!dirty && Boolean(item))
+              }
             >
               {saving ? "Saving…" : item ? "Save listing" : "Create listing"}
             </button>
@@ -549,74 +736,8 @@ export function CatalogEditor({
                 : "This listing will be hidden from customers."}
             </span>
           </div>
-        </fieldset>
-      </form>
-      <section className={styles.photoSection} aria-label="Product photo">
-        <h3>Product photo</h3>
-        <p>
-          Upload a JPG, PNG or WebP up to 5 MB. Use a product photo suitable for
-          public display.
-        </p>
-        {photo && (
-          <img
-            src={photo}
-            crossOrigin={item?.hasImage ? "use-credentials" : undefined}
-            alt={`${item?.name} current product photo`}
-            className={styles.photo}
-          />
         )}
-        {!item ? (
-          <p>Save the listing first to upload a photo.</p>
-        ) : (
-          <>
-            <label className={styles.file}>
-              Choose product photo
-              <input
-                key={fileKey}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                disabled={saving || outdated || Boolean(confirm)}
-                onChange={(event) => {
-                  setFile(event.target.files?.[0] ?? null);
-
-                  setSaved("");
-                }}
-              />
-            </label>
-            {dirty && (
-              <p>Save your listing changes before changing the photo.</p>
-            )}
-            <div className={styles.actions}>
-              <button
-                type="button"
-                disabled={
-                  !file || saving || outdated || dirty || Boolean(confirm)
-                }
-                onClick={() => {
-                  if (file) {
-                    void run(() => {
-                      return uploadCatalogPhoto(item, file);
-                    }, true);
-                  }
-                }}
-              >
-                Upload photo
-              </button>
-              <button
-                type="button"
-                disabled={
-                  !photo || saving || outdated || dirty || Boolean(confirm)
-                }
-                onClick={() => {
-                  return setConfirm("photo");
-                }}
-              >
-                Remove current photo
-              </button>
-            </div>
-          </>
-        )}
-      </section>
+      </footer>
     </dialog>
   );
 }

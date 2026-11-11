@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   addReleaseUpdate,
   createClient,
@@ -22,10 +23,24 @@ import { can, useMe } from "@/lib/useMe";
 import { useRecordFilterText } from "@/lib/useRecordFilterText";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isBatchHandler } from "@/lib/handler-workspace";
+import type { ClientSortField } from "@freshphones/contracts";
+import {
+  newestHandlerSort,
+  nextHandlerSort,
+  type HandlerTableSort,
+} from "@/lib/handler-table";
 import { today } from "@/lib/date";
 
 export function useClientsWorkspace() {
   const me = useMe();
+
+  const handler = isBatchHandler(me?.role);
+
+  const [sort, setSort] =
+    useState<HandlerTableSort<ClientSortField>>(newestHandlerSort);
+
+  const [scheduleLoading, setScheduleLoading] = useState(false);
 
   const canManage = can(me, "CLIENT_MANAGE");
 
@@ -85,9 +100,11 @@ export function useClientsWorkspace() {
 
   const [error, setError] = useState<string | null>(null);
 
+  const [listError, setListError] = useState<string | null>(null);
+
   const [choicesError, setChoicesError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -188,17 +205,20 @@ export function useClientsWorkspace() {
 
     setError(null);
 
+    setListError(null);
+
     try {
-      const c = await listClients(
-        focusedClient
+      const c = await listClients({
+        ...(focusedClient
           ? { id: focusedClient, page: "1" }
           : recordFilterQuery(
               "client",
               { ...filters, q: text.q, model: text.model },
               page,
               batchFilter,
-            ).params!,
-      );
+            ).params!),
+        ...(handler ? { sortBy: sort.key, sortDirection: sort.direction } : {}),
+      });
 
       if (version !== requestVersion.current) {
         return;
@@ -252,6 +272,8 @@ export function useClientsWorkspace() {
       setSchedule(null);
 
       setError(e instanceof Error ? e.message : "Failed to load clients.");
+
+      setListError(e instanceof Error ? e.message : "Failed to load clients.");
     } finally {
       if (version === requestVersion.current) {
         setLoading(false);
@@ -269,6 +291,8 @@ export function useClientsWorkspace() {
     text.pending,
     filterError,
     clearPrivate,
+    handler,
+    sort,
   ]);
 
   const loadChoices = useCallback(async () => {
@@ -307,6 +331,8 @@ export function useClientsWorkspace() {
     async (id: RecordId) => {
       const version = ++scheduleVersion.current;
 
+      setScheduleLoading(true);
+
       try {
         const items = await getSchedule(id);
 
@@ -327,6 +353,10 @@ export function useClientsWorkspace() {
         setSchedule(null);
 
         setError(e instanceof Error ? e.message : "Could not load schedule.");
+      } finally {
+        if (version === scheduleVersion.current) {
+          setScheduleLoading(false);
+        }
       }
     },
     [clearPrivate],
@@ -587,6 +617,24 @@ export function useClientsWorkspace() {
       loadChoices,
     },
     clientRecordsTableProps: {
+      error: filterError ?? listError,
+      sort,
+      onSort: (key: ClientSortField) => {
+        setSort((current) => {
+          return nextHandlerSort(current, key);
+        });
+
+        setPage(1);
+      },
+      onResetSort: () => {
+        setSort(newestHandlerSort);
+
+        setPage(1);
+      },
+      onRetry: () => {
+        return void load();
+      },
+      scheduleLoading,
       loading,
       clients,
       me,
@@ -607,6 +655,7 @@ export function useClientsWorkspace() {
     me,
     canRead,
     error,
+    listError,
     notice,
     canManage,
     filters,

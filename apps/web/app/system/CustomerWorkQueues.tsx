@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import {
   getCustomerWork,
   type CustomerWorkKind,
@@ -137,9 +138,10 @@ function WorkSection({
         </p>
       )}
       {loading && !data ? (
-        <p className="mt-4 text-sm text-ink-soft" role="status">
-          Loading queue…
-        </p>
+        <WorkspaceProgress
+          className="mt-4 text-sm text-ink-soft"
+          label="Loading queue…"
+        />
       ) : !items?.length && !error ? (
         <p className="mt-4 rounded-xl bg-white/60 p-3 text-sm text-ink-soft">
           Nothing waiting here.
@@ -246,7 +248,7 @@ export default function CustomerWorkQueues({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="coo-customer-work-grid grid gap-4 lg:grid-cols-3">
       {kinds.map((kind) => {
         return <WorkSection key={kind} kind={kind} compact={compact} />;
       })}

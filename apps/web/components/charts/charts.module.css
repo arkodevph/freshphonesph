@@ -1,22 +1,24 @@
 .scope {
-  --chart-verified: #087f5b;
-  --chart-pending: #a16207;
-  --chart-accent: #7c3aed;
-  --chart-negative: #be123c;
-  --chart-blue: #2563eb;
+  --chart-verified: var(--ceo-blue, #087f5b);
+  --chart-pending: var(--ceo-lilac, #a16207);
+  --chart-accent: var(--ceo-lilac, #7c3aed);
+  --chart-negative: var(--ceo-red, #be123c);
+  --chart-blue: var(--ceo-blue, #2563eb);
   --chart-muted: #64748b;
-  --chart-text-muted: #686c78;
+  --chart-text-muted: var(--system-muted, #686c78);
+  --chart-track: var(--ceo-chart-track, var(--system-bg));
+  --chart-grid: var(--ceo-chart-grid, var(--system-border));
   min-width: 0;
   color: var(--system-text);
 }
 :global(html[data-system-theme="dark"]) .scope {
-  --chart-verified: #34d399;
-  --chart-pending: #fbbf24;
-  --chart-accent: #a78bfa;
-  --chart-negative: #fb7185;
-  --chart-blue: #60a5fa;
+  --chart-verified: var(--ceo-blue, #34d399);
+  --chart-pending: var(--ceo-lilac, #fbbf24);
+  --chart-accent: var(--ceo-lilac, #a78bfa);
+  --chart-negative: var(--ceo-red, #fb7185);
+  --chart-blue: var(--ceo-blue, #60a5fa);
   --chart-muted: #94a3b8;
-  --chart-text-muted: #a4a6af;
+  --chart-text-muted: var(--system-muted, #a4a6af);
 }
 .scope [data-tone="verified"] {
   background: var(--chart-verified);
@@ -100,15 +102,23 @@
 .track {
   height: 11px;
   position: relative;
-  background: var(--system-bg);
-  border-radius: 4px;
+  background: var(--chart-track);
+  border-radius: 999px;
   overflow: hidden;
 }
 .bar {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-radius: 3px;
+  border-radius: inherit;
+  transform-origin: left center;
+  animation: chart-fill-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition:
+    width 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    left 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.bar[data-negative] {
+  transform-origin: right center;
 }
 .zeroLine {
   position: absolute;
@@ -124,7 +134,7 @@
   color: var(--chart-text-muted);
   font-size: 13px;
   line-height: 1.6;
-  border: 1px dashed var(--system-border);
+  border: 1px dashed var(--chart-grid);
   border-radius: 10px;
 }
 .figureHeading {
@@ -203,7 +213,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--system-border);
+  background: var(--chart-grid);
 }
 .scope button.monthColumn {
   position: relative;
@@ -218,7 +228,7 @@
 }
 .scope button.monthColumn:hover,
 .scope button.monthColumn[aria-pressed="true"] {
-  background: var(--system-accent-soft);
+  background: var(--ceo-control, var(--system-accent-soft));
   color: var(--system-accent);
 }
 .scope button.monthColumn:focus-visible,
@@ -238,6 +248,9 @@
   flex: 1;
   max-width: 24px;
   border-radius: 5px 5px 0 0;
+  transform-origin: bottom center;
+  animation: chart-column-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: height 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .monthLabel {
   position: absolute;
@@ -261,7 +274,7 @@
   gap: 12px;
   padding: 15px;
   margin-top: 14px;
-  background: var(--system-bg);
+  background: var(--ceo-control, var(--system-bg));
   border-radius: 12px;
 }
 .readout > strong {
@@ -424,5 +437,54 @@
   }
   .track {
     border: 1px solid CanvasText;
+  }
+}
+
+@keyframes chart-fill-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes chart-column-in {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .barPair > span {
+    animation: none;
+    transition: none;
+  }
+}
+
+.skeletonTrack {
+  background: color-mix(in srgb, var(--system-text) 11%, transparent);
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--system-text) 13%, transparent) 48%,
+    transparent 76%
+  );
+  background-size: 240% 100%;
+  animation: chart-shimmer 1.8s linear infinite;
+}
+@keyframes chart-shimmer {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeletonTrack {
+    animation: none;
   }
 }

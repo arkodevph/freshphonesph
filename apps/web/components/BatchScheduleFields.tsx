@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import DateInput from "@/components/DateInput";
 import { calendarDate, daysInMonth } from "@freshphones/contracts";
 import {
   nextInstallmentDate,
@@ -24,7 +26,7 @@ export function BatchScheduleFields({
   return (
     <>
       <Field label="Installment frequency">
-        <select
+        <WorkspaceNativeSelect
           className={inputCls}
           value={value.cadence}
           onChange={(event) => {
@@ -61,10 +63,10 @@ export function BatchScheduleFields({
           <option value="monthly">Monthly</option>
           <option value="semimonthly">Bi-monthly — 15th and month end</option>
           <option value="weekly">Weekly</option>
-        </select>
+        </WorkspaceNativeSelect>
       </Field>
       <Field label="First installment due date">
-        <input
+        <DateInput
           className={inputCls}
           type="date"
           required
@@ -86,7 +88,7 @@ export function BatchScheduleFields({
       </Field>
       {value.cadence === "monthly" && (
         <Field label="Monthly alignment">
-          <select
+          <WorkspaceNativeSelect
             className={inputCls}
             value={value.month_end ? "end" : "day"}
             onChange={(event) => {
@@ -107,7 +109,7 @@ export function BatchScheduleFields({
           >
             <option value="end">Last day of every month</option>
             <option value="day">Same day of every month</option>
-          </select>
+          </WorkspaceNativeSelect>
         </Field>
       )}
       <div className="col-span-full flex flex-wrap items-center gap-2 text-xs text-ink-soft">

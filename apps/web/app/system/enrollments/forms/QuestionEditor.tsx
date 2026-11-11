@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import type { EnrollmentFormQuestion } from "@freshphones/contracts";
 import styles from "./form-editor.module.css";
 
@@ -118,7 +119,7 @@ export default function QuestionEditor({
         </label>
         <label className={styles.field} htmlFor={`${id}-type`}>
           Answer type
-          <select
+          <WorkspaceNativeSelect
             id={`${id}-type`}
             value={question.type}
             onChange={(event) => {
@@ -132,7 +133,7 @@ export default function QuestionEditor({
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <label
           className={`${styles.field} ${styles.fullWidth}`}

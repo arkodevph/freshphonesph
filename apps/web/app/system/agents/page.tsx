@@ -1,5 +1,13 @@
 "use client";
 
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import ModalCloseButton from "@/components/ModalCloseButton";
+import WorkspaceProgress, {
+  TableSkeletonRows,
+} from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import CooActionDisclosure from "../CooActionDisclosure";
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ShieldCheck } from "@phosphor-icons/react";
 import { agentSchema } from "@freshphones/contracts";
@@ -16,6 +24,7 @@ import { can, useMe } from "@/lib/useMe";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { RecordPagination } from "@/components/RecordPagination";
 import styles from "@/components/record-details.module.css";
+import peopleStyles from "../people/people.module.css";
 
 const empty: AgentInput = { name: "", code: "", active: true };
 
@@ -43,7 +52,7 @@ export default function AgentsPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [draft, setDraft] = useState<AgentInput>(empty);
 
@@ -194,62 +203,64 @@ export default function AgentsPage() {
         </p>
       )}
       {access && (
-        <form onSubmit={create} className="glass mb-4 rounded-3xl p-5">
-          <h2 className="mb-3 font-display font-700 text-blue-ink">
-            Add agent
-          </h2>
-          <fieldset disabled={saving} className="grid gap-3 sm:grid-cols-3">
-            <label className="grid gap-1 text-sm text-blue-ink">
-              Full name
-              <input
-                className={inputClass}
-                required
-                minLength={2}
-                maxLength={200}
-                value={draft.name}
-                onChange={(event) => {
-                  return setDraft({ ...draft, name: event.target.value });
-                }}
-              />
-            </label>
-            <label className="grid gap-1 text-sm text-blue-ink">
-              Agent code
-              <input
-                className={inputClass}
-                required
-                minLength={2}
-                maxLength={60}
-                pattern="[A-Za-z0-9-]+"
-                placeholder="FP-AGENT-001"
-                value={draft.code}
-                onChange={(event) => {
-                  return setDraft({ ...draft, code: event.target.value });
-                }}
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm text-blue-ink">
-              <input
-                type="checkbox"
-                checked={draft.active}
-                onChange={(event) => {
-                  return setDraft({ ...draft, active: event.target.checked });
-                }}
-              />
-              Active agent
-            </label>
-          </fieldset>
-          <p className="mt-3 text-xs text-ink-soft">
-            Public verification shows the name, masked code, and status. Agent
-            entries do not create staff accounts.
-          </p>
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-candy mt-4 rounded-2xl px-5 py-2.5 text-sm font-700 disabled:opacity-60"
-          >
-            {saving ? "Adding…" : "Add agent"}
-          </button>
-        </form>
+        <CooActionDisclosure role={me?.role} title="Add an agent">
+          <form onSubmit={create} className="glass mb-4 rounded-3xl p-5">
+            <h2 className="mb-3 font-display font-700 text-blue-ink">
+              Add agent
+            </h2>
+            <fieldset disabled={saving} className="grid gap-3 sm:grid-cols-3">
+              <label className="grid gap-1 text-sm text-blue-ink">
+                Full name
+                <input
+                  className={inputClass}
+                  required
+                  minLength={2}
+                  maxLength={200}
+                  value={draft.name}
+                  onChange={(event) => {
+                    return setDraft({ ...draft, name: event.target.value });
+                  }}
+                />
+              </label>
+              <label className="grid gap-1 text-sm text-blue-ink">
+                Agent code
+                <input
+                  className={inputClass}
+                  required
+                  minLength={2}
+                  maxLength={60}
+                  pattern="[A-Za-z0-9-]+"
+                  placeholder="FP-AGENT-001"
+                  value={draft.code}
+                  onChange={(event) => {
+                    return setDraft({ ...draft, code: event.target.value });
+                  }}
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm text-blue-ink">
+                <input
+                  type="checkbox"
+                  checked={draft.active}
+                  onChange={(event) => {
+                    return setDraft({ ...draft, active: event.target.checked });
+                  }}
+                />
+                Active agent
+              </label>
+            </fieldset>
+            <p className="mt-3 text-xs text-ink-soft">
+              Public verification shows the name, masked code, and status. Agent
+              entries do not create staff accounts.
+            </p>
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-candy mt-4 rounded-2xl px-5 py-2.5 text-sm font-700 disabled:opacity-60"
+            >
+              {saving ? "Adding…" : "Add agent"}
+            </button>
+          </form>
+        </CooActionDisclosure>
       )}
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1 text-sm text-blue-ink">
@@ -270,7 +281,7 @@ export default function AgentsPage() {
           className="grid gap-1 text-sm text-blue-ink"
         >
           <span id="agent-status-filter-label">Agent status</span>
-          <select
+          <WorkspaceNativeSelect
             id="agent-status-filter"
             aria-labelledby="agent-status-filter-label"
             className={inputClass}
@@ -284,7 +295,7 @@ export default function AgentsPage() {
             <option value="">All statuses</option>
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
-          </select>
+          </WorkspaceNativeSelect>
         </label>
       </div>
       <div className="glass overflow-x-auto rounded-3xl p-5">
@@ -299,11 +310,11 @@ export default function AgentsPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={4} className="p-6 text-center text-ink-soft">
-                  Loading agents…
-                </td>
-              </tr>
+              <TableSkeletonRows
+                columns={4}
+                cellClassName="p-2"
+                label="Loading agents…"
+              />
             ) : items.length === 0 ? (
               <tr>
                 <td colSpan={4} className="p-6 text-center text-ink-soft">
@@ -317,7 +328,12 @@ export default function AgentsPage() {
                     <td className="p-2 font-700 text-blue-ink">{agent.name}</td>
                     <td className="p-2">{agent.code}</td>
                     <td className="p-2">
-                      {agent.active ? "Active" : "Inactive"}
+                      <span
+                        className={peopleStyles.status}
+                        data-active={agent.active}
+                      >
+                        {agent.active ? "Active" : "Inactive"}
+                      </span>
                     </td>
                     <td className="p-2">
                       <button
@@ -373,6 +389,10 @@ function AgentEditor({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
+  const [open, setOpen] = useState(true);
+
+  useSpringDialog(dialog, open, onClose);
+
   const titleId = useId();
 
   const sequence = useRef(0);
@@ -403,8 +423,6 @@ function AgentEditor({
   snapshot.current = agent;
 
   useEffect(() => {
-    dialog.current?.showModal();
-
     const overflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -437,7 +455,7 @@ function AgentEditor({
 
   const close = () => {
     if (!saving) {
-      dirty ? setDiscard("close") : onClose();
+      dirty ? setDiscard("close") : setOpen(false);
     }
   };
 
@@ -503,7 +521,7 @@ function AgentEditor({
 
       onSaved();
 
-      onClose();
+      setOpen(false);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setOutdated(true);
@@ -519,6 +537,9 @@ function AgentEditor({
 
   return (
     <dialog
+      data-workspace-modal
+      onClose={onClose}
+      data-modal-size="standard"
       ref={dialog}
       className={styles.dialog}
       aria-labelledby={titleId}
@@ -528,16 +549,9 @@ function AgentEditor({
         close();
       }}
     >
-      <header className={styles.header}>
+      <header data-modal-header className={styles.header}>
         <h2 id={titleId}>Edit {agent.name}</h2>
-        <button
-          type="button"
-          className={styles.secondary}
-          disabled={saving}
-          onClick={close}
-        >
-          Close agent details
-        </button>
+        <ModalCloseButton disabled={saving} onClick={close} />
       </header>
       {discard && (
         <div role="alert" className={styles.warning}>
@@ -554,6 +568,7 @@ function AgentEditor({
             </button>
             <button
               type="button"
+              data-variant="primary"
               className={styles.primary}
               onClick={() => {
                 const action = discard;
@@ -561,7 +576,7 @@ function AgentEditor({
                 setDiscard(null);
 
                 if (action === "close") {
-                  onClose();
+                  setOpen(false);
                 } else {
                   void reload();
                 }
@@ -645,6 +660,7 @@ function AgentEditor({
           </button>
           <button
             type="submit"
+            data-variant="primary"
             className={styles.primary}
             disabled={saving || outdated || !dirty || Boolean(discard)}
           >

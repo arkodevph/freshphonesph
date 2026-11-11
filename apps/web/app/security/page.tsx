@@ -1,24 +1,22 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { ShieldCheck } from "@phosphor-icons/react";
 import QRCode from "react-qr-code";
 import { useRouter } from "next/navigation";
 import { fetchMe } from "@/lib/api";
 import { logoutSession } from "@/lib/auth";
 import { ApiError, tsRequest } from "@/lib/ts-api";
+import PasswordChangeForm from "./PasswordChangeForm";
+import SecurityPageShell from "./SecurityPageShell";
+import ActiveSessions, { type SecuritySession } from "./ActiveSessions";
 import styles from "./security.module.css";
 
 type Security = {
   enabled: boolean;
   required: boolean;
-  sessions: {
-    id: string;
-    createdAt: string;
-    expiresAt: string;
-    userAgent: string | null;
-    current: boolean;
-  }[];
+  sessions: SecuritySession[];
 };
 
 type Enrollment = { totpURI: string; backupCodes: string[] };
@@ -29,6 +27,10 @@ export default function SecurityPage() {
   const [security, setSecurity] = useState<Security | null>(null),
     [destination, setDestination] = useState("/system");
 
+  const [staff, setStaff] = useState(false);
+
+  const [email, setEmail] = useState("");
+
   const [password, setPassword] = useState(""),
     [code, setCode] = useState("");
 
@@ -38,7 +40,7 @@ export default function SecurityPage() {
   const [saved, setSaved] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useToastNotice("");
 
   async function load() {
     try {
@@ -48,6 +50,12 @@ export default function SecurityPage() {
       ]);
 
       setSecurity(current);
+
+      setStaff(me.account_type === "employee");
+
+      setEmail(me.email);
+
+      setError("");
 
       setDestination(
         me.account_type === "customer" ? "/portal/settings" : "/system",
@@ -153,274 +161,303 @@ export default function SecurityPage() {
   }
 
   return (
-    <main className={styles.page}>
-      <div className={styles.wrap}>
-        <Link href="/">Fresh Phones PH</Link>
-        <header>
-          <p>Account access</p>
-          <h1>Account security</h1>
-          <p>Protect your account and manage where you are signed in.</p>
-        </header>
-        {error && (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p className={styles.success} role="status">
-            {notice}
-          </p>
-        )}
-        {!security ? (
-          <p>Loading security settings…</p>
-        ) : (
-          <>
-            <section className={styles.card}>
-              <h2>Two-factor authentication</h2>
-              <p>
-                <strong>{security.enabled ? "Enabled" : "Not enabled"}</strong>
-                {security.required && " · Required for your staff account"}
-              </p>
-              <p>
-                Use an authenticator app to generate a code when you sign in.
-                Keep recovery codes somewhere safe for use if you lose access to
-                your app.
-              </p>
-              {security.required && !security.enabled && (
-                <p className={styles.note}>
-                  Set up your authenticator before opening the staff workspace.
-                </p>
-              )}
-              {enrollment ? (
-                <>
-                  <h3>1. Add this account to your authenticator</h3>
-                  <p>
-                    Scan this QR code in your authenticator app. This code stays
-                    on this device.
-                  </p>
-                  <div className={styles.qr}>
-                    <QRCode value={enrollment.totpURI} size={200} />
-                  </div>
-                  <details>
-                    <summary>Enter a setup key manually</summary>
-                    <p>
-                      Account: {new URL(enrollment.totpURI).pathname.slice(1)}
-                    </p>
-                    <code className={styles.secret}>
-                      {new URL(enrollment.totpURI).searchParams.get("secret")}
-                    </code>
-                  </details>
-                  <h3>2. Save your recovery codes</h3>
-                </>
-              ) : !security.enabled ? (
-                <form onSubmit={enable}>
-                  <label>
-                    Current password
-                    <input
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                      maxLength={128}
-                      value={password}
-                      onChange={(event) => {
-                        return setPassword(event.target.value);
-                      }}
-                      disabled={busy}
-                    />
-                  </label>
-                  <button disabled={busy}>
-                    {busy ? "Preparing…" : "Set up authenticator"}
-                  </button>
-                </form>
-              ) : (
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
+    <SecurityPageShell
+      workspaceHref={
+        security && (!security.required || security.enabled)
+          ? destination
+          : undefined
+      }
+    >
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}{" "}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              void load();
+            }}
+          >
+            Retry security settings
+          </button>
+        </p>
+      )}
+      {notice && (
+        <p className={styles.success} role="status">
+          {notice}
+        </p>
+      )}
+      {!security ? (
+        error ? null : (
+          <p role="status">Loading security settings…</p>
+        )
+      ) : (
+        <>
+          <div className={styles.contentGrid} data-has-password={staff}>
+            {staff && (
+              <PasswordChangeForm
+                email={email}
+                disabled={busy || !!enrollment || (codes.length > 0 && !saved)}
+                unavailableReason={
+                  enrollment
+                    ? "Finish your authenticator setup before changing your password."
+                    : codes.length > 0 && !saved
+                      ? "Save your recovery codes before changing your password."
+                      : undefined
+                }
+                onBusyChange={(changing) => {
+                  setBusy(changing);
 
-                    manage("recovery-codes");
-                  }}
-                >
-                  <label>
-                    Current password
-                    <input
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                      maxLength={128}
-                      value={password}
-                      onChange={(event) => {
-                        return setPassword(event.target.value);
-                      }}
-                      disabled={busy}
-                    />
-                  </label>
-                  <div className={styles.actions}>
-                    <button disabled={busy}>Generate new recovery codes</button>
-                    {!security.required && (
+                  if (changing) {
+                    setError("");
+
+                    setNotice("");
+                  }
+                }}
+                onChanged={async () => {
+                  setPassword("");
+
+                  setCode("");
+
+                  await load();
+                }}
+                onSessionExpired={() => {
+                  setPassword("");
+
+                  setCode("");
+
+                  setSecurity(null);
+
+                  router.replace("/login");
+                }}
+              />
+            )}
+            <div className={styles.securityColumn}>
+              <section
+                className={styles.card}
+                data-portal-material="card"
+                aria-labelledby="security-mfa-title"
+              >
+                <div className={styles.cardHeading}>
+                  <span className={styles.sectionIcon}>
+                    <ShieldCheck aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h2 id="security-mfa-title">Two-factor authentication</h2>
+                    <p
+                      className={styles.statusBadge}
+                      data-enabled={security.enabled}
+                    >
+                      <strong>
+                        {security.enabled ? "Enabled" : "Not enabled"}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+                {security.required && <p>Required for your staff account</p>}
+                <p>
+                  Use an authenticator app to generate a code when you sign in.
+                  Keep recovery codes somewhere safe for use if you lose access
+                  to your app.
+                </p>
+                {security.required && !security.enabled && (
+                  <p className={styles.note}>
+                    Set up your authenticator before opening the staff
+                    workspace.
+                  </p>
+                )}
+                {enrollment ? (
+                  <>
+                    <h3>1. Add this account to your authenticator</h3>
+                    <p>
+                      Scan this QR code in your authenticator app. This code
+                      stays on this device.
+                    </p>
+                    <div className={styles.qr}>
+                      <QRCode value={enrollment.totpURI} size={200} />
+                    </div>
+                    <details>
+                      <summary>Enter a setup key manually</summary>
+                      <p>
+                        Account: {new URL(enrollment.totpURI).pathname.slice(1)}
+                      </p>
+                      <code className={styles.secret}>
+                        {new URL(enrollment.totpURI).searchParams.get("secret")}
+                      </code>
+                    </details>
+                    <h3>2. Save your recovery codes</h3>
+                  </>
+                ) : !security.enabled ? (
+                  <form onSubmit={enable}>
+                    <label>
+                      Current password
+                      <input
+                        type="password"
+                        required
+                        autoComplete="current-password"
+                        maxLength={128}
+                        value={password}
+                        onChange={(event) => {
+                          return setPassword(event.target.value);
+                        }}
+                        disabled={busy}
+                      />
+                    </label>
+                    <button className={styles.primaryButton} disabled={busy}>
+                      {busy ? "Preparing…" : "Set up authenticator"}
+                    </button>
+                  </form>
+                ) : (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+
+                      manage("recovery-codes");
+                    }}
+                  >
+                    <label>
+                      Current password
+                      <input
+                        type="password"
+                        required
+                        autoComplete="current-password"
+                        maxLength={128}
+                        value={password}
+                        onChange={(event) => {
+                          return setPassword(event.target.value);
+                        }}
+                        disabled={busy}
+                      />
+                    </label>
+                    <div className={styles.actions}>
+                      <button disabled={busy}>
+                        Generate new recovery codes
+                      </button>
+                      {!security.required && (
+                        <button
+                          type="button"
+                          disabled={busy || !password}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                "Disable two-factor authentication for this account?",
+                              )
+                            ) {
+                              manage("disable");
+                            }
+                          }}
+                        >
+                          Disable two-factor authentication
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                )}
+                {codes.length > 0 && (
+                  <div className={styles.recovery}>
+                    <p>
+                      Each code works once. Save these now; they will disappear
+                      when you leave this screen.
+                    </p>
+                    <ul>
+                      {codes.map((value) => {
+                        return (
+                          <li key={value}>
+                            <code>{value}</code>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <label className={styles.checkbox}>
+                      <input
+                        type="checkbox"
+                        checked={saved}
+                        onChange={(event) => {
+                          return setSaved(event.target.checked);
+                        }}
+                      />{" "}
+                      I have saved my recovery codes in a safe place.
+                    </label>
+                    {!enrollment && (
                       <button
                         type="button"
-                        disabled={busy || !password}
+                        disabled={!saved}
                         onClick={() => {
-                          if (
-                            window.confirm(
-                              "Disable two-factor authentication for this account?",
-                            )
-                          ) {
-                            manage("disable");
-                          }
+                          return setCodes([]);
                         }}
                       >
-                        Disable two-factor authentication
+                        Done
                       </button>
                     )}
                   </div>
-                </form>
-              )}
-              {codes.length > 0 && (
-                <div className={styles.recovery}>
-                  <p>
-                    Each code works once. Save these now; they will disappear
-                    when you leave this screen.
-                  </p>
-                  <ul>
-                    {codes.map((value) => {
-                      return (
-                        <li key={value}>
-                          <code>{value}</code>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <label className={styles.checkbox}>
-                    <input
-                      type="checkbox"
-                      checked={saved}
-                      onChange={(event) => {
-                        return setSaved(event.target.checked);
-                      }}
-                    />{" "}
-                    I have saved my recovery codes in a safe place.
-                  </label>
-                  {!enrollment && (
+                )}
+                {enrollment && (
+                  <form onSubmit={verify}>
+                    <h3>3. Verify your authenticator</h3>
+                    <label>
+                      Six-digit code
+                      <input
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        required
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        value={code}
+                        onChange={(event) => {
+                          return setCode(event.target.value);
+                        }}
+                        disabled={busy}
+                      />
+                    </label>
                     <button
-                      type="button"
-                      disabled={!saved}
-                      onClick={() => {
-                        return setCodes([]);
-                      }}
+                      className={styles.primaryButton}
+                      disabled={busy || !saved}
                     >
-                      Done
+                      {busy ? "Verifying…" : "Verify and enable"}
                     </button>
-                  )}
-                </div>
-              )}
-              {enrollment && (
-                <form onSubmit={verify}>
-                  <h3>3. Verify your authenticator</h3>
-                  <label>
-                    Six-digit code
-                    <input
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      required
-                      pattern="[0-9]{6}"
-                      maxLength={6}
-                      value={code}
-                      onChange={(event) => {
-                        return setCode(event.target.value);
-                      }}
-                      disabled={busy}
-                    />
-                  </label>
-                  <button disabled={busy || !saved}>
-                    {busy ? "Verifying…" : "Verify and enable"}
-                  </button>
-                </form>
-              )}
-            </section>
-            <section className={styles.card}>
-              <h2>Active sessions</h2>
-              <p>
-                Sign out sessions you no longer recognize. Password changes and
-                account access changes also end sessions.
-              </p>
-              <ul className={styles.sessions}>
-                {security.sessions.map((session) => {
-                  return (
-                    <li key={session.id}>
-                      <div>
-                        <strong>
-                          {session.current ? "This session" : "Another session"}
-                        </strong>
-                        <p>
-                          Signed in{" "}
-                          {new Date(session.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                      {!session.current && (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => {
-                            return void run(async () => {
-                              await tsRequest("/auth/sessions/revoke", {
-                                method: "POST",
-                                body: JSON.stringify({ sessionId: session.id }),
-                              });
-
-                              setNotice("Session signed out.");
-
-                              await load();
-                            });
-                          }}
-                        >
-                          Sign out
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-              <button
-                type="button"
-                disabled={busy || security.sessions.length < 2}
-                onClick={() => {
-                  return void run(async () => {
+                  </form>
+                )}
+              </section>
+              <ActiveSessions
+                sessions={security.sessions}
+                busy={busy}
+                onRevoke={(sessionId) => {
+                  void run(async () => {
                     await tsRequest("/auth/sessions/revoke", {
                       method: "POST",
-                      body: "{}",
+                      body: JSON.stringify(sessionId ? { sessionId } : {}),
                     });
 
-                    setNotice("Other sessions signed out.");
+                    setNotice(
+                      sessionId
+                        ? "Session signed out."
+                        : "Other sessions signed out.",
+                    );
 
                     await load();
                   });
                 }}
-              >
-                Sign out other sessions
-              </button>
-            </section>
-            <footer>
-              {(!security.required || security.enabled) && (
-                <Link href={destination}>Return to your workspace</Link>
-              )}
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  return void run(async () => {
-                    await logoutSession();
+              />
+            </div>
+          </div>
+          <footer>
+            <button
+              type="button"
+              className={styles.dangerButton}
+              disabled={busy}
+              onClick={() => {
+                return void run(async () => {
+                  await logoutSession();
 
-                    router.replace("/login");
-                  });
-                }}
-              >
-                Sign out
-              </button>
-            </footer>
-          </>
-        )}
-      </div>
-    </main>
+                  router.replace("/login");
+                });
+              }}
+            >
+              Sign out
+            </button>
+          </footer>
+        </>
+      )}
+    </SecurityPageShell>
   );
 }

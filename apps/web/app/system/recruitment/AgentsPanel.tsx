@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { createAgent, listAgents, type AgentRecord } from "@/lib/api";
 import { IdentificationCard } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -177,7 +178,7 @@ export function AgentsPanel() {
           );
         })}
       </ul>
-      {loading && <p role="status">Loading agents…</p>}
+      {loading && <WorkspaceProgress label="Loading agents…" />}
     </section>
   );
 }

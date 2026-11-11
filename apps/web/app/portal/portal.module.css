@@ -72,7 +72,6 @@
   min-height: 0;
   overflow-y: auto;
   margin-top: 34px;
-  scrollbar-width: thin;
 }
 .navGroup + .navGroup {
   margin-top: 27px;
@@ -3311,7 +3310,6 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   padding: 0 clamp(18px, 2.4vw, 34px) 36px;
-  scrollbar-width: thin;
 }
 .shell .topbar {
   position: relative;

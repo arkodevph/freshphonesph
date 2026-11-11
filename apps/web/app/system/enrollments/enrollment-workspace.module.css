@@ -43,8 +43,9 @@
   cursor: pointer;
 }
 .tabs a[aria-current="page"] {
-  border-color: var(--system-accent, #5548ff);
-  color: var(--system-accent, #5548ff);
+  border-color: transparent;
+  background: var(--workspace-control-hover, var(--system-surface));
+  color: var(--system-text);
 }
 .workspace .primary {
   border-color: #5548ff;

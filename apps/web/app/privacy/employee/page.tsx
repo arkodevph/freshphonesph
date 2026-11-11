@@ -11,5 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default function EmployeePrivacyPage() {
-  return <LegalDocumentPage document={legalDocuments.EMPLOYEE_PRIVACY} />;
+  return (
+    <LegalDocumentPage
+      document={legalDocuments.EMPLOYEE_PRIVACY}
+      appearance="workspace"
+    />
+  );
 }

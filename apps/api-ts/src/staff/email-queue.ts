@@ -1,3 +1,4 @@
+import { captureHandlerInbox } from "./handler-inbox";
 import {
   accountAlertKinds,
   rolePermissions,
@@ -124,12 +125,15 @@ export async function queueTaskEmail(
     priority: string;
   },
   kind: TaskAlertKind,
+  now = new Date(),
 ) {
   const assignee = await tx.user.findUnique({ where: { id: task.assigneeId } });
 
   if (!assignee?.active || !allowed(assignee, "TASK_READ")) {
     return;
   }
+
+  await captureHandlerInbox(tx, assignee.id, now);
 
   const deadline = new Intl.DateTimeFormat("en-PH", {
     timeZone: "Asia/Manila",

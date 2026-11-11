@@ -1,5 +1,8 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   Suspense,
   useCallback,
@@ -29,12 +32,14 @@ import {
   TaskLocationSync,
 } from "./task-view";
 import TaskFiltersPanel from "./TaskFiltersPanel";
+import CooTasksView from "./coo/CooTasksView";
+import cooStyles from "./coo/coo-tasks.module.css";
 
 export default function StaffTasksDashboard() {
   const me = useMe();
 
   if (!me) {
-    return <p role="status">Loading task access…</p>;
+    return <WorkspaceProgress label="Loading task access…" />;
   }
 
   if (me.account_type !== "employee") {
@@ -55,6 +60,10 @@ export default function StaffTasksDashboard() {
 }
 
 function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
+  const coo = me.role === "coo";
+
+  const [assignmentOpen, setAssignmentOpen] = useState(false);
+
   const canAssign = can(me, "TASK_ASSIGN");
 
   const canReview = can(me, "KPI_REVIEW");
@@ -87,7 +96,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
 
   const [error, setError] = useState("");
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   const [busy, setBusy] = useState(false);
 
@@ -442,6 +451,10 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
       setForm((current) => {
         return { ...current, title: "", instructions: "" };
       });
+
+      if (coo) {
+        setAssignmentOpen(false);
+      }
     }
   }
 
@@ -526,120 +539,149 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
   }
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page}${coo ? ` ${cooStyles.page}` : ""}`}>
       <Suspense fallback={null}>
         <TaskLocationSync onTask={setLinkedId} />
       </Suspense>
-      <header className={styles.header}>
-        <div className={styles.icon}>
-          <ListChecks weight="duotone" />
-        </div>
-        <div>
-          <span className={styles.eyebrow}>Staff operations</span>
-          <h1>Tasks &amp; KPI</h1>
-          <p>
-            Assign work, submit evidence, and record a human review of late
-            submissions.
-          </p>
-        </div>
-      </header>
-      {error && (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      )}
-      {notice && (
-        <p className={styles.success} role="status">
-          {notice}
-        </p>
-      )}
+      {coo ? (
+        <CooTasksView
+          tasks={tasks}
+          status={status}
+          onStatus={(value) => {
+            setStatus(value);
 
-      {canAssign && (
-        <TaskFiltersPanel
-          assign={assign}
-          form={form}
-          setForm={setForm}
-          assignees={assignees}
-          busy={busy}
+            setPage(1);
+          }}
+          setPage={setPage}
+          openTask={openTask}
+          reload={async () => {
+            setError("");
+
+            await reload();
+          }}
+          canAssign={canAssign}
+          assignmentOpen={assignmentOpen}
+          setAssignmentOpen={setAssignmentOpen}
+          assignment={{ assign, form, setForm, assignees, busy }}
+          error={error}
         />
-      )}
+      ) : (
+        <>
+          <header className={styles.header}>
+            <div className={styles.icon}>
+              <ListChecks weight="duotone" />
+            </div>
+            <div>
+              <span className={styles.eyebrow}>Staff operations</span>
+              <h1>Tasks &amp; KPI</h1>
+              <p>
+                Assign work, submit evidence, and record a human review of late
+                submissions.
+              </p>
+            </div>
+          </header>
+          {error && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
+          {notice && (
+            <p className={styles.success} role="status">
+              {notice}
+            </p>
+          )}
 
-      <section className={styles.card}>
-        <div className={styles.sectionHead}>
-          <div>
-            <span className={styles.eyebrow}>Work list</span>
-            <h2>{canAssign ? "All staff tasks" : "My tasks"}</h2>
-          </div>
-          <label className={styles.filter}>
-            Status
-            <select
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
+          {canAssign && (
+            <TaskFiltersPanel
+              assign={assign}
+              form={form}
+              setForm={setForm}
+              assignees={assignees}
+              busy={busy}
+            />
+          )}
 
-                setPage(1);
-              }}
-            >
-              <option value="">All statuses</option>
-              {(["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"] as Status[]).map(
-                (item) => {
+          <section className={styles.card}>
+            <div className={styles.sectionHead}>
+              <div>
+                <span className={styles.eyebrow}>Work list</span>
+                <h2>{canAssign ? "All staff tasks" : "My tasks"}</h2>
+              </div>
+              <label className={styles.filter}>
+                Status
+                <WorkspaceNativeSelect
+                  value={status}
+                  onChange={(event) => {
+                    setStatus(event.target.value);
+
+                    setPage(1);
+                  }}
+                >
+                  <option value="">All statuses</option>
+                  {(
+                    ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"] as Status[]
+                  ).map((item) => {
+                    return (
+                      <option key={item} value={item}>
+                        {label(item)}
+                      </option>
+                    );
+                  })}
+                </WorkspaceNativeSelect>
+              </label>
+            </div>
+            {!tasks ? (
+              <WorkspaceProgress
+                className={styles.empty}
+                label="Loading tasks…"
+              />
+            ) : tasks.results.length === 0 ? (
+              <p className={styles.empty}>No tasks in this view.</p>
+            ) : (
+              <div className={styles.list}>
+                {tasks.results.map((task) => {
                   return (
-                    <option key={item} value={item}>
-                      {label(item)}
-                    </option>
+                    <article className={styles.taskRow} key={task.id}>
+                      <div className={styles.taskMain}>
+                        <strong>{task.title}</strong>
+                        <span>
+                          {task.assigneeName} · Due {formatDate(task.deadline)}
+                        </span>
+                      </div>
+                      <span
+                        className={styles.priority}
+                        data-priority={task.priority}
+                      >
+                        {label(task.priority)}
+                      </span>
+                      <span className={styles.badge} data-status={task.status}>
+                        {label(task.status)}
+                      </span>
+                      <span className={styles.timing}>
+                        {task.lateFlag === null
+                          ? "—"
+                          : task.lateFlag
+                            ? "Late"
+                            : "On time"}
+                      </span>
+                      <button
+                        className={styles.secondary}
+                        type="button"
+                        onClick={() => {
+                          return void openTask(task.id);
+                        }}
+                      >
+                        View task
+                      </button>
+                    </article>
                   );
-                },
-              )}
-            </select>
-          </label>
-        </div>
-        {!tasks ? (
-          <p className={styles.empty}>Loading tasks…</p>
-        ) : tasks.results.length === 0 ? (
-          <p className={styles.empty}>No tasks in this view.</p>
-        ) : (
-          <div className={styles.list}>
-            {tasks.results.map((task) => {
-              return (
-                <article className={styles.taskRow} key={task.id}>
-                  <div className={styles.taskMain}>
-                    <strong>{task.title}</strong>
-                    <span>
-                      {task.assigneeName} · Due {formatDate(task.deadline)}
-                    </span>
-                  </div>
-                  <span
-                    className={styles.priority}
-                    data-priority={task.priority}
-                  >
-                    {label(task.priority)}
-                  </span>
-                  <span className={styles.badge} data-status={task.status}>
-                    {label(task.status)}
-                  </span>
-                  <span className={styles.timing}>
-                    {task.lateFlag === null
-                      ? "—"
-                      : task.lateFlag
-                        ? "Late"
-                        : "On time"}
-                  </span>
-                  <button
-                    className={styles.secondary}
-                    type="button"
-                    onClick={() => {
-                      return void openTask(task.id);
-                    }}
-                  >
-                    View task
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-        )}
-        {tasks && <Pagination data={tasks} setPage={setPage} />}
-      </section>
+                })}
+              </div>
+            )}
+            {tasks && <Pagination data={tasks} setPage={setPage} />}
+          </section>
+        </>
+      )}
 
       {canReview && (
         <div className={styles.reviewGrid}>
@@ -656,7 +698,10 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
               and decision.
             </p>
             {!queue ? (
-              <p className={styles.empty}>Loading queue…</p>
+              <WorkspaceProgress
+                className={styles.empty}
+                label="Loading queue…"
+              />
             ) : queue.results.length === 0 ? (
               <p className={styles.empty}>
                 No late submissions awaiting review.
@@ -695,7 +740,10 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
               </div>
             </div>
             {!history ? (
-              <p className={styles.empty}>Loading reviews…</p>
+              <WorkspaceProgress
+                className={styles.empty}
+                label="Loading reviews…"
+              />
             ) : history.results.length === 0 ? (
               <p className={styles.empty}>No reviews recorded yet.</p>
             ) : (

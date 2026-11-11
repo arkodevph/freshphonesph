@@ -18,6 +18,10 @@ existing landing page becomes the public-website surface (§4) of a larger produ
 > Current implementation and acceptance work are in [BUILD_STATUS.md](BUILD_STATUS.md).
 > Setup and contributor guidance are in [../AGENTS.md](../AGENTS.md).
 
+## UI design
+
+Follow [Workspace UI patterns](UI-PATTERNS.md) for screen-specific patterns, current decisions and the People repair queue.
+
 ## What this system is (and is not)
 
 | It IS                                                 | It is NOT                                     |
@@ -36,6 +40,11 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 [03-data-model.md](03-data-model.md) and the Payment module in [05-modules.md](05-modules.md).
 
 ## Documents
+
+For a quick summary and full current scope of the Batch Handler role, use
+[Batch Handler — role and portal access](batch-handler-role-and-access.md).
+For the audited gaps, proposed home priorities and pending implementation phases,
+use [Batch Handler — findings and remaining-work plan](batch-handler-remaining-work-plan.md).
 
 Start with the [2026-10-27 client feature implementation backlog](62-client-feature-implementation-backlog.md)
 for the latest role, receipt-review, membership and reporting clarifications.
@@ -146,3 +155,15 @@ The scheduled installment report is documented in [Scheduled installment earning
 - [Editable website enrollment form](81-editable-public-enrollment-form.md): public landing intake, COO/Records draft/publish builder, versioned answers, assigned Agent→Manager workflow, privacy/retention and verified main-demo evidence.
 
 - [Payroll spreadsheet workflow v1](80-payroll-spreadsheet-workflow.md): blank template, fictional example, documented assumptions, preparation/review/payment flow and 18-scenario verification; client alignment remains separate.
+
+- [Operations monitoring queue](125-operations-monitor.md): F03 queue, scoped Moderator metadata, source links, audited follow-ups and configurable COO review deadline.
+- [126 — Workflow handoff notifications](126-workflow-handoff-notifications.md) — current-stage recipients, Finance-ready alerts, read state and local verification.
+
+- [GCash payment match suggestions — F09](131-gcash-payment-match-suggestions.md)
+- [F11/F12 withdrawal and replacement completion](132-withdrawal-replacement-verification.md): live continuation/restart, separate refunds and enrollment-link access fix.
+
+- [F17 signed agreement upload verification](133-f17-signed-agreement-verification.md): selected PDF/image flow, private Records review/history and pending approved template.
+
+- [F18 Excel payroll acceptance](134-f18-payroll-acceptance.md): retained workbook format, delivered artifact verification, calculation boundaries and manual Excel checklist.
+
+- [145 — COO portal remodel continuation](145-coo-portal-remodel.md): searchable People directories, earnings containment, Analysis, shared controls and route verification.
