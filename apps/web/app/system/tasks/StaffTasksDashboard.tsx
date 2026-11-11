@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
 import {
   Suspense,
   useCallback,
@@ -572,10 +573,11 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
           </div>
           <label className={styles.filter}>
             Status
-            <select
+            <WorkspaceSelect
+              aria-label="Status"
               value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
+              onValueChange={(value) => {
+                setStatus(value);
 
                 setPage(1);
               }}
@@ -590,7 +592,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
                   );
                 },
               )}
-            </select>
+            </WorkspaceSelect>
           </label>
         </div>
         {!tasks ? (

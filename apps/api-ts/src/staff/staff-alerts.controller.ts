@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Inject,
@@ -42,6 +43,29 @@ export class StaffAlertsController {
   ) {
     return this.alerts.list(user, query);
   }
+  @Post("inbox/:id/read")
+  @HttpCode(200)
+  @Requires("TASK_READ")
+  readInbox(@CurrentUser() user: User, @Param("id", ParseUUIDPipe) id: string) {
+    return this.alerts.readInbox(user, id);
+  }
+
+  @Delete("inbox/:id")
+  @Requires("TASK_READ")
+  deleteInbox(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.alerts.deleteInbox(user, id);
+  }
+
+  @Get("reviews/:id")
+  @Requires("PAYMENT_READ")
+  @RequiresAny("PAYMENT_RECORD")
+  review(@CurrentUser() user: User, @Param("id", ParseUUIDPipe) id: string) {
+    return this.alerts.review(user, id);
+  }
+
   @Get("results/:id")
   @Requires("PAYMENT_READ")
   @RequiresAny("PAYMENT_RECORD", "DOCUMENT_REVIEW")

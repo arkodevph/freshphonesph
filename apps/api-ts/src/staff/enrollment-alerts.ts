@@ -1,3 +1,4 @@
+import { paymentReviewReceiptVisibility } from "./payment-review-alerts";
 import { Prisma } from "../generated/prisma/client";
 import { utcTimestamp } from "./alert-queries";
 
@@ -60,7 +61,7 @@ export async function markEnrollmentAlertsRead(
 
 /** Apply the same enrollment visibility to the older generic notification API. */
 export function notificationVisibilitySql(userId: string) {
-  return Prisma.sql`n."recipientId" = ${userId}::uuid AND (
+  return Prisma.sql`n."recipientId" = ${userId}::uuid AND ${paymentReviewReceiptVisibility(userId)} AND (
     n."eventKey" NOT IN ('enrollment.submitted', 'enrollment.reviewed')
     OR EXISTS (SELECT 1 FROM (${enrollmentAlertRows(userId)}) a
       WHERE n."dedupeKey" = CASE a.kind WHEN 'ENROLLMENT_PENDING'

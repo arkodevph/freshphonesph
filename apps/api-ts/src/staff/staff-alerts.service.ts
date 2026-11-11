@@ -1,3 +1,11 @@
+import {
+  captureHandlerInbox,
+  handlerInboxPage,
+  isHandlerInbox,
+  readHandlerInbox,
+  deleteHandlerInbox,
+} from "./handler-inbox";
+import { staffAlertView, type AlertRow } from "./staff-alert-view";
 import { safeUser } from "../auth/auth.service";
 import { batchScope } from "../records/scope";
 import {
@@ -8,16 +16,11 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import type {
-  AccountAlertKind,
-  EnrollmentAlertKind,
   PaymentResultDetail,
-  PaymentResultKind,
-  StaffAlert,
+  PaymentReviewDetail,
   StaffAlertPage,
   StaffAlertReadInput,
   StaffAlertScope,
-  SupportAlertKind,
-  TaskAlertKind,
   User,
 } from "@freshphones/contracts";
 import { allowed } from "../auth/access";
@@ -34,65 +37,20 @@ import {
   taskStageSql,
   utcTimestamp,
 } from "./alert-queries";
+import {
+  canReadPaymentReviews,
+  paymentReviewAlertRows,
+  markPaymentReviewsRead,
+} from "./payment-review-alerts";
 import { canReadPaymentResults } from "./payment-results";
-import {
-  supportAlertIsVisible,
-  supportAlertRows,
-  supportAlertTitles,
-} from "./support-alerts";
-import {
-  accountAlertIsVisible,
-  accountAlertRows,
-  accountAlertTitles,
-} from "./account-alerts";
+import { supportAlertIsVisible, supportAlertRows } from "./support-alerts";
+import { accountAlertIsVisible, accountAlertRows } from "./account-alerts";
 import {
   enrollmentAlertRows,
-  enrollmentAlertTitles,
   markEnrollmentAlertsRead,
 } from "./enrollment-alerts";
 
-type AlertRow = {
-  id: string;
-  paymentId: string | null;
-  caseId: string | null;
-  accountId: string | null;
-  entity:
-    | "task"
-    | "payment"
-    | "payment-result"
-    | "support"
-    | "account"
-    | "enrollment";
-  kind:
-    | AccountAlertKind
-    | EnrollmentAlertKind
-    | TaskAlertKind
-    | PaymentResultKind
-    | SupportAlertKind
-    | "FINANCE_PENDING";
-  version: number;
-  amount: string | null;
-  clientName: string | null;
-  batchCode: string | null;
-  taskTitle: string | null;
-  deadline: Date | null;
-  readAt: Date | null;
-  occurredAt: Date;
-};
-
 const pageSize = 20;
-
-const titles: Record<TaskAlertKind, string> = {
-  TASK_ASSIGNED: "Task assigned to you",
-  TASK_DUE_SOON: "Task due within 24 hours",
-  TASK_OVERDUE: "Task overdue",
-};
-
-const resultTitles: Record<PaymentResultKind, string> = {
-  PAYMENT_VERIFIED: "Payment verified by Finance",
-  PAYMENT_REJECTED: "Payment rejected by Finance",
-  PAYMENT_CLARIFICATION: "Finance needs payment clarification",
-};
 
 @Injectable()
 export class StaffAlertsService {
@@ -117,6 +75,10 @@ export class StaffAlertsService {
       );
     }
 
+    if (scope === "reviews" && !canReadPaymentReviews(user)) {
+      throw new ForbiddenException("Handler payment review access required.");
+    }
+
     if (scope === "support" && !allowed(user, "SUPPORT_MANAGE")) {
       throw new ForbiddenException("Customer Service access required.");
     }
@@ -139,6 +101,22 @@ export class StaffAlertsService {
   ): Promise<StaffAlertPage> {
     this.access(user, query.scope);
 
+    if (isHandlerInbox(user.role)) {
+      return this.db.$transaction(async (tx) => {
+        const current = await tx.user.findUnique({ where: { id: user.id } });
+
+        if (!current?.active || !isHandlerInbox(current.role)) {
+          throw new ForbiddenException("Your access has changed.");
+        }
+
+        this.access(safeUser(current), query.scope);
+
+        await captureHandlerInbox(tx, current.id);
+
+        return handlerInboxPage(tx, current.id, query);
+      });
+    }
+
     const now = new Date();
 
     let source = taskAlertRows(user.id, now);
@@ -149,6 +127,10 @@ export class StaffAlertsService {
 
     if (canReadPaymentResults(user)) {
       source = Prisma.sql`${source} UNION ALL ${paymentResultRows(user.id)}`;
+    }
+
+    if (canReadPaymentReviews(user)) {
+      source = Prisma.sql`${source} UNION ALL ${paymentReviewAlertRows(user.id)}`;
     }
 
     if (allowed(user, "SUPPORT_MANAGE")) {
@@ -184,6 +166,7 @@ export class StaffAlertsService {
             tasks: bigint;
             finance: bigint;
             results: bigint;
+            reviews: bigint;
             support: bigint;
             accounts: bigint;
             enrollments: bigint;
@@ -192,7 +175,8 @@ export class StaffAlertsService {
         WITH alerts AS (${source}) SELECT COUNT(*) AS active, COUNT(*) FILTER (WHERE "readAt" IS NULL) AS unread,
           COUNT(*) FILTER (WHERE ${scope}) AS filtered, COUNT(*) FILTER (WHERE ${scope} AND "readAt" IS NULL) AS "filteredUnread",
           COUNT(*) FILTER (WHERE entity = 'task') AS tasks, COUNT(*) FILTER (WHERE entity = 'payment') AS finance,
-          COUNT(*) FILTER (WHERE entity = 'payment-result') AS results, COUNT(*) FILTER (WHERE entity = 'support') AS support,
+          COUNT(*) FILTER (WHERE entity = 'payment-result') AS results,
+          COUNT(*) FILTER (WHERE entity = 'payment-review') AS reviews, COUNT(*) FILTER (WHERE entity = 'support') AS support,
           COUNT(*) FILTER (WHERE entity = 'account') AS accounts,
           COUNT(*) FILTER (WHERE entity = 'enrollment') AS enrollments FROM alerts`,
       ],
@@ -202,92 +186,7 @@ export class StaffAlertsService {
     const count = counts[0];
 
     return {
-      items: rows.map((row): StaffAlert => {
-        const base = {
-          id: row.id,
-          readAt: row.readAt?.toISOString() ?? null,
-          occurredAt: row.occurredAt.toISOString(),
-        };
-
-        if (row.entity === "enrollment") {
-          const kind = row.kind as EnrollmentAlertKind;
-
-          return {
-            ...base,
-            entity: "enrollment",
-            kind,
-            version: row.version,
-            title: enrollmentAlertTitles[kind],
-            message: `${row.batchCode} · ${kind === "ENROLLMENT_PENDING" ? "A member enrollment needs your review." : "Open your enrollment request for the decision and review note."}`,
-            targetPath: `/system/enrollments?request=${row.id}`,
-          };
-        }
-
-        if (row.entity === "account") {
-          return {
-            ...base,
-            entity: "account",
-            kind: row.kind as AccountAlertKind,
-            accountId: row.accountId!,
-            version: row.version,
-            title: accountAlertTitles[row.kind as AccountAlertKind],
-            message: `${row.clientName} · ${row.taskTitle} · By ${row.batchCode}`,
-            targetPath: `/system/team?account=${row.accountId}`,
-          };
-        }
-
-        if (row.entity === "support") {
-          return {
-            ...base,
-            entity: "support",
-            kind: row.kind as SupportAlertKind,
-            caseId: row.caseId!,
-            version: row.version,
-            title: supportAlertTitles[row.kind as SupportAlertKind],
-            message: `Case #${row.caseId!.slice(0, 8)} · Open the current concern and conversation`,
-            targetPath: `/system/support?case=${row.caseId}`,
-          };
-        }
-
-        if (row.entity === "payment") {
-          return {
-            ...base,
-            entity: "payment",
-            kind: "FINANCE_PENDING",
-            version: row.version,
-            title: "Payment awaiting verification",
-            message: `PHP ${row.amount} · ${row.clientName} · ${row.batchCode}`,
-            targetPath: `/system/payments?payment=${row.id}`,
-          };
-        }
-
-        if (row.entity === "payment-result") {
-          return {
-            ...base,
-            entity: "payment-result",
-            kind: row.kind as PaymentResultKind,
-            paymentId: row.paymentId!,
-            version: row.version,
-            title: resultTitles[row.kind as PaymentResultKind],
-            message: `PHP ${row.amount} · ${row.clientName} · ${row.batchCode} · Open for Finance's decision and notes`,
-            targetPath: `/system/payments?payment=${row.paymentId}&result=${row.id}`,
-          };
-        }
-
-        const kind = row.kind as TaskAlertKind;
-
-        const deadline = row.deadline!.toISOString();
-
-        return {
-          ...base,
-          entity: "task",
-          kind,
-          deadline,
-          title: titles[kind],
-          message: `${row.taskTitle} · Due ${new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Manila" }).format(row.deadline!)} PHT`,
-          targetPath: `/system/tasks?task=${row.id}`,
-        };
-      }),
+      items: rows.map(staffAlertView),
       page: query.page,
       pageSize,
       total: Number(query.unreadOnly ? count.filteredUnread : count.filtered),
@@ -298,6 +197,7 @@ export class StaffAlertsService {
       taskCount: Number(count.tasks),
       financeCount: Number(count.finance),
       resultCount: Number(count.results),
+      reviewCount: Number(count.reviews),
       supportCount: Number(count.support),
       accountCount: Number(count.accounts),
       enrollmentCount: Number(count.enrollments),
@@ -323,7 +223,17 @@ export class StaffAlertsService {
 
       this.access(current, scope);
 
-      return run(tx, safeUser(current), new Date());
+      if (isHandlerInbox(current.role)) {
+        await captureHandlerInbox(tx, current.id);
+      }
+
+      const result = await run(tx, safeUser(current), new Date());
+
+      if (isHandlerInbox(current.role)) {
+        await captureHandlerInbox(tx, current.id);
+      }
+
+      return result;
     });
   }
   async read(user: User, id: string, input: StaffAlertReadInput) {
@@ -351,6 +261,37 @@ export class StaffAlertsService {
         }
 
         await markEnrollmentAlertsRead(tx, current.id, now, id);
+
+        await tx.changeEvent.create({
+          data: { entity: "staff-alert-read", recordId: current.id },
+        });
+
+        return { id, readAt: now.toISOString() };
+      });
+    }
+
+    if (input.entity === "payment-review") {
+      return this.write(user, "reviews", async (tx, current, now) => {
+        const [review] = await tx.$queryRaw<
+          { version: number; readAt: Date | null }[]
+        >`
+          SELECT version, "readAt" FROM (${paymentReviewAlertRows(current.id)}) visible WHERE id = ${id}::uuid`;
+
+        if (!review) {
+          throw new NotFoundException("Payment review alert not found.");
+        }
+
+        if (review.version !== input.version) {
+          throw new ConflictException(
+            "This review reference changed. Refresh the alerts and open it again.",
+          );
+        }
+
+        if (review.readAt) {
+          return { id, readAt: review.readAt.toISOString() };
+        }
+
+        await markPaymentReviewsRead(tx, current.id, now, id);
 
         await tx.changeEvent.create({
           data: { entity: "staff-alert-read", recordId: current.id },
@@ -528,6 +469,12 @@ export class StaffAlertsService {
             ).count
           : 0;
 
+      const reviews =
+        (scope === "all" || scope === "reviews") &&
+        canReadPaymentReviews(current)
+          ? await markPaymentReviewsRead(tx, current.id, now)
+          : 0;
+
       const support =
         (scope === "all" || scope === "support") &&
         allowed(current, "SUPPORT_MANAGE")
@@ -554,17 +501,111 @@ export class StaffAlertsService {
           ? await markEnrollmentAlertsRead(tx, current.id, now)
           : 0;
 
-      if (tasks + finance + results + support + accounts + enrollments) {
+      if (
+        tasks +
+        finance +
+        results +
+        reviews +
+        support +
+        accounts +
+        enrollments
+      ) {
         await tx.changeEvent.create({
           data: { entity: "staff-alert-read", recordId: user.id },
         });
       }
 
+      let historical = 0;
+
+      if (isHandlerInbox(current.role)) {
+        await captureHandlerInbox(tx, current.id, now);
+
+        historical = (
+          await readHandlerInbox(tx, current.id, now, undefined, scope)
+        ).updated;
+      }
+
       return {
-        updated: tasks + finance + results + support + accounts + enrollments,
+        updated:
+          historical +
+          tasks +
+          finance +
+          results +
+          reviews +
+          support +
+          accounts +
+          enrollments,
       };
     });
   }
+  async readInbox(user: User, id: string) {
+    return this.write(user, "all", async (tx, current, now) => {
+      if (!isHandlerInbox(current.role)) {
+        throw new ForbiddenException("Handler inbox access required.");
+      }
+
+      return readHandlerInbox(tx, current.id, now, id);
+    });
+  }
+
+  async deleteInbox(user: User, id: string) {
+    return this.write(user, "all", async (tx, current, now) => {
+      if (!isHandlerInbox(current.role)) {
+        throw new ForbiddenException("Handler inbox access required.");
+      }
+
+      return deleteHandlerInbox(tx, current.id, id, now);
+    });
+  }
+
+  async review(user: User, id: string): Promise<PaymentReviewDetail> {
+    this.access(user, "reviews");
+
+    return this.db.$transaction(
+      async (tx) => {
+        const [visible] = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM (${paymentReviewAlertRows(user.id)}) visible WHERE id = ${id}::uuid`;
+
+        if (!visible) {
+          throw new NotFoundException("Payment review alert not found.");
+        }
+
+        const review = await tx.paymentOperationalReview.findUniqueOrThrow({
+          where: { id },
+          include: {
+            reviewer: { select: { name: true } },
+            payment: {
+              select: {
+                id: true,
+                status: true,
+                version: true,
+                client: { select: { name: true } },
+                batch: { select: { code: true } },
+              },
+            },
+          },
+        });
+
+        return {
+          id: review.id,
+          paymentId: review.paymentId,
+          stage: review.stage as PaymentReviewDetail["stage"],
+          decision: review.decision as PaymentReviewDetail["decision"],
+          notes: review.notes,
+          reviewerName: review.reviewer.name,
+          occurredAt: review.createdAt.toISOString(),
+          paymentVersion: review.paymentVersion,
+          evidenceVersion: review.evidenceVersion,
+          clientName: review.payment.client.name,
+          batchCode: review.payment.batch.code,
+          currentStatus: review.payment.status,
+          currentVersion: review.payment.version,
+        };
+      },
+      { isolationLevel: "RepeatableRead" },
+    );
+  }
+
   async result(user: User, id: string): Promise<PaymentResultDetail> {
     this.access(user, "results");
 

@@ -7,9 +7,12 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import { CaretDown, Check } from "@phosphor-icons/react";
 import styles from "./Select.module.css";
+import { useHandlerDropdowns } from "./dropdown/HandlerDropdownScope";
+import { HandlerSelect } from "./dropdown/HandlerSelect";
 
 type Option = { value: string; label: string };
 
@@ -22,10 +25,21 @@ type Props = {
   disabled?: boolean;
   fitViewport?: boolean;
   animate?: boolean;
+  renderLabel?: (option: Option) => ReactNode;
 };
 
 /** Shared single-value dropdown with listbox keyboard navigation. */
-export default function Select({
+export default function Select(props: Props) {
+  const handler = useHandlerDropdowns();
+
+  if (handler) {
+    return <HandlerSelect {...props} />;
+  }
+
+  return <StandardSelect {...props} />;
+}
+
+function StandardSelect({
   id,
   labelId,
   value,
@@ -34,6 +48,7 @@ export default function Select({
   disabled = false,
   fitViewport = false,
   animate = false,
+  renderLabel,
 }: Props) {
   const listId = useId();
 
@@ -128,11 +143,24 @@ export default function Select({
 
   useEffect(() => {
     if (expanded) {
-      document
-        .getElementById(`${listId}-${active}`)
-        ?.scrollIntoView({ block: "nearest" });
+      const option = document.getElementById(`${listId}-${active}`);
+
+      const menu = option?.parentElement;
+
+      if (option && menu) {
+        const optionRect = option.getBoundingClientRect();
+
+        const menuRect = menu.getBoundingClientRect();
+
+        // Reveal the active option without scrolling the containing form/page.
+        if (optionRect.top < menuRect.top + 6) {
+          menu.scrollTop -= menuRect.top + 6 - optionRect.top;
+        } else if (optionRect.bottom > menuRect.bottom - 6) {
+          menu.scrollTop += optionRect.bottom - menuRect.bottom + 6;
+        }
+      }
     }
-  }, [active, expanded, listId]);
+  }, [active, expanded, listId, placement.height]);
 
   function choose(index: number) {
     const option = options[index];
@@ -250,7 +278,11 @@ export default function Select({
           setOpen(!expanded);
         }}
       >
-        <span>{options[selected]?.label ?? "Choose an option"}</span>
+        <span>
+          {options[selected]
+            ? (renderLabel?.(options[selected]) ?? options[selected].label)
+            : "Choose an option"}
+        </span>
         <CaretDown
           aria-hidden="true"
           weight="bold"
@@ -288,7 +320,7 @@ export default function Select({
                   choose(index);
                 }}
               >
-                <span>{option.label}</span>
+                <span>{renderLabel?.(option) ?? option.label}</span>
                 {option.value === value && (
                   <Check weight="bold" aria-hidden="true" />
                 )}

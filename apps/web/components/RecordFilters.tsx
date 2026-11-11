@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
 import { useId } from "react";
 import type { RecordFiltersValue } from "@/lib/record-filters";
 import { AssignmentFilters } from "./AssignmentFilters";
@@ -105,12 +106,12 @@ export function RecordFilters({
         {input("model", "Filter by unit / model", "e.g. iPhone 15")}
         <label className={styles.field} htmlFor={`${id}-status`}>
           <span id={`${id}-status-label`}>Filter by status</span>
-          <select
+          <WorkspaceSelect
             id={`${id}-status`}
             aria-labelledby={`${id}-status-label`}
             value={value.status}
-            onChange={(event) => {
-              return onChange("status", event.target.value);
+            onValueChange={(value) => {
+              return onChange("status", value);
             }}
           >
             <option value="">All statuses</option>
@@ -121,7 +122,7 @@ export function RecordFilters({
                 </option>
               );
             })}
-          </select>
+          </WorkspaceSelect>
         </label>
         {input("dateFrom", `${date} from`)}
         {input("dateTo", `${date} to`)}

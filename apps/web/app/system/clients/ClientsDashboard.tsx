@@ -1,6 +1,7 @@
 "use client";
 
 import { useClientsWorkspace } from "./useClientsWorkspace";
+import { isBatchHandler } from "@/lib/handler-workspace";
 import { can } from "@/lib/useMe";
 import { Users } from "@phosphor-icons/react";
 import {
@@ -21,6 +22,7 @@ export default function ClientsDashboard() {
     me,
     canRead,
     error,
+    listError,
     notice,
     canManage,
     filters,
@@ -76,6 +78,7 @@ export default function ClientsDashboard() {
 
       {(error || notice) && (
         <div
+          role={error ? "alert" : "status"}
           className={`mb-4 rounded-2xl px-4 py-2.5 text-sm font-600 ${
             error
               ? "bg-rose-100 text-rose-700"
@@ -141,11 +144,13 @@ export default function ClientsDashboard() {
         <p role="status" className="mb-3 text-sm text-ink-soft">
           {!focusedClient && filterError
             ? "Fix the date range to view clients."
-            : loading
-              ? "Loading clients…"
-              : total
-                ? `Showing ${focusedClient ? 1 : (page - 1) * 20 + 1}–${focusedClient ? total : Math.min(page * 20, total)} of ${total} clients`
-                : "0 clients"}
+            : isBatchHandler(me?.role) && listError
+              ? "Could not load member records."
+              : loading
+                ? "Loading clients…"
+                : total
+                  ? `Showing ${focusedClient ? 1 : (page - 1) * 20 + 1}–${focusedClient ? total : Math.min(page * 20, total)} of ${total} clients`
+                  : "0 clients"}
         </p>
       )}
 

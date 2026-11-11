@@ -71,13 +71,19 @@ export const duplicateKey = (
 export function PaymentLocationSync({
   onLocation,
 }: {
-  onLocation: (payment: string | null, status: string) => void;
+  onLocation: (
+    payment: string | null,
+    status: string,
+    missingProof: boolean,
+  ) => void;
 }) {
   const params = useSearchParams();
 
   const rawPayment = params.get("payment");
 
   const rawStatus = params.get("status");
+
+  const rawProof = params.get("proof");
 
   useEffect(() => {
     const payment =
@@ -94,8 +100,8 @@ export function PaymentLocationSync({
       ? rawStatus!
       : "";
 
-    onLocation(payment, status);
-  }, [rawPayment, rawStatus, onLocation]);
+    onLocation(payment, status, !payment && rawProof === "missing");
+  }, [rawPayment, rawStatus, rawProof, onLocation]);
 
   return null;
 }

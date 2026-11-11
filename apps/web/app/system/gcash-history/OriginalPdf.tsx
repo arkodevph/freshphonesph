@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
 import { useEffect, useRef, useState } from "react";
 import type {
   PDFDocumentLoadingTask,
@@ -254,11 +255,11 @@ export default function OriginalPdf({
             </button>
             <label>
               Page{" "}
-              <select
+              <WorkspaceSelect
                 aria-label="PDF page"
                 value={Math.min(page, pdf.numPages)}
-                onChange={(event) => {
-                  setPage(Number(event.target.value));
+                onValueChange={(value) => {
+                  setPage(Number(value));
                 }}
               >
                 {Array.from({ length: pdf.numPages }, (_, index) => {
@@ -268,7 +269,7 @@ export default function OriginalPdf({
                     </option>
                   );
                 })}
-              </select>{" "}
+              </WorkspaceSelect>{" "}
               of {pdf.numPages}
             </label>
             <button
@@ -281,17 +282,17 @@ export default function OriginalPdf({
             >
               →
             </button>
-            <select
+            <WorkspaceSelect
               aria-label="PDF zoom"
               value={zoom}
-              onChange={(event) => {
-                setZoom(Number(event.target.value));
+              onValueChange={(value) => {
+                setZoom(Number(value));
               }}
             >
               <option value={1}>Fit width</option>
               <option value={1.5}>150%</option>
               <option value={2}>200%</option>
-            </select>
+            </WorkspaceSelect>
           </div>
         )}
       </header>

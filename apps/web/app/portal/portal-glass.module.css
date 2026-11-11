@@ -1,5 +1,6 @@
 /* Material reference: archisvaze/liquid-glass (MIT). Original portal adaptation. */
-:global(html[data-system-theme]) .material[data-glass-portal] {
+/* Keep shared palette authoritative over dashboard layout styles in either route order. */
+:global(html[data-system-theme]) .material.material[data-glass-portal] {
   --portal-bg: #fff;
   --portal-surface: rgb(255 255 255 / 88%);
   --portal-surface-alt: rgb(30 55 80 / 4%);
@@ -19,7 +20,7 @@
   color-scheme: light;
   isolation: isolate;
 }
-:global(html[data-system-theme="dark"]) .material[data-glass-portal] {
+:global(html[data-system-theme="dark"]) .material.material[data-glass-portal] {
   --portal-bg: #000;
   background: #000;
   isolation: isolate;

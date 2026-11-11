@@ -1,6 +1,10 @@
 "use client";
 
 import type { Me } from "@/lib/api";
+import { isBatchHandler } from "@/lib/handler-workspace";
+import type { PaymentSortField } from "@freshphones/contracts";
+import type { HandlerTableSort } from "@/lib/handler-table";
+import HandlerPaymentTable from "./HandlerPaymentTable";
 import { downloadPaymentsExport, type Payment } from "@/lib/api";
 import { can } from "@/lib/useMe";
 import {
@@ -22,6 +26,8 @@ type Props = {
   focusedPayment: string | null;
   setFocusedPayment: Dispatch<SetStateAction<string | null>>;
   setFilter: Dispatch<SetStateAction<string>>;
+  proofFilter: boolean;
+  setProofFilter: Dispatch<SetStateAction<boolean>>;
   resetPaymentPage: () => void;
   paymentQuery: string;
   appliedPaymentQuery: string;
@@ -43,6 +49,10 @@ type Props = {
   };
   setError: Dispatch<SetStateAction<string | null>>;
   loading: boolean;
+  listError: string | null;
+  sort: HandlerTableSort<PaymentSortField>;
+  onSort: (key: PaymentSortField) => void;
+  onResetSort: () => void;
   paymentCount: number;
   payments: Payment[];
   setDetailsPayment: Dispatch<SetStateAction<Payment | null>>;
@@ -55,6 +65,7 @@ type Props = {
   ) => void;
   canRecord: boolean;
   edit: (payment: Payment) => void;
+  attachReceipt: (payment: Payment) => void;
   changePaymentPage: (next: number) => void;
   paymentPageSize: number;
   paymentHasNext: boolean;
@@ -65,6 +76,8 @@ export default function PaymentListPanel({
   focusedPayment,
   setFocusedPayment,
   setFilter,
+  proofFilter,
+  setProofFilter,
   resetPaymentPage,
   paymentQuery,
   appliedPaymentQuery,
@@ -81,6 +94,10 @@ export default function PaymentListPanel({
   paymentExportFilters,
   setError,
   loading,
+  listError,
+  sort,
+  onSort,
+  onResetSort,
   paymentCount,
   payments,
   setDetailsPayment,
@@ -90,12 +107,34 @@ export default function PaymentListPanel({
   openFinanceReview,
   canRecord,
   edit,
+  attachReceipt,
   changePaymentPage,
   paymentPageSize,
   paymentHasNext,
 }: Props) {
   return (
     <div className="glass rounded-3xl p-5">
+      {proofFilter && (
+        <div
+          className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-violet-100 px-4 py-2 text-sm text-violet-700"
+          role="status"
+        >
+          Showing recorded claims without receipt proof
+          <button
+            type="button"
+            className="min-h-11 font-700 underline"
+            onClick={() => {
+              setProofFilter(false);
+
+              resetPaymentPage();
+
+              window.history.replaceState(null, "", "/system/payments");
+            }}
+          >
+            Clear proof filter
+          </button>
+        </div>
+      )}
       {focusedPayment && (
         <div className="mb-4 flex items-center gap-3 rounded-xl bg-violet-100 px-4 py-2 text-sm text-violet-700">
           Viewing the linked payment{" "}
@@ -205,6 +244,8 @@ export default function PaymentListPanel({
 
                   setFilter(f.value);
 
+                  setProofFilter(false);
+
                   resetPaymentPage();
                 }}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-700 transition-colors ${
@@ -218,7 +259,7 @@ export default function PaymentListPanel({
             );
           })}
         </div>
-        {can(me, "REPORT_VIEW") && (
+        {can(me, "REPORT_VIEW") && !proofFilter && (
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => {
@@ -254,247 +295,283 @@ export default function PaymentListPanel({
         )}
       </div>
       <p className="mb-3 text-xs text-ink-soft">
-        {loading
-          ? "Loading matching payments…"
-          : `${paymentCount} matching payment${paymentCount === 1 ? "" : "s"}.`}
-        {
-          " CSV and XLSX exports use the same search, status, and date filters and omit client identity and payment references."
-        }
+        {isBatchHandler(me?.role) && listError
+          ? "Could not load matching payments."
+          : loading
+            ? "Loading matching payments…"
+            : `${paymentCount} matching payment${paymentCount === 1 ? "" : "s"}.`}
+        {!isBatchHandler(me?.role) &&
+          " CSV and XLSX exports use the same search, status, and date filters and omit client identity and payment references."}
       </p>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="text-xs uppercase tracking-wide text-ink-soft">
-            <tr className="border-b border-white/60">
-              <th className="px-2 py-2">#</th>
-              <th className="px-2 py-2">Client</th>
-              <th className="px-2 py-2">Credit / claim</th>
-              <th className="px-2 py-2">Method</th>
-              <th className="px-2 py-2">Ref</th>
-              <th className="px-2 py-2">Date</th>
-              <th className="px-2 py-2">Status</th>
-              <th className="px-2 py-2 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="px-2 py-6 text-center text-ink-soft">
-                  Loading…
-                </td>
+      {isBatchHandler(me?.role) && me ? (
+        <HandlerPaymentTable
+          payments={payments}
+          loading={loading}
+          error={listError}
+          me={me}
+          canRecord={canRecord}
+          focusedPayment={focusedPayment}
+          sort={sort}
+          onSort={onSort}
+          onResetSort={onResetSort}
+          onRetry={() => {
+            return void load();
+          }}
+          onDetails={setDetailsPayment}
+          onProof={viewProof}
+          onEdit={edit}
+          onAttachProof={attachReceipt}
+        />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="text-xs uppercase tracking-wide text-ink-soft">
+              <tr className="border-b border-white/60">
+                <th className="px-2 py-2">#</th>
+                <th className="px-2 py-2">Client</th>
+                <th className="px-2 py-2">Credit / claim</th>
+                <th className="px-2 py-2">Method</th>
+                <th className="px-2 py-2">Ref</th>
+                <th className="px-2 py-2">Date</th>
+                <th className="px-2 py-2">Status</th>
+                <th className="px-2 py-2 text-right">Actions</th>
               </tr>
-            ) : payments.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-2 py-6 text-center text-ink-soft">
-                  {focusedPayment
-                    ? "This payment is no longer available. Refresh or show all payments."
-                    : "No payments."}
-                </td>
-              </tr>
-            ) : (
-              payments.map((p) => {
-                return (
-                  <tr key={p.id} className="border-b border-white/40">
-                    <td className="px-2 py-2.5 font-600 text-blue-ink">
-                      {String(p.id).slice(0, 8)}
-                    </td>
-                    <td className="px-2 py-2.5">{p.client_name ?? p.client}</td>
-                    <td className="px-2 py-2.5 font-700 text-blue-ink">
-                      ₱{p.amount}
-                      {Boolean(p.adjustments?.length) && (
-                        <small className="block text-xs font-500">
-                          Adjusted · original ₱{p.original_amount}
-                        </small>
-                      )}
-                    </td>
-                    <td className="px-2 py-2.5 capitalize">{p.method}</td>
-                    <td className="px-2 py-2.5 text-ink-soft">
-                      {p.reference_no || "—"}
-                      {p.duplicate_reference && (
-                        <span
-                          className="ml-1 inline-flex items-center gap-1 text-amber-700"
-                          title="Possible duplicate for this client"
-                        >
-                          <WarningCircle weight="fill" /> Duplicate?
-                        </span>
-                      )}
-                      {(p.receipt_time ||
-                        p.receipt_name ||
-                        p.receipt_phone) && (
-                        <div className="mt-1 text-xs leading-5 text-ink-soft">
-                          {p.receipt_time && (
-                            <div>Receipt time: {p.receipt_time}</div>
-                          )}
-                          {p.receipt_name && (
-                            <div>Receipt name: {p.receipt_name}</div>
-                          )}
-                          {p.receipt_phone && (
-                            <div>Receipt number: {p.receipt_phone}</div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-2 py-2.5 text-ink-soft">
-                      {p.payment_date}
-                    </td>
-                    <td className="px-2 py-2.5">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-700 ${STATUS_STYLES[p.status]}`}
-                      >
-                        {p.status.replace("_", " ")}
-                      </span>
-                      {p.status === "pending" && (
-                        <span className="mt-1 block text-xs text-ink-soft">
-                          {!p.workflow?.recordsApproved
-                            ? "Awaiting Records"
-                            : !p.workflow.managerApproved
-                              ? "Awaiting Manager"
-                              : "Ready for Finance"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-2 py-2.5 text-right">
-                      <div className="inline-flex max-w-[410px] flex-wrap items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            return setDetailsPayment(p);
-                          }}
-                          className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
-                        >
-                          <Eye weight="bold" className="h-3.5 w-3.5" /> View
-                          details
-                        </button>
-                        {canVerify && p.status === "verified" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              return setAdjustmentPayment(p);
-                            }}
-                            className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700"
-                          >
-                            Adjust credit
-                          </button>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-2 py-6 text-center text-ink-soft"
+                  >
+                    Loading…
+                  </td>
+                </tr>
+              ) : payments.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-2 py-6 text-center text-ink-soft"
+                  >
+                    {focusedPayment
+                      ? "This payment is no longer available. Refresh or show all payments."
+                      : "No payments."}
+                  </td>
+                </tr>
+              ) : (
+                payments.map((p) => {
+                  return (
+                    <tr key={p.id} className="border-b border-white/40">
+                      <td className="px-2 py-2.5 font-600 text-blue-ink">
+                        {String(p.id).slice(0, 8)}
+                      </td>
+                      <td className="px-2 py-2.5">
+                        {p.client_name ?? p.client}
+                      </td>
+                      <td className="px-2 py-2.5 font-700 text-blue-ink">
+                        ₱{p.amount}
+                        {Boolean(p.adjustments?.length) && (
+                          <small className="block text-xs font-500">
+                            Adjusted · original ₱{p.original_amount}
+                          </small>
                         )}
-                        {p.proof_file && (
+                      </td>
+                      <td className="px-2 py-2.5 capitalize">{p.method}</td>
+                      <td className="px-2 py-2.5 text-ink-soft">
+                        {p.reference_no || "—"}
+                        {p.duplicate_reference && (
+                          <span
+                            className="ml-1 inline-flex items-center gap-1 text-amber-700"
+                            title="Possible duplicate for this client"
+                          >
+                            <WarningCircle weight="fill" /> Duplicate?
+                          </span>
+                        )}
+                        {(p.receipt_time ||
+                          p.receipt_name ||
+                          p.receipt_phone) && (
+                          <div className="mt-1 text-xs leading-5 text-ink-soft">
+                            {p.receipt_time && (
+                              <div>Receipt time: {p.receipt_time}</div>
+                            )}
+                            {p.receipt_name && (
+                              <div>Receipt name: {p.receipt_name}</div>
+                            )}
+                            {p.receipt_phone && (
+                              <div>Receipt number: {p.receipt_phone}</div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-2 py-2.5 text-ink-soft">
+                        {p.payment_date}
+                      </td>
+                      <td className="px-2 py-2.5">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-700 ${STATUS_STYLES[p.status]}`}
+                        >
+                          {p.status.replace("_", " ")}
+                        </span>
+                        {p.status === "pending" && (
+                          <span className="mt-1 block text-xs text-ink-soft">
+                            {!p.workflow?.recordsApproved
+                              ? "Awaiting Records"
+                              : !p.workflow.managerApproved
+                                ? "Awaiting Manager"
+                                : "Ready for Finance"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2.5 text-right">
+                        <div className="inline-flex max-w-[410px] flex-wrap items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => {
-                              return viewProof(p.id);
+                              return setDetailsPayment(p);
                             }}
                             className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
                           >
-                            <Paperclip weight="bold" className="h-3.5 w-3.5" />{" "}
-                            Proof
+                            <Eye weight="bold" className="h-3.5 w-3.5" /> View
+                            details
                           </button>
-                        )}
-                        {p.status === "pending" &&
-                        canVerify &&
-                        p.workflow?.managerApproved ? (
-                          <>
+                          {canVerify && p.status === "verified" && (
                             <button
                               type="button"
                               onClick={() => {
-                                return openFinanceReview(p);
+                                return setAdjustmentPayment(p);
                               }}
-                              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700 hover:bg-violet-200"
+                              className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700"
                             >
-                              <PencilSimple
-                                weight="bold"
-                                className="h-3.5 w-3.5"
-                              />{" "}
-                              Review note
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                return openFinanceReview(p, "verified");
-                              }}
-                              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-700 text-emerald-700 hover:bg-emerald-200"
-                            >
-                              <CheckCircle
-                                weight="fill"
-                                className="h-3.5 w-3.5"
-                              />{" "}
-                              Verify
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                return openFinanceReview(p, "rejected");
-                              }}
-                              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-rose-100 px-2.5 py-1 text-xs font-700 text-rose-700 hover:bg-rose-200"
-                            >
-                              <XCircle weight="fill" className="h-3.5 w-3.5" />{" "}
-                              Reject
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                return openFinanceReview(
-                                  p,
-                                  "needs_clarification",
-                                );
-                              }}
-                              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700 hover:bg-violet-200"
-                            >
-                              <WarningCircle
-                                weight="fill"
-                                className="h-3.5 w-3.5"
-                              />{" "}
-                              Clarify
-                            </button>
-                          </>
-                        ) : (
-                          !p.proof_file && (
-                            <span className="text-xs text-ink-soft">—</span>
-                          )
-                        )}
-                        {p.status === "pending" &&
-                          p.recorded_by !== me?.id &&
-                          (reviewStage === "RECORDS" ||
-                            (reviewStage === "MANAGER" &&
-                              p.workflow?.recordsApproved &&
-                              p.workflow.managerId === me?.id)) && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                openFinanceReview(p);
-                              }}
-                              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700 hover:bg-violet-200"
-                            >
-                              {reviewStage === "RECORDS"
-                                ? "Review completeness"
-                                : "Cross-check"}
+                              Adjust credit
                             </button>
                           )}
-                        {canRecord &&
-                          ["pending", "needs_clarification"].includes(
-                            p.status,
-                          ) && (
+                          {p.proof_file && (
                             <button
                               type="button"
                               onClick={() => {
-                                return edit(p);
+                                return viewProof(p.id);
                               }}
                               className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
                             >
-                              <PencilSimple
+                              <Paperclip
                                 weight="bold"
                                 className="h-3.5 w-3.5"
                               />{" "}
-                              Edit
+                              Proof
                             </button>
                           )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                          {p.status === "pending" &&
+                          canVerify &&
+                          p.workflow?.managerApproved ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  return openFinanceReview(p);
+                                }}
+                                className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700 hover:bg-violet-200"
+                              >
+                                <PencilSimple
+                                  weight="bold"
+                                  className="h-3.5 w-3.5"
+                                />{" "}
+                                Review note
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  return openFinanceReview(p, "verified");
+                                }}
+                                className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-700 text-emerald-700 hover:bg-emerald-200"
+                              >
+                                <CheckCircle
+                                  weight="fill"
+                                  className="h-3.5 w-3.5"
+                                />{" "}
+                                Verify
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  return openFinanceReview(p, "rejected");
+                                }}
+                                className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-rose-100 px-2.5 py-1 text-xs font-700 text-rose-700 hover:bg-rose-200"
+                              >
+                                <XCircle
+                                  weight="fill"
+                                  className="h-3.5 w-3.5"
+                                />{" "}
+                                Reject
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  return openFinanceReview(
+                                    p,
+                                    "needs_clarification",
+                                  );
+                                }}
+                                className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700 hover:bg-violet-200"
+                              >
+                                <WarningCircle
+                                  weight="fill"
+                                  className="h-3.5 w-3.5"
+                                />{" "}
+                                Clarify
+                              </button>
+                            </>
+                          ) : (
+                            !p.proof_file && (
+                              <span className="text-xs text-ink-soft">—</span>
+                            )
+                          )}
+                          {p.status === "pending" &&
+                            p.recorded_by !== me?.id &&
+                            (reviewStage === "RECORDS" ||
+                              (reviewStage === "MANAGER" &&
+                                p.workflow?.recordsApproved &&
+                                p.workflow.managerId === me?.id)) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  openFinanceReview(p);
+                                }}
+                                className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700 hover:bg-violet-200"
+                              >
+                                {reviewStage === "RECORDS"
+                                  ? "Review completeness"
+                                  : "Cross-check"}
+                              </button>
+                            )}
+                          {canRecord &&
+                            ["pending", "needs_clarification"].includes(
+                              p.status,
+                            ) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  return edit(p);
+                                }}
+                                className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-white/70 px-2.5 py-1 text-xs font-700 text-blue hover:bg-white"
+                              >
+                                <PencilSimple
+                                  weight="bold"
+                                  className="h-3.5 w-3.5"
+                                />{" "}
+                                Edit
+                              </button>
+                            )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
       <nav
         className="mt-4 flex items-center justify-between gap-3"
         aria-label="Payment pages"

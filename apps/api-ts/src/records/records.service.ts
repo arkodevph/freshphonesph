@@ -36,6 +36,9 @@ import { batchScope, clientScope, staffScope } from "./scope";
 import { notifyAccount } from "../staff/account-alerts";
 import { verifiedTotals } from "../finance/ledger";
 import { allocateBatchNumber } from "./batch-numbering";
+import { batchListOrder } from "./batch-list-order";
+import type { BatchSortField, ClientSortField } from "@freshphones/contracts";
+import { clientListOrder } from "./client-list-order";
 import { BATCH_REAL_MEMBER_CAPACITY } from "@freshphones/contracts";
 import {
   countBatchMembers,
@@ -83,7 +86,7 @@ const accountSelect = {
   createdAt: true,
 } as const;
 
-type Query = {
+type Query<Sort extends string = BatchSortField> = {
   page: number;
   q: string;
   status?: string;
@@ -94,6 +97,8 @@ type Query = {
   model?: string;
   dateFrom?: string;
   dateTo?: string;
+  sortBy?: Sort;
+  sortDirection?: "asc" | "desc";
 };
 
 type AccountQuery = {
@@ -226,7 +231,7 @@ export class RecordsService {
         this.db.batch.findMany({
           where,
           include: batchInclude,
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          orderBy: batchListOrder(query),
           skip: (query.page - 1) * pageSize,
           take: pageSize,
         }),
@@ -733,7 +738,7 @@ export class RecordsService {
       return batchJson(after);
     });
   }
-  async clients(user: User, query: Query) {
+  async clients(user: User, query: Query<ClientSortField>) {
     const where: Prisma.ClientWhereInput = {
       retentionErasedAt: null,
       AND: [
@@ -798,7 +803,7 @@ export class RecordsService {
         this.db.client.findMany({
           where,
           include: clientInclude,
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          orderBy: clientListOrder(query),
           skip: (query.page - 1) * pageSize,
           take: pageSize,
         }),

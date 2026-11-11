@@ -395,3 +395,38 @@
     display: none;
   }
 }
+
+/* Preserve complete financial values inside the shared document sheet. */
+.paymentTable {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.sheet :is(th, td)[data-numeric] {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sheet dd {
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 600px) {
+  .sheet {
+    overflow-x: visible;
+  }
+}
+@media print {
+  .paymentTable {
+    overflow: visible;
+  }
+  .sheet table {
+    min-width: 0;
+    table-layout: fixed;
+    font-size: 10px;
+  }
+  .sheet :is(th, td) {
+    overflow-wrap: anywhere;
+  }
+  .sheet :is(th, td)[data-numeric] {
+    width: 19%;
+  }
+}

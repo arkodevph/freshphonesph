@@ -9,8 +9,18 @@ import {
 test("every business role has a matching workspace policy, including direct URL denial", () => {
   const expected: Partial<Record<Role, string[]>> = {
     CEO: ["/system/reports"],
-    HR_PAYROLL: ["/system/personnel", "/system/tasks", "/system/recruitment"],
-    KPI_OFFICER: ["/system/personnel", "/system/tasks", "/system/reports"],
+    HR_PAYROLL: [
+      "/system/personnel",
+      "/system/tasks",
+      "/system/recruitment",
+      "/system/notifications",
+    ],
+    KPI_OFFICER: [
+      "/system/personnel",
+      "/system/tasks",
+      "/system/reports",
+      "/system/notifications",
+    ],
     AGENT: [
       "/system/agent-network",
       "/system/enrollments",
@@ -56,6 +66,12 @@ test("every business role has a matching workspace policy, including direct URL 
   };
 
   for (const [role, pages] of Object.entries(expected)) {
+    if (role !== "CEO" && !pages.includes("/system/notifications")) {
+      pages.push("/system/notifications");
+    }
+  }
+
+  for (const [role, pages] of Object.entries(expected)) {
     const grants = effectivePermissions({ role: role as Role });
 
     assert.equal(canOpenWorkspace(role.toLowerCase(), "/system", grants), true);
@@ -74,6 +90,13 @@ test("every business role has a matching workspace policy, including direct URL 
   assert.equal(canOpenWorkspace("coo", "/system/retention"), false);
 
   assert.equal(canOpenWorkspace("customer", "/system/payments"), false);
+
+  assert.equal(canOpenWorkspace("customer", "/system/notifications"), false);
+
+  assert.equal(
+    canOpenWorkspace("batch_handler", "/system/notifications", []),
+    false,
+  );
 });
 
 test("an explicit HR grant enables only the corresponding private workspace", () => {

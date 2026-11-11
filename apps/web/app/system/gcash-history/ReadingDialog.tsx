@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { GcashHistory, GcashSubmission } from "@freshphones/contracts";
@@ -231,19 +232,19 @@ export function ReadingDialog({
             </div>
             <label>
               Reading version
-              <select
+              <WorkspaceSelect
                 aria-label="Reading version"
                 disabled={work.edit !== null || work.saving}
                 value={work.source}
-                onChange={(event) => {
-                  work.setSource(event.target.value as "current" | "original");
+                onValueChange={(value) => {
+                  work.setSource(value as "current" | "original");
 
                   work.setPage(1);
                 }}
               >
                 <option value="current">Current interpretation</option>
                 <option value="original">Original extraction</option>
-              </select>
+              </WorkspaceSelect>
             </label>
           </header>
           <div className={styles.transactionBody}>

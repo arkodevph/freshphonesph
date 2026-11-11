@@ -59,13 +59,15 @@ export function alertScopeSql(scope: StaffAlertScope) {
       ? Prisma.sql`entity = 'payment'`
       : scope === "results"
         ? Prisma.sql`entity = 'payment-result'`
-        : scope === "support"
-          ? Prisma.sql`entity = 'support'`
-          : scope === "accounts"
-            ? Prisma.sql`entity = 'account'`
-            : scope === "enrollments"
-              ? Prisma.sql`entity = 'enrollment'`
-              : Prisma.sql`TRUE`;
+        : scope === "reviews"
+          ? Prisma.sql`entity = 'payment-review'`
+          : scope === "support"
+            ? Prisma.sql`entity = 'support'`
+            : scope === "accounts"
+              ? Prisma.sql`entity = 'account'`
+              : scope === "enrollments"
+                ? Prisma.sql`entity = 'enrollment'`
+                : Prisma.sql`TRUE`;
 }
 
 export function paymentResultRows(userId: string) {

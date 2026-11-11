@@ -933,6 +933,16 @@ export class RetentionService {
       where: { id: { in: m.staffNotificationIds } },
     });
 
+    await tx.staffInboxNotification.deleteMany({
+      where: {
+        OR: [
+          { paymentId: { in: m.paymentIds } },
+          { taskId: { in: m.taskIds } },
+          { recipientId: { in: m.userIds } },
+        ],
+      },
+    });
+
     await tx.paymentResultAlert.deleteMany({
       where: {
         OR: [

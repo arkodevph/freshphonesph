@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
 import { useEffect, useState } from "react";
 import type {
   GcashHistory,
@@ -99,12 +100,13 @@ export default function GcashHistoryPage() {
             className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3"
           >
             <Field label="Batch">
-              <select
+              <WorkspaceSelect
+                aria-label="Batch"
                 required
                 disabled={Boolean(work.correcting)}
                 value={work.draft.batchId}
-                onChange={(event) => {
-                  work.setDraft({ ...work.draft, batchId: event.target.value });
+                onValueChange={(value) => {
+                  work.setDraft({ ...work.draft, batchId: value });
                 }}
                 className={inputCls}
               >
@@ -124,7 +126,7 @@ export default function GcashHistoryPage() {
                     </option>
                   );
                 })}
-              </select>
+              </WorkspaceSelect>
             </Field>
             <Field label="History from">
               <input
@@ -238,11 +240,11 @@ export default function GcashHistoryPage() {
             />
           </Field>
           <Field label="Review status">
-            <select
+            <WorkspaceSelect
               aria-label="Review status"
               value={work.status}
-              onChange={(event) => {
-                work.setStatus(event.target.value as GcashHistoryStatus | "");
+              onValueChange={(value) => {
+                work.setStatus(value as GcashHistoryStatus | "");
 
                 work.setPage(1);
               }}
@@ -252,22 +254,22 @@ export default function GcashHistoryPage() {
               <option value="SUBMITTED">Awaiting Records review</option>
               <option value="NEEDS_CLARIFICATION">Needs clarification</option>
               <option value="REVIEWED">Reviewed</option>
-            </select>
+            </WorkspaceSelect>
           </Field>
           <Field label="Queue view">
-            <select
+            <WorkspaceSelect
               aria-label="Queue view"
               className={inputCls}
               value={work.archived}
-              onChange={(event) => {
-                work.setArchived(event.target.value as "active" | "archived");
+              onValueChange={(value) => {
+                work.setArchived(value as "active" | "archived");
 
                 work.setPage(1);
               }}
             >
               <option value="active">Active submissions</option>
               <option value="archived">Archived submissions</option>
-            </select>
+            </WorkspaceSelect>
           </Field>
           <button
             type="button"

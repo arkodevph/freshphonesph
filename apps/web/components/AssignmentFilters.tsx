@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { getAssignmentOptions, type AssignmentOptions } from "@/lib/api";
 import { useLiveRecords } from "@/lib/useLiveRecords";
@@ -76,12 +77,12 @@ export function AssignmentFilters({
               className="grid gap-1 text-sm text-blue-ink"
             >
               <span id={`${labelId}-${key}-label`}>{label}</span>
-              <select
+              <WorkspaceSelect
                 id={`${labelId}-${key}`}
                 aria-labelledby={`${labelId}-${key}-label`}
                 value={selected}
-                onChange={(event) => {
-                  return onChange(key, event.target.value);
+                onValueChange={(value) => {
+                  return onChange(key, value);
                 }}
                 className="w-full rounded-2xl border border-white/70 bg-white/70 px-3 py-2 text-sm text-ink focus:border-blue"
               >
@@ -104,7 +105,7 @@ export function AssignmentFilters({
                     </option>
                   );
                 })}
-              </select>
+              </WorkspaceSelect>
             </label>
           );
         })}

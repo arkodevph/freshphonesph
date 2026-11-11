@@ -11,6 +11,7 @@ type Props = {
   setDetailsPayment: Dispatch<SetStateAction<Payment | null>>;
   detailsPayment: Payment | null;
   viewProof: (id: string | number) => Promise<void>;
+  onAttachProof?: (payment: Payment) => void;
 };
 
 export default function PaymentDetailsDialog({
@@ -18,6 +19,7 @@ export default function PaymentDetailsDialog({
   setDetailsPayment,
   detailsPayment,
   viewProof,
+  onAttachProof,
 }: Props) {
   return (
     <dialog
@@ -51,6 +53,33 @@ export default function PaymentDetailsDialog({
             </button>
           </header>
           <div className="payment-details-body">
+            {onAttachProof && (
+              <section aria-label="Receipt proof">
+                <h3>Receipt proof</h3>
+                <p>
+                  {detailsPayment.proof_file
+                    ? "Receipt attached."
+                    : "Receipt not attached."}
+                </p>
+                {!detailsPayment.proof_file &&
+                  ["pending", "needs_clarification"].includes(
+                    detailsPayment.status,
+                  ) && (
+                    <>
+                      <p>Attach proof before approval can continue.</p>
+                      <button
+                        type="button"
+                        data-payment-proof-trigger={String(detailsPayment.id)}
+                        onClick={() => {
+                          onAttachProof(detailsPayment);
+                        }}
+                      >
+                        Attach proof
+                      </button>
+                    </>
+                  )}
+              </section>
+            )}
             {detailsPayment.workflow && (
               <section aria-label="Operational review history">
                 <h3>Operational review history</h3>

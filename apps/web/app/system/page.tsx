@@ -20,6 +20,8 @@ import CustomerWorkQueues from "./CustomerWorkQueues";
 import DashboardCards from "./DashboardCards";
 import PaymentsCta from "./PaymentsCta";
 import CeoDashboard from "./CeoDashboard";
+import HandlerHome from "./handler/HandlerHome";
+import { isBatchHandler } from "@/lib/handler-workspace";
 
 const SHORTCUTS = [
   {
@@ -74,6 +76,10 @@ export default function DashboardPage() {
 
   if (me.role === "ceo") {
     return <CeoDashboard key={me.id} name={me.full_name} />;
+  }
+
+  if (isBatchHandler(me.role)) {
+    return <HandlerHome key={me.id} name={me.full_name} />;
   }
 
   return (

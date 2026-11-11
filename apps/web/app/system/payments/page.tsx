@@ -1,5 +1,10 @@
 "use client";
 
+import { isBatchHandler } from "@/lib/handler-workspace";
+import {
+  HandlerReceiptDialogs,
+  PaymentReceiptNotice,
+} from "./HandlerReceiptDialogs";
 import { usePaymentsWorkspace } from "./usePaymentsWorkspace";
 import {
   CheckCircle,
@@ -9,6 +14,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { Suspense } from "react";
+import { PaymentReviewDetails } from "@/components/PaymentReviewDetails";
 import { PaymentResultDetails } from "@/components/PaymentResultDetails";
 import { ClientPicker } from "./ClientPicker";
 import FinanceReviewDialog from "./FinanceReviewDialog";
@@ -27,6 +33,7 @@ export default function PaymentsPage() {
     paymentDetailsDialogProps,
     paymentListPanelProps,
     me,
+    receiptFlow,
     canRead,
     openLocation,
     canRecord,
@@ -70,6 +77,7 @@ export default function PaymentsPage() {
       </Suspense>
       <Suspense fallback={null}>
         <PaymentResultDetails enabled={canRead && canRecord} />
+        <PaymentReviewDetails enabled={canRead && isBatchHandler(me?.role)} />
       </Suspense>
       {canVerify && adjustmentPayment && (
         <PaymentAdjustmentDialog
@@ -151,6 +159,8 @@ export default function PaymentsPage() {
         </div>
       )}
 
+      <HandlerReceiptDialogs flow={receiptFlow} />
+      {isBatchHandler(me?.role) && <PaymentReceiptNotice flow={receiptFlow} />}
       <div className="mb-4 grid gap-4 lg:grid-cols-3">
         {/* Record form */}
         {canRecord && <RecordPaymentForm {...recordPaymentFormProps} />}
@@ -209,8 +219,9 @@ export default function PaymentsPage() {
       <PaymentListPanel {...paymentListPanelProps} />
 
       <p className="mt-3 text-center text-xs text-ink-soft">
-        Verify is Finance-only — a non-Finance account gets a 403 (enforced
-        server-side).
+        {isBatchHandler(me?.role)
+          ? "Finance verification updates the customer's balance. Recorded claims await review."
+          : "Verify is Finance-only — a non-Finance account gets a 403 (enforced server-side)."}
       </p>
     </>
   );

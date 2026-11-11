@@ -148,6 +148,7 @@ model User {
   legalAcknowledgements LegalAcknowledgement[]
   requirementReviews RequirementReview[] @relation("RequirementReviewer")
   staffNotifications StaffNotification[] @relation("NotificationRecipient")
+  inboxNotifications StaffInboxNotification[]
   reviewedApplicants Applicant[] @relation("ApplicantReviewer")
   reportSnapshots ReportSnapshot[]
   reportAnalyses ReportAnalysis[]
@@ -529,6 +530,7 @@ model ScheduleItem {
   @@unique([clientId, sequenceNo])
 }
 model Payment {
+  inboxNotifications StaffInboxNotification[]
   evidenceVersion Int @default(1)
   operationalReviews PaymentOperationalReview[]
   id String @id @default(uuid()) @db.Uuid
@@ -639,6 +641,7 @@ model StoredFile {
   @@index([createdAt])
 }
 model Task {
+  inboxNotifications StaffInboxNotification[]
   attachments TaskAttachment[]
   id String @id @default(uuid()) @db.Uuid
   title String @db.VarChar(200)
@@ -1434,4 +1437,27 @@ model PaymentOperationalReview {
   batchVersion Int
   createdAt DateTime @default(now())
   @@unique([paymentId, paymentVersion, stage])
+}
+
+model StaffInboxNotification {
+  id String @id @default(uuid()) @db.Uuid
+  recipientId String @db.Uuid
+  recipient User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  sourceKey String @db.VarChar(240)
+  entity String @db.VarChar(30)
+  sourceId String @db.Uuid
+  kind String @db.VarChar(60)
+  payload Json
+  taskId String? @db.Uuid
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  paymentId String? @db.Uuid
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  occurredAt DateTime
+  readAt DateTime?
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([recipientId, sourceKey])
+  @@index([recipientId, deletedAt, occurredAt, id])
+  @@index([taskId])
+  @@index([paymentId])
 }

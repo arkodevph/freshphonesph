@@ -1,5 +1,9 @@
 "use client";
 
+import HandlerClientTable from "./HandlerClientTable";
+import { isBatchHandler } from "@/lib/handler-workspace";
+import type { ClientSortField } from "@freshphones/contracts";
+import type { HandlerTableSort } from "@/lib/handler-table";
 import { DocumentChecklist } from "@/components/DocumentChecklist";
 import type { Me } from "@/lib/api";
 import { type ClientRecord, type RecordId, type ScheduleItem } from "@/lib/api";
@@ -11,6 +15,12 @@ import { inputCls } from "@/components/FormField";
 
 type Props = {
   loading: boolean;
+  error: string | null;
+  sort: HandlerTableSort<ClientSortField>;
+  onSort: (key: ClientSortField) => void;
+  onResetSort: () => void;
+  onRetry: () => void;
+  scheduleLoading: boolean;
   clients: ClientRecord[];
   me: Me | null;
   canManage: boolean;
@@ -46,6 +56,12 @@ type Props = {
 
 export default function ClientRecordsTable({
   loading,
+  error,
+  sort,
+  onSort,
+  onResetSort,
+  onRetry,
+  scheduleLoading,
   clients,
   me,
   canManage,
@@ -62,6 +78,23 @@ export default function ClientRecordsTable({
   saveRelease,
   saving,
 }: Props) {
+  if (isBatchHandler(me?.role) && me) {
+    return (
+      <HandlerClientTable
+        key={String(me.id)}
+        clients={clients}
+        loading={loading}
+        error={error}
+        userId={String(me.id)}
+        sort={sort}
+        onSort={onSort}
+        onResetSort={onResetSort}
+        onRetry={onRetry}
+        onRequirements={can(me, "DOCUMENT_READ") ? setManagedClient : undefined}
+      />
+    );
+  }
+
   return (
     <div className="glass overflow-x-auto rounded-3xl p-5">
       <table className="w-full min-w-[800px] text-left text-sm">

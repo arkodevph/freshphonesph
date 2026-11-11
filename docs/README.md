@@ -37,6 +37,11 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 
 ## Documents
 
+For a quick summary and full current scope of the Batch Handler role, use
+[Batch Handler — role and portal access](batch-handler-role-and-access.md).
+For the audited gaps, proposed home priorities and pending implementation phases,
+use [Batch Handler — findings and remaining-work plan](batch-handler-remaining-work-plan.md).
+
 Start with the [2026-10-27 client feature implementation backlog](62-client-feature-implementation-backlog.md)
 for the latest role, receipt-review, membership and reporting clarifications.
 It overrides conflicting assumptions in documents 58–61 and records deployment

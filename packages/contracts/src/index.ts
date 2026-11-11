@@ -707,20 +707,38 @@ const recordDateError = {
   message: "End date must be on or after the start date.",
 };
 
+export const batchSortFields = [
+  "createdAt",
+  "code",
+  "model",
+  "contractPrice",
+  "installmentCount",
+] as const;
+
+export type BatchSortField = (typeof batchSortFields)[number];
+
 export const batchListQuerySchema = listQuerySchema
   .omit({ batchId: true })
   .extend({
     ...recordFilterFields,
     status: z.enum(["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"]).optional(),
+    sortBy: z.enum(batchSortFields).optional(),
+    sortDirection: z.enum(["asc", "desc"]).optional(),
   })
   .strict()
   .refine(orderedRecordDates, recordDateError);
+
+export const clientSortFields = ["createdAt", "name", "batchCode"] as const;
+
+export type ClientSortField = (typeof clientSortFields)[number];
 
 export const clientListQuerySchema = listQuerySchema
   .extend({
     ...recordFilterFields,
     id: z.string().uuid().optional(),
     status: z.enum(["ACTIVE", "ON_HOLD", "COMPLETED"]).optional(),
+    sortBy: z.enum(clientSortFields).optional(),
+    sortDirection: z.enum(["asc", "desc"]).optional(),
   })
   .strict()
   .refine(orderedRecordDates, recordDateError);
@@ -847,10 +865,21 @@ export interface PaymentAdjustment {
   actor?: { id: string; name: string };
 }
 
+export const paymentSortFields = [
+  "createdAt",
+  "clientName",
+  "paymentDate",
+] as const;
+
+export type PaymentSortField = (typeof paymentSortFields)[number];
+
 export const paymentListQuerySchema = listQuerySchema
   .extend({
     id: z.string().uuid().optional(),
     clientId: z.string().uuid().optional(),
+    proof: z.enum(["missing"]).optional(),
+    sortBy: z.enum(paymentSortFields).optional(),
+    sortDirection: z.enum(["asc", "desc"]).optional(),
     dateFrom: z.string().date().optional(),
     dateTo: z.string().date().optional(),
   })
@@ -1325,6 +1354,15 @@ export const paymentResultKinds = [
 
 export type PaymentResultKind = (typeof paymentResultKinds)[number];
 
+export const paymentReviewKinds = [
+  "RECORDS_APPROVED",
+  "RECORDS_RETURNED",
+  "MANAGER_APPROVED",
+  "MANAGER_RETURNED",
+] as const;
+
+export type PaymentReviewKind = (typeof paymentReviewKinds)[number];
+
 export const supportAlertKinds = [
   "SUPPORT_NEW_CASE",
   "SUPPORT_ASSIGNED",
@@ -1355,6 +1393,7 @@ export const staffAlertScopeSchema = z.enum([
   "tasks",
   "finance",
   "results",
+  "reviews",
   "support",
   "accounts",
   "enrollments",
@@ -1381,6 +1420,12 @@ export const staffAlertReadSchema = z.discriminatedUnion("entity", [
     })
     .strict(),
   z.object({ entity: z.literal("payment-result") }).strict(),
+  z
+    .object({
+      entity: z.literal("payment-review"),
+      version: z.number().int().positive(),
+    })
+    .strict(),
   z.object({ entity: z.literal("support") }).strict(),
   z.object({ entity: z.literal("account") }).strict(),
   z
@@ -1398,6 +1443,8 @@ export const staffAlertReadAllSchema = z
   .strict();
 
 type StaffAlertBase = {
+  inboxId?: string;
+  unavailable?: boolean;
   id: string;
   title: string;
   message: string;
@@ -1410,6 +1457,12 @@ export type StaffAlert = StaffAlertBase &
   (
     | { entity: "payment"; kind: "FINANCE_PENDING"; version: number }
     | { entity: "task"; kind: TaskAlertKind; deadline: string }
+    | {
+        entity: "payment-review";
+        kind: PaymentReviewKind;
+        paymentId: string;
+        version: number;
+      }
     | {
         entity: "payment-result";
         kind: PaymentResultKind;
@@ -1443,9 +1496,26 @@ export interface StaffAlertPage extends Page<StaffAlert> {
   taskCount: number;
   financeCount: number;
   resultCount: number;
+  reviewCount: number;
   supportCount: number;
   accountCount: number;
   enrollmentCount: number;
+}
+
+export interface PaymentReviewDetail {
+  id: string;
+  paymentId: string;
+  stage: "RECORDS" | "MANAGER";
+  decision: "APPROVED" | "RETURNED";
+  notes: string;
+  reviewerName: string;
+  occurredAt: string;
+  paymentVersion: number;
+  evidenceVersion: number;
+  clientName: string;
+  batchCode: string;
+  currentStatus: PaymentStatus;
+  currentVersion: number;
 }
 
 export interface PaymentResultDetail {

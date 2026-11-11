@@ -227,6 +227,50 @@ after(async () => {
   await app?.close();
 });
 
+test("Handler can record without proof as a pending claim without changing credit", async () => {
+  const beforeResponse = await request(
+    "BATCH_HANDLER",
+    `/clients/${clientId}/balance`,
+  );
+
+  assert.equal(beforeResponse.status, 200);
+
+  const beforeBalance = await beforeResponse.json();
+
+  const response = await request("BATCH_HANDLER", "/payments", {
+    clientId,
+    amount: "15.00",
+    method: "GCash",
+    paymentDate: "2049-03-01",
+    referenceNumber: `without-proof-${suffix}`,
+  });
+
+  assert.equal(response.status, 201);
+
+  const recorded = await row((await response.json()).id);
+
+  assert.equal(recorded.status, "PENDING");
+
+  assert.equal(recorded.proofFileId, null);
+
+  assert.equal(recorded.recordedById, sessions.get("BATCH_HANDLER")!.id);
+
+  const afterResponse = await request(
+    "BATCH_HANDLER",
+    `/clients/${clientId}/balance`,
+  );
+
+  assert.equal(afterResponse.status, 200);
+
+  const afterBalance = await afterResponse.json();
+
+  assert.equal(afterBalance.verifiedPaid, beforeBalance.verifiedPaid);
+
+  assert.equal(afterBalance.remainingBalance, beforeBalance.remainingBalance);
+
+  assert.equal((await review(recorded.id, "RECORDS", "RECORDS")).status, 409);
+});
+
 test("Finance cannot skip either approval for any decision; only verification changes credit", async () => {
   const p = await payment();
 
