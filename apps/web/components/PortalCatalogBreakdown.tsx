@@ -1,5 +1,6 @@
 "use client";
 
+import DateInput from "@/components/DateInput";
 import { useEffect, useRef, useState } from "react";
 import {
   catalogPlanBreakdown,
@@ -142,7 +143,7 @@ export default function CatalogBreakdown({
           </div>
           <label className={styles.date}>
             Example start date <span>(optional)</span>
-            <input
+            <DateInput
               type="date"
               min="1900-01-01"
               max="2100-12-31"

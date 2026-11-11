@@ -211,13 +211,6 @@ export default function Models({
           subtitle="Browse our units, payment offers, and latest availability before you message us."
         />
       )}
-      {inPortal && (
-        <p className={styles.notice}>
-          Explore published offers below. Sample payments are illustrative; your
-          agreement confirms the final amounts and dates. Payments are made
-          outside the website.
-        </p>
-      )}
       {SAMPLE_CATALOG_MODE && (
         <p className="mx-auto mt-4 max-w-6xl text-center text-sm text-ink-soft">
           Sample catalog · Prices, payment plans, and availability are for

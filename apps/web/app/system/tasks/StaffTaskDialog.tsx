@@ -1,15 +1,19 @@
 "use client";
 
+import ModalCloseButton from "@/components/ModalCloseButton";
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import type { Me } from "@/lib/api";
 import { can } from "@/lib/useMe";
 import { tsRequest } from "@/lib/ts-api";
 import { X } from "@phosphor-icons/react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { type FormEvent } from "react";
+import CooTaskDetail from "./coo/CooTaskDetail";
 import styles from "./staff-tasks.module.css";
 import { formatDate, label, Task } from "./task-view";
 
-type Props = {
+export type StaffTaskDialogProps = {
   dialog: RefObject<HTMLDialogElement | null>;
   clearTask: () => void;
   busy: boolean;
@@ -40,38 +44,47 @@ type Props = {
   canAssign: boolean;
 };
 
-export default function StaffTaskDialog({
-  dialog,
-  clearTask,
-  busy,
-  draft,
-  active,
-  closeTask,
-  activeChanged,
-  loadLatestTask,
-  error,
-  notice,
-  loadingDetail,
-  download,
-  canReview,
-  me,
-  mutate,
-  submit,
-  report,
-  setReport,
-  setAttachment,
-  attachment,
-  review,
-  evaluation,
-  setEvaluation,
-  recommendation,
-  setRecommendation,
-  decision,
-  setDecision,
-  canAssign,
-}: Props) {
+export default function StaffTaskDialog(props: StaffTaskDialogProps) {
+  const {
+    dialog,
+    clearTask,
+    busy,
+    draft,
+    active,
+    closeTask,
+    activeChanged,
+    loadLatestTask,
+    error,
+    notice,
+    loadingDetail,
+    download,
+    canReview,
+    me,
+    mutate,
+    submit,
+    report,
+    setReport,
+    setAttachment,
+    attachment,
+    review,
+    evaluation,
+    setEvaluation,
+    recommendation,
+    setRecommendation,
+    decision,
+    setDecision,
+    canAssign,
+  } = props;
+
+  if (me.role === "coo") {
+    return <CooTaskDetail {...props} />;
+  }
+
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-size="wide"
       ref={dialog}
       className={styles.dialog}
       aria-labelledby="staff-task-title"
@@ -86,20 +99,12 @@ export default function StaffTaskDialog({
         }
       }}
     >
-      <div className={styles.dialogHead}>
+      <div data-modal-header className={styles.dialogHead}>
         <div>
           <span className={styles.eyebrow}>Task details</span>
           <h2 id="staff-task-title">{active?.title ?? "Loading…"}</h2>
         </div>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={closeTask}
-          disabled={busy}
-          aria-label="Close task"
-        >
-          <X />
-        </button>
+        <ModalCloseButton onClick={closeTask} disabled={busy} />
       </div>
       {activeChanged && (
         <p role="status" className={styles.dialogNotice}>
@@ -126,7 +131,7 @@ export default function StaffTaskDialog({
         </p>
       )}
       {loadingDetail || !active ? (
-        <p className={styles.empty}>Loading task…</p>
+        <WorkspaceProgress className={styles.empty} label="Loading task…" />
       ) : (
         <div className={styles.dialogBody}>
           <div className={styles.facts}>
@@ -241,6 +246,7 @@ export default function StaffTaskDialog({
                 </label>
                 <button
                   type="submit"
+                  data-variant="primary"
                   className={styles.primary}
                   disabled={
                     busy || activeChanged || (!report.trim() && !attachment)
@@ -289,7 +295,7 @@ export default function StaffTaskDialog({
                 </label>
                 <label>
                   Decision
-                  <select
+                  <WorkspaceNativeSelect
                     value={decision}
                     onChange={(event) => {
                       return setDecision(event.target.value);
@@ -299,10 +305,11 @@ export default function StaffTaskDialog({
                     <option value="ACTION_RECOMMENDED">
                       Action recommended
                     </option>
-                  </select>
+                  </WorkspaceNativeSelect>
                 </label>
                 <button
                   type="submit"
+                  data-variant="primary"
                   className={styles.primary}
                   disabled={
                     busy || activeChanged || evaluation.trim().length < 3
@@ -317,6 +324,7 @@ export default function StaffTaskDialog({
             (!active.lateFlag || active.reviewed) && (
               <button
                 type="button"
+                data-variant="primary"
                 className={styles.primary}
                 disabled={busy || activeChanged}
                 onClick={() => {

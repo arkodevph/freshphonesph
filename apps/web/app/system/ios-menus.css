@@ -1,0 +1,123 @@
+/* Nami: shared iOS material for header menus; motion comes from WorkspacePopover. */
+.system-shell {
+  --ios-menu-solid: #f8f9fc;
+  --ios-menu-material: rgb(248 249 252 / 94%);
+  --ios-menu-rim: rgb(255 255 255 / 90%);
+  --ios-menu-inset: rgb(112 125 150 / 9%);
+  --ios-menu-edge: rgb(35 49 72 / 12%);
+  --ios-menu-shadow: 0 18px 56px -12px rgb(23 37 64 / 24%);
+}
+html[data-system-theme="dark"] .system-shell {
+  --ios-menu-solid: #24262c;
+  --ios-menu-material: rgb(36 38 44 / 96%);
+  --ios-menu-rim: rgb(255 255 255 / 9%);
+  --ios-menu-inset: rgb(255 255 255 / 6%);
+  --ios-menu-edge: rgb(255 255 255 / 12%);
+  --ios-menu-shadow: 0 20px 60px -12px rgb(0 0 0 / 55%);
+}
+.system-shell[data-workspace-theme]
+  .system-topbar
+  .system-ios-popover.system-popover[aria-hidden] {
+  border: 1px solid var(--ios-menu-edge);
+  border-radius: 26px;
+  background: var(--ios-menu-solid);
+  box-shadow:
+    var(--ios-menu-shadow),
+    inset 0 1px 0 var(--ios-menu-rim);
+  transform-origin: top right;
+  animation: none;
+  transition: none;
+  will-change: transform, opacity;
+}
+@supports (backdrop-filter: blur(1px)) {
+  .system-shell[data-workspace-theme]
+    .system-topbar
+    .system-ios-popover.system-popover[aria-hidden] {
+    background: var(--ios-menu-material);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    backdrop-filter: blur(28px) saturate(160%);
+  }
+}
+.system-ios-popover[aria-hidden="true"] {
+  pointer-events: none;
+}
+.system-ios-popover :is(button, a) {
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    box-shadow 150ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.system-ios-popover button:active:not(:disabled),
+.system-ios-popover a:active {
+  background-color: var(--ios-menu-inset);
+}
+.system-ios-popover.system-profile-popover {
+  width: 300px;
+  max-width: calc(100vw - 24px);
+  padding: 10px;
+}
+.system-ios-popover .system-profile-summary {
+  padding: 12px 10px;
+}
+.system-ios-popover .system-profile-summary strong {
+  font-size: 14px;
+}
+.system-ios-popover .system-profile-summary small {
+  font-size: 12px;
+  color: var(--system-muted);
+}
+.system-ios-popover .system-profile-role {
+  margin: 4px 0 8px;
+  padding: 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--ios-menu-inset);
+  font-size: 12px;
+}
+.system-ios-popover .system-profile-role span {
+  color: var(--system-muted);
+}
+.system-ios-popover .system-profile-role strong {
+  color: var(--system-text);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.system-ios-popover .system-profile-legal-link,
+.system-ios-popover.system-profile-popover > button {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 550;
+}
+.system-ios-popover .system-profile-legal-link {
+  color: var(--system-text);
+}
+.system-ios-popover .system-profile-legal-link:hover {
+  background: var(--ios-menu-inset);
+}
+html[data-system-theme="dark"]
+  .system-ios-popover.system-profile-popover
+  > button {
+  color: #ffb8c2;
+}
+@media (max-width: 900px) {
+  .system-shell[data-workspace-theme]
+    .system-topbar
+    .system-ios-popover.system-popover[aria-hidden] {
+    transform-origin: top center;
+  }
+  .system-ios-popover.system-profile-popover {
+    width: auto;
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .system-ios-popover :is(button, a) {
+    transition: none;
+  }
+}

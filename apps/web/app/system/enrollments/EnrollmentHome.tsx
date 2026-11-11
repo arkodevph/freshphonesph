@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import Link from "next/link";
 import { can, useMe } from "@/lib/useMe";
 import RoleWorkspace from "../RoleWorkspace";
@@ -21,7 +22,7 @@ export default function EnrollmentHome({
   const me = useMe();
 
   if (!me) {
-    return <p role="status">Loading enrollment workspace…</p>;
+    return <WorkspaceProgress label="Loading enrollment workspace…" />;
   }
 
   const tabs = [

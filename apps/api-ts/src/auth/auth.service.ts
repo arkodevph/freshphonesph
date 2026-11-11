@@ -188,6 +188,20 @@ export class AuthService {
 
     return result.value;
   }
+  async dashRead(req: Request) {
+    const identity = await this.framework;
+
+    const origin = new URL(
+      this.config.BETTER_AUTH_URL ?? this.config.WEB_ORIGIN,
+    ).origin;
+
+    return identity.handler(
+      new globalThis.Request(new URL(req.originalUrl, origin), {
+        method: "GET",
+        headers: identityHeaders(req),
+      }),
+    );
+  }
   private async call(path: string, headers: Headers, body?: object) {
     const identity = await this.framework;
 

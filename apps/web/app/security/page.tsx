@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useEffect, useState, type FormEvent } from "react";
 import { ShieldCheck } from "@phosphor-icons/react";
 import QRCode from "react-qr-code";
@@ -39,7 +40,7 @@ export default function SecurityPage() {
   const [saved, setSaved] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useToastNotice("");
 
   async function load() {
     try {

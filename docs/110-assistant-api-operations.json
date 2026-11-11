@@ -1,0 +1,3327 @@
+{
+  "generatedFrom": "apps/api-ts/src/assistant/operations.ts",
+  "note": "Schemas document tool input. Original Zod contracts and API service rules remain authoritative, including refinements and record scopes.",
+  "operations": [
+    {
+      "name": "reports.payments",
+      "method": "GET",
+      "path": "/reports/payments",
+      "permissions": [
+        "REPORT_VIEW"
+      ],
+      "description": "Payment counts and amounts by payment date; only verified amounts are collected funds. Optional dateFrom/dateTo, batch and status.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "q": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "dateFrom": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "dateTo": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "batchId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "status": {
+                  "optional": true,
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "PENDING",
+                      "VERIFIED",
+                      "REJECTED",
+                      "NEEDS_CLARIFICATION"
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "reports.collections",
+      "method": "GET",
+      "path": "/reports/collections",
+      "permissions": [
+        "REPORT_VIEW"
+      ],
+      "description": "Membership balances, verified credit and batch totals. Balances are current lifetime amounts, not period revenue.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "dateFrom": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "dateTo": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "batchId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "reports.reconciliation",
+      "method": "GET",
+      "path": "/reports/reconciliation",
+      "permissions": [
+        "REPORT_VIEW"
+      ],
+      "description": "Review flags and verification audit evidence, not external bank-statement matching.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "dateFrom": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "dateTo": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "batchId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "reports.tasks",
+      "method": "GET",
+      "path": "/reports/tasks",
+      "permissions": [
+        "REPORT_VIEW"
+      ],
+      "description": "Task outcomes filtered by creation dates; never automatic wage actions.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "dateFrom": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "dateTo": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "reports.support",
+      "method": "GET",
+      "path": "/reports/support",
+      "permissions": [
+        "REPORT_VIEW"
+      ],
+      "description": "Support counts for cases created in the date range.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "dateFrom": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "dateTo": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "reports.installment_earnings",
+      "method": "GET",
+      "path": "/reports/installment-earnings",
+      "permissions": [
+        "REPORT_VIEW"
+      ],
+      "description": "Scheduled installments, not verified collections or profit. For this month use Manila current year, frequency MONTHLY, period=current month. groupBy batches or members; paginated rows and overall totals.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "year": {
+                  "type": "number",
+                  "checks": [
+                    {
+                      "kind": "int"
+                    },
+                    {
+                      "kind": "min",
+                      "value": 1,
+                      "inclusive": true
+                    },
+                    {
+                      "kind": "max",
+                      "value": 9999,
+                      "inclusive": true
+                    }
+                  ]
+                },
+                "frequency": {
+                  "optional": true,
+                  "default": "MONTHLY",
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "MONTHLY",
+                      "TWICE_MONTHLY",
+                      "EVERY_TWO_MONTHS"
+                    ]
+                  }
+                },
+                "period": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 24,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                },
+                "groupBy": {
+                  "optional": true,
+                  "default": "batches",
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "batches",
+                      "members"
+                    ]
+                  }
+                },
+                "batchId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "reports.batches",
+      "method": "GET",
+      "path": "/reports/batches",
+      "permissions": [
+        "REPORT_VIEW"
+      ],
+      "description": "Search batch IDs and labels for reporting filters.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "q": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.batches",
+      "method": "GET",
+      "path": "/batches",
+      "permissions": [
+        "BATCH_READ"
+      ],
+      "description": "Search batches by q, status and page. Returns IDs and current versions.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "q": {
+                  "optional": true,
+                  "default": "",
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                },
+                "status": {
+                  "optional": true,
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "PLANNED",
+                      "ACTIVE",
+                      "COMPLETED",
+                      "CANCELLED"
+                    ]
+                  }
+                },
+                "handlerId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "agentId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "model": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "dateFrom": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "dateTo": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.batch",
+      "method": "GET",
+      "path": "/batches/:id",
+      "permissions": [
+        "BATCH_READ"
+      ],
+      "description": "Read exact batch and current version before editing.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.assignment_options",
+      "method": "GET",
+      "path": "/records/assignment-options",
+      "permissions": [
+        "BATCH_READ"
+      ],
+      "description": "Look up eligible agent IDs and staff assignments. Do not invent IDs.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {},
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.create_batch",
+      "method": "POST",
+      "path": "/batches",
+      "permissions": [
+        "BATCH_CREATE"
+      ],
+      "description": "Create a batch. Ask for required model, status, start/end dates and agent; server generates code. Optional installment terms must be complete.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "model": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 100
+                  }
+                ]
+              },
+              "status": {
+                "type": "enum",
+                "values": [
+                  "PLANNED",
+                  "ACTIVE",
+                  "COMPLETED",
+                  "CANCELLED"
+                ]
+              },
+              "startDate": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "date"
+                  }
+                ]
+              },
+              "endDate": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "date"
+                  }
+                ]
+              },
+              "contractPrice": {
+                "optional": true,
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "regex",
+                      "regex": "^(0|[1-9]\\d{0,9})(\\.\\d{1,2})?$",
+                      "message": "Use a positive amount with at most two decimal places."
+                    }
+                  ]
+                }
+              },
+              "installmentCount": {
+                "optional": true,
+                "schema": {
+                  "type": "number",
+                  "checks": [
+                    {
+                      "kind": "int"
+                    },
+                    {
+                      "kind": "min",
+                      "value": 1,
+                      "inclusive": true
+                    },
+                    {
+                      "kind": "max",
+                      "value": 600,
+                      "inclusive": true
+                    }
+                  ]
+                }
+              },
+              "cadence": {
+                "optional": true,
+                "schema": {
+                  "type": "enum",
+                  "values": [
+                    "WEEKLY",
+                    "SEMIMONTHLY",
+                    "MONTHLY"
+                  ]
+                }
+              },
+              "firstDueDate": {
+                "optional": true,
+                "schema": {
+                  "nullable": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                }
+              },
+              "monthEnd": {
+                "optional": true,
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              "agentId": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "uuid"
+                  }
+                ]
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.update_batch",
+      "method": "PATCH",
+      "path": "/batches/:id",
+      "permissions": [
+        "BATCH_MANAGE"
+      ],
+      "description": "Edit a batch using its exact current version and full record; preserve fields not requested. Archive via supported status, never delete financial history.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          },
+          "body": {
+            "type": "object",
+            "fields": {
+              "version": {
+                "type": "number",
+                "checks": [
+                  {
+                    "kind": "int"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 0,
+                    "inclusive": false
+                  }
+                ]
+              },
+              "record": {
+                "type": "object",
+                "fields": {
+                  "code": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 2
+                      },
+                      {
+                        "kind": "max",
+                        "value": 71
+                      },
+                      {
+                        "kind": "regex",
+                        "regex": "^[A-Za-z0-9-]+$",
+                        "message": "Use letters, numbers and hyphens."
+                      }
+                    ]
+                  },
+                  "model": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 2
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  },
+                  "status": {
+                    "type": "enum",
+                    "values": [
+                      "PLANNED",
+                      "ACTIVE",
+                      "COMPLETED",
+                      "CANCELLED"
+                    ]
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  },
+                  "contractPrice": {
+                    "optional": true,
+                    "schema": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "regex",
+                          "regex": "^(0|[1-9]\\d{0,9})(\\.\\d{1,2})?$",
+                          "message": "Use a positive amount with at most two decimal places."
+                        }
+                      ]
+                    }
+                  },
+                  "installmentCount": {
+                    "optional": true,
+                    "schema": {
+                      "type": "number",
+                      "checks": [
+                        {
+                          "kind": "int"
+                        },
+                        {
+                          "kind": "min",
+                          "value": 1,
+                          "inclusive": true
+                        },
+                        {
+                          "kind": "max",
+                          "value": 600,
+                          "inclusive": true
+                        }
+                      ]
+                    }
+                  },
+                  "cadence": {
+                    "optional": true,
+                    "schema": {
+                      "type": "enum",
+                      "values": [
+                        "WEEKLY",
+                        "SEMIMONTHLY",
+                        "MONTHLY"
+                      ]
+                    }
+                  },
+                  "firstDueDate": {
+                    "optional": true,
+                    "schema": {
+                      "nullable": true,
+                      "schema": {
+                        "type": "string",
+                        "checks": [
+                          {
+                            "kind": "date"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "monthEnd": {
+                    "optional": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "unknownKeys": "strict"
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.clients",
+      "method": "GET",
+      "path": "/clients",
+      "permissions": [
+        "CLIENT_READ"
+      ],
+      "description": "Search scoped memberships and clients by q, batch, status and page.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "q": {
+                  "optional": true,
+                  "default": "",
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                },
+                "status": {
+                  "optional": true,
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "ACTIVE",
+                      "ON_HOLD",
+                      "COMPLETED"
+                    ]
+                  }
+                },
+                "batchId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "handlerId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "agentId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "model": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "dateFrom": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "dateTo": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "date"
+                      }
+                    ]
+                  }
+                },
+                "id": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.client",
+      "method": "GET",
+      "path": "/clients/:id",
+      "permissions": [
+        "CLIENT_READ"
+      ],
+      "description": "Read a client membership, balance and version. Personal contact data is private.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.schedule",
+      "method": "GET",
+      "path": "/clients/:id/schedule",
+      "permissions": [
+        "CLIENT_READ"
+      ],
+      "description": "Read the chosen membership's issued installment schedule.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.create_client",
+      "method": "POST",
+      "path": "/clients",
+      "permissions": [
+        "CLIENT_MANAGE",
+        "ENROLLMENT_REVIEW"
+      ],
+      "description": "Create a client membership in an existing batch. Required personal details must come from the user.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "name": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 100
+                  }
+                ]
+              },
+              "email": {
+                "alternatives": [
+                  {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "email"
+                      }
+                    ]
+                  },
+                  {
+                    "const": ""
+                  }
+                ]
+              },
+              "phone": {
+                "optional": true,
+                "default": "",
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "trim"
+                    },
+                    {
+                      "kind": "regex",
+                      "regex": "^$|^[+0-9 ()-]{7,25}$",
+                      "message": "Enter a valid contact number."
+                    }
+                  ]
+                }
+              },
+              "joinedAt": {
+                "optional": true,
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "date"
+                    }
+                  ]
+                }
+              },
+              "unitModel": {
+                "optional": true,
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "trim"
+                    },
+                    {
+                      "kind": "max",
+                      "value": 100
+                    }
+                  ]
+                }
+              },
+              "batchId": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "uuid"
+                  }
+                ]
+              },
+              "status": {
+                "type": "enum",
+                "values": [
+                  "ACTIVE",
+                  "ON_HOLD",
+                  "COMPLETED"
+                ]
+              },
+              "releaseStatus": {
+                "type": "enum",
+                "values": [
+                  "NOT_READY",
+                  "PROCESSING",
+                  "READY",
+                  "RELEASED"
+                ]
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "records.update_client",
+      "method": "PATCH",
+      "path": "/clients/:id",
+      "permissions": [
+        "CLIENT_MANAGE"
+      ],
+      "description": "Edit membership details with current version/full record; balances cannot be directly edited.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          },
+          "body": {
+            "type": "object",
+            "fields": {
+              "version": {
+                "type": "number",
+                "checks": [
+                  {
+                    "kind": "int"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 0,
+                    "inclusive": false
+                  }
+                ]
+              },
+              "record": {
+                "type": "object",
+                "fields": {
+                  "name": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 2
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  },
+                  "email": {
+                    "alternatives": [
+                      {
+                        "type": "string",
+                        "checks": [
+                          {
+                            "kind": "email"
+                          }
+                        ]
+                      },
+                      {
+                        "const": ""
+                      }
+                    ]
+                  },
+                  "phone": {
+                    "optional": true,
+                    "default": "",
+                    "schema": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "trim"
+                        },
+                        {
+                          "kind": "regex",
+                          "regex": "^$|^[+0-9 ()-]{7,25}$",
+                          "message": "Enter a valid contact number."
+                        }
+                      ]
+                    }
+                  },
+                  "joinedAt": {
+                    "optional": true,
+                    "schema": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "date"
+                        }
+                      ]
+                    }
+                  },
+                  "unitModel": {
+                    "optional": true,
+                    "schema": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "trim"
+                        },
+                        {
+                          "kind": "max",
+                          "value": 100
+                        }
+                      ]
+                    }
+                  },
+                  "batchId": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "type": "enum",
+                    "values": [
+                      "ACTIVE",
+                      "ON_HOLD",
+                      "COMPLETED"
+                    ]
+                  },
+                  "releaseStatus": {
+                    "type": "enum",
+                    "values": [
+                      "NOT_READY",
+                      "PROCESSING",
+                      "READY",
+                      "RELEASED"
+                    ]
+                  }
+                },
+                "unknownKeys": "strict"
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "agents.list",
+      "method": "GET",
+      "path": "/agents",
+      "permissions": [
+        "AGENT_MANAGE"
+      ],
+      "description": "Search private agent directory and IDs.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "q": {
+                  "optional": true,
+                  "default": "",
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                },
+                "status": {
+                  "optional": true,
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "ACTIVE",
+                      "INACTIVE"
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "agents.detail",
+      "method": "GET",
+      "path": "/agents/:id",
+      "permissions": [
+        "AGENT_MANAGE"
+      ],
+      "description": "Read agent details and version before edits.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "agents.create",
+      "method": "POST",
+      "path": "/agents",
+      "permissions": [
+        "AGENT_MANAGE"
+      ],
+      "description": "Add an agent profile, not a login or access grant.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "name": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 200
+                  }
+                ]
+              },
+              "code": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 60
+                  },
+                  {
+                    "kind": "regex",
+                    "regex": "^[A-Za-z0-9-]+$",
+                    "message": "Use letters, numbers and hyphens."
+                  }
+                ]
+              },
+              "active": {
+                "type": "boolean"
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "agents.update",
+      "method": "PATCH",
+      "path": "/agents/:id",
+      "permissions": [
+        "AGENT_MANAGE"
+      ],
+      "description": "Edit or deactivate an agent using full record/current version.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          },
+          "body": {
+            "type": "object",
+            "fields": {
+              "version": {
+                "type": "number",
+                "checks": [
+                  {
+                    "kind": "int"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 0,
+                    "inclusive": false
+                  }
+                ]
+              },
+              "record": {
+                "type": "object",
+                "fields": {
+                  "name": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 2
+                      },
+                      {
+                        "kind": "max",
+                        "value": 200
+                      }
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 2
+                      },
+                      {
+                        "kind": "max",
+                        "value": 60
+                      },
+                      {
+                        "kind": "regex",
+                        "regex": "^[A-Za-z0-9-]+$",
+                        "message": "Use letters, numbers and hyphens."
+                      }
+                    ]
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                },
+                "unknownKeys": "strict"
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "catalog.list",
+      "method": "GET",
+      "path": "/catalog/items",
+      "permissions": [
+        "CATALOG_MANAGE"
+      ],
+      "description": "Search all catalog listings including unpublished items.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                },
+                "q": {
+                  "optional": true,
+                  "default": "",
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "visibility": {
+                  "optional": true,
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "PUBLISHED",
+                      "HIDDEN"
+                    ]
+                  }
+                },
+                "availability": {
+                  "optional": true,
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "CONTACT_US",
+                      "AVAILABLE",
+                      "LIMITED",
+                      "SOLD_OUT",
+                      "COMING_SOON"
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "catalog.detail",
+      "method": "GET",
+      "path": "/catalog/items/:id",
+      "permissions": [
+        "CATALOG_MANAGE"
+      ],
+      "description": "Read a catalog item's current terms and version.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "catalog.create",
+      "method": "POST",
+      "path": "/catalog/items",
+      "permissions": [
+        "CATALOG_MANAGE"
+      ],
+      "description": "Create a catalog item with explicitly provided terms; no invented prices.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "code": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 40
+                  },
+                  {
+                    "kind": "regex",
+                    "regex": "^[A-Za-z0-9-]+$",
+                    "message": "Use letters, numbers and hyphens for the listing code."
+                  }
+                ]
+              },
+              "name": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 100
+                  }
+                ]
+              },
+              "condition": {
+                "type": "enum",
+                "values": [
+                  "PRE_OWNED",
+                  "BRAND_NEW"
+                ]
+              },
+              "dailyAmount": {
+                "nullable": true,
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "regex",
+                      "regex": "^(0|[1-9]\\d{0,9})(\\.\\d{1,2})?$",
+                      "message": "Enter a price with at most two decimal places."
+                    }
+                  ]
+                }
+              },
+              "availability": {
+                "type": "enum",
+                "values": [
+                  "CONTACT_US",
+                  "AVAILABLE",
+                  "LIMITED",
+                  "SOLD_OUT",
+                  "COMING_SOON"
+                ]
+              },
+              "description": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "max",
+                    "value": 240
+                  }
+                ]
+              },
+              "published": {
+                "type": "boolean"
+              },
+              "sortOrder": {
+                "type": "number",
+                "checks": [
+                  {
+                    "kind": "int"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 0,
+                    "inclusive": true
+                  },
+                  {
+                    "kind": "max",
+                    "value": 9999,
+                    "inclusive": true
+                  }
+                ]
+              },
+              "imageAsset": {
+                "nullable": true,
+                "schema": {
+                  "type": "enum",
+                  "values": [
+                    "iphone-11",
+                    "iphone-12",
+                    "iphone-13",
+                    "ipad-10th-gen",
+                    "ipad-a16",
+                    "iphone-13-pro"
+                  ]
+                }
+              },
+              "installmentPlan": {
+                "nullable": true,
+                "schema": {
+                  "type": "object",
+                  "fields": {
+                    "totalAmount": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "regex",
+                          "regex": "^(0|[1-9]\\d{0,9})(\\.\\d{1,2})?$",
+                          "message": "Enter a total with at most two decimal places."
+                        }
+                      ]
+                    },
+                    "installmentCount": {
+                      "type": "number",
+                      "checks": [
+                        {
+                          "kind": "int"
+                        },
+                        {
+                          "kind": "min",
+                          "value": 1,
+                          "inclusive": true
+                        },
+                        {
+                          "kind": "max",
+                          "value": 600,
+                          "inclusive": true
+                        }
+                      ]
+                    },
+                    "cadence": {
+                      "type": "enum",
+                      "values": [
+                        "WEEKLY",
+                        "SEMIMONTHLY",
+                        "MONTHLY"
+                      ]
+                    }
+                  },
+                  "unknownKeys": "strict"
+                }
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "catalog.update",
+      "method": "PATCH",
+      "path": "/catalog/items/:id",
+      "permissions": [
+        "CATALOG_MANAGE"
+      ],
+      "description": "Edit prices, terms or publication with full record/current version. Unpublish rather than erase historical agreements.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          },
+          "body": {
+            "type": "object",
+            "fields": {
+              "version": {
+                "type": "number",
+                "checks": [
+                  {
+                    "kind": "int"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 0,
+                    "inclusive": false
+                  }
+                ]
+              },
+              "record": {
+                "type": "object",
+                "fields": {
+                  "code": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 2
+                      },
+                      {
+                        "kind": "max",
+                        "value": 40
+                      },
+                      {
+                        "kind": "regex",
+                        "regex": "^[A-Za-z0-9-]+$",
+                        "message": "Use letters, numbers and hyphens for the listing code."
+                      }
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 2
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  },
+                  "condition": {
+                    "type": "enum",
+                    "values": [
+                      "PRE_OWNED",
+                      "BRAND_NEW"
+                    ]
+                  },
+                  "dailyAmount": {
+                    "nullable": true,
+                    "schema": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "regex",
+                          "regex": "^(0|[1-9]\\d{0,9})(\\.\\d{1,2})?$",
+                          "message": "Enter a price with at most two decimal places."
+                        }
+                      ]
+                    }
+                  },
+                  "availability": {
+                    "type": "enum",
+                    "values": [
+                      "CONTACT_US",
+                      "AVAILABLE",
+                      "LIMITED",
+                      "SOLD_OUT",
+                      "COMING_SOON"
+                    ]
+                  },
+                  "description": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 240
+                      }
+                    ]
+                  },
+                  "published": {
+                    "type": "boolean"
+                  },
+                  "sortOrder": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 0,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 9999,
+                        "inclusive": true
+                      }
+                    ]
+                  },
+                  "imageAsset": {
+                    "nullable": true,
+                    "schema": {
+                      "type": "enum",
+                      "values": [
+                        "iphone-11",
+                        "iphone-12",
+                        "iphone-13",
+                        "ipad-10th-gen",
+                        "ipad-a16",
+                        "iphone-13-pro"
+                      ]
+                    }
+                  },
+                  "installmentPlan": {
+                    "nullable": true,
+                    "schema": {
+                      "type": "object",
+                      "fields": {
+                        "totalAmount": {
+                          "type": "string",
+                          "checks": [
+                            {
+                              "kind": "regex",
+                              "regex": "^(0|[1-9]\\d{0,9})(\\.\\d{1,2})?$",
+                              "message": "Enter a total with at most two decimal places."
+                            }
+                          ]
+                        },
+                        "installmentCount": {
+                          "type": "number",
+                          "checks": [
+                            {
+                              "kind": "int"
+                            },
+                            {
+                              "kind": "min",
+                              "value": 1,
+                              "inclusive": true
+                            },
+                            {
+                              "kind": "max",
+                              "value": 600,
+                              "inclusive": true
+                            }
+                          ]
+                        },
+                        "cadence": {
+                          "type": "enum",
+                          "values": [
+                            "WEEKLY",
+                            "SEMIMONTHLY",
+                            "MONTHLY"
+                          ]
+                        }
+                      },
+                      "unknownKeys": "strict"
+                    }
+                  }
+                },
+                "unknownKeys": "strict"
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "catalog.remove_image",
+      "method": "POST",
+      "path": "/catalog/items/:id/image/remove",
+      "permissions": [
+        "CATALOG_MANAGE"
+      ],
+      "description": "Delete a catalog photo with current item version; does not delete the listing.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          },
+          "body": {
+            "type": "object",
+            "fields": {
+              "version": {
+                "type": "number",
+                "checks": [
+                  {
+                    "kind": "int"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 0,
+                    "inclusive": false
+                  }
+                ]
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "tasks.list",
+      "method": "GET",
+      "path": "/work/tasks",
+      "permissions": [
+        "TASK_READ"
+      ],
+      "description": "Search task records in the user's staff scope.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "q": {
+                  "optional": true,
+                  "default": "",
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                },
+                "status": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "max",
+                        "value": 30
+                      }
+                    ]
+                  }
+                },
+                "batchId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "handlerId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                },
+                "agentId": {
+                  "optional": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strip"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "tasks.staff",
+      "method": "GET",
+      "path": "/work/staff",
+      "permissions": [
+        "TASK_READ"
+      ],
+      "description": "Find eligible staff IDs for task assignment.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {},
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "tasks.create",
+      "method": "POST",
+      "path": "/work/tasks",
+      "permissions": [
+        "TASK_ASSIGN"
+      ],
+      "description": "Create an assigned task with user-provided title, instructions, deadline and priority.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "title": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 200
+                  }
+                ]
+              },
+              "instructions": {
+                "optional": true,
+                "default": "",
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "trim"
+                    },
+                    {
+                      "kind": "max",
+                      "value": 4000
+                    }
+                  ]
+                }
+              },
+              "assigneeId": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "uuid"
+                  }
+                ]
+              },
+              "priority": {
+                "optional": true,
+                "default": "MEDIUM",
+                "schema": {
+                  "type": "enum",
+                  "values": [
+                    "LOW",
+                    "MEDIUM",
+                    "HIGH"
+                  ]
+                }
+              },
+              "deadline": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "datetime",
+                    "precision": null,
+                    "offset": true,
+                    "local": false
+                  }
+                ]
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "support.queue",
+      "method": "GET",
+      "path": "/operations/customer-work",
+      "permissions": [
+        "SUPPORT_MANAGE"
+      ],
+      "description": "Read paginated customer support queue.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "kind": {
+                  "optional": true,
+                  "default": "support",
+                  "schema": {
+                    "const": "support"
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "support.detail",
+      "method": "GET",
+      "path": "/support/cases/:id",
+      "permissions": [
+        "SUPPORT_MANAGE"
+      ],
+      "description": "Read the selected support case, messages and current version.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "support.update",
+      "method": "PATCH",
+      "path": "/support/cases/:id",
+      "permissions": [
+        "SUPPORT_MANAGE"
+      ],
+      "description": "Edit case status, assignment or resolution with its current version.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          },
+          "body": {
+            "type": "object",
+            "fields": {
+              "status": {
+                "optional": true,
+                "schema": {
+                  "type": "enum",
+                  "values": [
+                    "OPEN",
+                    "IN_PROGRESS",
+                    "WAITING_FOR_CLIENT",
+                    "RESOLVED",
+                    "CLOSED"
+                  ]
+                }
+              },
+              "assignedStaffId": {
+                "optional": true,
+                "schema": {
+                  "nullable": true,
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "uuid"
+                      }
+                    ]
+                  }
+                }
+              },
+              "resolution": {
+                "optional": true,
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "trim"
+                    },
+                    {
+                      "kind": "max",
+                      "value": 4000
+                    }
+                  ]
+                }
+              },
+              "version": {
+                "type": "number",
+                "checks": [
+                  {
+                    "kind": "int"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 0,
+                    "inclusive": false
+                  }
+                ]
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "support.create",
+      "method": "POST",
+      "path": "/support/cases",
+      "permissions": [
+        "SUPPORT_CREATE",
+        "SUPPORT_MANAGE"
+      ],
+      "description": "Record a customer support concern and its actual source.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "category": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 80
+                  }
+                ]
+              },
+              "description": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 5
+                  },
+                  {
+                    "kind": "max",
+                    "value": 4000
+                  }
+                ]
+              },
+              "clientId": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "uuid"
+                  }
+                ]
+              },
+              "source": {
+                "type": "enum",
+                "values": [
+                  "MESSENGER",
+                  "FACEBOOK",
+                  "PHONE",
+                  "WALK_IN",
+                  "OTHER"
+                ]
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "jobs.list",
+      "method": "GET",
+      "path": "/recruitment/jobs",
+      "permissions": [
+        "RECRUITMENT_MANAGE"
+      ],
+      "description": "Search job openings. Does not expose confidential applicants.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "q": {
+                  "optional": true,
+                  "default": "",
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                },
+                "status": {
+                  "optional": true,
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "OPEN",
+                      "CLOSED"
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "jobs.detail",
+      "method": "GET",
+      "path": "/recruitment/jobs/:id",
+      "permissions": [
+        "RECRUITMENT_MANAGE"
+      ],
+      "description": "Read a job opening and current version.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "jobs.create",
+      "method": "POST",
+      "path": "/recruitment/jobs",
+      "permissions": [
+        "RECRUITMENT_MANAGE"
+      ],
+      "description": "Create a job opening from supplied details.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "title": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 2
+                  },
+                  {
+                    "kind": "max",
+                    "value": 160
+                  }
+                ]
+              },
+              "description": {
+                "optional": true,
+                "default": "",
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "trim"
+                    },
+                    {
+                      "kind": "max",
+                      "value": 4000
+                    }
+                  ]
+                }
+              },
+              "location": {
+                "optional": true,
+                "default": "",
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "trim"
+                    },
+                    {
+                      "kind": "max",
+                      "value": 120
+                    }
+                  ]
+                }
+              },
+              "employmentType": {
+                "optional": true,
+                "default": "",
+                "schema": {
+                  "type": "string",
+                  "checks": [
+                    {
+                      "kind": "trim"
+                    },
+                    {
+                      "kind": "max",
+                      "value": 60
+                    }
+                  ]
+                }
+              },
+              "isOpen": {
+                "optional": true,
+                "default": true,
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "jobs.update",
+      "method": "PATCH",
+      "path": "/recruitment/jobs/:id",
+      "permissions": [
+        "RECRUITMENT_MANAGE"
+      ],
+      "description": "Edit or close a job opening with current version/full record.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "checks": [
+              {
+                "kind": "uuid"
+              }
+            ]
+          },
+          "body": {
+            "type": "object",
+            "fields": {
+              "version": {
+                "type": "number",
+                "checks": [
+                  {
+                    "kind": "int"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 0,
+                    "inclusive": false
+                  }
+                ]
+              },
+              "record": {
+                "type": "object",
+                "fields": {
+                  "title": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 2
+                      },
+                      {
+                        "kind": "max",
+                        "value": 160
+                      }
+                    ]
+                  },
+                  "description": {
+                    "optional": true,
+                    "default": "",
+                    "schema": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "trim"
+                        },
+                        {
+                          "kind": "max",
+                          "value": 4000
+                        }
+                      ]
+                    }
+                  },
+                  "location": {
+                    "optional": true,
+                    "default": "",
+                    "schema": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "trim"
+                        },
+                        {
+                          "kind": "max",
+                          "value": 120
+                        }
+                      ]
+                    }
+                  },
+                  "employmentType": {
+                    "optional": true,
+                    "default": "",
+                    "schema": {
+                      "type": "string",
+                      "checks": [
+                        {
+                          "kind": "trim"
+                        },
+                        {
+                          "kind": "max",
+                          "value": 60
+                        }
+                      ]
+                    }
+                  },
+                  "isOpen": {
+                    "optional": true,
+                    "default": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "unknownKeys": "strict"
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "retention.candidates",
+      "method": "GET",
+      "path": "/retention/candidates",
+      "permissions": [
+        "RETENTION_MANAGE"
+      ],
+      "description": "List deletion candidates under existing retention policy and holds.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "scope": {
+                  "optional": true,
+                  "default": "APPLICANT",
+                  "schema": {
+                    "type": "enum",
+                    "values": [
+                      "APPLICANT",
+                      "CUSTOMER",
+                      "EMPLOYEE",
+                      "PRIVATE_FILE",
+                      "PUBLIC_ENROLLMENT"
+                    ]
+                  }
+                },
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                },
+                "q": {
+                  "optional": true,
+                  "default": "",
+                  "schema": {
+                    "type": "string",
+                    "checks": [
+                      {
+                        "kind": "trim"
+                      },
+                      {
+                        "kind": "max",
+                        "value": 100
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "retention.preview",
+      "method": "POST",
+      "path": "/retention/preview",
+      "permissions": [
+        "RETENTION_MANAGE"
+      ],
+      "description": "Read-only preview of the exact records affected by erasure. Must precede a deletion request.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "scope": {
+                "type": "enum",
+                "values": [
+                  "APPLICANT",
+                  "CUSTOMER",
+                  "EMPLOYEE",
+                  "PRIVATE_FILE",
+                  "PUBLIC_ENROLLMENT"
+                ]
+              },
+              "subjectId": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "uuid"
+                  }
+                ]
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "retention.policies",
+      "method": "GET",
+      "path": "/retention/policies",
+      "permissions": [
+        "RETENTION_MANAGE"
+      ],
+      "description": "Read active retention periods, basis, approval and backup/external-copy obligations.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {},
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "retention.holds",
+      "method": "GET",
+      "path": "/retention/holds",
+      "permissions": [
+        "RETENTION_MANAGE"
+      ],
+      "description": "Read legal holds that can block a deletion.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 10000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "retention.requests",
+      "method": "GET",
+      "path": "/retention/requests",
+      "permissions": [
+        "RETENTION_MANAGE"
+      ],
+      "description": "Read existing deletion requests and their approved state.",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "query": {
+            "optional": true,
+            "default": {},
+            "schema": {
+              "type": "object",
+              "fields": {
+                "page": {
+                  "optional": true,
+                  "default": 1,
+                  "schema": {
+                    "type": "number",
+                    "checks": [
+                      {
+                        "kind": "int"
+                      },
+                      {
+                        "kind": "min",
+                        "value": 1,
+                        "inclusive": true
+                      },
+                      {
+                        "kind": "max",
+                        "value": 10000,
+                        "inclusive": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "unknownKeys": "strict"
+            }
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    },
+    {
+      "name": "retention.request",
+      "method": "POST",
+      "path": "/retention/requests",
+      "permissions": [
+        "RETENTION_MANAGE"
+      ],
+      "description": "Create a retention deletion request from its exact preview. Does not approve or erase records.",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "fields": {
+          "body": {
+            "type": "object",
+            "fields": {
+              "scope": {
+                "type": "enum",
+                "values": [
+                  "APPLICANT",
+                  "CUSTOMER",
+                  "EMPLOYEE",
+                  "PRIVATE_FILE",
+                  "PUBLIC_ENROLLMENT"
+                ]
+              },
+              "subjectId": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "uuid"
+                  }
+                ]
+              },
+              "previewHash": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "regex",
+                    "regex": "^[0-9a-f]{64}$"
+                  }
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "checks": [
+                  {
+                    "kind": "trim"
+                  },
+                  {
+                    "kind": "min",
+                    "value": 5
+                  },
+                  {
+                    "kind": "max",
+                    "value": 1000
+                  }
+                ]
+              }
+            },
+            "unknownKeys": "strict"
+          }
+        },
+        "unknownKeys": "strict"
+      }
+    }
+  ]
+}

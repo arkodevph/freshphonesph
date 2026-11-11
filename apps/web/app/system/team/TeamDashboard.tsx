@@ -1,5 +1,6 @@
 "use client";
 
+import { toast as notify } from "sonner";
 import {
   createEmployee,
   getEmployee,
@@ -9,15 +10,10 @@ import {
   type Employee,
 } from "@/lib/api";
 import { ApiError } from "@/lib/ts-api";
+import { useSpringDialog } from "@/lib/useSpringDialog";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { can, useMe } from "@/lib/useMe";
-import {
-  CheckCircle,
-  ShieldCheck,
-  UserPlus,
-  WarningCircle,
-  X,
-} from "@phosphor-icons/react";
+import { ShieldCheck, UserPlus } from "@phosphor-icons/react";
 import { useSearchParams } from "next/navigation";
 import {
   useCallback,
@@ -72,8 +68,6 @@ export default function TeamDashboard() {
 
   const [page, setPage] = useState(1);
 
-  const [toast, setToast] = useState<Toast | null>(null);
-
   const [form, setForm] = useState(EMPTY_FORM);
 
   const [fieldErrors, setFieldErrors] = useState<
@@ -82,7 +76,11 @@ export default function TeamDashboard() {
 
   const [saving, setSaving] = useState(false);
 
+  const [createOpen, setCreateOpen] = useState(false);
+
   const [managed, setManaged] = useState<Employee | null>(null);
+
+  const [manageClosing, setManageClosing] = useState(false);
 
   const [drafts, setDrafts] = useState<Record<string, AccessDraft>>({});
 
@@ -96,6 +94,24 @@ export default function TeamDashboard() {
 
   const manageDialogRef = useRef<HTMLDialogElement>(null);
 
+  useSpringDialog(createDialogRef, createOpen && canAdmin, () => {
+    setFieldErrors({});
+  });
+
+  useEffect(() => {
+    if (createOpen && createDialogRef.current?.open) {
+      createDialogRef.current
+        .querySelector<HTMLInputElement>("#staff-name")
+        ?.focus();
+    }
+  }, [createOpen]);
+
+  useSpringDialog(
+    manageDialogRef,
+    Boolean(managed) && canAdmin && !manageClosing,
+    finishCloseManage,
+  );
+
   const requestRef = useRef(0);
 
   const statsRef = useRef(0);
@@ -106,9 +122,9 @@ export default function TeamDashboard() {
 
   const mutationRef = useRef(false);
 
-  const privateVersionRef = useRef(0);
+  const manageOpener = useRef<HTMLButtonElement | null>(null);
 
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const privateVersionRef = useRef(0);
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -142,23 +158,7 @@ export default function TeamDashboard() {
   );
 
   const showToast = useCallback((next: Toast) => {
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-    }
-
-    setToast(next);
-
-    toastTimerRef.current = setTimeout(() => {
-      return setToast(null);
-    }, 5000);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) {
-        clearTimeout(toastTimerRef.current);
-      }
-    };
+    notify[next.tone](next.title, { description: next.message });
   }, []);
 
   const clearPrivate = useCallback(() => {
@@ -173,6 +173,8 @@ export default function TeamDashboard() {
     selectedRef.current = null;
 
     manageDialogRef.current?.close();
+
+    setCreateOpen(false);
 
     createDialogRef.current?.close();
 
@@ -191,12 +193,6 @@ export default function TeamDashboard() {
     setLoading(false);
 
     setDetailLoading(false);
-
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-    }
-
-    setToast(null);
 
     setFieldErrors({});
   }, []);
@@ -380,6 +376,8 @@ export default function TeamDashboard() {
 
     manageDialogRef.current?.close();
 
+    setCreateOpen(false);
+
     createDialogRef.current?.close();
 
     ++detailRef.current;
@@ -406,24 +404,22 @@ export default function TeamDashboard() {
       return;
     }
 
-    if (!manageDialogRef.current?.open) {
-      manageDialogRef.current?.showModal();
+    const element = manageDialogRef.current;
+
+    if (!element?.open) {
+      return;
     }
 
-    requestAnimationFrame(() => {
-      const roleSelect =
-        manageDialogRef.current?.querySelector<HTMLSelectElement>(
-          "#managed-role",
-        );
+    const roleSelect =
+      element.querySelector<HTMLSelectElement>("#managed-role");
 
-      if (roleSelect && !roleSelect.disabled) {
-        roleSelect.focus();
-      } else {
-        manageDialogRef.current
-          ?.querySelector<HTMLButtonElement>(".team-dialog-heading button")
-          ?.focus();
-      }
-    });
+    if (roleSelect && !roleSelect.disabled) {
+      roleSelect.focus();
+    } else {
+      element
+        .querySelector<HTMLButtonElement>(".team-dialog-heading button")
+        ?.focus();
+    }
   }, [managed?.id, canAdmin]);
 
   useLiveRecords(() => {
@@ -473,13 +469,13 @@ export default function TeamDashboard() {
 
     setFieldErrors({});
 
-    createDialogRef.current?.showModal();
+    setCreateOpen(true);
+  }
 
-    requestAnimationFrame(() => {
-      return createDialogRef.current
-        ?.querySelector<HTMLInputElement>("#staff-name")
-        ?.focus();
-    });
+  function closeCreate() {
+    if (!mutationRef.current) {
+      setCreateOpen(false);
+    }
   }
 
   function validateField(name: CreateField, value: string) {
@@ -561,7 +557,7 @@ export default function TeamDashboard() {
         return;
       }
 
-      createDialogRef.current?.close();
+      setCreateOpen(false);
 
       setPage(1);
 
@@ -600,7 +596,11 @@ export default function TeamDashboard() {
     }
   }
 
-  function openManage(account: Employee) {
+  function openManage(account: Employee, opener?: HTMLButtonElement) {
+    manageOpener.current = opener ?? null;
+
+    setManageClosing(false);
+
     ++detailRef.current;
 
     selectedRef.current = String(account.id);
@@ -621,13 +621,27 @@ export default function TeamDashboard() {
 
     selectedRef.current = null;
 
-    setManaged(null);
-
     setDetailError(null);
 
     setDetailLoading(false);
 
-    manageDialogRef.current?.close();
+    setManageClosing(true);
+  }
+
+  function finishCloseManage() {
+    // A queued native close event may arrive after the drawer has reopened.
+    if (manageDialogRef.current?.open || !managed) {
+      return;
+    }
+
+    if (canAdmin && manageOpener.current?.isConnected) {
+      manageOpener.current.focus({ preventScroll: true });
+    }
+
+    // Keep the account and form mounted until the native close event after exit.
+    setManaged(null);
+
+    setManageClosing(false);
 
     if (focusedAccount) {
       window.history.replaceState(null, "", "/system/team");
@@ -751,9 +765,7 @@ export default function TeamDashboard() {
 
         selectedRef.current = null;
 
-        setManaged(null);
-
-        manageDialogRef.current?.close();
+        setManageClosing(true);
 
         if (focusedAccount) {
           window.history.replaceState(null, "", "/system/team");
@@ -893,6 +905,7 @@ export default function TeamDashboard() {
 
       <CreateAccountDialog
         createDialogRef={createDialogRef}
+        requestClose={closeCreate}
         setFieldErrors={setFieldErrors}
         saving={saving}
         createAccount={createAccount}
@@ -906,6 +919,7 @@ export default function TeamDashboard() {
       <ManageAccountDialog
         manageDialogRef={manageDialogRef}
         closeManage={closeManage}
+        onClosed={finishCloseManage}
         managed={managed}
         saveManagedAccount={saveManagedAccount}
         managing={managing}
@@ -922,39 +936,6 @@ export default function TeamDashboard() {
         staleDraft={staleDraft}
         discardAccess={discardAccess}
       />
-
-      {toast && (
-        <div
-          className="team-toast-region"
-          aria-live={toast.tone === "error" ? "assertive" : "polite"}
-        >
-          <div
-            className={`team-toast is-${toast.tone}`}
-            role={toast.tone === "error" ? "alert" : "status"}
-          >
-            <span className="team-toast-icon">
-              {toast.tone === "error" ? (
-                <WarningCircle weight="fill" />
-              ) : (
-                <CheckCircle weight="fill" />
-              )}
-            </span>
-            <div>
-              <strong>{toast.title}</strong>
-              <p>{toast.message}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                return setToast(null);
-              }}
-              aria-label="Dismiss notification"
-            >
-              <X />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

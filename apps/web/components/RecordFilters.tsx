@@ -1,6 +1,8 @@
 "use client";
 
-import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
+import DateInput from "./DateInput";
+import FormSelect from "./FormSelect";
+import AnimatedDisclosure from "./AnimatedDisclosure";
 import { useId } from "react";
 import type { RecordFiltersValue } from "@/lib/record-filters";
 import { AssignmentFilters } from "./AssignmentFilters";
@@ -15,6 +17,7 @@ export function RecordFilters({
   loading,
   error,
   hasContext = false,
+  compact = false,
 }: {
   kind: "batch" | "client";
   value: RecordFiltersValue;
@@ -24,6 +27,7 @@ export function RecordFilters({
   loading: boolean;
   error: string | null;
   hasContext?: boolean;
+  compact?: boolean;
 }) {
   const id = useId();
 
@@ -50,52 +54,85 @@ export function RecordFilters({
     label: string,
     placeholder = "",
   ) => {
+    const attributes = {
+      id: `${id}-${key}`,
+      value: value[key],
+      "aria-invalid":
+        key.startsWith("date") && error ? (true as const) : undefined,
+      "aria-describedby":
+        key.startsWith("date") && error ? `${id}-error` : undefined,
+      onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+        return onChange(key, event.target.value);
+      },
+    };
+
     return (
       <label className={styles.field} htmlFor={`${id}-${key}`}>
         <span>{label}</span>
-        <input
-          id={`${id}-${key}`}
-          type={key.startsWith("date") ? "date" : "search"}
-          value={value[key]}
-          maxLength={key === "q" || key === "model" ? 100 : undefined}
-          placeholder={placeholder}
-          aria-invalid={key.startsWith("date") && error ? true : undefined}
-          aria-describedby={
-            key.startsWith("date") && error ? `${id}-error` : undefined
-          }
-          onChange={(event) => {
-            return onChange(key, event.target.value);
-          }}
-        />
+        {key.startsWith("date") ? (
+          <DateInput {...attributes} />
+        ) : (
+          <input
+            {...attributes}
+            type="search"
+            maxLength={100}
+            placeholder={placeholder}
+          />
+        )}
       </label>
     );
   };
 
+  const extraCount = [
+    value.model,
+    value.dateFrom,
+    value.dateTo,
+    value.handlerId,
+    value.agentId,
+  ].filter(Boolean).length;
+
+  const advanced = (
+    <>
+      <div className={styles.grid}>
+        {input("model", "Unit / model", "e.g. iPhone 15")}
+        {input("dateFrom", `${date} from`)}
+        {input("dateTo", `${date} to`)}
+      </div>
+      <AssignmentFilters
+        handlerId={value.handlerId}
+        agentId={value.agentId}
+        onChange={onChange}
+      />
+    </>
+  );
+
   return (
     <section
       aria-label={`${kind === "batch" ? "Batch" : "Client"} filters`}
-      className={styles.panel}
+      className={`${styles.panel} ${compact ? styles.compact : ""}`}
     >
-      <div className={styles.heading}>
-        <h2>Filter {noun}</h2>
-        <div className={styles.actions}>
-          <button
-            type="button"
-            onClick={onClear}
-            disabled={!hasContext && !Object.values(value).some(Boolean)}
-          >
-            Clear filters
-          </button>
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={loading || Boolean(error)}
-          >
-            Refresh {noun}
-          </button>
+      {!compact && (
+        <div className={styles.heading}>
+          <h2>Filter {noun}</h2>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={!hasContext && !Object.values(value).some(Boolean)}
+            >
+              Clear filters
+            </button>
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={loading || Boolean(error)}
+            >
+              Refresh {noun}
+            </button>
+          </div>
         </div>
-      </div>
-      <div className={styles.grid}>
+      )}
+      <div className={compact ? styles.toolbar : styles.grid}>
         {input(
           "q",
           `Search ${noun}`,
@@ -103,45 +140,76 @@ export function RecordFilters({
             ? "Batch number or model"
             : "Name, email, phone or batch number",
         )}
-        {input("model", "Filter by unit / model", "e.g. iPhone 15")}
-        <label className={styles.field} htmlFor={`${id}-status`}>
-          <span id={`${id}-status-label`}>Filter by status</span>
-          <WorkspaceSelect
+        {!compact && input("model", "Filter by unit / model", "e.g. iPhone 15")}
+        <div className={styles.field}>
+          <span id={`${id}-status-label`}>
+            {compact ? "Status" : "Filter by status"}
+          </span>
+          <FormSelect
             id={`${id}-status`}
-            aria-labelledby={`${id}-status-label`}
+            label="Status"
+            labelId={`${id}-status-label`}
             value={value.status}
-            onValueChange={(value) => {
-              return onChange("status", value);
+            onValueChange={(next) => {
+              return onChange("status", next);
             }}
-          >
-            <option value="">All statuses</option>
-            {statuses.map(([key, label]) => {
-              return (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              );
-            })}
-          </WorkspaceSelect>
-        </label>
-        {input("dateFrom", `${date} from`)}
-        {input("dateTo", `${date} to`)}
+            options={[
+              { value: "", label: "All statuses" },
+              ...statuses.map(([value, label]) => {
+                return { value, label };
+              }),
+            ]}
+          />
+        </div>
+        {!compact && input("dateFrom", `${date} from`)}
+        {!compact && input("dateTo", `${date} to`)}
+        {compact && (
+          <div className={styles.actions}>
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={!hasContext && !Object.values(value).some(Boolean)}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={loading || Boolean(error)}
+            >
+              Refresh
+            </button>
+          </div>
+        )}
       </div>
-      <p className={styles.help}>
-        Dates include both endpoints and use{" "}
-        {kind === "batch" ? "the batch start date" : "the client joined date"}.
-        Unit/model matches part of the unit name.
-      </p>
+      {compact && (
+        <AnimatedDisclosure
+          className={styles.more}
+          forceOpen={Boolean(error)}
+          title={<>More filters{extraCount > 0 ? ` (${extraCount})` : ""}</>}
+        >
+          <div className={styles.advanced}>{advanced}</div>
+        </AnimatedDisclosure>
+      )}
+      {!compact && (
+        <p className={styles.help}>
+          Dates include both endpoints and use{" "}
+          {kind === "batch" ? "the batch start date" : "the client joined date"}
+          . Unit/model matches part of the unit name.
+        </p>
+      )}
       {error && (
         <p id={`${id}-error`} role="alert" className={styles.error}>
           {error}
         </p>
       )}
-      <AssignmentFilters
-        handlerId={value.handlerId}
-        agentId={value.agentId}
-        onChange={onChange}
-      />
+      {!compact && (
+        <AssignmentFilters
+          handlerId={value.handlerId}
+          agentId={value.agentId}
+          onChange={onChange}
+        />
+      )}
     </section>
   );
 }

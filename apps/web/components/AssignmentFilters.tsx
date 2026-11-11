@@ -1,6 +1,6 @@
 "use client";
 
-import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
+import FormSelect from "./FormSelect";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { getAssignmentOptions, type AssignmentOptions } from "@/lib/api";
 import { useLiveRecords } from "@/lib/useLiveRecords";
@@ -71,42 +71,42 @@ export function AssignmentFilters({
             key === "handlerId" ? "Filter by handler" : "Filter by agent";
 
           return (
-            <label
-              key={key}
-              htmlFor={`${labelId}-${key}`}
-              className="grid gap-1 text-sm text-blue-ink"
-            >
+            <div key={key} className="grid gap-1 text-sm text-blue-ink">
               <span id={`${labelId}-${key}-label`}>{label}</span>
-              <WorkspaceSelect
+              <FormSelect
                 id={`${labelId}-${key}`}
-                aria-labelledby={`${labelId}-${key}-label`}
+                label={label}
+                labelId={`${labelId}-${key}-label`}
                 value={selected}
-                onValueChange={(value) => {
-                  return onChange(key, value);
+                onValueChange={(next) => {
+                  return onChange(key, next);
                 }}
-                className="w-full rounded-2xl border border-white/70 bg-white/70 px-3 py-2 text-sm text-ink focus:border-blue"
-              >
-                <option value="">
-                  All {key === "handlerId" ? "handlers" : "agents"}
-                </option>
-                {selected &&
+                searchable
+                options={[
+                  {
+                    value: "",
+                    label: `All ${key === "handlerId" ? "handlers" : "agents"}`,
+                  },
+                  ...(selected &&
                   !items.some((item) => {
                     return item.id === selected;
-                  }) && (
-                    <option value={selected}>
-                      Selected assignment unavailable
-                    </option>
-                  )}
-                {items.map((item) => {
-                  return (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                      {item.active ? "" : " (inactive)"}
-                    </option>
-                  );
-                })}
-              </WorkspaceSelect>
-            </label>
+                  })
+                    ? [
+                        {
+                          value: selected,
+                          label: "Selected assignment unavailable",
+                        },
+                      ]
+                    : []),
+                  ...items.map((item) => {
+                    return {
+                      value: item.id,
+                      label: `${item.name}${item.active ? "" : " (inactive)"}`,
+                    };
+                  }),
+                ]}
+              />
+            </div>
           );
         })}
       </div>

@@ -1,5 +1,8 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   useCallback,
   useEffect,
@@ -119,7 +122,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
 
   const [error, setError] = useState("");
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   const loadSequence = useRef(0);
 
@@ -283,7 +286,10 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
             rejected request may be revised and submitted again.
           </p>
           {!eligible ? (
-            <p className={styles.empty}>Loading reviews…</p>
+            <WorkspaceProgress
+              className={styles.empty}
+              label="Loading reviews…"
+            />
           ) : eligible.results.length === 0 ? (
             <p className={styles.empty}>
               No action recommendations available in this view. Record a human
@@ -364,6 +370,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
                           </button>
                           <button
                             type="submit"
+                            data-variant="primary"
                             className={styles.primary}
                             disabled={
                               busy ||
@@ -414,7 +421,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
           </div>
           <label className={styles.filter}>
             Status
-            <select
+            <WorkspaceNativeSelect
               value={filter}
               onChange={(event) => {
                 setFilter(event.target.value as typeof filter);
@@ -426,11 +433,14 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
               <option value="PENDING">Pending</option>
               <option value="APPROVED">Approved</option>
               <option value="REJECTED">Rejected</option>
-            </select>
+            </WorkspaceNativeSelect>
           </label>
         </div>
         {!actions ? (
-          <p className={styles.empty}>Loading requests…</p>
+          <WorkspaceProgress
+            className={styles.empty}
+            label="Loading requests…"
+          />
         ) : actions.results.length === 0 ? (
           <p className={styles.empty}>No requests in this view.</p>
         ) : (
@@ -525,6 +535,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
                           </button>
                           <button
                             type="submit"
+                            data-variant="primary"
                             className={styles.primary}
                             disabled={
                               busy || decision.reason.trim().length < 10
@@ -557,6 +568,7 @@ function HrActionsWorkspace({ owner }: { owner: boolean }) {
                         </button>
                         <button
                           type="button"
+                          data-variant="primary"
                           className={styles.primary}
                           disabled={busy}
                           onClick={() => {

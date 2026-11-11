@@ -19,7 +19,13 @@ import { useMe } from "@/lib/useMe";
 import { WorkspaceContentSkeleton } from "./WorkspaceSkeleton";
 import styles from "./legal-gate.module.css";
 
-export function LegalGate({ children }: { children: ReactNode }) {
+export function LegalGate({
+  children,
+  fallback,
+}: {
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
   const router = useRouter();
 
   const me = useMe();
@@ -108,7 +114,7 @@ export function LegalGate({ children }: { children: ReactNode }) {
   }, [reload]);
 
   if (!me || (loadedFor !== String(me.id) && !loadError)) {
-    return <WorkspaceContentSkeleton label="Loading account" />;
+    return fallback ?? <WorkspaceContentSkeleton label="Loading account" />;
   }
 
   if (loadError) {

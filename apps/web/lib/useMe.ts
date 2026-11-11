@@ -1,17 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { fetchMe, type Me } from "./api";
 import { supportSignInHref } from "./support-entry";
+
+export const CurrentUserContext = createContext<Me | null>(null);
 
 /** Current user's identity and permissions, checked against the session cookie. */
 export function useMe() {
   const router = useRouter();
 
+  const inherited = useContext(CurrentUserContext);
+
   const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
+    if (inherited) {
+      return;
+    }
+
     let active = true;
 
     let retry: ReturnType<typeof setTimeout> | undefined;
@@ -61,9 +69,9 @@ export function useMe() {
 
       window.removeEventListener("fp-mfa-required", requireMfa);
     };
-  }, [router]);
+  }, [router, inherited]);
 
-  return me;
+  return inherited ?? me;
 }
 
 export function can(me: Me | null, ...perms: string[]): boolean {

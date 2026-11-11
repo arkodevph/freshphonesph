@@ -115,15 +115,6 @@
   background: transparent;
   color: var(--portal-text, #17254d);
 }
-.notice {
-  padding: 18px 20px;
-  border: 1px solid var(--portal-border, #dce2ed);
-  border-radius: 16px;
-  background: var(--portal-surface, #fff);
-  color: var(--portal-muted, #53617e);
-  font-size: 0.875rem;
-  line-height: 1.7;
-}
 .portal .card {
   border-color: var(--portal-border, #dce2ed);
   background: var(--portal-surface, #fff);

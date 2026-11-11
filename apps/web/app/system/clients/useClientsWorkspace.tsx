@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   addReleaseUpdate,
   createClient,
@@ -103,7 +104,7 @@ export function useClientsWorkspace() {
 
   const [choicesError, setChoicesError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [saving, setSaving] = useState(false);
 

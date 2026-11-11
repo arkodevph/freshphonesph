@@ -1,3 +1,5 @@
+import { allowed } from "../auth/access";
+import type { User } from "@freshphones/contracts";
 import type {
   StaffAlert,
   TaskAlertKind,
@@ -6,7 +8,9 @@ import type {
   EnrollmentAlertKind,
   SupportAlertKind,
   AccountAlertKind,
+  WorkflowAlertKind,
 } from "@freshphones/contracts";
+import { workflowAlertTitles } from "./workflow-alerts";
 import { paymentReviewTitles } from "./payment-review-alerts";
 import { supportAlertTitles } from "./support-alerts";
 import { accountAlertTitles } from "./account-alerts";
@@ -14,10 +18,13 @@ import { enrollmentAlertTitles } from "./enrollment-alerts";
 
 export type AlertRow = {
   id: string;
+  sourceId: string | null;
+  sourceType: "PAYMENT" | "STATEMENT" | null;
   paymentId: string | null;
   caseId: string | null;
   accountId: string | null;
   entity:
+    | "workflow"
     | "task"
     | "payment"
     | "payment-result"
@@ -26,6 +33,7 @@ export type AlertRow = {
     | "account"
     | "enrollment";
   kind:
+    | WorkflowAlertKind
     | AccountAlertKind
     | EnrollmentAlertKind
     | TaskAlertKind
@@ -55,12 +63,39 @@ const resultTitles: Record<PaymentResultKind, string> = {
   PAYMENT_CLARIFICATION: "Finance needs payment clarification",
 };
 
-export function staffAlertView(row: AlertRow): StaffAlert {
+export function staffAlertView(row: AlertRow, user?: User): StaffAlert {
   const base = {
     id: row.id,
     readAt: row.readAt?.toISOString() ?? null,
     occurredAt: row.occurredAt.toISOString(),
   };
+
+  if (row.entity === "workflow") {
+    const kind = row.kind as WorkflowAlertKind;
+
+    const source = row.sourceType!;
+
+    const sourceId = row.sourceId!;
+
+    return {
+      ...base,
+      entity: "workflow",
+      kind,
+      version: row.version,
+      source,
+      sourceId,
+      title: workflowAlertTitles[kind],
+      message: `${row.batchCode} · ${kind === "OPERATIONS_FOLLOW_UP" ? "An operational follow-up is open. Contact operations staff for the handoff details." : "Open the current evidence and review status."}`,
+      targetPath:
+        kind === "OPERATIONS_FOLLOW_UP" &&
+        user &&
+        allowed(user, "OPERATIONS_MONITOR")
+          ? `/system/operations-monitor?source=${source}&itemId=${sourceId}`
+          : source === "PAYMENT"
+            ? `/system/payments?payment=${sourceId}`
+            : `/system/gcash-history?history=${sourceId}`,
+    };
+  }
 
   if (row.entity === "enrollment") {
     const kind = row.kind as EnrollmentAlertKind;

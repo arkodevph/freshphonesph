@@ -15,6 +15,8 @@ import {
 } from "@freshphones/contracts";
 import { createApp } from "../src/app";
 import { Database } from "../src/database";
+import { Prisma } from "../src/generated/prisma/client";
+import { paymentMatchSql } from "../src/gcash-history/payment-matches";
 import type { Config } from "../src/config";
 import { hashPassword } from "../src/auth/password";
 import { safeUser } from "../src/auth/auth.service";
@@ -2042,4 +2044,302 @@ test("correction authors remain protected from generic employee retention after 
       }),
     /access has changed/,
   );
+});
+
+test("payment match suggestions enforce exact scoped evidence, duplicates, pages and corrected versions without changing money", async () => {
+  const batch = await db.batch.create({
+    data: {
+      code: `MATCH-${suffix}`,
+      model: "Synthetic",
+      handlerId: people.get("BATCH_HANDLER")!.id,
+      startDate: new Date("2050-10-01"),
+      endDate: new Date("2051-10-01"),
+    },
+  });
+
+  const client = await db.client.create({
+    data: {
+      batchId: batch.id,
+      name: "Synthetic match member",
+      email: "",
+      phone: "",
+    },
+  });
+
+  const baseRow = {
+    page: 1,
+    date: "2050-10-01",
+    time: "23:59",
+    description: "Synthetic incoming",
+    reference: "EXACT",
+    debit: null,
+    credit: "0.20",
+    balance: null,
+    warnings: [],
+  };
+
+  const rows = Array.from({ length: 27 }, () => {
+    return { ...baseRow, reference: "", credit: "0.00" };
+  });
+
+  const references = [
+    "EXACT",
+    "DUP-ROWS",
+    "AMOUNT",
+    "DATE",
+    "DUP-PAY",
+    "",
+    "FOREIGN",
+    "BANK",
+    "REJECTED",
+    "CENTAVO",
+    "exact",
+  ];
+
+  references.forEach((reference, index) => {
+    rows[index] = { ...baseRow, reference };
+  });
+
+  rows[9].credit = "0.30";
+
+  rows[11] = { ...baseRow, reference: "DUP-REJECTED" };
+
+  rows[26] = { ...rows[1], page: 2 };
+
+  const reading = {
+    version: 1,
+    status: "PARTIAL",
+    method: "TEXT",
+    pages: 2,
+    transactionCount: rows.length,
+    rows,
+    openingBalance: null,
+    closingBalance: null,
+    totalDebit: null,
+    totalCredit: null,
+    calculatedDebit: "0.00",
+    calculatedCredit: "2.10",
+    checks: {
+      debitTotalMatches: null,
+      creditTotalMatches: null,
+      runningBalancesMatch: null,
+      closingBalanceMatches: null,
+    },
+    warnings: [],
+  };
+
+  const file = await db.storedFile.create({
+    data: {
+      storageKey: randomUUID(),
+      originalName: "synthetic-matches.pdf",
+      mimeType: "application/pdf",
+      size: 8,
+      uploadedById: people.get("BATCH_HANDLER")!.id,
+    },
+  });
+
+  const history = await db.gcashHistory.create({
+    data: {
+      batchId: batch.id,
+      periodStart: new Date("2050-10-01"),
+      periodEnd: new Date("2050-10-31"),
+      submissions: {
+        create: {
+          revision: 1,
+          uploadedById: people.get("BATCH_HANDLER")!.id,
+          fileId: file.id,
+          reading: { create: { data: reading } },
+        },
+      },
+    },
+    include: { submissions: true },
+  });
+
+  const submissionId = history.submissions[0].id;
+
+  const makePayment = (
+    referenceNumber: string | null,
+    amount = "0.20",
+    paymentDate = "2050-10-01",
+    extra = {},
+  ) => {
+    return db.payment.create({
+      data: {
+        clientId: client.id,
+        batchId: batch.id,
+        amount,
+        paymentDate: new Date(paymentDate),
+        method: "GCash",
+        referenceNumber,
+        recordedById: people.get("BATCH_HANDLER")!.id,
+        ...extra,
+      },
+    });
+  };
+
+  const exact = await makePayment("EXACT");
+
+  await makePayment("DUP-ROWS");
+
+  await makePayment("AMOUNT", "0.21");
+
+  await makePayment("DATE", "0.20", "2050-10-02");
+
+  await makePayment("DUP-PAY");
+
+  await makePayment("DUP-PAY", "0.20", "2040-01-01");
+
+  await makePayment("BANK", "0.20", "2050-10-01", { method: "bank" });
+
+  await makePayment("REJECTED", "0.20", "2050-10-01", { status: "REJECTED" });
+
+  await makePayment("CENTAVO", "0.31");
+
+  await makePayment("DUP-REJECTED");
+
+  await makePayment("DUP-REJECTED", "0.20", "2050-10-01", {
+    status: "REJECTED",
+  });
+
+  await makePayment(null);
+
+  const foreign = await makePayment("FOREIGN", "0.20", "2050-10-01", {
+    batchId: otherBatchId,
+  });
+
+  await db.payment.createMany({
+    data: Array.from({ length: 2500 }, (_, index) => {
+      return {
+        clientId: client.id,
+        batchId: batch.id,
+        amount: "1.00",
+        paymentDate: new Date("2040-01-01"),
+        method: "GCash",
+        referenceNumber: `BACKLOG-${index}`,
+        recordedById: people.get("BATCH_HANDLER")!.id,
+      };
+    }),
+  });
+
+  const plans = await db.$queryRaw<
+    { "QUERY PLAN": Array<{ "Execution Time": number }> }[]
+  >(
+    Prisma.sql`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${paymentMatchSql(batch.id, rows)}`,
+  );
+
+  console.info({
+    feature: "gcash-payment-matches",
+    backlog: 2500,
+    executionMs: plans[0]["QUERY PLAN"][0]["Execution Time"],
+  });
+
+  const before = await db.payment.findMany({
+    where: { batchId: batch.id },
+    orderBy: { id: "asc" },
+  });
+
+  const path = `/gcash-history/submissions/${submissionId}/reading`;
+
+  const response = await request("RECORDS", path);
+
+  assert.equal(response.status, 200);
+
+  const result = await response.json();
+
+  assert.equal(result.total, 27);
+
+  assert.equal(result.paymentMatches.length, 25);
+
+  assert.deepEqual(
+    result.paymentMatches.slice(0, 11).map((match: { status: string }) => {
+      return match.status;
+    }),
+    [
+      "SUGGESTED",
+      "AMBIGUOUS",
+      "UNMATCHED",
+      "UNMATCHED",
+      "AMBIGUOUS",
+      "MISSING_REFERENCE",
+      "UNMATCHED",
+      "UNMATCHED",
+      "UNMATCHED",
+      "UNMATCHED",
+      "UNMATCHED",
+    ],
+  );
+
+  assert.equal(result.paymentMatches[0].paymentId, exact.id);
+
+  assert.equal(result.paymentMatches[11].status, "AMBIGUOUS");
+
+  assert.equal(result.unmatchedPayments, 4);
+
+  assert(!JSON.stringify(result).includes(foreign.id));
+
+  const page2 = await (
+    await request("FINANCE_OFFICER", `${path}?page=2`)
+  ).json();
+
+  assert.equal(page2.paymentMatches[1].rowIndex, 26);
+
+  assert.equal(page2.paymentMatches[1].status, "AMBIGUOUS");
+
+  assert.equal((await request("OTHER_HANDLER", path)).status, 404);
+
+  assert.equal((await request(null, path)).status, 401);
+
+  for (const role of roles) {
+    const permitted =
+      rolePermissions[role].includes("GCASH_HISTORY_READ") &&
+      rolePermissions[role].includes("PAYMENT_READ");
+
+    const response = await request(role, path);
+
+    assert.equal(
+      response.status,
+      permitted ? (role === "CORE_HANDLER" ? 404 : 200) : 403,
+      role,
+    );
+  }
+
+  const corrected = structuredClone(reading);
+
+  corrected.rows[0].credit = "0.21";
+
+  await db.gcashPdfReading.update({
+    where: { submissionId },
+    data: { correctedData: corrected, correctionVersion: 1 },
+  });
+
+  const current = await (await request("RECORDS", path)).json();
+
+  const original = await (
+    await request("RECORDS", `${path}?source=original`)
+  ).json();
+
+  assert.equal(current.paymentMatches[0].status, "UNMATCHED");
+
+  assert.equal(current.correctionVersion, 1);
+
+  assert.equal(original.paymentMatches[0].status, "SUGGESTED");
+
+  assert.deepEqual(
+    await db.payment.findMany({
+      where: { batchId: batch.id },
+      orderBy: { id: "asc" },
+    }),
+    before,
+  );
+
+  await db.batch.update({
+    where: { id: batch.id },
+    data: { handlerId: people.get("OTHER_HANDLER")!.id },
+  });
+
+  assert.equal((await request("BATCH_HANDLER", path)).status, 404);
+
+  assert.equal((await request("OTHER_HANDLER", path)).status, 200);
+
+  assert.equal((await request("RECORDS", `${path}?page=0`)).status, 400);
 });

@@ -18,6 +18,7 @@ import { tsRequest } from "@/lib/ts-api";
 import { currentMembership } from "@/lib/membership-selection";
 import { prepareAccountDocumentPrint } from "@/lib/account-document-print";
 import { downloadAccountPdf } from "@/lib/account-pdf";
+import SplitButton from "@/components/SplitButton";
 import DocumentSheetSkeleton from "./DocumentSheetSkeleton";
 import styles from "./financial-document.module.css";
 import glass from "../portal-glass.module.css";
@@ -91,10 +92,12 @@ export default function FinancialDocumentPage() {
           <Link href="/portal/payments">
             <ArrowLeft aria-hidden="true" /> Back to payments
           </Link>
-          <button
-            type="button"
+          <SplitButton
+            primary
+            label={downloading ? "Preparing PDF…" : "Download PDF"}
+            icon={<DownloadSimple aria-hidden="true" />}
             disabled={!document || !client || downloading}
-            onClick={() => {
+            onAction={() => {
               if (!document || !client) {
                 return;
               }
@@ -115,33 +118,33 @@ export default function FinancialDocumentPage() {
                   return setDownloading(false);
                 });
             }}
-          >
-            <DownloadSimple aria-hidden="true" />{" "}
-            {downloading ? "Preparing PDF…" : "Download PDF"}
-          </button>
-          <button
-            type="button"
-            disabled={!document}
-            onClick={() => {
-              setDownloadError("");
+            menuLabel="Account document options"
+            actions={[
+              {
+                label: "Print account document",
+                icon: <Printer aria-hidden="true" />,
+                onAction: () => {
+                  setDownloadError("");
 
-              void prepareAccountDocumentPrint(
-                window.document.querySelector("[data-account-document-sheet]"),
-              )
-                .then(() => {
-                  window.print();
-                })
-                .catch((caught) => {
-                  setDownloadError(
-                    caught instanceof Error
-                      ? caught.message
-                      : "Could not prepare this document for printing.",
-                  );
-                });
-            }}
-          >
-            <Printer aria-hidden="true" /> Print
-          </button>
+                  void prepareAccountDocumentPrint(
+                    window.document.querySelector(
+                      "[data-account-document-sheet]",
+                    ),
+                  )
+                    .then(() => {
+                      return window.print();
+                    })
+                    .catch((caught) => {
+                      return setDownloadError(
+                        caught instanceof Error
+                          ? caught.message
+                          : "Could not prepare this document for printing.",
+                      );
+                    });
+                },
+              },
+            ]}
+          />
         </div>
       </header>
       {downloadError && (

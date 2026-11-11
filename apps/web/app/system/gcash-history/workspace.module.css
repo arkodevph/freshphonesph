@@ -200,15 +200,17 @@
 .checks {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  column-gap: 20px;
+  row-gap: 6px;
   margin-bottom: 14px;
   font-size: 0.6875rem;
 }
 .checks span {
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: var(--system-bg, #f4f5f8);
-  border: 1px solid var(--system-border, #dcdfe9);
+  padding: 2px 0;
+  background: transparent;
+  border: 0;
+  color: var(--system-muted);
+  font-size: 13px;
 }
 .checks [data-check="match"] {
   color: var(--system-text, #275946);
@@ -244,7 +246,7 @@
   border-radius: 10px;
   max-width: 100%;
   overflow: auto;
-  max-height: 48dvh;
+  max-height: none;
 }
 .tableWrap table {
   min-width: 870px;
@@ -572,5 +574,231 @@
   }
   .cardTop {
     flex-wrap: wrap;
+  }
+}
+
+.matchHelp {
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--system-muted, #626276);
+}
+.matchHelp p + p {
+  margin-top: 8px;
+}
+.matchCell a {
+  color: var(--system-accent, #245fbd);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.matchCell a:focus-visible {
+  outline: 3px solid var(--system-accent, #245fbd);
+  outline-offset: 3px;
+}
+
+/* COO uses labeled status, without a colored edge on any side. */
+:global(.system-shell[data-workspace-role="coo"]) :is(.warning, .success) {
+  border: 1px solid var(--system-border);
+  box-shadow: none;
+}
+
+/* Informational status is text, never a button-shaped surface. */
+.dialog .badge[data-status],
+.queue .badge[data-status] {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--system-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.skeletonAction {
+  display: inline-block;
+  width: 128px;
+  height: 40px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--system-text) 11%, transparent);
+}
+
+/* A single reading surface: the full statement table or the original PDF. */
+.comparison {
+  display: block;
+}
+.mobileTabs {
+  display: flex;
+  padding: 0 24px 18px;
+  gap: 8px;
+}
+.mobileTabs button {
+  border: 0;
+  background: transparent;
+  color: var(--system-muted);
+}
+.mobileTabs button[aria-pressed="true"] {
+  background: var(--workspace-control-hover, var(--system-bg));
+  color: var(--system-text);
+  font-weight: 600;
+}
+.comparison[data-view="pdf"] > .transactions,
+.comparison[data-view="transactions"] > .pdfPanel {
+  display: none;
+}
+.pdfPanel {
+  border: 0;
+}
+.tableWrap {
+  overflow: visible;
+}
+.tableWrap table {
+  min-width: 0;
+  table-layout: fixed;
+  font-size: 13px;
+}
+.tableWrap :is(th, td) {
+  padding: 12px 10px;
+  overflow-wrap: anywhere;
+}
+.tableWrap th {
+  position: static;
+  font-size: 12px;
+}
+.tableWrap th:nth-child(1) {
+  width: 13%;
+}
+.tableWrap th:nth-child(2) {
+  width: 19%;
+}
+.tableWrap th:nth-child(3) {
+  width: 13%;
+}
+.tableWrap th:nth-child(4),
+.tableWrap th:nth-child(5),
+.tableWrap th:nth-child(6) {
+  width: 10%;
+}
+.tableWrap th:nth-child(7) {
+  width: 15%;
+}
+.tableWrap th:nth-child(8) {
+  width: 10%;
+}
+.description {
+  min-width: 0;
+  max-width: none;
+}
+.totals div {
+  border: 0;
+  padding: 0;
+}
+.matchHelp {
+  margin-top: 16px;
+  font-size: 13px;
+}
+.matchHelp summary {
+  cursor: pointer;
+}
+@media (max-width: 700px) {
+  .tableWrap thead {
+    display: none;
+  }
+  .tableWrap table,
+  .tableWrap tbody,
+  .tableWrap tr,
+  .tableWrap td {
+    display: block;
+    width: 100%;
+  }
+  .tableWrap tr {
+    padding: 12px;
+    border-bottom: 1px solid var(--system-border);
+  }
+  .tableWrap td {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 8px;
+    border: 0;
+    padding: 6px 0;
+  }
+  .tableWrap td::before {
+    color: var(--system-muted);
+    content: attr(data-label);
+    font-size: 12px;
+  }
+  .tableWrap td > :is(small, button, details) {
+    grid-column: 2;
+  }
+}
+
+/* Keep the review header compact enough to give the statement its reading space. */
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  .dialog
+  > .header {
+  margin-bottom: 0;
+  padding: 18px 24px 12px;
+}
+.dialog .boundary {
+  padding-bottom: 10px;
+}
+.dialog .mobileTabs {
+  padding-bottom: 12px;
+}
+.dialog .panelHeader {
+  min-height: 72px;
+  padding: 12px 18px;
+  align-items: center;
+}
+.dialog .totals {
+  padding-block: 12px;
+}
+.dialog .matchHelp {
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+.dialog .checks {
+  margin-bottom: 6px;
+}
+.dialog .transactionBody > .warning {
+  padding: 6px 12px;
+  margin-block: 8px;
+}
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  .tableWrap
+  :is(th, td) {
+  padding: 9px 10px;
+  white-space: normal;
+  vertical-align: middle;
+}
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  .tableWrap
+  button {
+  min-height: 28px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.tableWrap td:first-child small {
+  display: inline;
+  margin-left: 6px;
+}
+.tableWrap td:first-child button {
+  display: block;
+}
+.pdfCanvas {
+  max-height: none;
+  overflow: visible;
+}
+.comparison[data-view="pdf"] .pdfCanvas {
+  overflow-x: auto;
+}
+@media (max-width: 700px) {
+  :global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+    .tableWrap
+    td {
+    vertical-align: top;
+    padding: 6px 0;
+  }
+  .tableWrap td:first-child small {
+    display: block;
+    margin-left: 0;
   }
 }

@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { ArrowSquareOut, Briefcase } from "@phosphor-icons/react";
-import { AgentsPanel } from "./AgentsPanel";
 import styles from "./recruitment.module.css";
 import { RecruitmentDesk } from "./RecruitmentDesk";
 
 export default function RecruitmentWorkspace({
+  isCoo,
   canRecruit,
   canAgents,
   canReadApplicants,
 }: {
+  isCoo: boolean;
   canRecruit: boolean;
   canAgents: boolean;
   canReadApplicants: boolean;
@@ -41,6 +42,7 @@ export default function RecruitmentWorkspace({
       </header>
       {canRecruit && !denied ? (
         <RecruitmentDesk
+          isCoo={isCoo}
           key={String(canReadApplicants)}
           onDenied={onDenied}
           canReadApplicants={canReadApplicants}
@@ -56,7 +58,11 @@ export default function RecruitmentWorkspace({
           </section>
         )
       )}
-      {canAgents && <AgentsPanel />}
+      {canAgents && (
+        <Link className={styles.publicLink} href="/system/agents">
+          Agent directory
+        </Link>
+      )}
     </div>
   );
 }

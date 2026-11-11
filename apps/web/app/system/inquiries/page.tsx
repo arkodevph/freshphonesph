@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { can, useMe } from "@/lib/useMe";
 import { InquiriesWorkspace } from "./InquiriesWorkspace";
 
@@ -7,7 +8,7 @@ export default function InquiriesPage() {
   const me = useMe();
 
   if (!me) {
-    return <p role="status">Loading inquiry access…</p>;
+    return <WorkspaceProgress label="Loading inquiry access…" />;
   }
 
   if (!can(me, "SUPPORT_MANAGE")) {

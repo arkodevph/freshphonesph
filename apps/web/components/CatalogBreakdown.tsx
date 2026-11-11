@@ -1,5 +1,7 @@
 "use client";
 
+import ModalCloseButton from "@/components/ModalCloseButton";
+import DateInput from "@/components/DateInput";
 import { useEffect, useRef, useState } from "react";
 import {
   catalogPlanBreakdown,
@@ -60,6 +62,8 @@ export default function CatalogBreakdown({
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-size="wide"
       ref={dialog}
       className={styles.dialog}
       aria-labelledby="catalog-breakdown-title"
@@ -69,14 +73,12 @@ export default function CatalogBreakdown({
         onClose();
       }}
     >
-      <header className={styles.header}>
+      <header data-modal-header className={styles.header}>
         <div>
           <p>Sample payment plan</p>
           <h2 id="catalog-breakdown-title">{item.name}</h2>
         </div>
-        <button type="button" onClick={onClose}>
-          Close breakdown
-        </button>
+        <ModalCloseButton onClick={onClose} />
       </header>
       <p className={styles.intro}>
         Explore this offer before joining. Your confirmed agreement sets the
@@ -140,7 +142,7 @@ export default function CatalogBreakdown({
           </div>
           <label className={styles.date}>
             Example start date <span>(optional)</span>
-            <input
+            <DateInput
               type="date"
               min="1900-01-01"
               max="2100-12-31"

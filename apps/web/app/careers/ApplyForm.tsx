@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import Link from "@/components/PublicNavigationLink";
 import {
   useCallback,
@@ -54,7 +55,7 @@ export default function ApplyForm({
 
   const [fileInputKey, setFileInputKey] = useState(0);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [error, setError] = useState<string | null>(null);
 

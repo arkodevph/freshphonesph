@@ -1,5 +1,9 @@
 "use client";
 
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import ModalCloseButton from "@/components/ModalCloseButton";
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useMe } from "@/lib/useMe";
@@ -29,6 +33,10 @@ export function BatchAssignments({
   const canAssignManager = me?.role === "coo" || me?.role === "system_admin";
 
   const dialog = useRef<HTMLDialogElement>(null);
+
+  const [open, setOpen] = useState(true);
+
+  useSpringDialog(dialog, open, onClose);
 
   const labelId = useId();
 
@@ -112,8 +120,6 @@ export function BatchAssignments({
   }, [id]);
 
   useEffect(() => {
-    dialog.current?.showModal();
-
     const overflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -153,7 +159,7 @@ export function BatchAssignments({
 
   const close = () => {
     if (!saving) {
-      dirty ? setDiscard("close") : onClose();
+      dirty ? setDiscard("close") : setOpen(false);
     }
   };
 
@@ -178,7 +184,7 @@ export function BatchAssignments({
 
       onSaved();
 
-      onClose();
+      setOpen(false);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setOutdated(true);
@@ -213,7 +219,7 @@ export function BatchAssignments({
     return (
       <label className={styles.field} htmlFor={`${labelId}-${key}`}>
         <span id={`${labelId}-${key}-label`}>{label}</span>
-        <select
+        <WorkspaceNativeSelect
           id={`${labelId}-${key}`}
           aria-labelledby={`${labelId}-${key}-label`}
           value={draft[key]}
@@ -238,13 +244,16 @@ export function BatchAssignments({
               </option>
             );
           })}
-        </select>
+        </WorkspaceNativeSelect>
       </label>
     );
   };
 
   return (
     <dialog
+      data-workspace-modal
+      onClose={onClose}
+      data-modal-size="wide"
       ref={dialog}
       className={styles.dialog}
       aria-labelledby={labelId}
@@ -254,19 +263,12 @@ export function BatchAssignments({
         close();
       }}
     >
-      <header className={styles.header}>
+      <header data-modal-header className={styles.header}>
         <div>
           <p className={styles.help}>Batch assignments</p>
           <h2 id={labelId}>{batch?.code ?? "Loading batch…"}</h2>
         </div>
-        <button
-          type="button"
-          className={styles.secondary}
-          disabled={saving}
-          onClick={close}
-        >
-          Close assignments
-        </button>
+        <ModalCloseButton disabled={saving} onClick={close} />
       </header>
       {discard && (
         <div role="alert" className={styles.warning}>
@@ -284,6 +286,7 @@ export function BatchAssignments({
             </button>
             <button
               type="button"
+              data-variant="primary"
               className={styles.primary}
               onClick={() => {
                 const action = discard;
@@ -291,7 +294,7 @@ export function BatchAssignments({
                 setDiscard(null);
 
                 if (action === "close") {
-                  onClose();
+                  setOpen(false);
                 } else {
                   void load();
                 }
@@ -303,7 +306,7 @@ export function BatchAssignments({
         </div>
       )}
       {loading ? (
-        <p role="status">Loading assignments…</p>
+        <WorkspaceProgress label="Loading assignments…" />
       ) : !batch ? (
         <div role="alert" className={styles.error}>
           {error}{" "}
@@ -386,6 +389,7 @@ export function BatchAssignments({
             </button>
             <button
               type="submit"
+              data-variant="primary"
               className={styles.primary}
               disabled={!dirty || saving || outdated || Boolean(discard)}
             >

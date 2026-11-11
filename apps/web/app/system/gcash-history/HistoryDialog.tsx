@@ -1,10 +1,14 @@
 "use client";
 
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import ModalCloseButton from "@/components/ModalCloseButton";
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { useEffect, useRef, useState } from "react";
 import type { GcashHistory, GcashSubmission } from "@freshphones/contracts";
 import { getGcashSubmissions } from "@/lib/api";
 import { ReadingDialog } from "./ReadingDialog";
 import styles from "@/components/record-details.module.css";
+import historyStyles from "./history.module.css";
 
 export function HistoryDialog({
   row,
@@ -37,9 +41,9 @@ export function HistoryDialog({
 
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
+  const [open, setOpen] = useState(true);
+
+  useSpringDialog(dialog, open, close);
 
   useEffect(() => {
     let active = true;
@@ -78,24 +82,38 @@ export function HistoryDialog({
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-size="wide"
       ref={dialog}
-      className={styles.dialog}
+      className={`${styles.dialog} ${historyStyles.dialog}`}
       aria-labelledby="gcash-history-title"
-      onCancel={close}
+      onClose={close}
+      onCancel={(event) => {
+        event.preventDefault();
+
+        setOpen(false);
+      }}
     >
-      <header className={styles.header}>
-        <h2 id="gcash-history-title">{row.batch.code} — PDF history</h2>
-        <button type="button" className={styles.secondary} onClick={close}>
-          Close history
-        </button>
+      <header data-modal-header className={styles.header}>
+        <div>
+          <p className={historyStyles.eyebrow}>PDF history</p>
+          <h2 id="gcash-history-title">{row.batch.code}</h2>
+          <p className={styles.help}>
+            {row.periodStart} — {row.periodEnd}
+          </p>
+        </div>
+        <ModalCloseButton
+          onClick={() => {
+            return setOpen(false);
+          }}
+        />
       </header>
       <div className={styles.formBody}>
-        <p>
-          {row.periodStart} to {row.periodEnd}. Earlier PDFs and Records notes
-          are preserved.
+        <p className={styles.help}>
+          Earlier PDFs and Records notes are preserved.
         </p>
         {loading ? (
-          <p role="status">Loading PDF history…</p>
+          <WorkspaceProgress label="Loading PDF history…" />
         ) : error ? (
           <p role="alert">
             {error}{" "}
@@ -113,10 +131,7 @@ export function HistoryDialog({
         ) : (
           items.map((item) => {
             return (
-              <article
-                key={item.id}
-                className="rounded-2xl border border-slate-200 p-4"
-              >
+              <article key={item.id} className={historyStyles.revision}>
                 <h3 className="font-700">
                   Revision {item.revision} · {item.status.replaceAll("_", " ")}
                 </h3>
@@ -131,26 +146,28 @@ export function HistoryDialog({
                     Records: {item.reviewNote} · {item.reviewedBy?.name}
                   </p>
                 )}
-                {
+                <div className={historyStyles.actions}>
+                  {
+                    <button
+                      type="button"
+                      className={styles.secondary}
+                      onClick={() => {
+                        setReading(item);
+                      }}
+                    >
+                      Open revision {item.revision}
+                    </button>
+                  }
                   <button
                     type="button"
                     className={styles.secondary}
                     onClick={() => {
-                      setReading(item);
+                      void download(item.id, item.fileName);
                     }}
                   >
-                    Open revision {item.revision}
+                    Download revision {item.revision}
                   </button>
-                }
-                <button
-                  type="button"
-                  className={styles.secondary}
-                  onClick={() => {
-                    void download(item.id, item.fileName);
-                  }}
-                >
-                  Download revision {item.revision}
-                </button>
+                </div>
               </article>
             );
           })

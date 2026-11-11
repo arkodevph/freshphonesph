@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import type { Me } from "@/lib/api";
 import { ROLES, type Employee } from "@/lib/api";
 import {
@@ -32,7 +33,7 @@ type Props = {
   clearFilters: () => void;
   accounts: Employee[];
   me: Me | null;
-  openManage: (account: Employee) => void;
+  openManage: (account: Employee, opener?: HTMLButtonElement) => void;
   page: number;
   pageCount: number;
 };
@@ -123,7 +124,7 @@ export default function AccountDirectory({
         </label>
         <label className="team-filter-field">
           <span>Role</span>
-          <select
+          <WorkspaceNativeSelect
             value={roleFilter}
             onChange={(event) => {
               setRoleFilter(event.target.value);
@@ -140,11 +141,11 @@ export default function AccountDirectory({
               );
             })}
             <option value="customer">Customer</option>
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <label className="team-filter-field">
           <span>Status</span>
-          <select
+          <WorkspaceNativeSelect
             value={statusFilter}
             onChange={(event) => {
               setStatusFilter(event.target.value);
@@ -155,7 +156,7 @@ export default function AccountDirectory({
             <option value="">All statuses</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         {hasFilters && (
           <button
@@ -183,9 +184,7 @@ export default function AccountDirectory({
           </thead>
           <tbody>
             {loading ? (
-              Array.from({ length: 5 }, (_, index) => {
-                return <SkeletonRow key={index} />;
-              })
+              <SkeletonRow />
             ) : accounts.length ? (
               accounts.map((account) => {
                 const isSelf = String(account.id) === String(me?.id);
@@ -225,8 +224,8 @@ export default function AccountDirectory({
                     <td data-label="Action" className="team-action-cell">
                       <button
                         type="button"
-                        onClick={() => {
-                          return openManage(account);
+                        onClick={(event) => {
+                          return openManage(account, event.currentTarget);
                         }}
                         aria-label={`Manage ${account.full_name}`}
                       >

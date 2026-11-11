@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { inquiryStatuses, type InquiryStatus } from "@freshphones/contracts";
 import { useInquiries } from "@/lib/useInquiries";
 import styles from "./inquiries.module.css";
@@ -52,7 +54,7 @@ export function InquiriesWorkspace() {
         </label>
         <label>
           Status
-          <select
+          <WorkspaceNativeSelect
             value={query.status || ""}
             onChange={(e) => {
               return setQuery((q) => {
@@ -73,7 +75,7 @@ export function InquiriesWorkspace() {
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
       </div>
       {error && (
@@ -83,7 +85,7 @@ export function InquiriesWorkspace() {
       )}
       {notice && <p role="status">{notice}</p>}
       {loading ? (
-        <p role="status">Loading inquiries…</p>
+        <WorkspaceProgress label="Loading inquiries…" />
       ) : result?.items.length === 0 ? (
         <p className={styles.empty}>
           No inquiries {query.q || query.status ? "match these filters" : "yet"}
@@ -137,7 +139,7 @@ export function InquiriesWorkspace() {
                   <small>Reference: {item.id}</small>
                   <label>
                     Update status
-                    <select
+                    <WorkspaceNativeSelect
                       value={item.status}
                       disabled={!!pending}
                       onChange={(e) => {
@@ -154,7 +156,7 @@ export function InquiriesWorkspace() {
                           </option>
                         );
                       })}
-                    </select>
+                    </WorkspaceNativeSelect>
                   </label>
                 </div>
               </article>

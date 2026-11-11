@@ -1,10 +1,14 @@
 "use client";
 
-import type { Me } from "@/lib/api";
+import WorkspaceProgress, {
+  TableSkeletonRows,
+} from "@/components/WorkspaceProgress";
+import DateInput from "@/components/DateInput";
 import { isBatchHandler } from "@/lib/handler-workspace";
 import type { PaymentSortField } from "@freshphones/contracts";
 import type { HandlerTableSort } from "@/lib/handler-table";
 import HandlerPaymentTable from "./HandlerPaymentTable";
+import type { Me } from "@/lib/api";
 import { downloadPaymentsExport, type Payment } from "@/lib/api";
 import { can } from "@/lib/useMe";
 import {
@@ -19,6 +23,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from "react";
 import { inputCls } from "@/components/FormField";
+import SplitButton from "@/components/SplitButton";
 import { FILTERS, ReviewDecision, STATUS_STYLES } from "./payment-view";
 
 type Props = {
@@ -198,7 +203,7 @@ export default function PaymentListPanel({
           <span className="mb-1 block text-xs font-600 text-ink-soft">
             From
           </span>
-          <input
+          <DateInput
             type="date"
             value={dateFrom}
             max={dateTo || undefined}
@@ -212,7 +217,7 @@ export default function PaymentListPanel({
         </label>
         <label>
           <span className="mb-1 block text-xs font-600 text-ink-soft">To</span>
-          <input
+          <DateInput
             type="date"
             value={dateTo}
             min={dateFrom || undefined}
@@ -244,8 +249,6 @@ export default function PaymentListPanel({
 
                   setFilter(f.value);
 
-                  setProofFilter(false);
-
                   resetPaymentPage();
                 }}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-700 transition-colors ${
@@ -260,48 +263,42 @@ export default function PaymentListPanel({
           })}
         </div>
         {can(me, "REPORT_VIEW") && !proofFilter && (
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => {
-                return downloadPaymentsExport(
-                  paymentExportFilters,
-                  "csv",
-                ).catch((e) => {
-                  return setError(
-                    e instanceof Error ? e.message : "Export failed.",
-                  );
-                });
-              }}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/60 px-3.5 py-1.5 text-sm font-700 text-blue-ink hover:bg-white"
-            >
-              <DownloadSimple weight="bold" className="h-4 w-4" /> CSV
-            </button>
-            <button
-              onClick={() => {
-                return downloadPaymentsExport(
-                  paymentExportFilters,
-                  "xlsx",
-                ).catch((e) => {
-                  return setError(
-                    e instanceof Error ? e.message : "Export failed.",
-                  );
-                });
-              }}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/60 px-3.5 py-1.5 text-sm font-700 text-blue-ink hover:bg-white"
-            >
-              <DownloadSimple weight="bold" className="h-4 w-4" /> Excel
-            </button>
-          </div>
+          <SplitButton
+            label="Export CSV"
+            icon={<DownloadSimple aria-hidden="true" />}
+            disabled={loading}
+            onAction={() => {
+              void downloadPaymentsExport(paymentExportFilters, "csv").catch(
+                (e) => {
+                  setError(e instanceof Error ? e.message : "Export failed.");
+                },
+              );
+            }}
+            menuLabel="Payment export options"
+            actions={[
+              {
+                label: "Export Excel (.xlsx)",
+                icon: <DownloadSimple aria-hidden="true" />,
+                onAction: () => {
+                  void downloadPaymentsExport(
+                    paymentExportFilters,
+                    "xlsx",
+                  ).catch((e) => {
+                    setError(e instanceof Error ? e.message : "Export failed.");
+                  });
+                },
+              },
+            ]}
+          />
         )}
       </div>
       <p className="mb-3 text-xs text-ink-soft">
-        {isBatchHandler(me?.role) && listError
-          ? "Could not load matching payments."
-          : loading
-            ? "Loading matching payments…"
-            : `${paymentCount} matching payment${paymentCount === 1 ? "" : "s"}.`}
-        {!isBatchHandler(me?.role) &&
-          " CSV and XLSX exports use the same search, status, and date filters and omit client identity and payment references."}
+        {loading
+          ? "Loading matching payments…"
+          : `${paymentCount} matching payment${paymentCount === 1 ? "" : "s"}.`}
+        {
+          " CSV and XLSX exports use the same search, status, and date filters and omit client identity and payment references."
+        }
       </p>
 
       {isBatchHandler(me?.role) && me ? (
@@ -340,14 +337,11 @@ export default function PaymentListPanel({
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-2 py-6 text-center text-ink-soft"
-                  >
-                    Loading…
-                  </td>
-                </tr>
+                <TableSkeletonRows
+                  columns={8}
+                  cellClassName="px-2 py-2.5"
+                  label="Loading…"
+                />
               ) : payments.length === 0 ? (
                 <tr>
                   <td
@@ -415,16 +409,18 @@ export default function PaymentListPanel({
                         </span>
                         {p.status === "pending" && (
                           <span className="mt-1 block text-xs text-ink-soft">
-                            {!p.workflow?.recordsApproved
-                              ? "Awaiting Records"
-                              : !p.workflow.managerApproved
-                                ? "Awaiting Manager"
-                                : "Ready for Finance"}
+                            {p.workflow?.submissionComplete === false
+                              ? "Submission incomplete"
+                              : !p.workflow?.recordsApproved
+                                ? "Awaiting Records"
+                                : !p.workflow.managerApproved
+                                  ? "Awaiting Manager"
+                                  : "Ready for Finance"}
                           </span>
                         )}
                       </td>
                       <td className="px-2 py-2.5 text-right">
-                        <div className="inline-flex max-w-[410px] flex-wrap items-center justify-end gap-1.5">
+                        <div className="workspace-row-actions" data-row-actions>
                           <button
                             type="button"
                             onClick={() => {
@@ -521,11 +517,7 @@ export default function PaymentListPanel({
                                 Clarify
                               </button>
                             </>
-                          ) : (
-                            !p.proof_file && (
-                              <span className="text-xs text-ink-soft">—</span>
-                            )
-                          )}
+                          ) : null}
                           {p.status === "pending" &&
                             p.recorded_by !== me?.id &&
                             (reviewStage === "RECORDS" ||

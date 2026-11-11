@@ -1,5 +1,9 @@
 "use client";
 
+import WorkspaceProgress, {
+  TableSkeletonRows,
+} from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import type { Me } from "@/lib/api";
 import {
   SUPPORT_STATUSES,
@@ -64,11 +68,11 @@ export default function SupportCasesTable({
         </thead>
         <tbody>
           {loading ? (
-            <tr>
-              <td colSpan={10} className="px-2 py-6 text-center text-ink-soft">
-                Loading…
-              </td>
-            </tr>
+            <TableSkeletonRows
+              columns={10}
+              cellClassName="px-2 py-2.5"
+              label="Loading…"
+            />
           ) : cases.length === 0 ? (
             <tr>
               <td colSpan={10} className="px-2 py-6 text-center text-ink-soft">
@@ -107,7 +111,7 @@ export default function SupportCasesTable({
                     {c.date_received.slice(0, 10)}
                   </td>
                   <td className="px-2 py-2.5">
-                    <select
+                    <WorkspaceNativeSelect
                       aria-label={`Status for ${c.category}`}
                       value={draft?.status ?? c.status}
                       disabled={!!pending || c.status === "closed"}
@@ -123,7 +127,7 @@ export default function SupportCasesTable({
                           </option>
                         );
                       })}
-                    </select>
+                    </WorkspaceNativeSelect>
                   </td>
                   <td className="px-2 py-2.5 text-xs text-ink-soft">
                     {c.assigned_staff_name ??

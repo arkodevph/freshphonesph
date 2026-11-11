@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceDetails from "@/components/WorkspaceDetails";
 import { useEffect, useState } from "react";
 import type { GcashCorrectionEntry, Page } from "@freshphones/contracts";
 import { getGcashCorrections } from "@/lib/gcash-history";
@@ -55,7 +57,7 @@ export function CorrectionHistory({
   }, [open, id, page, refresh, attempt]);
 
   return (
-    <details
+    <WorkspaceDetails
       className={styles.correctionHistory}
       onToggle={(event) => {
         setOpen(event.currentTarget.open);
@@ -76,7 +78,7 @@ export function CorrectionHistory({
             </button>
           </p>
         ) : !result ? (
-          <p role="status">Loading corrections…</p>
+          <WorkspaceProgress label="Loading corrections…" />
         ) : (
           <>
             {!result.total && (
@@ -157,6 +159,6 @@ export function CorrectionHistory({
             </nav>
           </>
         ))}
-    </details>
+    </WorkspaceDetails>
   );
 }

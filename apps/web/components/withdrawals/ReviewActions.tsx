@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useState } from "react";
 import type {
   WithdrawalCase,
@@ -77,7 +78,7 @@ export function ReviewActions({
         >
           <label className={styles.field}>
             Withdrawal decision
-            <select
+            <WorkspaceNativeSelect
               value={decision}
               onChange={(event) => {
                 setDecision(
@@ -90,7 +91,7 @@ export function ReviewActions({
               </option>
               <option value="APPROVED">Approve — await replacement</option>
               <option value="REJECTED">Do not approve</option>
-            </select>
+            </WorkspaceNativeSelect>
           </label>
           <NoteField
             label="Decision note for the member"

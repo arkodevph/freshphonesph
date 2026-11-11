@@ -1,5 +1,10 @@
 "use client";
 
+import WorkspaceProgress, {
+  TableSkeletonRows,
+} from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import { useToastNotice } from "@/lib/useToastNotice";
 import { getCatalogItems } from "@/lib/api";
 import { catalogPrice } from "@/lib/catalog";
 import { useLiveRecords } from "@/lib/useLiveRecords";
@@ -25,7 +30,7 @@ export function CatalogWorkspace() {
 
   const [error, setError] = useState("");
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   const [editing, setEditing] = useState<CatalogItem | "new" | null>(null);
 
@@ -100,6 +105,7 @@ export function CatalogWorkspace() {
           </p>
         </div>
         <button
+          data-variant="primary"
           className={styles.primary}
           type="button"
           onClick={() => {
@@ -126,7 +132,7 @@ export function CatalogWorkspace() {
           </label>
           <label>
             Visibility
-            <select
+            <WorkspaceNativeSelect
               value={query.visibility ?? ""}
               onChange={(event) => {
                 return setQuery({
@@ -141,11 +147,11 @@ export function CatalogWorkspace() {
               <option value="">All listings</option>
               <option value="PUBLISHED">Published</option>
               <option value="HIDDEN">Hidden</option>
-            </select>
+            </WorkspaceNativeSelect>
           </label>
           <label>
             Availability
-            <select
+            <WorkspaceNativeSelect
               value={query.availability ?? ""}
               onChange={(event) => {
                 return setQuery({
@@ -165,7 +171,7 @@ export function CatalogWorkspace() {
                   </option>
                 );
               })}
-            </select>
+            </WorkspaceNativeSelect>
           </label>
           <button
             type="button"
@@ -220,9 +226,7 @@ export function CatalogWorkspace() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={6}>Loading listings…</td>
-                </tr>
+                <TableSkeletonRows columns={6} label="Loading listings…" />
               ) : !result?.items.length ? (
                 <tr>
                   <td colSpan={6}>No listings match your filters.</td>

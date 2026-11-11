@@ -13,8 +13,10 @@ import { CaretDown, Check } from "@phosphor-icons/react";
 import styles from "./Select.module.css";
 import { useHandlerDropdowns } from "./dropdown/HandlerDropdownScope";
 import { HandlerSelect } from "./dropdown/HandlerSelect";
+import WorkspacePopover from "./WorkspacePopover";
+import { createStyleSpring } from "@/lib/style-spring";
 
-type Option = { value: string; label: string };
+type Option = { value: string; label: string; disabled?: boolean };
 
 type Props = {
   id: string;
@@ -25,6 +27,10 @@ type Props = {
   disabled?: boolean;
   fitViewport?: boolean;
   animate?: boolean;
+  descriptionId?: string;
+  invalid?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
   renderLabel?: (option: Option) => ReactNode;
 };
 
@@ -32,11 +38,7 @@ type Props = {
 export default function Select(props: Props) {
   const handler = useHandlerDropdowns();
 
-  if (handler) {
-    return <HandlerSelect {...props} />;
-  }
-
-  return <StandardSelect {...props} />;
+  return handler ? <HandlerSelect {...props} /> : <StandardSelect {...props} />;
 }
 
 function StandardSelect({
@@ -47,8 +49,12 @@ function StandardSelect({
   onValueChange,
   disabled = false,
   fitViewport = false,
-  animate = false,
   renderLabel,
+
+  descriptionId,
+  invalid = false,
+  searchable = false,
+  searchPlaceholder = "Search options",
 }: Props) {
   const listId = useId();
 
@@ -56,22 +62,69 @@ function StandardSelect({
 
   const trigger = useRef<HTMLButtonElement>(null);
 
+  const caret = useRef<ReturnType<typeof createStyleSpring> | null>(null);
+
   const search = useRef({ text: "", time: 0 });
+
+  const searchInput = useRef<HTMLInputElement>(null);
+
+  const [query, setQuery] = useState("");
 
   const [open, setOpen] = useState(false);
 
   const [active, setActive] = useState(0);
 
-  const [placement, setPlacement] = useState({ side: "bottom", height: 240 });
+  const [placement, setPlacement] = useState({
+    side: "bottom",
+    height: 240,
+    left: 12,
+    edge: 12,
+    width: 160,
+  });
 
   const selected = options.findIndex((option) => {
+    return option.value === value;
+  });
+
+  const visibleOptions =
+    searchable && query.trim()
+      ? options.filter((option) => {
+          return option.label
+            .toLocaleLowerCase()
+            .includes(query.trim().toLocaleLowerCase());
+        })
+      : options;
+
+  const visibleSelected = visibleOptions.findIndex((option) => {
     return option.value === value;
   });
 
   const expanded = open && !disabled && options.length > 0;
 
   useLayoutEffect(() => {
-    if (!expanded || !fitViewport) {
+    if (!root.current) {
+      return;
+    }
+
+    caret.current = createStyleSpring(root.current, { "--select-progress": 0 });
+
+    return () => {
+      return caret.current?.dispose();
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    caret.current?.to({ "--select-progress": expanded ? 1 : 0 });
+  }, [expanded]);
+
+  useEffect(() => {
+    if (expanded && searchable) {
+      searchInput.current?.focus();
+    }
+  }, [expanded, searchable]);
+
+  useLayoutEffect(() => {
+    if (!expanded) {
       return;
     }
 
@@ -89,6 +142,17 @@ function StandardSelect({
       const bottom =
         parseFloat(css.getPropertyValue("--select-safe-bottom")) || 16;
 
+      if (
+        rect.bottom <= top ||
+        rect.top >= innerHeight - bottom ||
+        rect.right <= 0 ||
+        rect.left >= innerWidth
+      ) {
+        setOpen(false);
+
+        return;
+      }
+
       const below = innerHeight - rect.bottom - bottom - 8;
 
       const above = rect.top - top - 8;
@@ -103,10 +167,20 @@ function StandardSelect({
         Math.min(240, side === "top" ? above : below),
       );
 
+      const width = Math.min(Math.max(160, rect.width), innerWidth - 24);
+
+      const next = {
+        side,
+        height,
+        width,
+        left: Math.max(12, Math.min(rect.left, innerWidth - width - 12)),
+        edge: side === "top" ? innerHeight - rect.top + 8 : rect.bottom + 8,
+      };
+
       setPlacement((previous) => {
-        return previous.side === side && previous.height === height
+        return JSON.stringify(previous) === JSON.stringify(next)
           ? previous
-          : { side, height };
+          : next;
       });
     };
 
@@ -143,29 +217,16 @@ function StandardSelect({
 
   useEffect(() => {
     if (expanded) {
-      const option = document.getElementById(`${listId}-${active}`);
-
-      const menu = option?.parentElement;
-
-      if (option && menu) {
-        const optionRect = option.getBoundingClientRect();
-
-        const menuRect = menu.getBoundingClientRect();
-
-        // Reveal the active option without scrolling the containing form/page.
-        if (optionRect.top < menuRect.top + 6) {
-          menu.scrollTop -= menuRect.top + 6 - optionRect.top;
-        } else if (optionRect.bottom > menuRect.bottom - 6) {
-          menu.scrollTop += optionRect.bottom - menuRect.bottom + 6;
-        }
-      }
+      document
+        .getElementById(`${listId}-${active}`)
+        ?.scrollIntoView({ block: "nearest" });
     }
-  }, [active, expanded, listId, placement.height]);
+  }, [active, expanded, listId, query]);
 
   function choose(index: number) {
-    const option = options[index];
+    const option = visibleOptions[index];
 
-    if (option) {
+    if (option && !option.disabled) {
       onValueChange(option.value);
     }
 
@@ -176,7 +237,7 @@ function StandardSelect({
     trigger.current?.focus();
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+  function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "Tab" || event.key === "Escape") {
       setOpen(false);
 
@@ -184,6 +245,10 @@ function StandardSelect({
         event.preventDefault();
 
         event.stopPropagation();
+
+        if (searchable) {
+          trigger.current?.focus();
+        }
       }
 
       return;
@@ -194,19 +259,41 @@ function StandardSelect({
 
       setOpen(true);
 
-      const initial = Math.max(0, selected);
+      if (!visibleOptions.length) {
+        return;
+      }
+
+      const enabled = visibleOptions
+        .map((option, index) => {
+          return option.disabled ? -1 : index;
+        })
+        .filter((index) => {
+          return index >= 0;
+        });
+
+      if (!enabled.length) {
+        return;
+      }
+
+      const initial = enabled.includes(visibleSelected)
+        ? visibleSelected
+        : enabled[0];
+
+      const current = enabled.indexOf(active);
 
       setActive(
         event.key === "Home"
-          ? 0
+          ? enabled[0]
           : event.key === "End"
-            ? options.length - 1
+            ? enabled[enabled.length - 1]
             : !expanded
               ? initial
-              : (active +
-                  (event.key === "ArrowDown" ? 1 : -1) +
-                  options.length) %
-                options.length,
+              : enabled[
+                  (current +
+                    (event.key === "ArrowDown" ? 1 : -1) +
+                    enabled.length) %
+                    enabled.length
+                ],
       );
 
       return;
@@ -229,6 +316,16 @@ function StandardSelect({
     ) {
       event.preventDefault();
 
+      if (searchable) {
+        setQuery(event.key);
+
+        setActive(0);
+
+        setOpen(true);
+
+        return;
+      }
+
       const now = Date.now();
 
       search.current.text =
@@ -238,7 +335,10 @@ function StandardSelect({
       search.current.time = now;
 
       const match = options.findIndex((option) => {
-        return option.label.toLowerCase().startsWith(search.current.text);
+        return (
+          !option.disabled &&
+          option.label.toLowerCase().startsWith(search.current.text)
+        );
       });
 
       if (match >= 0) {
@@ -249,10 +349,41 @@ function StandardSelect({
     }
   }
 
+  const optionElements = visibleOptions.map((option, index) => {
+    return (
+      <div
+        id={`${listId}-${index}`}
+        key={option.value}
+        role="option"
+        aria-selected={option.value === value}
+        aria-disabled={option.disabled || undefined}
+        data-active={index === active || undefined}
+        className={`${styles.option} ${index === active ? styles.active : ""}`}
+        onPointerMove={() => {
+          if (!option.disabled) {
+            setActive(index);
+          }
+        }}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+        onClick={(event) => {
+          event.preventDefault();
+
+          choose(index);
+        }}
+      >
+        <span>{renderLabel?.(option) ?? option.label}</span>
+        {option.value === value && <Check weight="bold" aria-hidden="true" />}
+      </div>
+    );
+  });
+
   return (
     <div
       ref={root}
       className={styles.root}
+      data-workspace-select
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           setOpen(false);
@@ -263,19 +394,30 @@ function StandardSelect({
         ref={trigger}
         id={id}
         type="button"
+        title={options[selected]?.label}
         role="combobox"
         aria-haspopup="listbox"
         aria-expanded={expanded}
         aria-controls={expanded ? listId : undefined}
         aria-labelledby={labelId}
-        aria-activedescendant={expanded ? `${listId}-${active}` : undefined}
+        aria-describedby={descriptionId}
+        aria-invalid={invalid || undefined}
+        aria-activedescendant={
+          expanded && visibleOptions.length ? `${listId}-${active}` : undefined
+        }
         disabled={disabled || options.length === 0}
         className={styles.trigger}
         onKeyDown={onKeyDown}
         onClick={() => {
+          if (!expanded) {
+            setQuery("");
+          }
+
           setActive(Math.max(0, selected));
 
-          setOpen(!expanded);
+          setOpen((current) => {
+            return !current;
+          });
         }}
       >
         <span>
@@ -283,52 +425,69 @@ function StandardSelect({
             ? (renderLabel?.(options[selected]) ?? options[selected].label)
             : "Choose an option"}
         </span>
-        <CaretDown
-          aria-hidden="true"
-          weight="bold"
-          className={expanded ? styles.rotated : undefined}
-        />
+        <CaretDown aria-hidden="true" weight="bold" />
       </button>
-      {(expanded || animate) && (
-        <div
-          id={listId}
-          role="listbox"
-          hidden={!expanded}
-          aria-hidden={!expanded || undefined}
-          inert={!expanded}
-          data-motion={animate || undefined}
-          aria-labelledby={labelId}
-          className={styles.menu}
-          data-placement={fitViewport ? placement.side : undefined}
-          style={fitViewport ? { maxHeight: placement.height } : undefined}
-        >
-          {options.map((option, index) => {
-            return (
-              <div
-                id={`${listId}-${index}`}
-                key={option.value}
-                role="option"
-                aria-selected={option.value === value}
-                className={`${styles.option} ${index === active ? styles.active : ""}`}
-                onPointerMove={() => {
-                  setActive(index);
+      <WorkspacePopover
+        open={expanded}
+        popover="manual"
+        id={searchable ? `${listId}-popup` : listId}
+        role={searchable ? undefined : "listbox"}
+        aria-hidden={!expanded || undefined}
+        inert={!expanded}
+        aria-labelledby={labelId}
+        className={styles.menu}
+        data-workspace-options
+        data-placement={placement.side}
+        style={{
+          maxHeight: placement.height,
+          left: placement.left,
+          width: placement.width,
+          top: placement.side === "bottom" ? placement.edge : "auto",
+          bottom: placement.side === "top" ? placement.edge : "auto",
+        }}
+      >
+        {searchable ? (
+          <>
+            <div className={styles.search}>
+              <input
+                ref={searchInput}
+                type="search"
+                value={query}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+                aria-controls={listId}
+                aria-activedescendant={
+                  visibleOptions.length ? `${listId}-${active}` : undefined
+                }
+                onChange={(event) => {
+                  setQuery(event.target.value);
+
+                  setActive(0);
                 }}
-                onMouseDown={(event) => {
-                  event.preventDefault();
+                onKeyDown={(event) => {
+                  if (
+                    ["ArrowDown", "ArrowUp", "Enter", "Escape", "Tab"].includes(
+                      event.key,
+                    )
+                  ) {
+                    onKeyDown(event);
+                  }
                 }}
-                onClick={() => {
-                  choose(index);
-                }}
-              >
-                <span>{renderLabel?.(option) ?? option.label}</span>
-                {option.value === value && (
-                  <Check weight="bold" aria-hidden="true" />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+              />
+            </div>
+            <div id={listId} role="listbox" aria-labelledby={labelId}>
+              {optionElements}
+              {!visibleOptions.length && (
+                <p className={styles.noResults} role="status">
+                  No matching options.
+                </p>
+              )}
+            </div>
+          </>
+        ) : (
+          optionElements
+        )}
+      </WorkspacePopover>
     </div>
   );
 }

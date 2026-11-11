@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonLine } from "@/components/WorkspaceProgress";
 import type { GcashHistory } from "@freshphones/contracts";
 import { SubmissionActions } from "./SubmissionActions";
 import styles from "./workspace.module.css";
@@ -44,7 +45,7 @@ export function SubmissionCard({
           >
             {row.archivedAt
               ? "Archived"
-              : row.status === "SUBMITTED"
+              : (row.reviewRequired ?? row.status === "SUBMITTED")
                 ? "Awaiting Records review"
                 : row.status === "REVIEWED"
                   ? "Reviewed"
@@ -87,8 +88,15 @@ export function SubmissionCard({
         </p>
       )}
       <div className={styles.toolbar}>
-        <button type="button" className={styles.primary} onClick={open}>
-          {canReview && !row.archivedAt && row.status === "SUBMITTED"
+        <button
+          type="button"
+          data-variant="primary"
+          className={styles.primary}
+          onClick={open}
+        >
+          {canReview &&
+          !row.archivedAt &&
+          (row.reviewRequired ?? row.status === "SUBMITTED")
             ? "Review submission"
             : "Open submission"}
         </button>
@@ -104,5 +112,42 @@ export function SubmissionCard({
           )}
       </div>
     </article>
+  );
+}
+
+export function SubmissionCardSkeleton() {
+  return (
+    <div
+      className="grid gap-3"
+      role="status"
+      aria-label="Loading GCash history"
+      aria-busy="true"
+    >
+      {[0, 1, 2].map((index) => {
+        return (
+          <article key={index} className={styles.card} aria-hidden="true">
+            <div className={styles.cardTop}>
+              <div>
+                <h2>
+                  <SkeletonLine width="240px" />
+                </h2>
+                <p>
+                  <SkeletonLine width="190px" />
+                </p>
+              </div>
+              <SkeletonLine width="150px" />
+            </div>
+            <div className={styles.cardMeta}>
+              <SkeletonLine width="78%" />
+              <SkeletonLine width="55%" />
+            </div>
+            <div className={styles.toolbar}>
+              <span className={styles.skeletonAction} />
+              <span className={styles.skeletonAction} />
+            </div>
+          </article>
+        );
+      })}
+    </div>
   );
 }

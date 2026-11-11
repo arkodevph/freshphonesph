@@ -13,6 +13,7 @@ import math
 from pathlib import Path
 import shutil
 import subprocess
+from xml.etree import ElementTree
 from zipfile import ZipFile
 from zoneinfo import ZoneInfo
 
@@ -21,12 +22,40 @@ from openpyxl import load_workbook
 from build_workbooks import EXAMPLE_NAME, TEMPLATE_NAME, ROOT, build_workbook
 
 
-def verify(work_dir: Path) -> dict:
+def workbook_parts(path: Path) -> dict[str, bytes]:
+    """Compare workbook content without ZIP or generated creation timestamps."""
+    with ZipFile(path) as archive:
+        parts = {name: archive.read(name) for name in archive.namelist()}
+    core = ElementTree.fromstring(parts["docProps/core.xml"])
+    for field in ["created", "modified"]:
+        timestamp = core.find("{http://purl.org/dc/terms/}" + field)
+        if timestamp is not None:
+            timestamp.text = "GENERATED_TIMESTAMP"
+    parts["docProps/core.xml"] = ElementTree.tostring(core)
+    return parts
+
+
+def verify(work_dir: Path, artifact_dir: Path = ROOT / "docs/templates") -> dict:
     work_dir = work_dir.resolve()
     work_dir.mkdir(parents=True, exist_ok=True)
     QA = work_dir
     BASE = build_workbook(QA / "source" / TEMPLATE_NAME)
     EXAMPLE = build_workbook(QA / "source" / EXAMPLE_NAME, example=True)
+    published = [artifact_dir / TEMPLATE_NAME, artifact_dir / EXAMPLE_NAME]
+    for generated, artifact in zip([BASE, EXAMPLE], published):
+        assert artifact.is_file(), f"Missing published workbook: {artifact}"
+        expected_parts = workbook_parts(generated)
+        actual_parts = workbook_parts(artifact)
+        different = [
+            name
+            for name in sorted(expected_parts.keys() | actual_parts.keys())
+            if expected_parts.get(name) != actual_parts.get(name)
+        ]
+        assert not different, (
+            str(artifact),
+            "Published workbook differs from generator",
+            different,
+        )
     (QA / "input").mkdir(exist_ok=True)
     (QA / "calculated").mkdir(exist_ok=True)
     TODAY = datetime.now(ZoneInfo("Asia/Manila")).replace(
@@ -62,7 +91,11 @@ def verify(work_dir: Path) -> dict:
             "vba" in name.lower() or "externalLinks/" in name for name in z.namelist()
         )
     checks.append(
-        "Blank template, six sheets, editable inputs, protected formula cells, no macros or external workbook links"
+        "Blank template, seven sheets, editable inputs, protected formula cells, no macros or external workbook links"
+    )
+
+    checks.append(
+        "Published template and example match generated workbook content, including formulas, caches, validation and protection"
     )
 
     def case(name):
@@ -343,6 +376,49 @@ def verify(work_dir: Path) -> dict:
             "Summary!B27": "CHECK: confirm cutoff details",
         },
     )
+    w = case("repeated-payment-reference")
+    payment(w, 7, "REF-1", 100, ref="SAME-REFERENCE")
+    payment(w, 8, "REF-2", 100, ref="SAME-REFERENCE")
+    save(
+        w,
+        "18-repeated-payment-reference",
+        {"Payments!J7": 0, "Payments!J8": 0, "Payroll!G7": 0, "Summary!B19": 2},
+    )
+    w = case("negative-net")
+    adjustment(w, 7, "TOO-MUCH", "Deduction", 1001)
+    save(
+        w,
+        "19-negative-net-review",
+        {
+            "Payroll!F7": -1,
+            "Payroll!J7": "CHECK: negative net pay",
+            "Summary!B19": 1,
+            "Summary!B27": "CHECK: resolve row issues",
+        },
+    )
+    w = case("last-supported-rows")
+    w["Staff"]["A106"] = "LAST-0100"
+    w["Staff"]["B106"] = "Synthetic last-row employee"
+    w["Payroll"]["A106"] = "LAST-0100"
+    w["Payroll"]["C106"] = 2000
+    adjustment(w, 306, "LAST-ADJ", "Addition", 10)
+    w["Adjustments"]["B306"] = "LAST-0100"
+    payment(w, 306, "LAST-PAY", 500)
+    w["Payments"]["B306"] = "LAST-0100"
+    save(
+        w,
+        "20-last-supported-rows",
+        {
+            "Payroll!F106": 2010,
+            "Payroll!G106": 500,
+            "Payroll!H106": 1510,
+            "Summary!B14": 2,
+            "Summary!B15": 3010,
+            "Summary!B16": 500,
+            "Summary!B17": 2510,
+            "Summary!B19": 0,
+        },
+    )
     example_expectations = {
         "Summary!B14": 2,
         "Summary!B15": 15750,
@@ -437,6 +513,9 @@ def verify(work_dir: Path) -> dict:
         "artifacts": {
             p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in [BASE, EXAMPLE]
         },
+        "publishedArtifacts": {
+            p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in published
+        },
         "calculationEngine": subprocess.check_output(
             [office, "--version"], text=True
         ).strip(),
@@ -449,8 +528,9 @@ def verify(work_dir: Path) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-dir", type=Path, default=ROOT / ".local/payroll-v1/qa")
+    parser.add_argument("--artifact-dir", type=Path, default=ROOT / "docs/templates")
     args = parser.parse_args()
-    result = verify(args.work_dir)
+    result = verify(args.work_dir, args.artifact_dir)
     print(
         f"{len(result['cases'])} scenarios passed; {result['assertions']} calculated assertions."
     )

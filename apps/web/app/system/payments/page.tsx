@@ -6,6 +6,7 @@ import {
   PaymentReceiptNotice,
 } from "./HandlerReceiptDialogs";
 import { usePaymentsWorkspace } from "./usePaymentsWorkspace";
+import SubmissionChecklist from "./SubmissionChecklist";
 import {
   CheckCircle,
   Receipt,
@@ -127,40 +128,9 @@ export default function PaymentsPage() {
         </div>
       </header>
 
-      {(error || notice) && (
-        <div className="payment-toast-region">
-          <div
-            key={error ?? notice}
-            className={`payment-toast ${error ? "is-error" : "is-success"}`}
-            role={error ? "alert" : "status"}
-          >
-            <span className="payment-toast-icon" aria-hidden="true">
-              {error ? (
-                <WarningCircle weight="fill" />
-              ) : (
-                <CheckCircle weight="fill" />
-              )}
-            </span>
-            <div className="payment-toast-copy">
-              <strong>{error ? "Action needed" : "Updated"}</strong>
-              <p>{error ?? notice}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                return error ? setError(null) : setNotice(null);
-              }}
-              aria-label="Dismiss message"
-              className="payment-toast-close"
-            >
-              <X weight="bold" />
-            </button>
-          </div>
-        </div>
-      )}
-
       <HandlerReceiptDialogs flow={receiptFlow} />
       {isBatchHandler(me?.role) && <PaymentReceiptNotice flow={receiptFlow} />}
+      <SubmissionChecklist enabled={Boolean(me && canRead)} />
       <div className="mb-4 grid gap-4 lg:grid-cols-3">
         {/* Record form */}
         {canRecord && <RecordPaymentForm {...recordPaymentFormProps} />}

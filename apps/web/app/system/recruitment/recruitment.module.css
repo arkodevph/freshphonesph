@@ -848,3 +848,243 @@
     grid-column: 2;
   }
 }
+
+/* COO: Louis Nguyen's directory hierarchy, adapted to deliberate public publishing. */
+.jobComposer {
+  border: 1px solid var(--system-border);
+  border-radius: 12px;
+  background: var(--system-surface);
+}
+.jobComposer > summary {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+.jobComposer > summary::-webkit-details-marker {
+  display: none;
+}
+.jobComposer > summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--system-accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+.jobComposer > summary svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 140ms ease;
+}
+.jobComposer[open] > summary svg {
+  transform: rotate(45deg);
+}
+.jobComposer > summary small {
+  color: var(--system-muted);
+  font-size: 12px;
+}
+.jobComposer > summary:hover {
+  background: var(--workspace-inset);
+}
+.composerBody {
+  border-top: 1px solid var(--system-border);
+  padding: 24px;
+}
+.composerBody > h2 {
+  font-size: 18px;
+  font-weight: 500;
+}
+.composerBody > p {
+  margin: 8px 0 24px;
+  color: var(--system-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.jobsEmpty {
+  display: grid;
+  min-height: 180px;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 20px;
+  text-align: center;
+}
+.jobsEmpty h3 {
+  font-size: 16px;
+  font-weight: 500;
+}
+.jobsEmpty p {
+  max-width: 48ch;
+  color: var(--system-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+:global(.system-shell[data-workspace-role="coo"]) .header {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 0 16px;
+}
+:global(.system-shell[data-workspace-role="coo"]) .metrics {
+  gap: 0;
+  border-block: 1px solid var(--system-border);
+  padding-block: 20px;
+}
+:global(.system-shell[data-workspace-role="coo"]) .metrics article {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 24px;
+}
+:global(.system-shell[data-workspace-role="coo"]) .metrics article:first-child {
+  padding-left: 0;
+}
+:global(.system-shell[data-workspace-role="coo"]) .metrics article + article {
+  border-left: 1px solid var(--system-border);
+}
+:global(.system-shell[data-workspace-role="coo"]) .metrics strong {
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 500;
+}
+:global(.system-shell[data-workspace-role="coo"]) .metrics span {
+  font-size: 12px;
+  font-weight: 400;
+}
+:global(.system-shell[data-workspace-role="coo"]) .panelHeading > p {
+  font-size: 12px;
+  text-align: left;
+}
+:global(.system-shell[data-workspace-role="coo"]) .panelHeading h2 {
+  font-size: 18px;
+  font-weight: 500;
+}
+:global(.system-shell[data-workspace-role="coo"])
+  :is(.eyebrow, .panelHeading span) {
+  color: var(--system-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+:global(.system-shell[data-workspace-role="coo"]) :is(.header p, .noAccess p) {
+  font-size: 13px;
+  line-height: 1.7;
+}
+:global(.system-shell[data-workspace-role="coo"]) .noAccess {
+  min-height: 0;
+  justify-items: start;
+  padding: 24px;
+  text-align: left;
+}
+:global(.system-shell[data-workspace-role="coo"]) .noAccess svg {
+  width: 24px;
+  height: 24px;
+}
+:global(.system-shell[data-workspace-role="coo"]) .noAccess h2 {
+  margin-block: 12px 4px;
+  font-size: 16px;
+  font-weight: 500;
+}
+:global(.system-shell[data-workspace-role="coo"]) .tableWrap td strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+:global(.system-shell[data-workspace-role="coo"]) .tableWrap td small {
+  font-size: 12px;
+}
+:global(.system-shell[data-workspace-role="coo"]) .openStatus {
+  color: var(--system-accent);
+}
+@media (max-width: 680px) {
+  .jobComposer > summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+  }
+  .composerBody {
+    padding: 20px 16px;
+  }
+  :global(.system-shell[data-workspace-role="coo"]) .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  :global(.system-shell[data-workspace-role="coo"]) .metrics article {
+    display: block;
+    padding: 0 12px;
+  }
+  :global(.system-shell[data-workspace-role="coo"]) .metrics svg {
+    display: none;
+  }
+  :global(.system-shell[data-workspace-role="coo"]) .metrics span {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  :global(.system-shell[data-workspace-role="coo"]) .directoryFilters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  :global(.system-shell[data-workspace-role="coo"]) .directoryFilters label {
+    min-width: 0;
+  }
+  :global(.system-shell[data-workspace-role="coo"])
+    .directoryFilters
+    label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jobComposer > summary svg {
+    transition: none;
+  }
+}
+
+/* The mounted composer and the job directory are separate tasks. */
+.jobWorkspace:not([hidden]) {
+  display: grid;
+  min-width: 0;
+  gap: 24px;
+  align-content: start;
+}
+.jobWorkspace[hidden] {
+  display: none;
+}
+
+.recruitmentSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 8px 20px;
+  border-bottom: 1px solid var(--system-border);
+}
+.recruitmentCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 0;
+  font-size: 13px;
+}
+.recruitmentCounts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.recruitmentCounts dt {
+  color: var(--system-muted);
+}
+.recruitmentCounts dd {
+  margin: 0;
+  color: var(--system-text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.jobComposer > summary {
+  border-radius: inherit;
+}

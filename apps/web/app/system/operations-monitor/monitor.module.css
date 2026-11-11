@@ -1,0 +1,534 @@
+.page,
+.dialog {
+  --monitor-surface: var(--system-surface, #fff);
+  --monitor-inset: var(--system-surface-inset, #f7f9fc);
+  --monitor-border: var(--system-border, #e1e6ee);
+  --monitor-text: var(--system-text, #202b3c);
+  --monitor-muted: var(--system-muted, #637086);
+  --monitor-accent: var(--system-accent, #2563c5);
+  --monitor-danger: #a33341;
+  --monitor-on-accent: #fff;
+  color: var(--monitor-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+:global(html[data-system-theme="dark"]) :is(.page, .dialog) {
+  --monitor-surface: #263247;
+  --monitor-inset: #202b3d;
+  --monitor-border: #43516a;
+  --monitor-danger: #ffb4be;
+  --monitor-on-accent: #152039;
+  color-scheme: dark;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+.heading h1 {
+  margin: 4px 0;
+  font-size: 26px;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.heading p,
+.panelHeading p,
+.footnote,
+.hint {
+  color: var(--monitor-muted);
+}
+.eyebrow {
+  font-size: 12px;
+}
+.page button,
+.dialog button,
+.page input,
+.page select,
+.dialog input,
+.dialog textarea {
+  font: inherit;
+}
+.page button,
+.dialog button,
+.page input,
+.page select,
+.dialog input,
+.dialog textarea {
+  border: 1px solid var(--monitor-border);
+  border-radius: 9px;
+  background: var(--monitor-surface);
+  color: var(--monitor-text);
+  padding: 9px 12px;
+}
+.page button,
+.dialog button {
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+.page button:hover,
+.dialog button:hover {
+  background: var(--monitor-inset);
+}
+.page button:disabled,
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.page :is(button, input, select, a):focus-visible,
+.dialog :is(button, input, textarea, a):focus-visible,
+.tableScroll:focus-visible {
+  outline: 2px solid var(--monitor-accent);
+  outline-offset: 3px;
+}
+.policy {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  color: var(--monitor-muted);
+}
+.policy details {
+  min-width: 160px;
+}
+.policy summary {
+  color: var(--monitor-accent);
+  cursor: pointer;
+}
+.policy form {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  padding-top: 12px;
+}
+.policy input {
+  width: 100px;
+}
+.page label,
+.dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.panel {
+  border: 1px solid var(--monitor-border);
+  border-radius: 14px;
+  background: var(--monitor-surface);
+  overflow: hidden;
+}
+.panelHeading {
+  padding: 20px 24px 16px;
+}
+.panelHeading h2 {
+  font-size: 17px;
+  font-weight: 650;
+}
+.panelHeading h2 span {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--monitor-muted);
+}
+.panelHeading p {
+  margin-top: 4px;
+  max-width: 820px;
+  font-size: 13px;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--monitor-border);
+}
+.tabs button {
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  color: var(--monitor-muted);
+}
+.tabs button[aria-pressed="true"] {
+  color: var(--monitor-accent);
+  background: var(--system-accent-soft, #eaf1ff);
+}
+.tabs span {
+  margin-left: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.filters {
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: minmax(260px, 2fr) repeat(5, minmax(112px, 1fr));
+  align-items: end;
+  gap: 12px;
+}
+.filters label {
+  min-width: 0;
+}
+.filters input,
+.filters select {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+.search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+@media (max-width: 1280px) {
+  .filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.tableScroll {
+  overflow-x: auto;
+}
+.tableScroll table {
+  width: 100%;
+  min-width: 1060px;
+  text-align: left;
+  border-collapse: collapse;
+}
+.tableScroll th {
+  background: var(--monitor-inset);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--monitor-muted);
+  white-space: nowrap;
+}
+.tableScroll td,
+.tableScroll th {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--monitor-border);
+  vertical-align: middle;
+}
+.tableScroll tbody tr:last-child td {
+  border-bottom: 0;
+}
+.tableScroll tbody tr:hover {
+  background: var(--monitor-inset);
+}
+.tableScroll td:first-child {
+  min-width: 175px;
+}
+.tableScroll td small {
+  display: block;
+  color: var(--monitor-muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.tableScroll td strong {
+  font-weight: 600;
+}
+.stage {
+  text-transform: capitalize;
+}
+.overdue {
+  color: var(--monitor-danger);
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 8px;
+  white-space: nowrap;
+}
+.page a,
+.dialog a {
+  color: var(--monitor-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.empty {
+  padding: 48px 24px !important;
+  text-align: center;
+}
+.empty p {
+  color: var(--monitor-muted);
+  margin-top: 8px;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--monitor-border);
+  padding: 14px 20px;
+}
+.pager span {
+  font-size: 13px;
+  color: var(--monitor-muted);
+  text-align: center;
+}
+.footnote {
+  margin: 14px 0;
+  font-size: 12px;
+}
+.error {
+  border-left: 3px solid var(--monitor-danger);
+  background: var(--monitor-inset);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.error button {
+  margin: 8px 8px 0 0;
+}
+.notice {
+  padding: 12px 16px;
+  border: 1px solid var(--monitor-border);
+  border-radius: 9px;
+  margin-bottom: 16px;
+  background: var(--monitor-surface);
+}
+.dialog {
+  width: min(640px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid var(--monitor-border);
+  border-radius: 16px;
+  background: var(--monitor-surface);
+  margin: auto;
+}
+.dialog[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dialog::backdrop {
+  background: #0c142477;
+}
+.dialogHeader,
+.dialogFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px;
+  flex-shrink: 0;
+}
+.dialogHeader {
+  border-bottom: 1px solid var(--monitor-border);
+}
+.dialogHeader h2 {
+  font-size: 20px;
+  font-weight: 650;
+}
+.dialogHeader p {
+  font-size: 12px;
+  color: var(--monitor-muted);
+}
+.dialogBody {
+  padding: 20px 24px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.dialogFooter {
+  border-top: 1px solid var(--monitor-border);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.dialog button.primary {
+  background: var(--monitor-accent);
+  color: var(--monitor-on-accent);
+  border-color: var(--monitor-accent);
+}
+.metadata {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.metadata dt {
+  color: var(--monitor-muted);
+  font-size: 12px;
+}
+.metadata dd {
+  margin-top: 3px;
+  text-transform: none;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.reason {
+  margin-bottom: 8px;
+}
+.followUpForm {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0 24px;
+}
+.followUpForm input,
+.followUpForm textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.followUpForm textarea {
+  resize: vertical;
+  min-height: 92px;
+}
+.followUpForm label span,
+.hint {
+  font-size: 12px;
+  font-weight: 400;
+}
+.history h3 {
+  font-size: 15px;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.history ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.history li {
+  padding: 14px 0;
+  border-top: 1px solid var(--monitor-border);
+  overflow-wrap: anywhere;
+}
+.history li div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.history li div span,
+.history small {
+  color: var(--monitor-muted);
+  font-size: 12px;
+}
+.history li p {
+  white-space: pre-wrap;
+  margin: 8px 0;
+}
+@media (max-width: 1100px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .filters .search,
+  .filters > label:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 680px) {
+  .heading,
+  .policy {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .heading h1 {
+    font-size: 23px;
+  }
+  .panelHeading,
+  .filters {
+    padding: 16px;
+  }
+  .tabs {
+    padding: 0 12px 12px;
+  }
+  .filters label {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+  .filters input,
+  .filters select {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+  .dialogHeader,
+  .dialogFooter,
+  .dialogBody {
+    padding: 16px;
+  }
+  .dialogFooter button {
+    flex: 1;
+  }
+  .pager {
+    padding: 12px;
+  }
+}
+
+/* Keep monitoring navigation readable when an older shell rule supplies light tokens. */
+:global(html[data-system-theme="dark"])
+  :global(.system-shell):has(.page)
+  :global(.system-sidebar) {
+  --system-text: #f2f2f3;
+  --system-muted: #a6a8af;
+  --system-accent: #86b5ff;
+  --system-accent-soft: #25334b;
+  --workspace-raised: #2a2b2f;
+  --system-border: #323338;
+}
+:global(html[data-system-theme="dark"])
+  :global(.system-shell):has(.page)
+  :global(.system-nav-item.is-active) {
+  background: var(--workspace-raised);
+  color: var(--system-text);
+}
+@media (max-width: 680px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .filters .search,
+  .filters > label:last-child {
+    grid-column: 1 / -1;
+  }
+  .dialogFooter {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .dialogFooter .primary {
+    grid-column: 1 / -1;
+  }
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  :is(.page, .dialog) {
+  --monitor-surface: var(--system-surface);
+  --monitor-inset: var(--workspace-inset);
+  --monitor-border: var(--system-border);
+  --monitor-on-accent: var(--workspace-on-action);
+}
+
+:global(.system-shell[data-workspace-role="coo"]) .error {
+  border-left: 0;
+}
+
+.followUpTabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dialog .followUpTabs button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 12px;
+  background: transparent;
+  color: var(--system-muted);
+  font-weight: 500;
+}
+.dialog .followUpTabs button[aria-pressed="true"] {
+  background: var(--workspace-control-hover);
+  color: var(--system-text);
+}
+.dialog [data-monitor-pane][hidden] {
+  display: none;
+}
+.dialogBody {
+  min-height: min(280px, 38dvh);
+}
+.dialogFooter .sourceLink {
+  margin-right: auto;
+  font-size: 13px;
+}

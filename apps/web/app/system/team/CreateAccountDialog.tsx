@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useMe } from "@/lib/useMe";
 import { ROLES } from "@/lib/api";
 import type { Dispatch, RefObject, SetStateAction } from "react";
@@ -12,6 +13,7 @@ import {
 } from "./team-view";
 
 type Props = {
+  requestClose: () => void;
   createDialogRef: RefObject<HTMLDialogElement | null>;
   setFieldErrors: Dispatch<
     SetStateAction<
@@ -37,6 +39,7 @@ type Props = {
 };
 
 export default function CreateAccountDialog({
+  requestClose,
   createDialogRef,
   setFieldErrors,
   saving,
@@ -51,6 +54,9 @@ export default function CreateAccountDialog({
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-size="standard"
       ref={createDialogRef}
       className="team-dialog"
       aria-labelledby="create-account-title"
@@ -58,9 +64,9 @@ export default function CreateAccountDialog({
         return setFieldErrors({});
       }}
       onCancel={(event) => {
-        if (saving) {
-          event.preventDefault();
-        }
+        event.preventDefault();
+
+        requestClose();
       }}
     >
       <form onSubmit={createAccount} noValidate>
@@ -69,7 +75,7 @@ export default function CreateAccountDialog({
           title="Add staff account"
           description="Create individual access and assign the person’s least-privilege role."
           onClose={() => {
-            return createDialogRef.current?.close();
+            return requestClose();
           }}
           disabled={saving}
         />
@@ -121,7 +127,7 @@ export default function CreateAccountDialog({
             />
           </Field>
           <Field label="Role" error={fieldErrors.role} inputId="staff-role">
-            <select
+            <WorkspaceNativeSelect
               id="staff-role"
               value={form.role}
               onChange={(event) => {
@@ -140,7 +146,7 @@ export default function CreateAccountDialog({
                   </option>
                 );
               })}
-            </select>
+            </WorkspaceNativeSelect>
             <small>{roleDescriptions[form.role]}</small>
           </Field>
           <Field
@@ -183,7 +189,7 @@ export default function CreateAccountDialog({
             disabled={saving}
             className="team-secondary-button"
             onClick={() => {
-              return createDialogRef.current?.close();
+              return requestClose();
             }}
           >
             Cancel

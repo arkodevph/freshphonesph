@@ -1,5 +1,8 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import DateInput from "@/components/DateInput";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type {
@@ -154,7 +157,7 @@ export function ReplacementActions({
         >
           <h3>Replacement schedule</h3>
           {previewLoading ? (
-            <p role="status">Loading the current replacement terms…</p>
+            <WorkspaceProgress label="Loading the current replacement terms…" />
           ) : previewError ? (
             <div role="alert" className={styles.error}>
               {previewError}
@@ -253,7 +256,7 @@ export function ReplacementActions({
         >
           <label className={styles.field}>
             Replacement arrangement
-            <select
+            <WorkspaceNativeSelect
               value={mode}
               onChange={(event) => {
                 setMode(event.target.value as WithdrawalReplacementMode);
@@ -263,7 +266,7 @@ export function ReplacementActions({
                 Continue unpaid installments
               </option>
               <option value="RESTART">Start a fresh installment plan</option>
-            </select>
+            </WorkspaceNativeSelect>
           </label>
           <p>
             Continuing carries only the unpaid installments. The departing
@@ -311,7 +314,7 @@ export function ReplacementActions({
                 </label>
                 <label className={styles.field}>
                   New installment frequency
-                  <select
+                  <WorkspaceNativeSelect
                     value={cadence}
                     onChange={(event) => {
                       setCadence(event.target.value as typeof cadence);
@@ -322,11 +325,11 @@ export function ReplacementActions({
                       Bi-monthly — 15th and month end
                     </option>
                     <option value="WEEKLY">Weekly</option>
-                  </select>
+                  </WorkspaceNativeSelect>
                 </label>
                 <label className={styles.field}>
                   New plan start date
-                  <input
+                  <DateInput
                     required
                     type="date"
                     value={start}
@@ -337,7 +340,7 @@ export function ReplacementActions({
                 </label>
                 <label className={styles.field}>
                   First new installment due date
-                  <input
+                  <DateInput
                     required
                     type="date"
                     min={start}
@@ -350,7 +353,7 @@ export function ReplacementActions({
                 {cadence === "MONTHLY" && (
                   <label className={styles.field}>
                     Monthly alignment
-                    <select
+                    <WorkspaceNativeSelect
                       value={monthEnd ? "end" : "day"}
                       onChange={(event) => {
                         setMonthEnd(event.target.value === "end");
@@ -358,7 +361,7 @@ export function ReplacementActions({
                     >
                       <option value="day">Same day each month</option>
                       <option value="end">Last day of each month</option>
-                    </select>
+                    </WorkspaceNativeSelect>
                   </label>
                 )}
               </div>
@@ -512,7 +515,7 @@ export function ReplacementActions({
           )}
         </ActionForm>
       )}
-      {row.replacementEnrollmentId && (
+      {row.actions.viewReplacementEnrollment && row.replacementEnrollmentId && (
         <p className={styles.section}>
           <Link
             className={styles.link}
