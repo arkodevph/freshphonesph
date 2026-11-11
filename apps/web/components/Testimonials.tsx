@@ -98,120 +98,125 @@ export default function Testimonials({ staged = false }: { staged?: boolean }) {
       data-review-pan={Math.max(0, reviewX(reviews.length - 1) - 0.75)}
       className={staged ? styles.staged : "relative px-4 py-20"}
     >
-      <SectionHeading
-        title={
-          <span className={styles.headingComposition}>
-            <span className={styles.headingLine}>Real members,</span>{" "}
-            <span className={styles.headingLine}>
-              real <span className="holo-text">flexes</span>
+      <div className={staged ? styles.stagePin : undefined}>
+        <SectionHeading
+          title={
+            <span className={styles.headingComposition}>
+              <span className={styles.headingLine}>Real members,</span>{" "}
+              <span className={styles.headingLine}>
+                real <span className="holo-text">flexes</span>
+              </span>
+              {[
+                styles.doodleOne,
+                styles.doodleTwo,
+                styles.doodleThree,
+                styles.doodleFour,
+              ].map((position) => {
+                return (
+                  <span
+                    key={position}
+                    className={`${styles.headingDoodle} ${position}`}
+                    aria-hidden="true"
+                  >
+                    <DoodleIcon name="chat-heart" size={56} />
+                  </span>
+                );
+              })}
             </span>
-            {[
-              styles.doodleOne,
-              styles.doodleTwo,
-              styles.doodleThree,
-              styles.doodleFour,
-            ].map((position) => {
-              return (
-                <span
-                  key={position}
-                  className={`${styles.headingDoodle} ${position}`}
-                  aria-hidden="true"
-                >
-                  <DoodleIcon name="chat-heart" size={56} />
-                </span>
-              );
-            })}
-          </span>
-        }
-        subtitle="Customer recommendations, with clearly labeled sample reviews for this preview."
-      />
+          }
+          subtitle="Customer recommendations, with clearly labeled sample reviews for this preview."
+        />
 
-      <div
-        className={
-          staged
-            ? styles.cards
-            : "mx-auto mt-12 grid max-w-5xl gap-5 sm:grid-cols-2"
-        }
-      >
-        {reviews.map((r, i) => {
-          const card = (
-            <figure className={`glass relative h-full rounded-[1.75rem] p-6`}>
-              {r.sample && (
-                <span className={styles.sample}>
-                  Sample review · preview only
-                </span>
-              )}
-              <Quotes
-                weight="fill"
-                className="absolute right-5 top-5 h-8 w-8 text-blue/15"
-              />
-              <div
-                className="mb-3 flex gap-1"
-                role="img"
-                aria-label="5 out of 5 stars"
-              >
-                {[0, 1, 2, 3, 4].map((s) => {
-                  return <SolarStar key={s} className="h-5 w-5 text-hotpink" />;
-                })}
-              </div>
-              <blockquote className="text-[15px] font-500 leading-relaxed text-ink">
-                “{r.quote}”
-              </blockquote>
-              <figcaption className="mt-5 flex items-center gap-3">
-                <span
-                  className={`grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br ${r.color} font-display text-sm font-700 text-white shadow`}
-                >
-                  {r.initials}
-                </span>
-                <div>
-                  <p className="font-display font-700 text-blue-ink">
-                    {r.name}
-                  </p>
-                  <p className="text-xs font-600 text-ink-soft">{r.role}</p>
-                </div>
-              </figcaption>
-            </figure>
-          );
-
-          return staged ? (
-            <div
-              key={r.name}
-              data-mobile-review
-              data-sample={r.sample || undefined}
-              className={styles.card}
-              style={
-                {
-                  "--review-from-x":
-                    i < 4 ? [1.05, 1.55, 2, 2.4][i] : reviewX(i) + 1.1,
-                  "--review-to-x": reviewX(i),
-                  "--review-from-y": [1.05, 1.2, 1.4, 1.55][i % 4],
-                  "--review-to-y": [0.46, 0.42, 0.41, 0.44][i % 4],
-                  "--review-from-angle": `${[26, 30, -18, 24][i % 4]}deg`,
-                  "--review-to-angle": `${[-12, 0, -10, 0][i % 4]}deg`,
-                  "--review-delay": [0, 0.08, 0.16, 0.24][i % 4],
-                } as CSSProperties
-              }
-            >
-              {card}
-            </div>
-          ) : (
-            <Reveal key={r.name} delay={(i % 2) * 100}>
-              {card}
-            </Reveal>
-          );
-        })}
-      </div>
-
-      <div className={staged ? styles.link : "mt-8 text-center"}>
-        <a
-          href="https://web.facebook.com/FreshPhonesPh"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.reviewButton}
+        <div
+          className={
+            staged
+              ? styles.cards
+              : "mx-auto mt-12 grid max-w-5xl gap-5 sm:grid-cols-2"
+          }
+          data-review-row={staged || undefined}
         >
-          <DoodleIcon name="chat-heart" />
-          <span>See all reviews on Facebook</span>
-        </a>
+          {reviews.map((r, i) => {
+            const card = (
+              <figure className={`glass relative h-full rounded-[1.75rem] p-6`}>
+                {r.sample && (
+                  <span className={styles.sample}>
+                    Sample review · preview only
+                  </span>
+                )}
+                <Quotes
+                  weight="fill"
+                  className="absolute right-5 top-5 h-8 w-8 text-blue/15"
+                />
+                <div
+                  className="mb-3 flex gap-1"
+                  role="img"
+                  aria-label="5 out of 5 stars"
+                >
+                  {[0, 1, 2, 3, 4].map((s) => {
+                    return (
+                      <SolarStar key={s} className="h-5 w-5 text-hotpink" />
+                    );
+                  })}
+                </div>
+                <blockquote className="text-[15px] font-500 leading-relaxed text-ink">
+                  “{r.quote}”
+                </blockquote>
+                <figcaption className="mt-5 flex items-center gap-3">
+                  <span
+                    className={`grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br ${r.color} font-display text-sm font-700 text-white shadow`}
+                  >
+                    {r.initials}
+                  </span>
+                  <div>
+                    <p className="font-display font-700 text-blue-ink">
+                      {r.name}
+                    </p>
+                    <p className="text-xs font-600 text-ink-soft">{r.role}</p>
+                  </div>
+                </figcaption>
+              </figure>
+            );
+
+            return staged ? (
+              <div
+                key={r.name}
+                data-mobile-review
+                data-sample={r.sample || undefined}
+                className={styles.card}
+                style={
+                  {
+                    "--review-from-x":
+                      i < 4 ? [1.05, 1.55, 2, 2.4][i] : reviewX(i) + 1.1,
+                    "--review-to-x": reviewX(i),
+                    "--review-from-y": [1.05, 1.2, 1.4, 1.55][i % 4],
+                    "--review-to-y": [0.46, 0.42, 0.41, 0.44][i % 4],
+                    "--review-from-angle": `${[26, 30, -18, 24][i % 4]}deg`,
+                    "--review-to-angle": `${[-12, 0, -10, 0][i % 4]}deg`,
+                    "--review-delay": [0, 0.08, 0.16, 0.24][i % 4],
+                  } as CSSProperties
+                }
+              >
+                {card}
+              </div>
+            ) : (
+              <Reveal key={r.name} delay={(i % 2) * 100}>
+                {card}
+              </Reveal>
+            );
+          })}
+        </div>
+
+        <div className={staged ? styles.link : "mt-8 text-center"}>
+          <a
+            href="https://web.facebook.com/FreshPhonesPh"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.reviewButton}
+          >
+            <DoodleIcon name="chat-heart" />
+            <span>See all reviews on Facebook</span>
+          </a>
+        </div>
       </div>
     </section>
   );

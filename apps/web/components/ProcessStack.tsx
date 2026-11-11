@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRef } from "react";
 import { useProcessStack } from "@/lib/useProcessStack";
 import { useMobileCardMotion } from "@/lib/useMobileCardMotion";
+import { useMobileReviewPan } from "@/lib/useMobileReviewPan";
 import styles from "./ProcessStack.module.css";
 import type { ReactNode } from "react";
 import DoodleIcon from "./DoodleIcon";
@@ -101,6 +102,8 @@ export default function ProcessStack({ children }: { children?: ReactNode }) {
   useProcessStack(trackRef, panels.length);
 
   useMobileCardMotion(trackRef, panels.length);
+
+  useMobileReviewPan(trackRef);
 
   return (
     <section
