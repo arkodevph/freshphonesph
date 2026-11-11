@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceDetails from "@/components/WorkspaceDetails";
 import { formatPeso as currency } from "@/lib/currency";
 import {
   getReportBatches,
@@ -24,7 +26,6 @@ import type {
 import {
   useCallback,
   useEffect,
-  useId,
   useRef,
   useState,
   type FormEvent,
@@ -32,6 +33,7 @@ import {
 import ReconciliationResults from "./ReconciliationResults";
 import ReportVisuals from "./ReportVisuals";
 import styles from "./reports.module.css";
+import ReportSelect from "./ReportSelect";
 
 export type LoadedReport =
   | {
@@ -88,8 +90,6 @@ export function BatchPicker({
   value: ReportBatchOption | null;
   onChange: (value: ReportBatchOption | null) => void;
 }) {
-  const id = useId();
-
   const [text, setText] = useState("");
 
   const [query, setQuery] = useState("");
@@ -154,35 +154,31 @@ export function BatchPicker({
 
   return (
     <div className={styles.batchPicker}>
-      <div className={styles.field}>
-        <label htmlFor={id}>Batch</label>
-        <select
-          id={id}
-          value={value?.id ?? ""}
-          onChange={(event) => {
-            return onChange(
-              event.target.value
-                ? [value, ...rows].find((item) => {
-                    return item?.id === event.target.value;
-                  })!
-                : null,
-            );
-          }}
-        >
-          <option value="">All batches</option>
-          {value &&
-            !rows.some((item) => {
-              return item.id === value.id;
-            }) && <option value={value.id}>{value.code}</option>}
-          {rows.map((item) => {
-            return (
-              <option key={item.id} value={item.id}>
-                {item.code}
-              </option>
-            );
-          })}
-        </select>
-      </div>
+      <ReportSelect
+        label="Batch"
+        value={value?.id ?? ""}
+        onValueChange={(next) => {
+          return onChange(
+            next
+              ? [value, ...rows].find((item) => {
+                  return item?.id === next;
+                })!
+              : null,
+          );
+        }}
+        options={[
+          { value: "", label: "All batches" },
+          ...(value &&
+          !rows.some((item) => {
+            return item.id === value.id;
+          })
+            ? [{ value: value.id, label: value.code }]
+            : []),
+          ...rows.map((item) => {
+            return { value: item.id, label: item.code };
+          }),
+        ]}
+      />
       <label className={styles.field}>
         Find a batch code
         <input
@@ -208,7 +204,7 @@ export function BatchPicker({
       </div>
       <div className={styles.batchStatus}>
         {loading ? (
-          <span role="status">Loading batch choices…</span>
+          <WorkspaceProgress label="Loading batch choices…" />
         ) : error ? (
           <span role="alert">
             {error}{" "}
@@ -799,9 +795,10 @@ export function ReportHistory({
         </button>
       </div>
       {loading ? (
-        <p role="status" className={styles.empty}>
-          Loading saved reports…
-        </p>
+        <WorkspaceProgress
+          className={styles.empty}
+          label="Loading saved reports…"
+        />
       ) : error ? (
         <p role="alert" className={styles.error}>
           {error}{" "}
@@ -932,7 +929,7 @@ export function SavedReport({
     item.kind === "PAYMENTS" ? item.payload.filters?.status : undefined;
 
   return (
-    <details className={styles.saved}>
+    <WorkspaceDetails className={styles.saved}>
       <summary>
         <strong>
           {dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}
@@ -1010,6 +1007,7 @@ export function SavedReport({
             )}
             <button
               type="submit"
+              data-variant="primary"
               className={styles.primary}
               disabled={busy || draft.trim().length < 20}
             >
@@ -1024,7 +1022,7 @@ export function SavedReport({
         {showVisuals && <ReportVisuals report={report} />}
         <ReportResults report={report} />
       </div>
-    </details>
+    </WorkspaceDetails>
   );
 }
 

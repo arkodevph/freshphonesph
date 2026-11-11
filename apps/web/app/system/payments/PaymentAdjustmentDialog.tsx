@@ -1,7 +1,9 @@
 "use client";
 
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import ModalCloseButton from "@/components/ModalCloseButton";
 import { formatPeso as money } from "@/lib/currency";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { paymentAdjustmentSchema } from "@freshphones/contracts";
 import { adjustPayment, type Payment } from "@/lib/api";
 import styles from "./adjustments.module.css";
@@ -33,11 +35,33 @@ export default function PaymentAdjustmentDialog({
 
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (dialog.current && !dialog.current.open) {
-      dialog.current.showModal();
+  const [open, setOpen] = useState(true);
+
+  const completed = useRef<Payment | null>(null);
+
+  const finished = useRef(false);
+
+  useSpringDialog(dialog, open, finishClose);
+
+  function finishClose() {
+    if (dialog.current?.open || finished.current) {
+      return;
     }
-  }, []);
+
+    finished.current = true;
+
+    if (completed.current) {
+      onSuccess(completed.current);
+    } else {
+      onClose();
+    }
+  }
+
+  function close() {
+    if (!busy.current) {
+      setOpen(false);
+    }
+  }
 
   const validAmount = /^(0|[1-9]\d{0,9})(\.\d{1,2})?$/.test(amount);
 
@@ -81,7 +105,9 @@ export default function PaymentAdjustmentDialog({
     setError("");
 
     try {
-      onSuccess(await adjustPayment(payment.id, parsed.data));
+      completed.current = await adjustPayment(payment.id, parsed.data);
+
+      setOpen(false);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -97,14 +123,17 @@ export default function PaymentAdjustmentDialog({
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-size="standard"
       ref={dialog}
       className={styles.dialog}
       aria-labelledby="payment-adjustment-title"
-      onClose={onClose}
+      onClose={finishClose}
       onCancel={(event) => {
-        if (busy.current) {
-          event.preventDefault();
-        }
+        event.preventDefault();
+
+        close();
       }}
     >
       <form
@@ -114,21 +143,17 @@ export default function PaymentAdjustmentDialog({
           void save();
         }}
       >
-        <header>
+        <header data-modal-header>
           <div>
             <p>Finance adjustment</p>
             <h2 id="payment-adjustment-title">Correct verified credit</h2>
           </div>
-          <button
-            type="button"
-            aria-label="Close adjustment"
+          <ModalCloseButton
             disabled={saving}
             onClick={() => {
-              return dialog.current?.close();
+              return close();
             }}
-          >
-            ×
-          </button>
+          />
         </header>
         <div className={styles.body}>
           <dl>
@@ -218,7 +243,7 @@ export default function PaymentAdjustmentDialog({
             type="button"
             disabled={saving}
             onClick={() => {
-              return dialog.current?.close();
+              return close();
             }}
           >
             Cancel

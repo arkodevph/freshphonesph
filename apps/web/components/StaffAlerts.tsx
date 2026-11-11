@@ -1,7 +1,12 @@
 "use client";
 
+import { HandlerStaffAlerts } from "./HandlerStaffAlerts";
+import { useMe } from "@/lib/useMe";
+import { isBatchHandler } from "@/lib/handler-workspace";
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell } from "@phosphor-icons/react";
 import {
   getStaffAlerts,
@@ -14,8 +19,19 @@ import {
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { ApiError } from "@/lib/ts-api";
 import styles from "./staff-alerts.module.css";
+import WorkspacePopover from "./WorkspacePopover";
 
-export function StaffAlerts({
+export function StaffAlerts(props: Parameters<typeof StandardStaffAlerts>[0]) {
+  const me = useMe();
+
+  return isBatchHandler(me?.role) ? (
+    <HandlerStaffAlerts {...props} />
+  ) : (
+    <StandardStaffAlerts {...props} />
+  );
+}
+
+function StandardStaffAlerts({
   open,
   onToggle,
   onClose,
@@ -24,6 +40,7 @@ export function StaffAlerts({
   canSupport,
   canAccounts,
   canEnrollments,
+  canWorkflow,
 }: {
   open: boolean;
   onToggle: () => void;
@@ -33,10 +50,17 @@ export function StaffAlerts({
   canSupport: boolean;
   canAccounts: boolean;
   canEnrollments: boolean;
+  canWorkflow: boolean;
 }) {
+  const router = useRouter();
+
   const panelId = useId();
 
+  const bell = useRef<HTMLButtonElement>(null);
+
   const [snapshot, setSnapshot] = useState<StaffAlertPage | null>(null);
+
+  const [snapshotView, setSnapshotView] = useState("");
 
   const [scope, setScope] = useState<StaffAlertScope>("all");
 
@@ -57,6 +81,12 @@ export function StaffAlerts({
   const pendingReads = useRef(new Set<string>());
 
   const load = useCallback(async () => {
+    if (scope === "workflow" && !canWorkflow) {
+      setScope("all");
+
+      return;
+    }
+
     if (scope === "finance" && !canFinance) {
       setScope("all");
 
@@ -109,6 +139,8 @@ export function StaffAlerts({
       }
 
       setSnapshot(result);
+
+      setSnapshotView(`${scope}:${page}:${unreadOnly}`);
     } catch (error) {
       if (request !== sequence.current) {
         return;
@@ -135,6 +167,7 @@ export function StaffAlerts({
     canSupport,
     canAccounts,
     canEnrollments,
+    canWorkflow,
   ]);
 
   const currentLoad = useRef(load);
@@ -171,15 +204,15 @@ export function StaffAlerts({
 
   async function read(alert?: StaffAlert) {
     const key = alert
-      ? `${alert.entity}:${alert.id}:${alert.entity === "task" ? `${alert.kind}:${alert.deadline}` : alert.version}`
+      ? `${alert.entity}:${alert.id}:${alert.kind}:${alert.entity === "task" ? alert.deadline : alert.version}`
       : "all";
 
-    if (
-      (!alert && busy) ||
-      (alert && alert.readAt) ||
-      pendingReads.current.has(key)
-    ) {
-      return;
+    if (alert?.readAt) {
+      return true;
+    }
+
+    if ((!alert && busy) || pendingReads.current.has(key)) {
+      return false;
     }
 
     pendingReads.current.add(key);
@@ -194,12 +227,16 @@ export function StaffAlerts({
       } else {
         await readAllStaffAlerts(scope);
       }
+
+      return true;
     } catch (error) {
       setActionError(
         error instanceof Error
           ? error.message
           : "Could not update the alert. Please try again.",
       );
+
+      return false;
     } finally {
       pendingReads.current.delete(key);
 
@@ -208,6 +245,9 @@ export function StaffAlerts({
       void currentLoad.current();
     }
   }
+
+  const waitingForView =
+    loading && (!snapshot || snapshotView !== `${scope}:${page}:${unreadOnly}`);
 
   const unread = snapshot?.unreadCount ?? 0;
 
@@ -220,6 +260,7 @@ export function StaffAlerts({
   return (
     <div className="system-popover-anchor">
       <button
+        ref={bell}
         type="button"
         className={`system-icon-button ${styles.bell}`}
         aria-label={label}
@@ -234,63 +275,73 @@ export function StaffAlerts({
           </span>
         )}
       </button>
-      {open && (
-        <section
-          id={panelId}
-          className={`system-popover system-notifications-popover ${styles.panel}`}
-          aria-label="Staff alerts"
-        >
-          <header className={styles.heading}>
-            <div>
-              <h2>Staff alerts</h2>
-              <p>
-                {snapshot
-                  ? `${snapshot.taskCount} task${snapshot.taskCount === 1 ? "" : "s"}${canFinance ? ` · ${snapshot.financeCount} pending payments` : ""}${canResults ? ` · ${snapshot.resultCount} Finance results` : ""}${canSupport ? ` · ${snapshot.supportCount} Support alerts` : ""}${canAccounts ? ` · ${snapshot.accountCount} account events` : ""}${canEnrollments ? ` · ${snapshot.enrollmentCount} enrollment${snapshot.enrollmentCount === 1 ? "" : "s"}` : ""} · ${unread} unread`
-                  : "Your tasks and reminders"}
-              </p>
-            </div>
-            <button
-              type="button"
-              disabled={
-                busy ||
-                loading ||
-                Boolean(error) ||
-                !snapshot?.filteredUnreadCount
-              }
-              onClick={() => {
-                return void read();
-              }}
-            >
-              {busy ? "Updating…" : "Mark all as read"}
-            </button>
-          </header>
-          <nav className={styles.tabs} aria-label="Alert type">
-            {(
-              [
-                "all",
-                "tasks",
-                ...(canFinance ? ["finance"] : []),
-                ...(canResults ? ["results"] : []),
-                ...(canSupport ? ["support"] : []),
-                ...(canAccounts ? ["accounts"] : []),
-                ...(canEnrollments ? ["enrollments"] : []),
-              ] as StaffAlertScope[]
-            ).map((value) => {
-              return (
-                <button
-                  type="button"
-                  key={value}
-                  aria-pressed={scope === value}
-                  onClick={() => {
-                    setScope(value);
+      <WorkspacePopover
+        open={open}
+        id={panelId}
+        className={`system-popover system-notifications-popover ${styles.panel}`}
+        aria-label="Staff alerts"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            onClose();
 
-                    setPage(1);
+            bell.current?.focus();
+          }
+        }}
+      >
+        <header className={styles.heading}>
+          <div>
+            <h2>Staff alerts</h2>
+            <p>
+              {snapshot
+                ? `${unread} unread · ${snapshot.filteredCount} in this view`
+                : "Your tasks and reminders"}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={
+              busy ||
+              loading ||
+              Boolean(error) ||
+              !snapshot?.filteredUnreadCount
+            }
+            onClick={() => {
+              return void read();
+            }}
+          >
+            {busy ? "Updating…" : "Mark all as read"}
+          </button>
+        </header>
+        <nav className={styles.tabs} aria-label="Alert type">
+          {(
+            [
+              "all",
+              "tasks",
+              ...(canWorkflow ? ["workflow"] : []),
+              ...(canFinance ? ["finance"] : []),
+              ...(canResults ? ["results"] : []),
+              ...(canSupport ? ["support"] : []),
+              ...(canAccounts ? ["accounts"] : []),
+              ...(canEnrollments ? ["enrollments"] : []),
+            ] as StaffAlertScope[]
+          ).map((value) => {
+            return (
+              <button
+                type="button"
+                key={value}
+                aria-pressed={scope === value}
+                onClick={() => {
+                  setScope(value);
 
-                    setActionError(null);
-                  }}
-                >
-                  {value === "all"
-                    ? "All alerts"
+                  setPage(1);
+
+                  setActionError(null);
+                }}
+              >
+                {value === "all"
+                  ? "All alerts"
+                  : value === "workflow"
+                    ? "Workflow"
                     : value === "enrollments"
                       ? "Enrollments"
                       : value === "tasks"
@@ -302,61 +353,64 @@ export function StaffAlerts({
                             : value === "accounts"
                               ? "Accounts"
                               : "Results"}
-                </button>
-              );
-            })}
-          </nav>
-          <div className={styles.controls}>
-            <label>
-              <input
-                type="checkbox"
-                checked={unreadOnly}
-                onChange={(event) => {
-                  setUnreadOnly(event.target.checked);
+              </button>
+            );
+          })}
+        </nav>
+        <div className={styles.controls}>
+          <label>
+            <input
+              type="checkbox"
+              checked={unreadOnly}
+              onChange={(event) => {
+                setUnreadOnly(event.target.checked);
 
-                  setPage(1);
-                }}
-              />
-              Unread only
-            </label>
+                setPage(1);
+              }}
+            />
+            Unread only
+          </label>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              return void load();
+            }}
+          >
+            Refresh alerts
+          </button>
+        </div>
+        {actionError && (
+          <p role="alert" className={styles.error}>
+            {actionError}
+          </p>
+        )}
+        {error ? (
+          <p role="alert" className={styles.error}>
+            {error}{" "}
             <button
               type="button"
-              disabled={loading}
               onClick={() => {
                 return void load();
               }}
             >
-              Refresh alerts
+              Retry alerts
             </button>
-          </div>
-          {actionError && (
-            <p role="alert" className={styles.error}>
-              {actionError}
-            </p>
-          )}
-          {error ? (
-            <p role="alert" className={styles.error}>
-              {error}{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  return void load();
-                }}
-              >
-                Retry alerts
-              </button>
-            </p>
-          ) : loading ? (
-            <p role="status" className={styles.state}>
-              Loading staff alerts…
-            </p>
-          ) : !snapshot?.items.length ? (
-            <div className={styles.state}>
-              <strong>
-                {unreadOnly && snapshot?.filteredCount
-                  ? "No unread alerts in this view"
-                  : scope === "enrollments"
-                    ? "No enrollment alerts"
+          </p>
+        ) : waitingForView ? (
+          <WorkspaceProgress
+            className={styles.state}
+            label="Loading staff alerts…"
+          />
+        ) : !snapshot?.items.length ? (
+          <div className={styles.state}>
+            <strong>
+              {unreadOnly && snapshot?.filteredCount
+                ? "No unread alerts in this view"
+                : scope === "enrollments"
+                  ? "No enrollment alerts"
+                  : scope === "workflow"
+                    ? "No workflow handoffs awaiting you"
                     : scope === "tasks"
                       ? "No tasks awaiting your work"
                       : scope === "finance"
@@ -368,10 +422,12 @@ export function StaffAlerts({
                             : scope === "support"
                               ? "No Support alerts awaiting your attention"
                               : "No staff alerts"}
-              </strong>
-              <p>
-                {unreadOnly && snapshot?.filteredCount
-                  ? "Read alerts stay available while their work is current. Finished or reassigned Support cases leave this view."
+            </strong>
+            <p>
+              {unreadOnly && snapshot?.filteredCount
+                ? "Read alerts stay available while their work is current. Completed or reassigned work leaves this view."
+                : scope === "workflow"
+                  ? "Evidence reviews, corrections and open follow-ups appear here when they need your attention."
                   : scope === "enrollments"
                     ? "Pending requests appear for their current Manager and COO. Agents receive their approval or rejection results."
                     : scope === "accounts"
@@ -381,104 +437,117 @@ export function StaffAlerts({
                         : scope === "support"
                           ? "New concerns, assignments and customer replies will appear for their responsible staff."
                           : "New assignments, reminders, enrollments and relevant Finance or Support updates will appear here."}
-              </p>
-            </div>
-          ) : (
-            <ul className={styles.list}>
-              {snapshot.items.map((alert) => {
-                return (
-                  <li key={`${alert.entity}:${alert.id}`}>
-                    <Link
-                      href={alert.targetPath}
-                      className={styles.item}
-                      data-unread={!alert.readAt}
-                      data-kind={alert.kind}
-                      aria-label={`Open ${alert.entity === "payment-result" ? "Finance result" : alert.entity} alert: ${alert.message}`}
-                      onClick={() => {
-                        void read(alert);
-
-                        onClose();
-                      }}
-                    >
-                      <span className={styles.dot} aria-hidden="true" />
-                      <div>
-                        <strong>{alert.title}</strong>
-                        <p>{alert.message}</p>
-                        <small>
-                          {alert.readAt ? "Read" : "Unread"} ·{" "}
-                          {new Date(alert.occurredAt).toLocaleString("en-PH", {
-                            timeZone: "Asia/Manila",
-                            month: "short",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}{" "}
-                          PHT
-                        </small>
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <footer className={styles.footer}>
-            <nav aria-label="Staff alert pages">
-              <button
-                type="button"
-                disabled={loading || page === 1}
-                onClick={() => {
-                  return setPage(page - 1);
-                }}
-              >
-                Previous alerts
-              </button>
-              <span>Page {page}</span>
-              <button
-                type="button"
-                disabled={
-                  loading ||
-                  !snapshot ||
-                  page * snapshot.pageSize >= snapshot.total
-                }
-                onClick={() => {
-                  return setPage(page + 1);
-                }}
-              >
-                Next alerts
-              </button>
-            </nav>
-            <div className={styles.links}>
-              <Link href="/system/tasks" onClick={onClose}>
-                Open tasks
-              </Link>
-              {canFinance && (
-                <Link href="/system/payments?status=pending" onClick={onClose}>
-                  Open pending payments
-                </Link>
-              )}
-            </div>
-            {canAccounts && (
-              <div className={styles.links}>
-                <Link href="/system/team" onClick={onClose}>
-                  Open account directory
-                </Link>
-              </div>
-            )}
-            {canSupport && (
-              <div className={styles.links}>
-                <Link href="/system/support" onClick={onClose}>
-                  Open Support cases
-                </Link>
-              </div>
-            )}
-            <p>
-              Reading an alert does not approve enrollment, complete a task,
-              verify a payment, resolve a case or change account access.
             </p>
-          </footer>
-        </section>
-      )}
+          </div>
+        ) : (
+          <ul className={styles.list} aria-busy={loading}>
+            {snapshot.items.map((alert) => {
+              return (
+                <li key={`${alert.entity}:${alert.id}:${alert.kind}`}>
+                  <Link
+                    href={alert.targetPath}
+                    className={styles.item}
+                    data-unread={!alert.readAt}
+                    data-kind={alert.kind}
+                    aria-label={`${alert.title}: ${alert.message}`}
+                    onClick={(event) => {
+                      if (
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      ) {
+                        return;
+                      }
+
+                      event.preventDefault();
+
+                      void read(alert).then((success) => {
+                        if (success) {
+                          onClose();
+
+                          router.push(alert.targetPath);
+                        }
+                      });
+                    }}
+                  >
+                    <span className={styles.dot} aria-hidden="true" />
+                    <div>
+                      <strong>{alert.title}</strong>
+                      <p>{alert.message}</p>
+                      <small>
+                        {alert.readAt ? "Read" : "Unread"} ·{" "}
+                        {new Date(alert.occurredAt).toLocaleString("en-PH", {
+                          timeZone: "Asia/Manila",
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}{" "}
+                        PHT
+                      </small>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <footer className={styles.footer}>
+          <nav aria-label="Staff alert pages">
+            <button
+              type="button"
+              disabled={loading || page === 1}
+              onClick={() => {
+                return setPage(page - 1);
+              }}
+            >
+              Previous alerts
+            </button>
+            <span>Page {page}</span>
+            <button
+              type="button"
+              disabled={
+                loading ||
+                !snapshot ||
+                page * snapshot.pageSize >= snapshot.total
+              }
+              onClick={() => {
+                return setPage(page + 1);
+              }}
+            >
+              Next alerts
+            </button>
+          </nav>
+          <div className={styles.links}>
+            <Link href="/system/tasks" onClick={onClose}>
+              Open tasks
+            </Link>
+            {canFinance && (
+              <Link href="/system/payments?status=pending" onClick={onClose}>
+                Open pending payments
+              </Link>
+            )}
+          </div>
+          {canAccounts && (
+            <div className={styles.links}>
+              <Link href="/system/team" onClick={onClose}>
+                Open account directory
+              </Link>
+            </div>
+          )}
+          {canSupport && (
+            <div className={styles.links}>
+              <Link href="/system/support" onClick={onClose}>
+                Open Support cases
+              </Link>
+            </div>
+          )}
+          <p>
+            Reading an alert marks it as seen. Take action in the source record.
+          </p>
+        </footer>
+      </WorkspacePopover>
     </div>
   );
 }

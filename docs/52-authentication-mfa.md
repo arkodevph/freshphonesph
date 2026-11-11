@@ -42,8 +42,12 @@ remains separate; no client cloud services have been changed.
   challenge consumption are atomic across replicas. Trusted-device bypass is not
   exposed. PostgreSQL facade limits and the plugin's account lockout are retained.
 - `/security` provides enrollment, code regeneration, optional MFA disable,
-  session listings and revocation. It is linked from the staff account menu and
-  customer Settings. Required staff MFA cannot be disabled. Account holders who
+  session listings and revocation. Staff also have current/new/confirmation
+  password fields, optional visibility, validation and success/error feedback
+  through the existing own-password endpoint (added 2026-11-10). Successful changes
+  renew the current session, end others and refresh the list; MFA remains enforced.
+  Customers retain their password form in portal Settings. Security is linked
+  from the staff account menu and customer Settings. Required staff MFA cannot be disabled. Account holders who
   lose both their authenticator and recovery codes must use the existing support
   contact; an administrative bypass/recovery workflow needs business approval.
 - Production requires MFA for every staff role. Password-only staff sessions can

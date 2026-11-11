@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { useEffect, useState } from "react";
 import type { HrAccessDecision } from "@freshphones/contracts";
 import { getEmployeeHrAccessHistory, type RecordId } from "@/lib/api";
@@ -73,7 +74,7 @@ export default function HrAccessHistory({
     >
       <strong>HR access decisions</strong>
       {loading ? (
-        <p role="status">Loading decisions…</p>
+        <WorkspaceProgress label="Loading decisions…" />
       ) : error ? (
         <div role="alert">
           <p>{error}</p>

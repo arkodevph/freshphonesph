@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useEffect, useState } from "react";
 import { tsRequest } from "@/lib/ts-api";
 import type { AccessDraft } from "./team-view";
@@ -90,7 +91,7 @@ export default function AccountAssignments({
       {supervisors[role] && (
         <label className="team-form-field">
           <span>Supervisor</span>
-          <select
+          <WorkspaceNativeSelect
             value={selected ?? ""}
             onChange={(event) => {
               return edit({ supervisorId: event.target.value || null });
@@ -111,13 +112,13 @@ export default function AccountAssignments({
                   </option>
                 );
               })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
       )}
       {role === "agent" && (
         <label className="team-form-field">
           <span>Agent profile</span>
-          <select
+          <WorkspaceNativeSelect
             value={profile ?? ""}
             onChange={(event) => {
               return edit({ agentProfileId: event.target.value || null });
@@ -135,7 +136,7 @@ export default function AccountAssignments({
                   </option>
                 );
               })}
-          </select>
+          </WorkspaceNativeSelect>
           <small>
             The linked Agent profile determines which batches this account can
             submit enrollments for.

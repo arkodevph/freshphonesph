@@ -1,3 +1,4 @@
+import { assistantAccess } from "../assistant/access";
 import { requireOpenMembership } from "../withdrawals/withdrawal-tools";
 import {
   BadRequestException,
@@ -36,6 +37,9 @@ import { batchScope, clientScope, staffScope } from "./scope";
 import { notifyAccount } from "../staff/account-alerts";
 import { verifiedTotals } from "../finance/ledger";
 import { allocateBatchNumber } from "./batch-numbering";
+import { batchListOrder } from "./batch-list-order";
+import type { BatchSortField, ClientSortField } from "@freshphones/contracts";
+import { clientListOrder } from "./client-list-order";
 import { BATCH_REAL_MEMBER_CAPACITY } from "@freshphones/contracts";
 import {
   countBatchMembers,
@@ -83,7 +87,7 @@ const accountSelect = {
   createdAt: true,
 } as const;
 
-type Query = {
+type Query<Sort extends string = BatchSortField> = {
   page: number;
   q: string;
   status?: string;
@@ -94,6 +98,8 @@ type Query = {
   model?: string;
   dateFrom?: string;
   dateTo?: string;
+  sortBy?: Sort;
+  sortDirection?: "asc" | "desc";
 };
 
 type AccountQuery = {
@@ -226,7 +232,7 @@ export class RecordsService {
         this.db.batch.findMany({
           where,
           include: batchInclude,
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          orderBy: batchListOrder(query),
           skip: (query.page - 1) * pageSize,
           take: pageSize,
         }),
@@ -289,12 +295,9 @@ export class RecordsService {
   async assignmentOptions(user: User) {
     user = await requireCurrentUser(this.db, user, "BATCH_READ");
 
-    const global = [
-      "SYSTEM_ADMIN",
-      "COO",
-      "RECORDS",
-      "FINANCE_OFFICER",
-    ].includes(user.role);
+    const global =
+      assistantAccess(user, "BATCH_READ") ||
+      ["SYSTEM_ADMIN", "COO", "RECORDS", "FINANCE_OFFICER"].includes(user.role);
 
     const [handlers, agents, managers] = await this.db.$transaction([
       this.db.user.findMany({
@@ -382,7 +385,6 @@ export class RecordsService {
 
       if (
         input.handlerId &&
-        input.handlerId !== before.handlerId &&
         !(await tx.user.findFirst({
           where: {
             id: input.handlerId,
@@ -414,7 +416,6 @@ export class RecordsService {
 
       if (
         input.agentId &&
-        input.agentId !== before.agentId &&
         !(await tx.agent.findFirst({
           where: { id: input.agentId, active: true },
           select: { id: true },
@@ -733,7 +734,7 @@ export class RecordsService {
       return batchJson(after);
     });
   }
-  async clients(user: User, query: Query) {
+  async clients(user: User, query: Query<ClientSortField>) {
     const where: Prisma.ClientWhereInput = {
       retentionErasedAt: null,
       AND: [
@@ -798,7 +799,7 @@ export class RecordsService {
         this.db.client.findMany({
           where,
           include: clientInclude,
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          orderBy: clientListOrder(query),
           skip: (query.page - 1) * pageSize,
           take: pageSize,
         }),

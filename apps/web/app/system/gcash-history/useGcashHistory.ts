@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GcashHistory, GcashHistoryStatus } from "@freshphones/contracts";
 import {
@@ -53,7 +54,7 @@ export function useGcashHistory() {
 
   const [error, setError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -336,8 +337,6 @@ export function useGcashHistory() {
       resetDraft();
 
       const message = `${saved.batch.code}: PDF revision ${saved.revision} submitted to Records.`;
-
-      setNotice(message);
 
       announce("success", "PDF submitted", message);
 

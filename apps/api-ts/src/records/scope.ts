@@ -1,8 +1,18 @@
+import { assistantAccess } from "../assistant/access";
 import { businessRole, type User } from "@freshphones/contracts";
 import type { Prisma } from "../generated/prisma/client";
 
 /** Intersect filters with this scope; a requested handler ID never replaces it. */
 export function batchScope(user: User): Prisma.BatchWhereInput {
+  if (
+    assistantAccess(user, "BATCH_READ") ||
+    assistantAccess(user, "BATCH_MANAGE") ||
+    assistantAccess(user, "CLIENT_READ") ||
+    assistantAccess(user, "CLIENT_MANAGE")
+  ) {
+    return {};
+  }
+
   switch (businessRole(user.role)) {
     case "SYSTEM_ADMIN":
     case "COO":
@@ -66,7 +76,10 @@ export function clientScope(user: User): Prisma.ClientWhereInput {
 export function staffScope(
   user: Pick<User, "id" | "role">,
 ): Prisma.UserWhereInput {
-  const role = businessRole(user.role);
+  const role =
+    assistantAccess(user, "TASK_READ") || assistantAccess(user, "TASK_ASSIGN")
+      ? "COO"
+      : businessRole(user.role);
 
   const businessStaff = {
     active: true,
@@ -114,7 +127,10 @@ export function staffScope(
 export function taskScope(
   user: Pick<User, "id" | "role"> & { hrConfidentialAccess?: boolean },
 ): Prisma.TaskWhereInput {
-  const role = businessRole(user.role);
+  const role =
+    assistantAccess(user, "TASK_READ") || assistantAccess(user, "TASK_ASSIGN")
+      ? "COO"
+      : businessRole(user.role);
 
   if (role === "SYSTEM_ADMIN") {
     return { assignee: { role: { notIn: ["CEO", "CUSTOMER"] } } };

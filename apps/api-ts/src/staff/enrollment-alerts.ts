@@ -1,3 +1,4 @@
+import { paymentReviewReceiptVisibility } from "./payment-review-alerts";
 import { Prisma } from "../generated/prisma/client";
 import { utcTimestamp } from "./alert-queries";
 
@@ -12,7 +13,7 @@ export const enrollmentAlertTitles = {
  */
 export function enrollmentAlertRows(userId: string) {
   return Prisma.sql`
-    SELECT e.id, NULL::uuid AS "paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId",
+    SELECT e.id, NULL::uuid AS "paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId", NULL::uuid AS "sourceId", NULL::text AS "sourceType",
       e.version, 'enrollment'::text AS entity,
       CASE e.status WHEN 'PENDING' THEN 'ENROLLMENT_PENDING'
         WHEN 'APPROVED' THEN 'ENROLLMENT_APPROVED' ELSE 'ENROLLMENT_REJECTED' END AS kind,
@@ -60,7 +61,7 @@ export async function markEnrollmentAlertsRead(
 
 /** Apply the same enrollment visibility to the older generic notification API. */
 export function notificationVisibilitySql(userId: string) {
-  return Prisma.sql`n."recipientId" = ${userId}::uuid AND (
+  return Prisma.sql`n."recipientId" = ${userId}::uuid AND ${paymentReviewReceiptVisibility(userId)} AND n."eventKey" <> 'workflow.read' AND (
     n."eventKey" NOT IN ('enrollment.submitted', 'enrollment.reviewed')
     OR EXISTS (SELECT 1 FROM (${enrollmentAlertRows(userId)}) a
       WHERE n."dedupeKey" = CASE a.kind WHEN 'ENROLLMENT_PENDING'

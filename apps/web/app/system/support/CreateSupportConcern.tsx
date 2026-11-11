@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { STAFF_SUPPORT_SOURCES, type SupportClientOption } from "@/lib/api";
 import type * as React from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
@@ -99,7 +100,7 @@ export default function CreateSupportConcern({
       {clientOptions.length > 0 && (
         <label className="mt-3 block text-sm font-700 text-blue-ink">
           Matching customers
-          <select
+          <WorkspaceNativeSelect
             value={selectedClient?.id ?? ""}
             onChange={(event) => {
               return setSelectedClient(
@@ -118,7 +119,7 @@ export default function CreateSupportConcern({
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
       )}
       {clientSearchDone && clientOptions.length === 0 && !lookupError && (
@@ -129,7 +130,7 @@ export default function CreateSupportConcern({
       <form onSubmit={createCase} className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="text-sm font-700 text-blue-ink">
           Contact source
-          <select
+          <WorkspaceNativeSelect
             value={newSource}
             onChange={(event) => {
               return setNewSource(event.target.value);
@@ -145,7 +146,7 @@ export default function CreateSupportConcern({
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <label className="text-sm font-700 text-blue-ink">
           Category

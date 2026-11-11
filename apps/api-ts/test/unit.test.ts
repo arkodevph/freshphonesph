@@ -843,6 +843,35 @@ test("receipt templates extract editable GCash and Maya candidates", () => {
   }
 });
 
+test("bank receipt time follows a labeled ISO date without guessing a missing time", () => {
+  for (const [date, time] of [
+    ["2026-11-11 14:35", "14:35"],
+    ["2026-11-11 2:35 PM", "2:35 PM"],
+    ["2026-11-11", null],
+  ] as const) {
+    const result = spawnSync(
+      "python3",
+      [join(__dirname, "../scripts/receipt_ocr.py"), "bank", "--text"],
+      {
+        input: `Transfer Amount: PHP 250.00\nReference Number: QA-ISO-12345\nTransaction Date: ${date}`,
+        encoding: "utf8",
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+
+    const parsed = JSON.parse(result.stdout);
+
+    assert.equal(parsed.amount, "250.00");
+
+    assert.equal(parsed.referenceNumber, "QA-ISO-12345");
+
+    assert.equal(parsed.paymentDate, "2026-11-11");
+
+    assert.equal(parsed.receiptTime, time);
+  }
+});
+
 test("receipt extraction leaves an unknown payment date for human review", () => {
   const result = spawnSync(
     "python3",

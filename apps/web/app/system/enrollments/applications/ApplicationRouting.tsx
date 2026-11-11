@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useState } from "react";
 import type {
   EnrollmentFormConfig,
@@ -43,7 +44,7 @@ export default function ApplicationRouting({
         <legend className={styles.srOnly}>Route or close application</legend>
         <label className={styles.field}>
           Assigned Agent
-          <select
+          <WorkspaceNativeSelect
             value={agentId}
             onChange={(event) => {
               setAgentId(event.target.value);
@@ -63,7 +64,7 @@ export default function ApplicationRouting({
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <div className={styles.actions}>
           <button

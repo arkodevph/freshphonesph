@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useState } from "react";
 import Link from "next/link";
 import type { Me } from "@/lib/api";
@@ -74,7 +76,7 @@ export default function EnrollmentApplications({
             </label>
             <label className={styles.field}>
               Application status
-              <select
+              <WorkspaceNativeSelect
                 value={status}
                 onChange={(event) => {
                   setStatus(event.target.value);
@@ -86,7 +88,7 @@ export default function EnrollmentApplications({
                 <option value="RECEIVED">Received</option>
                 <option value="FORWARDED">Forwarded to Manager</option>
                 <option value="CLOSED">Closed</option>
-              </select>
+              </WorkspaceNativeSelect>
             </label>
             <div className={styles.actions}>
               <button type="submit" disabled={workspace.loading}>
@@ -96,7 +98,7 @@ export default function EnrollmentApplications({
           </form>
         )}
         {workspace.loading && (
-          <p role="status">Loading website applications…</p>
+          <WorkspaceProgress label="Loading website applications…" />
         )}
         {workspace.error && (
           <div className={styles.error}>

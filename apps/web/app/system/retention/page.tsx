@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   useCallback,
   useEffect,
@@ -65,7 +67,7 @@ export default function RetentionPage() {
   const [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
-    [message, setMessage] = useState("");
+    [message, setMessage] = useToastNotice("");
 
   const [draft, setDraft] = useState({
     scope: "APPLICANT" as RetentionScope,
@@ -377,7 +379,7 @@ export default function RetentionPage() {
           >
             <label>
               Category
-              <select
+              <WorkspaceNativeSelect
                 value={scope}
                 disabled={busy}
                 onChange={(event) => {
@@ -395,7 +397,7 @@ export default function RetentionPage() {
                     </option>
                   );
                 })}
-              </select>
+              </WorkspaceNativeSelect>
             </label>
             <label>
               Search records

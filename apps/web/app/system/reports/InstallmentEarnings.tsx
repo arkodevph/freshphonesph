@@ -9,6 +9,9 @@ import { formatPeso } from "@/lib/currency";
 import { BatchPicker, dateLabel } from "./report-view";
 import { useInstallmentEarnings } from "./useInstallmentEarnings";
 import styles from "./reports.module.css";
+import ReportSelect from "./ReportSelect";
+import SplitButton from "@/components/SplitButton";
+import { DownloadSimple } from "@phosphor-icons/react";
 
 export default function InstallmentEarnings() {
   const state = useInstallmentEarnings();
@@ -27,7 +30,7 @@ export default function InstallmentEarnings() {
   return (
     <>
       <section
-        className={styles.panel}
+        className={`${styles.panel} ${styles.earningsPanel}`}
         aria-labelledby="earnings-filters-title"
       >
         <h2 id="earnings-filters-title">Scheduled installment earnings</h2>
@@ -38,23 +41,19 @@ export default function InstallmentEarnings() {
         </p>
         <form onSubmit={state.apply}>
           <fieldset disabled={Boolean(busy)} className={styles.filters}>
-            <label className={styles.field}>
-              Frequency
-              <select
-                value={draft.frequency}
-                onChange={(event) => {
-                  state.edit("frequency", event.target.value);
-                }}
-              >
-                {earningsFrequencies.map((frequency) => {
-                  return (
-                    <option key={frequency} value={frequency}>
-                      {earningsFrequencyLabels[frequency]}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
+            <ReportSelect
+              label="Frequency"
+              value={draft.frequency}
+              onValueChange={(value) => {
+                return state.edit("frequency", value);
+              }}
+              options={earningsFrequencies.map((frequency) => {
+                return {
+                  value: frequency,
+                  label: earningsFrequencyLabels[frequency],
+                };
+              })}
+            />
             <label className={styles.field}>
               Year
               <input
@@ -69,37 +68,36 @@ export default function InstallmentEarnings() {
                 }}
               />
             </label>
-            <label className={styles.field}>
-              Period
-              <select
-                value={draft.period}
-                onChange={(event) => {
-                  state.edit("period", event.target.value);
-                }}
-              >
-                {periods.map((period) => {
-                  return (
-                    <option key={period.period} value={period.period}>
-                      {period.label}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-            <label className={styles.field}>
-              Group by
-              <select
-                value={draft.groupBy}
-                onChange={(event) => {
-                  state.edit("groupBy", event.target.value);
-                }}
-              >
-                <option value="batches">Batch</option>
-                <option value="members">Member</option>
-              </select>
-            </label>
+            <ReportSelect
+              label="Period"
+              value={draft.period}
+              onValueChange={(value) => {
+                return state.edit("period", value);
+              }}
+              options={periods.map((period) => {
+                return {
+                  value: String(period.period),
+                  label: period.label,
+                };
+              })}
+            />
+            <ReportSelect
+              label="Group by"
+              value={draft.groupBy}
+              onValueChange={(value) => {
+                return state.edit("groupBy", value);
+              }}
+              options={[
+                { value: "batches", label: "Batch" },
+                { value: "members", label: "Member" },
+              ]}
+            />
             <div className={styles.actions}>
-              <button type="submit" className={styles.primary}>
+              <button
+                type="submit"
+                data-variant="primary"
+                className={styles.primary}
+              >
                 Calculate earnings
               </button>
               <button type="button" onClick={state.reset}>
@@ -130,7 +128,7 @@ export default function InstallmentEarnings() {
         )}
       </section>
       <section
-        className={styles.panel}
+        className={`${styles.panel} ${styles.earningsPanel}`}
         aria-labelledby="earnings-results-title"
         aria-busy={loading}
       >
@@ -162,20 +160,24 @@ export default function InstallmentEarnings() {
             >
               Refresh figures
             </button>
-            {(["csv", "xlsx"] as const).map((format) => {
-              return (
-                <button
-                  key={format}
-                  type="button"
-                  disabled={loading || !report || dirty || Boolean(busy)}
-                  onClick={() => {
-                    void state.download(format);
-                  }}
-                >
-                  {busy === format ? "Downloading…" : format.toUpperCase()}
-                </button>
-              );
-            })}
+            <SplitButton
+              label={busy ? "Downloading…" : "Export CSV"}
+              icon={<DownloadSimple aria-hidden="true" />}
+              disabled={loading || !report || dirty || Boolean(busy)}
+              onAction={() => {
+                return void state.download("csv");
+              }}
+              menuLabel="Earnings export options"
+              actions={[
+                {
+                  label: "Export Excel (.xlsx)",
+                  icon: <DownloadSimple aria-hidden="true" />,
+                  onAction: () => {
+                    return void state.download("xlsx");
+                  },
+                },
+              ]}
+            />
           </div>
         </div>
         {state.actionError && (
@@ -202,7 +204,7 @@ export default function InstallmentEarnings() {
         ) : (
           report && (
             <>
-              <dl className={styles.metrics}>
+              <dl className={`${styles.metrics} ${styles.earningsMetrics}`}>
                 <div>
                   <dt>Scheduled earnings</dt>
                   <dd>{formatPeso(report.totals.scheduledAmount)}</dd>
@@ -235,9 +237,12 @@ export default function InstallmentEarnings() {
               </p>
               {report.totals.membersWithoutSchedule > 0 && (
                 <p className={styles.warning}>
-                  {report.totals.membersWithoutSchedule} members have no issued
-                  schedule. Their expected earnings are unknown and contribute
-                  ₱0.00 until a schedule is issued.
+                  {report.totals.membersWithoutSchedule}{" "}
+                  {report.totals.membersWithoutSchedule === 1
+                    ? "member has"
+                    : "members have"}{" "}
+                  no issued schedule. Their expected earnings are unknown and
+                  contribute ₱0.00 until a schedule is issued.
                 </p>
               )}
               {report.total === 0 ? (
@@ -247,12 +252,12 @@ export default function InstallmentEarnings() {
               ) : (
                 <>
                   <div
-                    className={styles.tableWrap}
+                    className={`${styles.tableWrap} ${styles.earningsTableWrap}`}
                     role="region"
                     aria-label="Scheduled installment earnings table"
                     tabIndex={0}
                   >
-                    <table>
+                    <table className={styles.earningsTable}>
                       <caption>
                         Expected installments by{" "}
                         {report.groupBy === "batches" ? "batch" : "member"} ·{" "}
@@ -266,10 +271,16 @@ export default function InstallmentEarnings() {
                           )}
                           <th scope="col">Batch</th>
                           {report.groupBy === "batches" && (
-                            <th scope="col">Membership records</th>
+                            <th scope="col" data-numeric>
+                              Membership records
+                            </th>
                           )}
-                          <th scope="col">Installments due</th>
-                          <th scope="col">Scheduled earnings</th>
+                          <th scope="col" data-numeric>
+                            Installments due
+                          </th>
+                          <th scope="col" data-numeric>
+                            Scheduled earnings
+                          </th>
                           <th scope="col">Schedule</th>
                           {report.groupBy === "batches" && (
                             <th scope="col">Breakdown</th>
@@ -289,10 +300,12 @@ export default function InstallmentEarnings() {
                                 <td>{row.batchCode}</td>
                               )}
                               {report.groupBy === "batches" && (
-                                <td>{row.members}</td>
+                                <td data-numeric>{row.members}</td>
                               )}
-                              <td>{row.installments}</td>
-                              <td>{formatPeso(row.scheduledAmount)}</td>
+                              <td data-numeric>{row.installments}</td>
+                              <td data-numeric>
+                                {formatPeso(row.scheduledAmount)}
+                              </td>
                               <td>
                                 {row.membersWithoutSchedule
                                   ? `${row.membersWithoutSchedule} without issued schedule`
@@ -323,7 +336,10 @@ export default function InstallmentEarnings() {
                       </tbody>
                     </table>
                   </div>
-                  <div className={styles.actions}>
+                  <nav
+                    className={`${styles.pagination} ${styles.earningsPagination}`}
+                    aria-label="Scheduled earnings pages"
+                  >
                     <button
                       type="button"
                       disabled={report.page <= 1 || dirty || Boolean(busy)}
@@ -333,10 +349,17 @@ export default function InstallmentEarnings() {
                     >
                       Previous
                     </button>
-                    <span className={styles.help}>
+                    <span>
                       Page {report.page} of{" "}
                       {Math.max(1, Math.ceil(report.total / report.pageSize))} ·{" "}
-                      {report.total} {report.groupBy}
+                      {report.total}{" "}
+                      {report.groupBy === "members"
+                        ? report.total === 1
+                          ? "member"
+                          : "members"
+                        : report.total === 1
+                          ? "batch"
+                          : "batches"}
                     </span>
                     <button
                       type="button"
@@ -351,7 +374,7 @@ export default function InstallmentEarnings() {
                     >
                       Next
                     </button>
-                  </div>
+                  </nav>
                 </>
               )}
             </>

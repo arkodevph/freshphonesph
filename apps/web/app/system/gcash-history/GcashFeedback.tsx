@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  CheckCircle,
-  FilePdf,
-  SpinnerGap,
-  WarningCircle,
-  X,
-} from "@phosphor-icons/react";
-import styles from "./feedback.module.css";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 export type GcashFeedbackMessage = {
   id: number;
@@ -23,48 +17,49 @@ export function GcashFeedback({
   feedback: GcashFeedbackMessage | null;
   dismiss: () => void;
 }) {
-  if (!feedback) {
-    return null;
-  }
+  const progress = useRef<string | number | undefined>(undefined);
 
-  const error = feedback.kind === "error";
+  const onDismiss = useRef(dismiss);
 
-  const Icon = error
-    ? WarningCircle
-    : feedback.kind === "success"
-      ? CheckCircle
-      : feedback.kind === "progress"
-        ? SpinnerGap
-        : FilePdf;
+  useEffect(() => {
+    onDismiss.current = dismiss;
+  }, [dismiss]);
 
-  return (
-    <div className="payment-toast-region">
-      <div
-        key={feedback.id}
-        className={`payment-toast ${error ? "is-error" : feedback.kind === "success" ? "is-success" : styles.neutral}`}
-        role={error ? "alert" : "status"}
-        aria-atomic="true"
-        data-gcash-feedback={feedback.kind}
-      >
-        <span
-          className={`payment-toast-icon ${feedback.kind === "progress" ? styles.spinner : ""}`}
-          aria-hidden="true"
-        >
-          <Icon weight={feedback.kind === "progress" ? "bold" : "fill"} />
-        </span>
-        <div className="payment-toast-copy">
-          <strong>{feedback.title}</strong>
-          <p>{feedback.message}</p>
-        </div>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Dismiss message"
-          className="payment-toast-close"
-        >
-          <X weight="bold" aria-hidden="true" />
-        </button>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    if (!feedback) {
+      if (progress.current !== undefined) {
+        toast.dismiss(progress.current);
+
+        progress.current = undefined;
+      }
+
+      return;
+    }
+
+    const options = {
+      id: progress.current,
+      description: feedback.message,
+      onDismiss: () => {
+        return onDismiss.current();
+      },
+    };
+
+    if (feedback.kind === "progress") {
+      progress.current = toast.loading(feedback.title, options);
+    } else {
+      toast[feedback.kind](feedback.title, options);
+
+      progress.current = undefined;
+    }
+  }, [feedback]);
+
+  useEffect(() => {
+    return () => {
+      if (progress.current !== undefined) {
+        toast.dismiss(progress.current);
+      }
+    };
+  }, []);
+
+  return null;
 }

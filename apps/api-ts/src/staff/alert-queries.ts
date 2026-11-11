@@ -1,4 +1,5 @@
 import type { StaffAlertScope, TaskAlertKind } from "@freshphones/contracts";
+import { financeReadySql } from "../finance/payment-workflow-query";
 import { Prisma } from "../generated/prisma/client";
 
 export const taskReminderHours = 24;
@@ -28,7 +29,7 @@ export function taskStageSql(now: Date) {
 
 export function taskAlertRows(userId: string, now: Date) {
   return Prisma.sql`
-    SELECT t.id, NULL::uuid AS "paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId", t.version, 'task'::text AS entity, stage.kind, NULL::text AS amount,
+    SELECT t.id, NULL::uuid AS "paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId", NULL::uuid AS "sourceId", NULL::text AS "sourceType", t.version, 'task'::text AS entity, stage.kind, NULL::text AS amount,
       NULL::text AS "clientName", NULL::text AS "batchCode", t.title AS "taskTitle", t.deadline,
       t."createdAt", t."updatedAt", CASE WHEN r.deadline = t.deadline THEN r."readAt" ELSE NULL END AS "readAt",
       CASE stage.kind WHEN 'TASK_ASSIGNED' THEN t."createdAt"
@@ -42,35 +43,39 @@ export function taskAlertRows(userId: string, now: Date) {
 
 export function financeAlertRows(userId: string) {
   return Prisma.sql`
-    SELECT p.id, p.id AS "paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId", p.version, 'payment'::text AS entity, 'FINANCE_PENDING'::text AS kind, p.amount::text AS amount,
+    SELECT p.id, p.id AS "paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId", NULL::uuid AS "sourceId", NULL::text AS "sourceType", p.version, 'payment'::text AS entity, 'FINANCE_PENDING'::text AS kind, p.amount::text AS amount,
       c.name AS "clientName", b.code AS "batchCode", NULL::text AS "taskTitle", NULL::timestamp AS deadline,
       p."createdAt", p."updatedAt", CASE WHEN r."seenVersion" >= p.version THEN r."readAt" ELSE NULL END AS "readAt",
       p."updatedAt" AS "occurredAt"
     FROM "Payment" p JOIN "Client" c ON c.id = p."clientId" JOIN "Batch" b ON b.id = p."batchId"
     LEFT JOIN "FinanceAlertRead" r ON r."paymentId" = p.id AND r."userId" = ${userId}::uuid
-    WHERE p.status = 'PENDING'
+    WHERE ${financeReadySql()}
   `;
 }
 
 export function alertScopeSql(scope: StaffAlertScope) {
-  return scope === "tasks"
-    ? Prisma.sql`entity = 'task'`
-    : scope === "finance"
-      ? Prisma.sql`entity = 'payment'`
-      : scope === "results"
-        ? Prisma.sql`entity = 'payment-result'`
-        : scope === "support"
-          ? Prisma.sql`entity = 'support'`
-          : scope === "accounts"
-            ? Prisma.sql`entity = 'account'`
-            : scope === "enrollments"
-              ? Prisma.sql`entity = 'enrollment'`
-              : Prisma.sql`TRUE`;
+  return scope === "workflow"
+    ? Prisma.sql`entity = 'workflow'`
+    : scope === "tasks"
+      ? Prisma.sql`entity = 'task'`
+      : scope === "finance"
+        ? Prisma.sql`entity = 'payment'`
+        : scope === "results"
+          ? Prisma.sql`entity = 'payment-result'`
+          : scope === "reviews"
+            ? Prisma.sql`entity = 'payment-review'`
+            : scope === "support"
+              ? Prisma.sql`entity = 'support'`
+              : scope === "accounts"
+                ? Prisma.sql`entity = 'account'`
+                : scope === "enrollments"
+                  ? Prisma.sql`entity = 'enrollment'`
+                  : Prisma.sql`TRUE`;
 }
 
 export function paymentResultRows(userId: string) {
   return Prisma.sql`
-    SELECT r.id, r."paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId", r."paymentVersion" AS version, 'payment-result'::text AS entity,
+    SELECT r.id, r."paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId", NULL::uuid AS "sourceId", NULL::text AS "sourceType", r."paymentVersion" AS version, 'payment-result'::text AS entity,
       CASE r.decision WHEN 'VERIFIED' THEN 'PAYMENT_VERIFIED' WHEN 'REJECTED' THEN 'PAYMENT_REJECTED'
         ELSE 'PAYMENT_CLARIFICATION' END AS kind,
       r.amount::text AS amount, r."clientName", r."batchCode", NULL::text AS "taskTitle", NULL::timestamp AS deadline,
@@ -86,7 +91,7 @@ export async function markFinanceAlertsRead(
 ) {
   return tx.$executeRaw`
     INSERT INTO "FinanceAlertRead" ("userId", "paymentId", "seenVersion", "readAt")
-    SELECT ${userId}::uuid, p.id, p.version, CURRENT_TIMESTAMP FROM "Payment" p WHERE p.status = 'PENDING'
+    SELECT ${userId}::uuid, a.id, a.version, CURRENT_TIMESTAMP AT TIME ZONE 'UTC' FROM (${financeAlertRows(userId)}) a
     ON CONFLICT ("userId", "paymentId") DO UPDATE
       SET "seenVersion" = EXCLUDED."seenVersion", "readAt" = EXCLUDED."readAt"
       WHERE "FinanceAlertRead"."seenVersion" < EXCLUDED."seenVersion"

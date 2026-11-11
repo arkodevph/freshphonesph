@@ -1,5 +1,8 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowClockwise, FloppyDisk } from "@phosphor-icons/react";
 import {
@@ -68,7 +71,7 @@ export default function StaffEmailSettings() {
 
   const [deliveryError, setDeliveryError] = useState("");
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(() => {
     return new Set();
@@ -423,9 +426,11 @@ export default function StaffEmailSettings() {
       )}
       {!settings ? (
         <p>
-          {loadingSettings
-            ? "Loading staff settings…"
-            : "Staff settings are unavailable. Use Reload staff settings to try again."}
+          {loadingSettings ? (
+            <WorkspaceProgress label="Loading staff settings…" />
+          ) : (
+            "Staff settings are unavailable. Use Reload staff settings to try again."
+          )}
         </p>
       ) : (
         <>
@@ -609,7 +614,7 @@ export default function StaffEmailSettings() {
         <div className={styles.filters}>
           <label>
             Delivery status
-            <select
+            <WorkspaceNativeSelect
               value={status}
               onChange={(event) => {
                 setStatus(event.target.value as StaffEmailStatus | "");
@@ -625,11 +630,11 @@ export default function StaffEmailSettings() {
                   </option>
                 );
               })}
-            </select>
+            </WorkspaceNativeSelect>
           </label>
           <label>
             Email type
-            <select
+            <WorkspaceNativeSelect
               value={kind}
               onChange={(event) => {
                 setKind(event.target.value as StaffEmailKind | "");
@@ -645,7 +650,7 @@ export default function StaffEmailSettings() {
                   </option>
                 );
               })}
-            </select>
+            </WorkspaceNativeSelect>
           </label>
         </div>
         {deliveryError && (
@@ -655,9 +660,11 @@ export default function StaffEmailSettings() {
         )}
         {!deliveries ? (
           <p aria-live="polite">
-            {loadingDeliveries
-              ? "Loading delivery history…"
-              : "Delivery history is unavailable. Refresh to try again."}
+            {loadingDeliveries ? (
+              <WorkspaceProgress label="Loading delivery history…" />
+            ) : (
+              "Delivery history is unavailable. Refresh to try again."
+            )}
           </p>
         ) : (
           <>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   createPortalSupport,
   getCustomerDocuments,
@@ -174,7 +175,7 @@ export function usePortalWorkspace({ section }: { section: PortalSection }) {
     };
   }, [conversation, section, me?.id]);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
 

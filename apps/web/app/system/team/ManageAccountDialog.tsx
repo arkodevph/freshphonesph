@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import type { Me } from "@/lib/api";
 import { ROLES, type Employee } from "@/lib/api";
 import type { RefObject } from "react";
@@ -17,6 +18,7 @@ import {
 type Props = {
   manageDialogRef: RefObject<HTMLDialogElement | null>;
   closeManage: () => void;
+  onClosed: () => void;
   managed: Employee | null;
   saveManagedAccount: (event: FormEvent) => Promise<void>;
   managing: boolean;
@@ -37,6 +39,7 @@ type Props = {
 export default function ManageAccountDialog({
   manageDialogRef,
   closeManage,
+  onClosed,
   managed,
   saveManagedAccount,
   managing,
@@ -55,9 +58,13 @@ export default function ManageAccountDialog({
 }: Props) {
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-size="drawer"
       ref={manageDialogRef}
       className="team-dialog team-manage-dialog"
       aria-labelledby="manage-account-title"
+      onClose={onClosed}
       onCancel={(event) => {
         event.preventDefault();
 
@@ -84,7 +91,7 @@ export default function ManageAccountDialog({
               </div>
             </div>
             <Field label="Role" inputId="managed-role">
-              <select
+              <WorkspaceNativeSelect
                 id="managed-role"
                 value={managedRole}
                 onChange={(event) => {
@@ -116,7 +123,7 @@ export default function ManageAccountDialog({
                     </option>
                   );
                 })}
-              </select>
+              </WorkspaceNativeSelect>
               <small>
                 {managed.role === "customer"
                   ? "Customer access is linked from the client record."

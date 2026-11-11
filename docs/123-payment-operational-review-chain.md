@@ -3,8 +3,12 @@
 A pending payment previously accepted a Finance decision without Records completeness
 approval or an assigned Manager cross-check. The payment API now enforces:
 
-1. The assigned Handler records the external payment and attaches private receipt proof.
-   Existing technical-maintenance recording rights remain available.
+1. The assigned Handler records the external payment as a pending claim. Receipt
+   proof may be attached later: the Handler UI explicitly confirms recording
+   without it and offers Attach proof on the saved claim, row menu and details.
+   A failed upload retries against that existing payment ID. Proof remains
+   required before approval. Existing technical-maintenance recording rights
+   remain available.
 2. Records checks the member, batch, receipt, amount, date/reference and duplicate evidence,
    then approves completeness or returns the payment with a required note.
 3. The current assigned Batch Manager approves the cross-check or returns it with a note.
@@ -46,8 +50,11 @@ uses **Cross-check**. Both reuse the existing payment review dialog. **View deta
 retains review history. Finance decision controls appear after Manager approval.
 
 No page redesign or new visual system is included. The current payment controls and
-styles are reused. Operational queue/escalation notifications remain a separate F03/F19
-follow-up; existing Finance-result notifications continue.
+styles are reused. Handler stage-decision notices are now available through
+**bell → Payment reviews**, with saved notes, current payment status and current
+assignment checks; see [Batch Handler progress](batch-handler-remaining-work-plan.md).
+Reviewer queue/escalation policy remains a separate F03/F19 follow-up; existing
+Finance-result notifications continue.
 
 ## Validation and release
 

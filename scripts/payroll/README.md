@@ -36,8 +36,20 @@ it does not read company payroll or the application database.
 ```
 
 Use `--work-dir /path/to/scratch` for an alternate output directory. The default
-is ignored `.local/payroll-v1/qa`. Results include formula-error scans, expected
-numeric/state results, worked-example preview caches and artifact hashes.
+is ignored `.local/payroll-v1/qa`. The verifier first checks that the delivered template and example match the
+current generator, including formulas, cached values, validation, protection and
+layout. It ignores only generated creation/modification timestamps and ZIP
+container metadata. A missing or changed delivered workbook fails verification.
+Use `--artifact-dir /path/to/folder` to verify another distribution directory.
+
+Results include formula-error scans, expected numeric/state results, worked-example
+preview caches and separate delivered/generated artifact hashes. Current coverage
+also checks repeated payment references, negative net pay requiring review and the
+last supported staff/payroll/adjustment/payment rows.
 
 The formulas use common spreadsheet functions. Actual Microsoft Excel and Google
 Sheets import/runtime checks remain separate from the executed LibreOffice checks.
+
+The user retained the Excel workbook format on November 10, 2026. Use the
+[Excel acceptance checklist](../../docs/134-f18-payroll-acceptance.md) for the
+remaining actual-Excel walkthrough and client alignment.

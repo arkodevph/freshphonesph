@@ -16,12 +16,14 @@ export async function createIdentity(
     { twoFactor },
     { createAuthEndpoint },
     { setSessionCookie },
+    { dash },
   ] = await Promise.all([
     import("better-auth"),
     import("better-auth/adapters/prisma"),
     import("better-auth/plugins"),
     import("better-auth/api"),
     import("better-auth/cookies"),
+    import("@better-auth/infra"),
   ]);
 
   return betterAuth({
@@ -121,6 +123,7 @@ export async function createIdentity(
       },
     },
     plugins: [
+      dash(),
       twoFactor({
         issuer: "Fresh Phones PH",
         twoFactorTable: "AuthTwoFactor",

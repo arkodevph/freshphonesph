@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   WithdrawalCase,
@@ -48,7 +49,7 @@ export function useWithdrawalWorkspace({
 
   const [error, setError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [busy, setBusy] = useState(false);
 

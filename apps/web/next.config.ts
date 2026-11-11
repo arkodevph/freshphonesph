@@ -5,6 +5,9 @@ const localPreview = process.env.FRESHPHONES_LOCAL_PREVIEW === "true";
 
 const nextConfig: NextConfig = {
   output: localPreview ? undefined : "standalone",
+  distDir: localPreview
+    ? (process.env.FRESHPHONES_PREVIEW_DIST_DIR ?? ".next")
+    : ".next",
   outputFileTracingRoot: path.resolve(__dirname, "../.."),
   devIndicators: false,
   async rewrites() {

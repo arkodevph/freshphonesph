@@ -560,24 +560,48 @@ export const getStaffAlerts = (
 };
 
 export const readStaffAlert = (alert: StaffAlert) => {
+  if (alert.inboxId) {
+    return tsRequest<{ id: string; readAt: string }>(
+      `/staff/alerts/inbox/${alert.inboxId}/read`,
+      {
+        method: "POST",
+        body: "{}",
+      },
+    );
+  }
+
   const body: StaffAlertReadInput =
-    alert.entity === "payment"
-      ? { entity: "payment", version: alert.version }
-      : alert.entity === "enrollment"
-        ? { entity: "enrollment", version: alert.version }
-        : alert.entity === "payment-result"
-          ? { entity: "payment-result" }
-          : alert.entity === "support"
-            ? { entity: "support" }
-            : alert.entity === "account"
-              ? { entity: "account" }
-              : { entity: "task", kind: alert.kind, deadline: alert.deadline };
+    alert.entity === "workflow"
+      ? { entity: "workflow", kind: alert.kind, version: alert.version }
+      : alert.entity === "payment"
+        ? { entity: "payment", version: alert.version }
+        : alert.entity === "payment-review"
+          ? { entity: "payment-review", version: alert.version }
+          : alert.entity === "enrollment"
+            ? { entity: "enrollment", version: alert.version }
+            : alert.entity === "payment-result"
+              ? { entity: "payment-result" }
+              : alert.entity === "support"
+                ? { entity: "support" }
+                : alert.entity === "account"
+                  ? { entity: "account" }
+                  : {
+                      entity: "task",
+                      kind: alert.kind,
+                      deadline: alert.deadline,
+                    };
 
   return tsRequest<{ id: string; readAt: string }>(
     `/staff/alerts/${alert.id}/read`,
     { method: "POST", body: JSON.stringify(body) },
   );
 };
+
+export function deleteStaffNotification(inboxId: string) {
+  return tsRequest<{ id: string }>(`/staff/alerts/inbox/${inboxId}`, {
+    method: "DELETE",
+  });
+}
 
 export const readAllStaffAlerts = (scope: StaffAlertScope = "all") => {
   return tsRequest<{ updated: number }>("/staff/alerts/read-all", {
@@ -899,10 +923,10 @@ export const addReleaseUpdate = (
   });
 };
 
-export function getSchedule(clientId: RecordId) {
-  return tsRequest<ClientSchedule>(`/clients/${clientId}/schedule`).then(
-    toSchedule,
-  );
+export function getSchedule(clientId: RecordId, signal?: AbortSignal) {
+  return tsRequest<ClientSchedule>(`/clients/${clientId}/schedule`, {
+    signal,
+  }).then(toSchedule);
 }
 
 // ── Current user (role-aware UI) ───────────────────────────────────────────

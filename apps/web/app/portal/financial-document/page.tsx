@@ -1,6 +1,5 @@
 "use client";
 
-import { formatPeso as money } from "@/lib/currency";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,49 +8,20 @@ import {
   DownloadMinimalistic as DownloadSimple,
   Printer,
 } from "@/components/SolarIcons";
+import type { Client, User } from "@freshphones/contracts";
 import type {
-  Client,
-  ClientBalance,
-  Payment,
-  User,
-} from "@freshphones/contracts";
+  AccountStatement as Statement,
+  PaymentConfirmation as Confirmation,
+} from "@/lib/account-documents";
+import { AccountDocumentSheet } from "@/components/AccountDocumentSheet";
 import { tsRequest } from "@/lib/ts-api";
 import { currentMembership } from "@/lib/membership-selection";
+import { prepareAccountDocumentPrint } from "@/lib/account-document-print";
 import { downloadAccountPdf } from "@/lib/account-pdf";
+import SplitButton from "@/components/SplitButton";
 import DocumentSheetSkeleton from "./DocumentSheetSkeleton";
 import styles from "./financial-document.module.css";
 import glass from "../portal-glass.module.css";
-
-type Statement = {
-  title: string;
-  notice: string;
-  generatedAt: string;
-  balance: ClientBalance;
-  verifiedPayments: Pick<
-    Payment,
-    | "id"
-    | "amount"
-    | "effectiveAmount"
-    | "adjustments"
-    | "paymentDate"
-    | "method"
-    | "referenceNumber"
-  >[];
-};
-
-type Confirmation = {
-  title: string;
-  notice: string;
-  generatedAt: string;
-  payment: Payment;
-};
-
-const day = (value: string) => {
-  return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString(
-    "en-PH",
-    { year: "numeric", month: "long", day: "numeric" },
-  );
-};
 
 export default function FinancialDocumentPage() {
   const router = useRouter();
@@ -122,10 +92,12 @@ export default function FinancialDocumentPage() {
           <Link href="/portal/payments">
             <ArrowLeft aria-hidden="true" /> Back to payments
           </Link>
-          <button
-            type="button"
+          <SplitButton
+            primary
+            label={downloading ? "Preparing PDF…" : "Download PDF"}
+            icon={<DownloadSimple aria-hidden="true" />}
             disabled={!document || !client || downloading}
-            onClick={() => {
+            onAction={() => {
               if (!document || !client) {
                 return;
               }
@@ -146,19 +118,33 @@ export default function FinancialDocumentPage() {
                   return setDownloading(false);
                 });
             }}
-          >
-            <DownloadSimple aria-hidden="true" />{" "}
-            {downloading ? "Preparing PDF…" : "Download PDF"}
-          </button>
-          <button
-            type="button"
-            disabled={!document}
-            onClick={() => {
-              return window.print();
-            }}
-          >
-            <Printer aria-hidden="true" /> Print
-          </button>
+            menuLabel="Account document options"
+            actions={[
+              {
+                label: "Print account document",
+                icon: <Printer aria-hidden="true" />,
+                onAction: () => {
+                  setDownloadError("");
+
+                  void prepareAccountDocumentPrint(
+                    window.document.querySelector(
+                      "[data-account-document-sheet]",
+                    ),
+                  )
+                    .then(() => {
+                      return window.print();
+                    })
+                    .catch((caught) => {
+                      return setDownloadError(
+                        caught instanceof Error
+                          ? caught.message
+                          : "Could not prepare this document for printing.",
+                      );
+                    });
+                },
+              },
+            ]}
+          />
         </div>
       </header>
       {downloadError && (
@@ -173,172 +159,7 @@ export default function FinancialDocumentPage() {
       ) : !document || !client ? (
         <DocumentSheetSkeleton />
       ) : (
-        <article className={styles.sheet}>
-          <header>
-            <p className={styles.brand}>
-              Fresh Phones <span>PH</span>
-            </p>
-            <p>FP Gadget Center</p>
-            <h1>{document.title}</h1>
-            <p>
-              Generated {new Date(document.generatedAt).toLocaleString("en-PH")}
-            </p>
-          </header>
-          <dl className={styles.details}>
-            <div>
-              <dt>Customer</dt>
-              <dd>{client.name}</dd>
-            </div>
-            <div>
-              <dt>Batch</dt>
-              <dd>{client.batch.code}</dd>
-            </div>
-            <div>
-              <dt>Unit</dt>
-              <dd>{client.unitModel || client.batch.model}</dd>
-            </div>
-          </dl>
-          {"balance" in document ? (
-            <>
-              <h2>Account balance</h2>
-              <dl className={styles.totals}>
-                {Number(document.balance.releasedDue ?? 0) > 0 && (
-                  <>
-                    <div>
-                      <dt>Originally issued installment obligation</dt>
-                      <dd>
-                        {document.balance.originalDue
-                          ? money(document.balance.originalDue)
-                          : "Not captured"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Unpaid obligation released at replacement</dt>
-                      <dd>{money(document.balance.releasedDue!)}</dd>
-                    </div>
-                  </>
-                )}
-                <div>
-                  <dt>Current installment obligation</dt>
-                  <dd>{money(document.balance.totalDue)}</dd>
-                </div>
-                <div>
-                  <dt>Finance-verified paid</dt>
-                  <dd>{money(document.balance.verifiedPaid)}</dd>
-                </div>
-                <div>
-                  <dt>Remaining balance</dt>
-                  <dd>{money(document.balance.remainingBalance)}</dd>
-                </div>
-              </dl>
-              {Number(document.balance.releasedDue ?? 0) > 0 && (
-                <p>
-                  The replacement handover released the unpaid obligation shown
-                  above. This release is not a payment or refund. Original
-                  incoming payments remain in your history; refund decisions and
-                  external refund records are tracked separately.
-                </p>
-              )}
-              <h2>Verified payments</h2>
-              {document.verifiedPayments.length ? (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Method</th>
-                      <th>Reference</th>
-                      <th>Original</th>
-                      <th>Current credit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {document.verifiedPayments.map((payment) => {
-                      return (
-                        <tr key={payment.id}>
-                          <td>{day(payment.paymentDate)}</td>
-                          <td>{payment.method}</td>
-                          <td>{payment.referenceNumber || "—"}</td>
-                          <td>{money(payment.amount)}</td>
-                          <td>
-                            {money(payment.effectiveAmount ?? payment.amount)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <p>No verified payments yet.</p>
-              )}
-            </>
-          ) : (
-            <>
-              <h2>Verified payment</h2>
-              <dl className={styles.totals}>
-                <div>
-                  <dt>Original verified amount</dt>
-                  <dd>{money(document.payment.amount)}</dd>
-                </div>
-                <div>
-                  <dt>Current credit</dt>
-                  <dd>
-                    {money(
-                      document.payment.effectiveAmount ??
-                        document.payment.amount,
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Payment date</dt>
-                  <dd>{day(document.payment.paymentDate)}</dd>
-                </div>
-                <div>
-                  <dt>Method</dt>
-                  <dd>{document.payment.method}</dd>
-                </div>
-                <div>
-                  <dt>Reference</dt>
-                  <dd>{document.payment.referenceNumber || "—"}</dd>
-                </div>
-              </dl>
-            </>
-          )}
-          {("payment" in document
-            ? [document.payment]
-            : document.verifiedPayments
-          )
-            .filter((payment) => {
-              return payment.adjustments?.length;
-            })
-            .map((payment) => {
-              return (
-                <section key={payment.id}>
-                  <h2>Adjustment history · {day(payment.paymentDate)}</h2>
-                  <ul>
-                    {payment.adjustments?.map((entry) => {
-                      return (
-                        <li key={entry.id}>
-                          Adjustment {entry.sequence}: {money(entry.amount)} ·{" "}
-                          {money(entry.beforeAmount)} →{" "}
-                          {money(entry.afterAmount)} ·{" "}
-                          {new Date(entry.createdAt).toLocaleString("en-PH", {
-                            timeZone: "Asia/Manila",
-                          })}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              );
-            })}
-          <footer>
-            <strong>{document.notice}</strong>
-            <p>
-              Payments are coordinated externally. This document reflects the
-              records verified by Finance at the time shown above.
-            </p>
-          </footer>
-        </article>
+        <AccountDocumentSheet client={client} record={document} />
       )}
     </main>
   );

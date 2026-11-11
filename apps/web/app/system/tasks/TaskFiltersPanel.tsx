@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import DateInput from "@/components/DateInput";
 import { Plus } from "@phosphor-icons/react";
 import type { Dispatch, SetStateAction } from "react";
 import { type FormEvent } from "react";
@@ -59,7 +61,7 @@ export default function TaskFiltersPanel({
         </label>
         <label>
           Assignee
-          <select
+          <WorkspaceNativeSelect
             required
             value={form.assigneeId}
             onChange={(event) => {
@@ -74,11 +76,11 @@ export default function TaskFiltersPanel({
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <label>
           Priority
-          <select
+          <WorkspaceNativeSelect
             value={form.priority}
             onChange={(event) => {
               return setForm({
@@ -90,11 +92,11 @@ export default function TaskFiltersPanel({
             <option value="LOW">Low</option>
             <option value="MEDIUM">Medium</option>
             <option value="HIGH">High</option>
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <label>
           Deadline
-          <input
+          <DateInput
             required
             type="datetime-local"
             value={form.deadline}
@@ -116,7 +118,12 @@ export default function TaskFiltersPanel({
           />
         </label>
         <div className={styles.formActions}>
-          <button className={styles.primary} disabled={busy} type="submit">
+          <button
+            data-variant="primary"
+            className={styles.primary}
+            disabled={busy}
+            type="submit"
+          >
             <Plus /> {busy ? "Saving…" : "Assign task"}
           </button>
         </div>

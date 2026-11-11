@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import type { Paginated } from "@/lib/api";
 import { type Applicant, type JobOpening } from "@/lib/api";
 import type { Dispatch, SetStateAction } from "react";
@@ -7,6 +8,7 @@ import { DirectoryPages, DirectoryState } from "./recruitment-view";
 import styles from "./recruitment.module.css";
 
 type Props = {
+  isCoo: boolean;
   disabled: boolean;
   jobs: {
     data: Paginated<JobOpening> | null;
@@ -37,6 +39,7 @@ type Props = {
 };
 
 export default function JobOpeningsPanel({
+  isCoo,
   disabled,
   jobs,
   jobFilter,
@@ -51,7 +54,6 @@ export default function JobOpeningsPanel({
     <section className={styles.panel} aria-labelledby="job-list-heading">
       <div className={styles.panelHeading}>
         <div>
-          <span>Visibility</span>
           <h2 id="job-list-heading">Job openings</h2>
         </div>
         <button
@@ -88,7 +90,7 @@ export default function JobOpeningsPanel({
         </label>
         <label>
           Job status
-          <select
+          <WorkspaceNativeSelect
             aria-label="Job status"
             value={jobFilter.status}
             onChange={(event) => {
@@ -101,7 +103,7 @@ export default function JobOpeningsPanel({
             <option value="">All openings</option>
             <option value="open">Open</option>
             <option value="closed">Closed</option>
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <button type="submit" className={styles.secondaryButton}>
           Search jobs
@@ -118,8 +120,23 @@ export default function JobOpeningsPanel({
           Clear job filters
         </button>
       </form>
-      <DirectoryState directory={jobs} name="jobs" />
-      {jobs.data && (
+      {isCoo && !jobs.loading && !jobs.error && jobs.data?.count === 0 ? (
+        <div className={styles.jobsEmpty}>
+          <h3>
+            {Object.keys(jobs.query).length
+              ? "No openings match these filters"
+              : "Your next hire starts here"}
+          </h3>
+          <p>
+            {Object.keys(jobs.query).length
+              ? "Try another search or clear the job filters to see all openings."
+              : "Post a job opening above when you’re ready to receive applications on the public job board."}
+          </p>
+        </div>
+      ) : (
+        <DirectoryState directory={jobs} name="jobs" />
+      )}
+      {jobs.data && (!isCoo || jobs.data.results.length > 0) && (
         <div
           className={styles.tableWrap}
           tabIndex={0}

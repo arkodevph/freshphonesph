@@ -21,6 +21,7 @@ TEMPLATES = json.loads(Path(__file__).with_name("receipt_templates.json").read_t
 MONEY = r"(?:PHP|PhP|₱|P)?\s*([0-9][0-9,]*(?:\.\d{2})?)"
 MONTH_DATE = r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+\d{4}(?:\s+(?:at\s+)?\d{1,2}:\d{2}(?:\s*[AP]M)?)?"
 NUMERIC_DATE = r"\d{1,2}/\d{1,2}/\d{2,4}(?:\s+(?:at\s+)?\d{1,2}:\d{2}(?:\s*[AP]M)?)?"
+ISO_DATE = r"\d{4}-\d{2}-\d{2}(?:\s+(?:at\s+)?\d{1,2}:\d{2}(?:\s*[AP]M)?)?"
 
 
 def labelled_value(text: str, labels: list[str], value_pattern: str) -> str | None:
@@ -91,7 +92,7 @@ def reference_value(text: str, labels: list[str], template_key: str) -> str | No
 
 
 def receipt_time(text: str) -> str | None:
-    date = re.search(rf"\b(?:{MONTH_DATE}|{NUMERIC_DATE})\b", text, re.IGNORECASE)
+    date = re.search(rf"\b(?:{MONTH_DATE}|{NUMERIC_DATE}|{ISO_DATE})\b", text, re.IGNORECASE)
     if not date:
         return None
     clock = re.search(r"\b(\d{1,2}):([0-5]\d)(?:\s*([AP]M))?\b", date.group(0), re.IGNORECASE)

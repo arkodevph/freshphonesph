@@ -974,6 +974,151 @@ test("current batch reassignment immediately hides Handler payment alerts, reads
   );
 });
 
+test("COO hierarchy reassignment revokes the Agent session and updates both networks with an audit", async () => {
+  const agentId = identities.get("AGENT_B")!.id;
+
+  const before = await db.user.findUniqueOrThrow({ where: { id: agentId } });
+
+  const move = await request("COO", `/accounts/${agentId}`, "PATCH", {
+    version: before.version,
+    supervisorId: identities.get("PIONEER_AGENT")!.id,
+  });
+
+  assert.equal(move.status, 200, await move.clone().text());
+
+  const moved = await move.json();
+
+  assert.equal(moved.supervisorId, identities.get("PIONEER_AGENT")!.id);
+
+  assert.equal((await request("AGENT_B", "/agent-network")).status, 401);
+
+  for (const [role, visible] of [
+    ["PIONEER_AGENT", true],
+    ["OPERATIONS_COORDINATOR", true],
+    ["PIONEER_AGENT_B", false],
+    ["OPERATIONS_COORDINATOR_B", false],
+  ] as const) {
+    const response = await request(role, "/agent-network");
+
+    assert.equal(response.status, 200);
+
+    const network = await response.json();
+
+    assert.equal(
+      network.agents.some((agent: { id: string }) => {
+        return agent.id === agentId;
+      }),
+      visible,
+      role,
+    );
+  }
+
+  assert.equal(
+    await db.auditEntry.count({
+      where: {
+        actorId: identities.get("COO")!.id,
+        recordId: agentId,
+        action: "account.assignments_changed",
+      },
+    }),
+    1,
+  );
+
+  const stale = await request("COO", `/accounts/${agentId}`, "PATCH", {
+    version: before.version,
+    supervisorId: before.supervisorId,
+  });
+
+  assert.equal(stale.status, 409);
+
+  const restore = await request("COO", `/accounts/${agentId}`, "PATCH", {
+    version: moved.version,
+    supervisorId: before.supervisorId,
+  });
+
+  assert.equal(restore.status, 200);
+});
+
+test("batch assignments reject retained inactive or wrong-role Handlers and inactive Agent profiles", async () => {
+  const handler = await db.user.create({
+    data: {
+      name: "Synthetic assignment lifecycle Handler",
+      email: `assignment-handler-${suffix}@example.test`,
+      role: "BATCH_HANDLER",
+      active: false,
+      passwordHash: await hashPassword(password),
+    },
+  });
+
+  const agent = await db.agent.create({
+    data: {
+      name: "Synthetic inactive Agent",
+      code: `ASSIGN-${suffix}`,
+      active: false,
+    },
+  });
+
+  const batch = await db.batch.create({
+    data: {
+      code: `ASSIGN-${suffix}`,
+      model: "Synthetic assignment lifecycle device",
+      startDate: new Date("2045-01-01"),
+      endDate: new Date("2045-12-31"),
+      contractPrice: "12000",
+      installmentCount: 12,
+      cadence: "MONTHLY",
+      handlerId: handler.id,
+      agentId: agent.id,
+    },
+  });
+
+  const assign = (handlerId: string | null, agentId: string | null) => {
+    return request("COO", `/batches/${batch.id}/assignments`, "PATCH", {
+      version: batch.version,
+      managerId: identities.get("BATCH_MANAGER")!.id,
+      handlerId,
+      agentId,
+    });
+  };
+
+  assert.equal(
+    (await assign(handler.id, null)).status,
+    400,
+    "Inactive retained Handler",
+  );
+
+  await db.user.update({
+    where: { id: handler.id },
+    data: { active: true, role: "CSR" },
+  });
+
+  assert.equal(
+    (await assign(handler.id, null)).status,
+    400,
+    "Wrong-role retained Handler",
+  );
+
+  assert.equal(
+    (await assign(null, agent.id)).status,
+    400,
+    "Inactive retained Agent",
+  );
+
+  const unchanged = await db.batch.findUniqueOrThrow({
+    where: { id: batch.id },
+  });
+
+  assert.equal(unchanged.version, batch.version);
+
+  assert.equal(unchanged.managerId, null);
+
+  assert.equal(
+    (await assign(null, null)).status,
+    200,
+    "COO can clear invalid assignments",
+  );
+});
+
 test("KPI alternate queues redact task evidence and exclude technical administration", async () => {
   const common = {
     creatorId: identities.get("COO")!.id,

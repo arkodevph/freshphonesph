@@ -130,8 +130,16 @@ local-preview flags retain the workspace buttons; normal deployment builds keep
 their usual login behavior. The ignored helper accepts loopback hosts only.
 
 Source edits require a new `preview:build`; restarting an unchanged preview only
-requires `preview:local`. Stop these servers with
-`systemctl --user stop freshphones-web-preview.scope freshphones-landing-preview.scope`.
+requires `preview:local`. Web builds alternate between two isolated output folders,
+leaving the running preview intact. A successful build selects the output for the
+next start; failed builds leave the previous selection unchanged. Stop these servers with
+`systemctl --user stop freshphones-web-optimized-preview.scope freshphones-landing-optimized-preview.scope`.
+
+If the running API uses `apps/api-ts/.env.preview`, pass
+`FRESHPHONES_PREVIEW_API_ENV=../api-ts/.env.preview` to both preview commands.
+Set `NEXT_PUBLIC_API_URL` to that API's address as well (the existing local
+preview uses `http://localhost:4101`). The environment-file override controls
+the local database safety check; it does not modify API configuration.
 
 ## Landing site and system deployments
 

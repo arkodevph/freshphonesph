@@ -1,5 +1,8 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceDetails from "@/components/WorkspaceDetails";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useEffect, useRef, useState } from "react";
 import type {
   PDFDocumentLoadingTask,
@@ -14,11 +17,13 @@ export default function OriginalPdf({
   filename,
   page,
   setPage,
+  active = true,
 }: {
   id: string;
   filename: string;
   page: number;
   setPage: (page: number) => void;
+  active?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -47,7 +52,7 @@ export default function OriginalPdf({
   useEffect(() => {
     const target = container.current;
 
-    if (!target) {
+    if (!target || !active) {
       return;
     }
 
@@ -60,7 +65,7 @@ export default function OriginalPdf({
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [active]);
 
   useEffect(() => {
     let active = true;
@@ -254,11 +259,13 @@ export default function OriginalPdf({
             </button>
             <label>
               Page{" "}
-              <select
+              <WorkspaceNativeSelect
                 aria-label="PDF page"
                 value={Math.min(page, pdf.numPages)}
                 onChange={(event) => {
-                  setPage(Number(event.target.value));
+                  const value = event.target.value;
+
+                  setPage(Number(value));
                 }}
               >
                 {Array.from({ length: pdf.numPages }, (_, index) => {
@@ -268,7 +275,7 @@ export default function OriginalPdf({
                     </option>
                   );
                 })}
-              </select>{" "}
+              </WorkspaceNativeSelect>{" "}
               of {pdf.numPages}
             </label>
             <button
@@ -281,17 +288,19 @@ export default function OriginalPdf({
             >
               →
             </button>
-            <select
+            <WorkspaceNativeSelect
               aria-label="PDF zoom"
               value={zoom}
               onChange={(event) => {
-                setZoom(Number(event.target.value));
+                const value = event.target.value;
+
+                setZoom(Number(value));
               }}
             >
               <option value={1}>Fit width</option>
               <option value={1.5}>150%</option>
               <option value={2}>200%</option>
-            </select>
+            </WorkspaceNativeSelect>
           </div>
         )}
       </header>
@@ -341,9 +350,10 @@ export default function OriginalPdf({
           </button>
         </div>
       ) : !pdf && !passwordPrompt ? (
-        <p className={styles.message} role="status">
-          Loading original PDF…
-        </p>
+        <WorkspaceProgress
+          className={styles.message}
+          label="Loading original PDF…"
+        />
       ) : null}
       <div
         className={styles.pdfCanvas}
@@ -360,13 +370,13 @@ export default function OriginalPdf({
         />
       </div>
       {pdf && (
-        <details className={styles.pdfText}>
+        <WorkspaceDetails className={styles.pdfText}>
           <summary>Text from this PDF page</summary>
           <p>
             {text ||
               "This page has no selectable text. Compare its scanned image and the extracted transactions."}
           </p>
-        </details>
+        </WorkspaceDetails>
       )}
     </section>
   );

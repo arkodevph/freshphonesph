@@ -1,5 +1,7 @@
 "use client";
 
+import ModalCloseButton from "@/components/ModalCloseButton";
+import WorkspaceDetails from "@/components/WorkspaceDetails";
 import { useEffect, useRef, useState } from "react";
 import type { GcashHistory } from "@freshphones/contracts";
 import { archiveGcashHistory } from "@/lib/gcash-history";
@@ -16,11 +18,15 @@ export function SubmissionActions({
 }) {
   const [confirm, setConfirm] = useState(false);
 
-  const menu = useRef<HTMLDetailsElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <>
-      <details className={styles.more} ref={menu}>
+      <WorkspaceDetails
+        className={styles.more}
+        open={menuOpen}
+        onExpandedChange={setMenuOpen}
+      >
         <summary
           aria-label={`More actions for ${row.batch.code}`}
           title="More actions"
@@ -31,9 +37,7 @@ export function SubmissionActions({
           <button
             type="button"
             onClick={() => {
-              if (menu.current) {
-                menu.current.open = false;
-              }
+              setMenuOpen(false);
 
               if (requestArchive) {
                 requestArchive();
@@ -45,7 +49,7 @@ export function SubmissionActions({
             {row.archivedAt ? "Restore submission" : "Archive submission"}
           </button>
         </div>
-      </details>
+      </WorkspaceDetails>
       {confirm && (
         <ArchiveConfirmation
           key={`${row.id}-${row.version}`}
@@ -91,6 +95,8 @@ export function ArchiveConfirmation({
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-size="small"
       ref={dialog}
       className={styles.confirm}
       aria-labelledby="archive-title"
@@ -140,9 +146,12 @@ export function ArchiveConfirmation({
             });
         }}
       >
-        <h2 id="archive-title">
-          {row.archivedAt ? "Restore submission?" : "Archive submission?"}
-        </h2>
+        <header data-modal-header>
+          <h2 id="archive-title">
+            {row.archivedAt ? "Restore submission?" : "Archive submission?"}
+          </h2>
+          <ModalCloseButton onClick={close} disabled={saving} />
+        </header>
         <p>
           <strong>{row.batch.code}</strong> · {row.periodStart} to{" "}
           {row.periodEnd} · all {row.revision} PDF{" "}
@@ -173,6 +182,7 @@ export function ArchiveConfirmation({
         <div className={styles.toolbar}>
           <button
             type="submit"
+            data-variant="primary"
             className={styles.primary}
             disabled={saving || !reason.trim()}
           >

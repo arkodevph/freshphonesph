@@ -1,4 +1,5 @@
 import { withdrawalScope } from "../withdrawals/withdrawals.service";
+import { monitorScope } from "../operations-monitor/monitor-query";
 import { AbusePolicy } from "../abuse/policies";
 import { Controller, Get, Inject, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
@@ -50,6 +51,17 @@ export class RealtimeController {
     user: User,
     event: { entity: string; recordId: string },
   ) {
+    if (event.entity === "operations-monitor") {
+      if (!allowed(user, "OPERATIONS_MONITOR")) {
+        return false;
+      }
+
+      const rows = await this.db.$queryRaw<{ id: string }[]>`
+        SELECT b.id FROM "Batch" b WHERE b.id = ${event.recordId}::uuid AND ${monitorScope(user)}`;
+
+      return rows.length > 0;
+    }
+
     if (event.entity === "member") {
       return (
         (allowed(user, "CLIENT_READ") || user.role === "CUSTOMER") &&

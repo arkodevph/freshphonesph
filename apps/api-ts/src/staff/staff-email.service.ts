@@ -255,7 +255,7 @@ export class StaffEmailService {
           );
 
           if (kind) {
-            await queueTaskEmail(tx, task, kind);
+            await queueTaskEmail(tx, task, kind, now);
           }
         });
       }

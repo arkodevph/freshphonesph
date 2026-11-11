@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import DateInput from "@/components/DateInput";
 import { useRef, useState } from "react";
 import type {
   WithdrawalCase,
@@ -73,7 +75,7 @@ export function RefundActions({
           </p>
           <label className={styles.field}>
             Refund decision
-            <select
+            <WorkspaceNativeSelect
               value={decision}
               onChange={(event) => {
                 setDecision(
@@ -84,7 +86,7 @@ export function RefundActions({
               <option value="PENDING">Decision pending</option>
               <option value="APPROVED">Approve an amount</option>
               <option value="DECLINED">Do not approve a refund</option>
-            </select>
+            </WorkspaceNativeSelect>
           </label>
           {decision === "APPROVED" && (
             <div className={styles.fields}>
@@ -104,7 +106,7 @@ export function RefundActions({
               </label>
               <label className={styles.field}>
                 Target payment date (optional)
-                <input
+                <DateInput
                   type="date"
                   value={date}
                   onChange={(event) => {
@@ -167,7 +169,7 @@ export function RefundActions({
             </label>
             <label className={styles.field}>
               Payment date
-              <input
+              <DateInput
                 required
                 type="date"
                 max={manilaToday()}

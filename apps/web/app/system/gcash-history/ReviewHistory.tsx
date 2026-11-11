@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceDetails from "@/components/WorkspaceDetails";
 import { useEffect, useState } from "react";
 import type { GcashActivityEntry, Page } from "@freshphones/contracts";
 import { getGcashActivity } from "@/lib/gcash-history";
@@ -65,7 +67,7 @@ export function ReviewHistory({
   }, [id, page, open, refresh, attempt]);
 
   return (
-    <details
+    <WorkspaceDetails
       className={styles.reviewNote}
       onToggle={(event) => {
         setOpen(event.currentTarget.open);
@@ -86,7 +88,7 @@ export function ReviewHistory({
             </button>
           </p>
         ) : !result ? (
-          <p role="status">Loading review history…</p>
+          <WorkspaceProgress label="Loading review history…" />
         ) : (
           <>
             {result.items.map((item) => {
@@ -139,6 +141,6 @@ export function ReviewHistory({
             </nav>
           </>
         ))}
-    </details>
+    </WorkspaceDetails>
   );
 }

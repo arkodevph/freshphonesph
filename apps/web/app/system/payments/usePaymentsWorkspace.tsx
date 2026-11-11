@@ -1,5 +1,7 @@
 "use client";
 
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   createPayment,
   decidePayment,
@@ -20,13 +22,28 @@ import type {
   PaymentDuplicateMatch,
   ReceiptScan,
   ReceiptType,
+  PaymentSortField,
 } from "@freshphones/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isBatchHandler } from "@/lib/handler-workspace";
+import {
+  newestHandlerSort,
+  nextHandlerSort,
+  type HandlerTableSort,
+} from "@/lib/handler-table";
 import { today } from "@/lib/date";
 import { ClientChoice, duplicateKey, ReviewDecision } from "./payment-view";
+import { useHandlerReceiptFlow } from "./useHandlerReceiptFlow";
 
 export function usePaymentsWorkspace() {
   const me = useMe();
+
+  const handler = isBatchHandler(me?.role);
+
+  const [sort, setSort] =
+    useState<HandlerTableSort<PaymentSortField>>(newestHandlerSort);
+
+  const [listError, setListError] = useState<string | null>(null);
 
   const canRecord = can(me, "PAYMENT_RECORD");
 
@@ -46,6 +63,8 @@ export function usePaymentsWorkspace() {
   const [payments, setPayments] = useState<Payment[]>([]);
 
   const [filter, setFilter] = useState("");
+
+  const [proofFilter, setProofFilter] = useState(false);
 
   const [focusedPayment, setFocusedPayment] = useState<string | null>(null);
 
@@ -69,9 +88,9 @@ export function usePaymentsWorkspace() {
 
   const [loading, setLoading] = useState(true);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useToastNotice(null, "error");
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -88,6 +107,8 @@ export function usePaymentsWorkspace() {
 
   const [saving, setSaving] = useState(false);
 
+  const recording = useRef(false);
+
   const [proof, setProof] = useState<File | null>(null);
 
   const [editing, setEditing] = useState<Payment | null>(null);
@@ -103,6 +124,8 @@ export function usePaymentsWorkspace() {
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   const [reviewSaving, setReviewSaving] = useState(false);
+
+  const [reviewClosing, setReviewClosing] = useState(false);
 
   const [detailsPayment, setDetailsPayment] = useState<Payment | null>(null);
 
@@ -148,6 +171,30 @@ export function usePaymentsWorkspace() {
 
   const financeNoteInput = useRef<HTMLTextAreaElement>(null);
 
+  useSpringDialog(
+    financeDialog,
+    Boolean(reviewPayment) && !reviewClosing,
+    finishReview,
+  );
+
+  function finishReview() {
+    if (!financeDialog.current?.open) {
+      setReviewPayment(null);
+
+      setReviewDecision(null);
+
+      setReviewError(null);
+
+      setReviewClosing(false);
+    }
+  }
+
+  function closeReview() {
+    if (!reviewSaving) {
+      setReviewClosing(true);
+    }
+  }
+
   const [recordClient, setRecordClient] = useState<ClientChoice | null>(null);
 
   const [balanceClient, setBalanceClient] = useState("");
@@ -159,11 +206,21 @@ export function usePaymentsWorkspace() {
 
   const load = useCallback(
     async (preserveError = false) => {
+      const requestVersion = ++paymentLoadVersion.current;
+
       if (!canRead) {
+        setPayments([]);
+
+        setPaymentCount(0);
+
+        setPaymentHasNext(false);
+
+        setLoading(false);
+
         return;
       }
 
-      const requestVersion = ++paymentLoadVersion.current;
+      setListError(null);
 
       setLoading(true);
 
@@ -175,10 +232,14 @@ export function usePaymentsWorkspace() {
         const data = await listPayments({
           ...(focusedPayment ? { id: focusedPayment } : {}),
           ...(filter ? { status: filter } : {}),
+          ...(proofFilter ? { proof: "missing" } : {}),
           ...(appliedPaymentQuery ? { q: appliedPaymentQuery } : {}),
           ...(dateFrom ? { dateFrom } : {}),
           ...(dateTo ? { dateTo } : {}),
           page: String(paymentPage),
+          ...(handler
+            ? { sortBy: sort.key, sortDirection: sort.direction }
+            : {}),
         });
 
         if (requestVersion !== paymentLoadVersion.current) {
@@ -197,6 +258,16 @@ export function usePaymentsWorkspace() {
           return;
         }
 
+        setPayments([]);
+
+        setPaymentCount(0);
+
+        setPaymentHasNext(false);
+
+        setListError(
+          e instanceof Error ? e.message : "Failed to load payments.",
+        );
+
         setError(e instanceof Error ? e.message : "Failed to load payments.");
       } finally {
         if (requestVersion === paymentLoadVersion.current) {
@@ -210,8 +281,11 @@ export function usePaymentsWorkspace() {
       dateFrom,
       dateTo,
       filter,
+      proofFilter,
       focusedPayment,
       paymentPage,
+      handler,
+      sort,
     ],
   );
 
@@ -229,27 +303,32 @@ export function usePaymentsWorkspace() {
     }
   }, [canVerify]);
 
-  const openLocation = useCallback((payment: string | null, status: string) => {
-    setFocusedPayment(payment);
+  const openLocation = useCallback(
+    (payment: string | null, status: string, missingProof = false) => {
+      setFocusedPayment(payment);
 
-    // Clearing a URL from the search/filter controls keeps their local choices.
-    // An alert target starts a clean search so old filters cannot hide the payment.
-    if (payment || status) {
-      paymentLoadVersion.current++;
+      setProofFilter(missingProof);
 
-      setFilter(payment ? "" : status);
+      // Clearing a URL from the search/filter controls keeps their local choices.
+      // An alert target starts a clean search so old filters cannot hide the payment.
+      if (payment || status || missingProof) {
+        paymentLoadVersion.current++;
 
-      setPaymentQuery("");
+        setFilter(payment ? "" : status);
 
-      setAppliedPaymentQuery("");
+        setPaymentQuery("");
 
-      setDateFrom("");
+        setAppliedPaymentQuery("");
 
-      setDateTo("");
+        setDateFrom("");
 
-      setPaymentPage(1);
-    }
-  }, []);
+        setDateTo("");
+
+        setPaymentPage(1);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -280,22 +359,8 @@ export function usePaymentsWorkspace() {
       return;
     }
 
-    if (!financeDialog.current.open) {
-      financeDialog.current.showModal();
-    }
-
     financeNoteInput.current?.focus();
   }, [reviewPayment]);
-
-  useEffect(() => {
-    if (
-      detailsPayment &&
-      detailsDialog.current &&
-      !detailsDialog.current.open
-    ) {
-      detailsDialog.current.showModal();
-    }
-  }, [detailsPayment]);
 
   useEffect(() => {
     const reference = form.reference_no.trim();
@@ -359,6 +424,57 @@ export function usePaymentsWorkspace() {
     noticeTimer.current = setTimeout(() => {
       return setNotice(null);
     }, 3000);
+  }
+
+  const receiptFlow = useHandlerReceiptFlow({
+    scope: handler && canRecord && canRead ? String(me?.id ?? "") : "",
+    onSaved: (payment) => {
+      setPayments((rows) => {
+        return rows.map((row) => {
+          return row.id === payment.id ? payment : row;
+        });
+      });
+
+      setDetailsPayment((current) => {
+        return current?.id === payment.id ? payment : current;
+      });
+
+      flash(
+        payment.status === "needs_clarification"
+          ? "Receipt attached. Correct and resubmit the claim to continue review."
+          : payment.status === "pending"
+            ? "Receipt attached. The payment remains pending review."
+            : "This payment already has receipt proof.",
+      );
+
+      void load();
+    },
+  });
+
+  function attachReceipt(payment: Payment) {
+    detailsDialog.current?.close();
+
+    setDetailsPayment(null);
+
+    receiptFlow.attach(payment);
+  }
+
+  function removeReceipt() {
+    scanVersion.current++;
+
+    setScanning(false);
+
+    setReceiptImage(null);
+
+    setReceiptError(null);
+
+    setScanResult(null);
+
+    receiptDialog.current?.close();
+
+    if (receiptInput.current) {
+      receiptInput.current.value = "";
+    }
   }
 
   function clearExtractedCandidates(nextMethod?: ReceiptType) {
@@ -458,11 +574,23 @@ export function usePaymentsWorkspace() {
   async function onRecord(e: React.FormEvent) {
     e.preventDefault();
 
+    if (recording.current) {
+      return;
+    }
+
     if (!form.client) {
       setError("Search for and select a client before recording the payment.");
 
       return;
     }
+
+    if (handler && receiptError) {
+      setError("Replace or remove the receipt image before recording.");
+
+      return;
+    }
+
+    recording.current = true;
 
     setSaving(true);
 
@@ -493,6 +621,21 @@ export function usePaymentsWorkspace() {
         }
       }
 
+      if (handler && !receiptImage && !editing?.proof_file) {
+        const confirmed = await receiptFlow.confirm({
+          client: recordClient?.full_name || "Selected client",
+          amount: form.amount,
+          date: form.payment_date,
+          method: form.method,
+          reference: form.reference_no,
+          editing: Boolean(editing),
+        });
+
+        if (!confirmed) {
+          return;
+        }
+      }
+
       const record = {
         client: form.client,
         batch: recordClient?.batch,
@@ -507,7 +650,7 @@ export function usePaymentsWorkspace() {
         },
       };
 
-      const created = editing
+      let created = editing
         ? await updatePayment(editing.id, editing.version ?? 1, record)
         : await createPayment(record);
 
@@ -515,16 +658,33 @@ export function usePaymentsWorkspace() {
 
       let proofAttached = false;
 
+      let proofError: string | null = null;
+
       if (proofToUpload) {
         try {
-          await uploadProof(created.id, proofToUpload);
+          created = await uploadProof(created.id, proofToUpload);
 
           proofAttached = true;
         } catch (uploadError) {
-          setError(
-            `Payment was recorded, but its proof was not attached: ${uploadError instanceof Error ? uploadError.message : "upload failed"}`,
-          );
+          proofError =
+            uploadError instanceof Error
+              ? uploadError.message
+              : "Upload failed.";
+
+          if (!handler) {
+            setError(
+              `Payment was recorded, but its proof was not attached: ${proofError}`,
+            );
+          }
         }
+      }
+
+      if (handler) {
+        receiptFlow.recorded(
+          created,
+          proofError ? proofToUpload : null,
+          proofError,
+        );
       }
 
       if (!proofToUpload || proofAttached) {
@@ -533,7 +693,9 @@ export function usePaymentsWorkspace() {
             ? "Payment corrected and returned to pending review."
             : proofAttached
               ? "Payment recorded with private proof (pending verification)."
-              : "Payment recorded (pending verification).",
+              : handler
+                ? "Payment recorded without a receipt. Attach proof later to continue review."
+                : "Payment recorded (pending verification).",
         );
       }
 
@@ -572,6 +734,8 @@ export function usePaymentsWorkspace() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not record payment.");
     } finally {
+      recording.current = false;
+
       setSaving(false);
     }
   }
@@ -680,6 +844,8 @@ export function usePaymentsWorkspace() {
 
     setReviewDecision(decision);
 
+    setReviewClosing(false);
+
     setReviewPayment(payment);
   }
 
@@ -735,7 +901,7 @@ export function usePaymentsWorkspace() {
         return next;
       });
 
-      financeDialog.current?.close();
+      setReviewClosing(true);
 
       load();
     } catch (e) {
@@ -784,6 +950,8 @@ export function usePaymentsWorkspace() {
 
   return {
     recordPaymentFormProps: {
+      handler,
+      removeReceipt,
       onRecord,
       editing,
       scanning,
@@ -824,6 +992,8 @@ export function usePaymentsWorkspace() {
       form,
     },
     financeReviewDialogProps: {
+      closeReview,
+      finishReview,
       reviewStage,
       financeDialog,
       setReviewPayment,
@@ -839,16 +1009,34 @@ export function usePaymentsWorkspace() {
       reviewError,
     },
     paymentDetailsDialogProps: {
+      onAttachProof: handler && canRecord ? attachReceipt : undefined,
       detailsDialog,
       setDetailsPayment,
       detailsPayment,
       viewProof,
     },
     paymentListPanelProps: {
+      attachReceipt,
+      listError,
+      sort,
+      onSort: (key: PaymentSortField) => {
+        setSort((current) => {
+          return nextHandlerSort(current, key);
+        });
+
+        setPaymentPage(1);
+      },
+      onResetSort: () => {
+        setSort(newestHandlerSort);
+
+        setPaymentPage(1);
+      },
       reviewStage,
       focusedPayment,
       setFocusedPayment,
       setFilter,
+      proofFilter,
+      setProofFilter,
       resetPaymentPage,
       paymentQuery,
       appliedPaymentQuery,
@@ -879,6 +1067,7 @@ export function usePaymentsWorkspace() {
       paymentHasNext,
     },
     me,
+    receiptFlow,
     canRead,
     openLocation,
     canRecord,

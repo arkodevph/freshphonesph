@@ -1,0 +1,402 @@
+.home {
+  display: grid;
+  min-width: 0;
+  gap: 22px;
+  color: var(--portal-text);
+}
+.home :is(a, button):focus-visible {
+  outline: 3px solid var(--portal-accent);
+  outline-offset: 3px;
+}
+.intro {
+  margin: 0 !important;
+  flex-wrap: wrap;
+}
+.refresh,
+.state button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid var(--portal-border);
+  border-radius: 12px;
+  background: var(--portal-surface);
+  padding: 8px 14px;
+  color: var(--portal-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.refresh svg {
+  width: 18px;
+  height: 18px;
+}
+.mainColumn,
+.sideColumn {
+  display: grid;
+  min-width: 0;
+  gap: 22px;
+  align-content: start;
+}
+.banner.banner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 222px;
+  justify-content: flex-start;
+  padding: 24px;
+  overflow: hidden;
+}
+.bannerCopy {
+  position: relative;
+  z-index: 1;
+  max-width: 65%;
+  margin-top: 14px;
+}
+.bannerCopy > p {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.bannerCopy h2 {
+  font-size: clamp(24px, 2.4vw, 30px);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--portal-border);
+  border-radius: 12px;
+  background: var(--glass-chrome, var(--portal-surface));
+  color: var(--portal-accent);
+  font-size: 14px;
+  font-weight: 650;
+}
+.rowAction svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.mascot {
+  position: absolute;
+  right: -18px;
+  bottom: 10px;
+  width: 260px;
+  max-width: 45%;
+  height: auto;
+  pointer-events: none;
+}
+.assignments {
+  padding: 24px;
+  min-width: 0;
+}
+.assignments h2,
+.sectionHeading h2 {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.assignments > p {
+  color: var(--portal-muted);
+  font-size: 13px;
+  margin-top: 6px;
+}
+.assignments dl {
+  margin-top: 16px;
+}
+.assignments dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--portal-border);
+}
+.assignments dt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--portal-muted);
+  font-size: 14px;
+}
+.assignments dt svg {
+  width: 20px;
+  flex-shrink: 0;
+}
+.assignments dt a {
+  min-height: 24px;
+}
+.assignments dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.sectionHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sectionHeading > div {
+  min-width: 0;
+  flex: 1;
+}
+.sectionHeading h3 {
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.sectionHeading p {
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--portal-muted);
+}
+.sectionHeading .eyebrow {
+  margin: 0 0 6px;
+  color: var(--portal-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.queues {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.queue {
+  min-width: 0;
+  padding: 22px;
+  overflow-wrap: anywhere;
+}
+.count {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  min-height: 32px;
+  border-radius: 10px;
+  padding: 3px 8px;
+  background: var(--portal-accent-soft);
+  color: var(--portal-accent);
+  font-size: 17px;
+  font-weight: 650;
+}
+.claims,
+.progressList,
+.taskList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.claims li,
+.progressList li,
+.taskList li {
+  border-top: 1px solid var(--portal-border);
+}
+.claims a,
+.taskList a {
+  display: grid;
+  gap: 6px;
+  padding: 15px 0;
+}
+.claims a:hover strong,
+.progressList a:hover strong,
+.taskList a:hover strong {
+  color: var(--portal-accent);
+}
+.rowTitle {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 14px;
+  font-size: 14px;
+}
+.rowTitle strong,
+.taskList strong,
+.progressList strong {
+  font-weight: 650;
+}
+.claims small,
+.claims p,
+.taskList small,
+.progressList small,
+.note {
+  color: var(--portal-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.rowAction,
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--portal-accent);
+  font-size: 13px;
+  font-weight: 650;
+}
+.textLink {
+  min-height: 44px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px 14px;
+  border: 1px solid var(--portal-border);
+  border-radius: 999px;
+  background: var(--portal-accent-soft);
+}
+.textLink:hover {
+  border-color: var(--portal-accent);
+  background: color-mix(
+    in srgb,
+    var(--portal-accent) 18%,
+    var(--portal-surface)
+  );
+}
+.progressList a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 0;
+  min-height: 70px;
+  font-size: 14px;
+}
+.progressList a > div {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.progressList small {
+  display: block;
+  margin-top: 4px;
+}
+.progressList svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.stage {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: var(--portal-accent-soft);
+  color: var(--portal-accent);
+  font-size: 12px;
+}
+.workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  padding: 18px 0 0;
+  margin: 12px 0;
+  border-top: 1px solid var(--portal-border);
+  gap: 12px;
+}
+.workflow li {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.workflow span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--portal-accent-soft);
+  color: var(--portal-accent);
+}
+.state,
+.empty {
+  padding: 18px 0;
+  font-size: 14px;
+  color: var(--portal-muted);
+  line-height: 1.6;
+}
+.empty strong {
+  color: var(--portal-text);
+  font-weight: 600;
+}
+.empty p {
+  margin-top: 6px;
+}
+.state button {
+  margin-top: 12px;
+}
+.tools.tools {
+  gap: 16px;
+}
+@media (max-width: 1150px) {
+  .assignments dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .assignments dl > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 700px) {
+  .home {
+    gap: 20px;
+  }
+  .queues,
+  .tools.tools {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .banner.banner {
+    min-height: 240px;
+    padding: 20px;
+  }
+  .bannerCopy {
+    max-width: 100%;
+    padding-right: min(20vw, 85px);
+  }
+  .bannerCopy h2 {
+    font-size: 25px;
+  }
+  .mascot {
+    width: 135px;
+    right: -25px;
+    bottom: 25px;
+    opacity: 0.75;
+  }
+  .primary {
+    position: relative;
+    z-index: 2;
+    margin-right: -60px;
+  }
+  .assignments,
+  .queue {
+    padding: 20px;
+  }
+  .assignments dl {
+    display: block;
+  }
+  .assignments dl > div {
+    flex-direction: row;
+    align-items: center;
+  }
+  .workflow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { can, useMe } from "@/lib/useMe";
 import RecruitmentWorkspace from "./RecruitmentWorkspace";
 
@@ -7,7 +8,7 @@ export default function RecruitmentPage() {
   const me = useMe();
 
   if (!me) {
-    return <p role="status">Loading recruitment access…</p>;
+    return <WorkspaceProgress label="Loading recruitment access…" />;
   }
 
   const canRecruit = can(me, "RECRUITMENT_MANAGE");
@@ -18,6 +19,7 @@ export default function RecruitmentPage() {
 
   return (
     <RecruitmentWorkspace
+      isCoo={me.role === "coo"}
       key={`${me.id}:${canRecruit}:${canAgents}:${canReadApplicants}`}
       canRecruit={canRecruit}
       canAgents={canAgents}

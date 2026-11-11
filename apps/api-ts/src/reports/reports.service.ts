@@ -55,6 +55,55 @@ const snapshotInclude = {
 export class ReportsService {
   constructor(@Inject(Database) private readonly db: Database) {}
 
+  async assistantSummary(range: { dateFrom: string; dateTo: string }) {
+    return this.db.$transaction(
+      async (tx) => {
+        const [
+          payments,
+          collectionReport,
+          reconciliationReport,
+          tasks,
+          support,
+          earnings,
+        ] = await Promise.all([
+          this.paymentReport(range, tx),
+          collections(tx, range),
+          reconciliation(tx, range),
+          this.taskReport(range, tx),
+          this.supportReport(range, tx),
+          installmentEarnings(
+            tx,
+            {
+              year: Number(range.dateFrom.slice(0, 4)),
+              frequency: "MONTHLY",
+              period: 1,
+              groupBy: "batches",
+              page: 1,
+            },
+            false,
+            range,
+          ),
+        ]);
+
+        return {
+          ...range,
+          generatedAt: new Date().toISOString(),
+          payments,
+          collections: collectionReport.totals,
+          reconciliation: reconciliationReport.totals,
+          tasks,
+          support: {
+            total: support.total,
+            open: support.open,
+            closed: support.closed,
+          },
+          scheduled: earnings.totals,
+        };
+      },
+      { isolationLevel: "RepeatableRead", timeout: 20_000 },
+    );
+  }
+
   charts(months: ChartMonths) {
     return executiveCharts(this.db, months);
   }

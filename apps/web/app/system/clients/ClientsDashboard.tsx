@@ -1,8 +1,10 @@
 "use client";
 
+import CooActionDisclosure from "../CooActionDisclosure";
 import { useClientsWorkspace } from "./useClientsWorkspace";
+import { isBatchHandler } from "@/lib/handler-workspace";
 import { can } from "@/lib/useMe";
-import { Users } from "@phosphor-icons/react";
+import styles from "./clients.module.css";
 import {
   ManagedClientRequirements,
   RequirementsManager,
@@ -21,8 +23,8 @@ export default function ClientsDashboard() {
     me,
     canRead,
     error,
+    listError,
     notice,
-    canManage,
     filters,
     changeFilter,
     focusedClient,
@@ -58,24 +60,14 @@ export default function ClientsDashboard() {
   }
 
   return (
-    <>
-      <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
-        <span className="grid h-10 w-10 place-items-center rounded-2xl chrome">
-          <Users weight="fill" className="h-5 w-5 text-blue" />
-        </span>
-        <div>
-          <h1 className="font-display text-lg font-700 tracking-tight text-blue-ink">
-            Clients
-          </h1>
-          <p className="text-xs text-ink-soft">
-            Members of a batch — adding one auto-generates their installment
-            schedule
-          </p>
-        </div>
+    <div className={styles.workspace}>
+      <header className={styles.heading}>
+        <h1>Clients</h1>
       </header>
 
       {(error || notice) && (
         <div
+          role={error ? "alert" : "status"}
           className={`mb-4 rounded-2xl px-4 py-2.5 text-sm font-600 ${
             error
               ? "bg-rose-100 text-rose-700"
@@ -86,12 +78,24 @@ export default function ClientsDashboard() {
         </div>
       )}
 
-      {can(me, "ENROLLMENT_REVIEW") && (
-        <CreateClientForm {...createClientFormProps} />
-      )}
-      {can(me, "REQUIREMENT_MANAGE") && <RequirementsManager />}
+      <div className={styles.tools}>
+        {can(me, "ENROLLMENT_REVIEW") && (
+          <CooActionDisclosure role={me?.role} title="Add client to a batch">
+            <CreateClientForm {...createClientFormProps} />
+          </CooActionDisclosure>
+        )}
+        {can(me, "REQUIREMENT_MANAGE") && (
+          <CooActionDisclosure
+            role={me?.role}
+            title="Configure requirement checklist"
+          >
+            <RequirementsManager />
+          </CooActionDisclosure>
+        )}
+      </div>
       {canRead && (
         <RecordFilters
+          compact={me?.role === "coo"}
           kind="client"
           value={filters}
           onChange={changeFilter}
@@ -141,11 +145,13 @@ export default function ClientsDashboard() {
         <p role="status" className="mb-3 text-sm text-ink-soft">
           {!focusedClient && filterError
             ? "Fix the date range to view clients."
-            : loading
-              ? "Loading clients…"
-              : total
-                ? `Showing ${focusedClient ? 1 : (page - 1) * 20 + 1}–${focusedClient ? total : Math.min(page * 20, total)} of ${total} clients`
-                : "0 clients"}
+            : isBatchHandler(me?.role) && listError
+              ? "Could not load member records."
+              : loading
+                ? "Loading clients…"
+                : total
+                  ? `Showing ${focusedClient ? 1 : (page - 1) * 20 + 1}–${focusedClient ? total : Math.min(page * 20, total)} of ${total} clients`
+                  : "0 clients"}
         </p>
       )}
 
@@ -186,6 +192,6 @@ export default function ClientsDashboard() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }

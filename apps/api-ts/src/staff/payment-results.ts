@@ -1,3 +1,4 @@
+import { captureHandlerInbox } from "./handler-inbox";
 import {
   rolePermissions,
   type PaymentStatus,
@@ -78,6 +79,10 @@ export async function notifyPaymentResult(
       return { entity: "payment-result", recordId: result.id };
     }),
   });
+
+  for (const recipient of recipients) {
+    await captureHandlerInbox(tx, recipient.id);
+  }
 
   await queueResultEmails(tx, results);
 }

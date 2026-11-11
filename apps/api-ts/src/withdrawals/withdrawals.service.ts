@@ -317,6 +317,11 @@ export class WithdrawalsService {
           allowed(user, "WITHDRAWAL_AGENT_REVIEW") &&
           row.status === "APPROVED" &&
           Boolean(row.replacementMode),
+        viewReplacementEnrollment:
+          Boolean(row.replacementEnrollmentId) &&
+          (allowed(user, "ENROLLMENT_SUBMIT") ||
+            allowed(user, "ENROLLMENT_REVIEW") ||
+            allowed(user, "AGENT_NETWORK_READ")),
         payout:
           allowed(user, "WITHDRAWAL_REFUND_PAY") &&
           approved &&

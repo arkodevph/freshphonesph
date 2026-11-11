@@ -6,28 +6,43 @@ current role rules in [66](66-role-access-alignment.md), feature delivery guides
 new acceptance test of all features. Existing implementation must not be recreated
 because an older planning document calls it pending.
 
-## Implement first
+F03 monitoring is implemented locally, with a 24-hour default review deadline and
+forced RLS on the new monitoring tables. See [implementation and security](125-operations-monitor.md).
+F19 handoffs are implemented locally; see [126](126-workflow-handoff-notifications.md).
+Operational assignment checks and a confirmed inactive-selection fix are verified locally
+in [128](128-operational-assignment-verification.md); client acceptance remains separate.
 
-1. **F03: Operations monitoring queue.** Missing receipts, incomplete submissions,
-   overdue Records/Manager/Finance reviews, returned evidence and unresolved follow-ups;
-   batch, responsible staff, stage, age and status; filters and authorized exact-record
-   links; manual flags and follow-up history. Establish the source of expected receipts
-   and the overdue thresholds. Moderator monitors and follows up without approving money.
-2. **F19: Complete in-app handoffs.** Submission/completeness, returns/corrections,
-   Manager cross-check, Finance-ready and unresolved follow-ups. Preserve existing
-   enrollment/Finance/task alerts; authorize recipients and deep links, dedupe events,
-   support unread/read state. Confirm timing and escalation rules. External delivery
-   stays deferred.
-3. **F01/F03/F07/F16: Verify operational assignments.** Real Agent/Pioneer/Coordinator
+## Implementation sequence
+
+1. **F03: Operations monitoring queue — implemented locally.** See
+   [125](125-operations-monitor.md): recorded-payment missing proof, stage/age/status,
+   returned statements, authorized exact-record links, scoped Moderator metadata,
+   manual follow-ups/history and COO-configured deadlines. Expected receipts for
+   unrecorded payments and statement frequency still need business policy. The
+   current review deadline defaults to 24 hours and is configurable by COO. Named-user and production acceptance
+   remain open. F19 implementation is recorded below.
+2. **F19: In-app handoffs — implemented locally.** Submission/completeness,
+   returns/corrections, Manager cross-check, Finance-ready and open follow-ups now
+   appear for current authorized recipients with exact links and deduplicated,
+   versioned read/read-all state. Existing enrollment/Finance/task alerts remain.
+   See [126](126-workflow-handoff-notifications.md) for verification. Any additional
+   escalation timing and external delivery remain deferred.
+3. **F01/F03/F07/F16: Operational assignments — locally verified and hardened.** Real Agent/Pioneer/Coordinator
    relationships, Agent-account/customer links, batch Manager/Handler assignments,
    unassigned/inactive staff and reassignment behavior. Account and assignment controls
-   already exist; fix confirmed gaps rather than rebuilding them. Confirm Moderator
-   task-assignment authority before exposing it.
-4. **F06/F08: Agree package completeness.** The per-payment approval chain is implemented
-   in [123](123-payment-operational-review-chain.md). Decide expected receipt lists,
-   whether period statements are required, frequency/account ownership and whether a
-   package must be complete before a payment can advance. Add package enforcement only
-   for confirmed rules.
+   already exist. The API now rejects retained inactive/wrong-role Handlers and inactive
+   Agent profiles, while allowing invalid assignments to be cleared. Hierarchy moves,
+   session revocation, audit and stale edits are covered by API tests; see
+   [128](128-operational-assignment-verification.md). Named-user roster acceptance
+   remains open. Confirm Moderator task-assignment authority before exposing it.
+4. **F06/F08: Submission checklist implemented; operational acceptance remains.**
+   Company-wide declared receipt/statement requirements now gate Manager approval
+   and Finance verification; see [129](129-submission-checklist-verification.md).
+   Records/COO must supply actual expected evidence. Statement frequency and account
+   ownership remain open; unpaid scheduled installments are not missing receipts.
+
+Local demo workflow links are now verified on an isolated database; see
+[130](130-demo-workflow-links.md). The running preview was not reseeded.
 
 ## Existing COO capabilities — acceptance or confirmed-gap fixes
 
@@ -40,7 +55,10 @@ because an older planning document calls it pending.
   analysis. Approve report fields, period meanings and totals. Define commission/margin/
   profit inputs before labeling any figure as earnings or profit.
 - **F11:** COO withdrawal/refund decisions, CEO consultation record, replacement admission
-  and Finance-recorded external refunds. Approve rules and named-user acceptance.
+  and Finance-recorded external refunds. Both live replacement arrangements and
+  partial/final refund recording were reverified; unauthorized Finance enrollment
+  links were fixed in [132](132-withdrawal-replacement-verification.md).
+  Approve company-wide wording and named-user acceptance.
 - **F12:** replacement continuation/restart is implemented. Any additional non-replacement
   ongoing-batch join, catch-up obligation or release arrangement needs confirmed policy
   before implementation.
@@ -50,15 +68,22 @@ because an older planning document calls it pending.
 - **F15/F16:** independent memberships, Agent enrollment and assigned Manager approval
   with COO oversight. Accept duplicate/capacity, correction and cross-membership isolation.
 - **F17:** editable website intake, immutable versions, Agent forwarding, printable
-  membership application summary. Signed agreement text/fields/signature evidence still
-  need approval; synchronization with Google Forms stays deferred.
-- **F18:** spreadsheet payroll package exists. Align it with the chosen spreadsheet format
-  and approved human rules; verify it in the client's Excel/Sheets environment.
+  membership application summary. User selected existing signed PDF/image upload on
+  November 10; private upload → Records clarification/replacement → approval is verified
+  in [133](133-f17-signed-agreement-verification.md). Approved agreement template/wording
+  is unavailable for now, so agreement-content acceptance remains pending;
+  synchronization with Google Forms stays deferred.
+- **F18:** user retained the current Excel workbook format on November 10. Delivered
+  workbook integrity and expanded local calculation checks are in
+  [134](134-f18-payroll-acceptance.md), with a concrete Excel acceptance checklist.
+  Actual Excel runtime, company rules and named-user acceptance remain pending.
 - **F19:** enrollment, Finance and task notifications already exist. Broader workflow
-  coverage is the implementation gap listed above.
-- **F09:** local PDF extraction, correction/review and reconciliation assistance exist.
-  Verify statement formats and any missing automatic match suggestions against confirmed
-  reference/amount/date rules. Assistance never automatically verifies a payment.
+  handoffs are now implemented locally; named-user acceptance remains open.
+- **F09:** strict local payment-match suggestions are implemented in the GCash review
+  workspace; see [131](131-gcash-payment-match-suggestions.md). Duplicate references
+  remain ambiguous and only Finance verifies payments. Accept real statement
+  formats and the full review journey with named users.
+
 
 ## Decisions and launch acceptance
 

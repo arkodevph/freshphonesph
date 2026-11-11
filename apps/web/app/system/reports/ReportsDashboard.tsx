@@ -7,6 +7,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { toast } from "sonner";
 import { ChartBar } from "@phosphor-icons/react";
 import type { ReportBatchOption, ReportKind } from "@freshphones/contracts";
 import {
@@ -25,15 +26,24 @@ import {
   type ReportFilters,
 } from "@/lib/report-filters";
 import styles from "./reports.module.css";
-import { LoadedReport, message, names, ReportHistory } from "./report-view";
+import {
+  LoadedReport,
+  message,
+  names,
+  periodLabel,
+  ReportHistory,
+} from "./report-view";
 import ReportFiltersPanel from "./ReportFiltersPanel";
 import ReportResultsPanel from "./ReportResultsPanel";
 import InstallmentEarnings from "./InstallmentEarnings";
+import ReportTabs from "./ReportTabs";
 
 export default function ReportsDashboard({
   canReviewPayments = false,
   canWriteReports = false,
   showVisuals = false,
+  minimalHeading = false,
+  skeletonOnly = false,
   allowedKinds = [
     "payments",
     "collections",
@@ -45,6 +55,8 @@ export default function ReportsDashboard({
   canReviewPayments?: boolean;
   canWriteReports?: boolean;
   showVisuals?: boolean;
+  minimalHeading?: boolean;
+  skeletonOnly?: boolean;
   allowedKinds?: readonly ReportKind[];
 }) {
   const [kind, setKind] = useState<ReportKind>(allowedKinds[0] ?? "tasks");
@@ -71,8 +83,6 @@ export default function ReportsDashboard({
 
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState<string | null>(null);
-
   const [analysisDraft, setAnalysisDraft] = useState("");
 
   const [busy, setBusy] = useState<"csv" | "xlsx" | "save" | null>(null);
@@ -80,6 +90,14 @@ export default function ReportsDashboard({
   const [historyRefresh, setHistoryRefresh] = useState(0);
 
   const [reportPage, setReportPage] = useState(1);
+
+  const resultsViewport = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (resultsViewport.current) {
+      resultsViewport.current.scrollTop = 0;
+    }
+  }, [kind, applied, reportPage, showEarnings, skeletonOnly]);
 
   const sequence = useRef(0);
 
@@ -98,7 +116,7 @@ export default function ReportsDashboard({
   }, []);
 
   const load = useCallback(async () => {
-    if (showEarnings) {
+    if (skeletonOnly || showEarnings) {
       return;
     }
 
@@ -115,8 +133,6 @@ export default function ReportsDashboard({
     setLoading(true);
 
     setError(null);
-
-    setReport(null);
 
     try {
       const loaded: LoadedReport =
@@ -171,7 +187,7 @@ export default function ReportsDashboard({
         setLoading(false);
       }
     }
-  }, [kind, applied, reportPage, showEarnings]);
+  }, [kind, applied, reportPage, showEarnings, skeletonOnly]);
 
   useEffect(() => {
     void load();
@@ -184,6 +200,10 @@ export default function ReportsDashboard({
   function apply(event: FormEvent) {
     event.preventDefault();
 
+    if (loading || busy) {
+      return;
+    }
+
     const query = reportFilterQuery(kind, draft);
 
     if (!query.params) {
@@ -195,8 +215,6 @@ export default function ReportsDashboard({
     sequence.current++;
 
     setValidation(null);
-
-    setNotice(null);
 
     setActionError(null);
 
@@ -246,8 +264,6 @@ export default function ReportsDashboard({
 
     setActionError(null);
 
-    setNotice(null);
-
     setAnalysisDraft("");
   }
 
@@ -283,8 +299,6 @@ export default function ReportsDashboard({
     setValidation(null);
 
     setActionError(null);
-
-    setNotice(null);
 
     setAnalysisDraft("");
   }
@@ -342,8 +356,6 @@ export default function ReportsDashboard({
 
     setActionError(null);
 
-    setNotice(null);
-
     try {
       if (action === "save") {
         await createReportSnapshot({
@@ -354,7 +366,7 @@ export default function ReportsDashboard({
         if (mounted.current) {
           setAnalysisDraft("");
 
-          setNotice(
+          toast.success(
             written
               ? "Period report and analysis submitted. View them in the history below."
               : "Period report saved. You can submit analysis from its history entry.",
@@ -368,14 +380,14 @@ export default function ReportsDashboard({
         await downloadReportExport(kind, action, query.params);
 
         if (mounted.current) {
-          setNotice(
+          toast.success(
             `${action.toUpperCase()} download started for the applied filters.`,
           );
         }
       }
     } catch (reason) {
       if (mounted.current) {
-        setActionError(message(reason));
+        toast.error(message(reason));
       }
     } finally {
       operation.current = false;
@@ -392,8 +404,6 @@ export default function ReportsDashboard({
     });
 
     setValidation(null);
-
-    setNotice(null);
   };
 
   return (
@@ -405,56 +415,73 @@ export default function ReportsDashboard({
           </div>
         )}
         <div>
-          <p className={styles.kicker}>
-            {showVisuals ? "Company reports" : "Operations overview"}
-          </p>
-          <h1>Reports</h1>
-          <p>
-            Review scheduled earnings, collections, task timing and customer
-            support across a chosen period.
-          </p>
+          {!minimalHeading && (
+            <p className={styles.kicker}>
+              {showVisuals ? "Company reports" : "Operations overview"}
+            </p>
+          )}
+          <h1>{minimalHeading ? "Reports" : "Business reports"}</h1>
+          {!minimalHeading && (
+            <p>
+              A clear view of collections, payment health and team performance.
+            </p>
+          )}
+        </div>
+        <div className={styles.periodStamp}>
+          <span>Reporting period</span>
+          <strong>
+            {showEarnings
+              ? "Scheduled installment earnings"
+              : periodLabel(applied)}
+          </strong>
+          <small>
+            {showEarnings ||
+            ["payments", "collections", "reconciliation"].includes(kind)
+              ? "PHP · Philippine peso"
+              : "Counts · Created in this period"}
+          </small>
         </div>
       </header>
-      <nav className={styles.tabs} aria-label="Report types">
-        {(Object.keys(names) as ReportKind[])
-          .filter((kind) => {
-            return allowedKinds.includes(kind);
-          })
-          .map((item) => {
-            return (
-              <button
-                key={item}
-                type="button"
-                aria-pressed={!showEarnings && kind === item}
-                disabled={Boolean(busy)}
-                onClick={() => {
-                  return selectKind(item);
-                }}
-              >
-                {names[item]}
-              </button>
-            );
-          })}
-        {allowedKinds.includes("collections") && (
-          <button
-            type="button"
-            aria-pressed={showEarnings}
-            disabled={Boolean(busy)}
-            onClick={() => {
-              sequence.current++;
+      <ReportTabs
+        value={showEarnings ? "earnings" : kind}
+        disabled={Boolean(busy)}
+        sliding={showVisuals}
+        items={[
+          ...(Object.keys(names) as ReportKind[])
+            .filter((item) => {
+              return allowedKinds.includes(item);
+            })
+            .map((item) => {
+              return { value: item, label: names[item] };
+            }),
+          ...(allowedKinds.includes("collections")
+            ? [{ value: "earnings", label: "Installment earnings" }]
+            : []),
+        ]}
+        onValueChange={(value) => {
+          if (value === "earnings") {
+            sequence.current++;
 
-              setShowEarnings(true);
-            }}
-          >
-            Installment earnings
-          </button>
-        )}
-      </nav>
+            setShowEarnings(true);
+          } else {
+            selectKind(value as ReportKind);
+          }
+        }}
+      />
       {showEarnings ? (
-        <InstallmentEarnings />
+        <div
+          className={styles.reportViewport}
+          tabIndex={showVisuals ? 0 : undefined}
+          role={showVisuals ? "region" : undefined}
+          aria-label={showVisuals ? "Installment earnings results" : undefined}
+          ref={resultsViewport}
+        >
+          <InstallmentEarnings />
+        </div>
       ) : (
-        <>
+        <div className={styles.reportWorkspace}>
           <ReportFiltersPanel
+            loading={loading}
             kind={kind}
             apply={apply}
             busy={busy}
@@ -467,33 +494,46 @@ export default function ReportsDashboard({
             dirty={dirty}
           />
 
-          <ReportResultsPanel
-            loading={loading}
-            kind={kind}
-            applied={applied}
-            appliedBatch={appliedBatch}
-            busy={busy}
-            load={load}
-            report={report}
-            dirty={dirty}
-            runAction={runAction}
-            actionError={actionError}
-            notice={notice}
-            error={error}
-            canReviewPayments={canReviewPayments}
-            canWriteReports={canWriteReports}
-            showVisuals={showVisuals}
-            onPage={selectPage}
-            analysisDraft={analysisDraft}
-            onAnalysisChange={editAnalysis}
-          />
-          <ReportHistory
-            key={`${kind}:${historyRefresh}`}
-            kind={kind}
-            canWriteReports={canWriteReports}
-            showVisuals={showVisuals}
-          />
-        </>
+          <div className={styles.reportViewport} ref={resultsViewport}>
+            <ReportResultsPanel
+              history={
+                showVisuals ? (
+                  <ReportHistory
+                    key={`${kind}:${historyRefresh}`}
+                    kind={kind}
+                    canWriteReports={canWriteReports}
+                    showVisuals={showVisuals}
+                  />
+                ) : undefined
+              }
+              loading={loading}
+              kind={kind}
+              applied={applied}
+              appliedBatch={appliedBatch}
+              busy={busy}
+              load={load}
+              report={report}
+              dirty={dirty}
+              runAction={runAction}
+              actionError={actionError}
+              error={error}
+              canReviewPayments={canReviewPayments}
+              canWriteReports={canWriteReports}
+              showVisuals={showVisuals}
+              onPage={selectPage}
+              analysisDraft={analysisDraft}
+              onAnalysisChange={editAnalysis}
+            />
+            {!showVisuals && (
+              <ReportHistory
+                key={`${kind}:${historyRefresh}`}
+                kind={kind}
+                canWriteReports={canWriteReports}
+                showVisuals={showVisuals}
+              />
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
