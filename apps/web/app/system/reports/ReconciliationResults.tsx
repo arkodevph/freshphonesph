@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { formatPeso as money } from "@/lib/currency";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
@@ -11,6 +12,10 @@ import type {
 } from "@freshphones/contracts";
 import { getReconciliationExceptions } from "@/lib/api";
 import styles from "./reports.module.css";
+import {
+  ReconciliationGroups,
+  ReconciliationSummary,
+} from "./ReconciliationFigures";
 
 const flagNames: Record<ReconciliationFlag, string> = {
   DUPLICATE_REFERENCE: "Possible duplicate reference",
@@ -52,59 +57,6 @@ export default function ReconciliationResults({
 
   const totals = data.totals;
 
-  const cards = [
-    {
-      label: "Recorded claims",
-      value: money(totals.recordedAmount),
-      note: `${totals.payments} records across all statuses`,
-    },
-    {
-      label: "Verified amount",
-      value: money(totals.verifiedAmount),
-      note: `${totals.verifiedPayments} verified payments`,
-    },
-    {
-      label: "Verified with matching audit",
-      value: money(totals.auditedVerifiedAmount),
-      note: `${totals.auditedVerifiedPayments} records match their verification evidence`,
-    },
-    {
-      label: "Verification audit gap",
-      value: money(totals.unmatchedVerifiedAmount),
-      note: `${totals.unmatchedVerifiedPayments} verified records need evidence review`,
-    },
-    {
-      label: "Awaiting verification",
-      value: money(totals.pendingAmount),
-      note: `${totals.pendingPayments} pending records`,
-    },
-    {
-      label: "Needs clarification",
-      value: money(totals.clarificationAmount),
-      note: `${totals.clarificationPayments} records`,
-    },
-    {
-      label: "Rejected claims",
-      value: money(totals.rejectedAmount),
-      note: `${totals.rejectedPayments} rejected records`,
-    },
-    {
-      label: "Payments with review flags",
-      value: totals.paymentsWithFlags,
-      note: "Each payment counted once; flags can overlap",
-    },
-    {
-      label: "Finance adjustments",
-      value: money(totals.adjustmentAmount ?? "0.00"),
-      note: `${totals.adjustments ?? 0} append-only entries; included in verified credit`,
-    },
-    {
-      label: "Adjustment audit gap",
-      value: money(totals.adjustmentAuditGapAmount ?? "0.00"),
-      note: `${totals.adjustmentAuditGapPayments ?? 0} payments need adjustment evidence review`,
-    },
-  ];
-
   return (
     <>
       <p className={styles.warning}>
@@ -112,102 +64,14 @@ export default function ReconciliationResults({
         matched. Review flags require a human check and do not authorize
         verification, refunds or adjustments.
       </p>
-      <dl className={styles.metrics}>
-        {cards.map((item) => {
-          return (
-            <div key={item.label}>
-              <dt>{item.label}</dt>
-              <dd>{item.value}</dd>
-              <p>{item.note}</p>
-            </div>
-          );
-        })}
-      </dl>
-      <h3 className={styles.subheading}>Review flags in this scope</h3>
-      <dl className={styles.metrics}>
-        {[
-          ["Possible duplicate references", totals.duplicateReferencePayments],
-          ["Schedule/client mismatches", totals.scheduleMismatchPayments],
-          ["Recorded/current batch differences", totals.batchMismatchPayments],
-          [
-            "Verified without issued schedule",
-            totals.verifiedWithoutSchedulePayments,
-          ],
-        ].map(([label, value]) => {
-          return (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          );
-        })}
-      </dl>
-      <p className={styles.help}>
-        Duplicate checks compare normalized references for the same payment
-        method across the entire ledger, including other dates and batches. A
-        permitted client move can explain a batch difference. Matching audit
-        evidence checks the current payment facts and Finance actor; older or
-        missing evidence needs review.
-      </p>
+      <ReconciliationSummary totals={totals} />
       {totals.payments === 0 ? (
         <p className={styles.empty}>
           No payments match these reconciliation filters.
         </p>
       ) : (
         <>
-          <div
-            className={styles.tableWrap}
-            tabIndex={0}
-            role="region"
-            aria-label="Reconciliation figures"
-          >
-            <table className={styles.collectionTable}>
-              <caption>Recorded payment batch and method totals (PHP)</caption>
-              <thead>
-                <tr>
-                  {[
-                    "Batch",
-                    "Method",
-                    "Recorded claims",
-                    "Verified",
-                    "Matching audit",
-                    "Audit gap",
-                    "Pending",
-                    "Clarification",
-                    "Rejected",
-                    "Review flags",
-                  ].map((label) => {
-                    return (
-                      <th scope="col" key={label}>
-                        {label}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => {
-                  return (
-                    <tr key={`${row.batchId}:${row.method}`}>
-                      <th scope="row">{row.batchCode}</th>
-                      <td>{row.method}</td>
-                      <td>
-                        {money(row.recordedAmount)}
-                        <small>{row.payments} records</small>
-                      </td>
-                      <td>{money(row.verifiedAmount)}</td>
-                      <td>{money(row.auditedVerifiedAmount)}</td>
-                      <td>{money(row.unmatchedVerifiedAmount)}</td>
-                      <td>{money(row.pendingAmount)}</td>
-                      <td>{money(row.clarificationAmount)}</td>
-                      <td>{money(row.rejectedAmount)}</td>
-                      <td>{row.paymentsWithFlags}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ReconciliationGroups rows={rows} />
           <nav
             className={styles.pagination}
             aria-label={
@@ -355,9 +219,10 @@ function PaymentExceptions({
     <div className={styles.exceptionPanel} aria-busy={loading}>
       <h3 className={styles.subheading}>Payment exceptions for review</h3>
       {loading ? (
-        <p role="status" className={styles.empty}>
-          Loading payment exceptions…
-        </p>
+        <WorkspaceProgress
+          className={styles.empty}
+          label="Loading payment exceptions…"
+        />
       ) : error ? (
         <p role="alert" className={styles.error}>
           {error}{" "}

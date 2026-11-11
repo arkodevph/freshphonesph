@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceDetails from "@/components/WorkspaceDetails";
 import { useId, useState, type CSSProperties } from "react";
 import type { ExecutiveChartData } from "@freshphones/contracts";
 import { formatPeso } from "@/lib/currency";
@@ -156,7 +157,7 @@ export function MonthlyCollectionsChart({
         Select a month to inspect its figures. The current month is shown to
         date.
       </p>
-      <details className={styles.dataTable}>
+      <WorkspaceDetails className={styles.dataTable}>
         <summary>View chart data</summary>
         <div>
           <table>
@@ -183,7 +184,7 @@ export function MonthlyCollectionsChart({
             </tbody>
           </table>
         </div>
-      </details>
+      </WorkspaceDetails>
     </figure>
   );
 }

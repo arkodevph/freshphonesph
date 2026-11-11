@@ -1,5 +1,6 @@
 "use client";
 
+import DateInput from "@/components/DateInput";
 import { type Payment } from "@/lib/api";
 import type {
   PaymentDuplicateMatch,
@@ -405,7 +406,7 @@ export default function RecordPaymentForm({
             />
           </Field>
           <Field label="Payment date">
-            <input
+            <DateInput
               type="date"
               required
               value={form.payment_date}

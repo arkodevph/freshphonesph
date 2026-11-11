@@ -537,3 +537,76 @@
     opacity: 1;
   }
 }
+
+/* iOS inbox hierarchy within one material surface. */
+.heading {
+  padding: 18px;
+}
+.heading h2 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.heading p,
+.footer p {
+  font-size: 12px;
+}
+.heading button,
+.controls button,
+.footer button,
+.error button {
+  font-size: 12px;
+  min-height: 32px;
+}
+.tabs {
+  margin: 12px 14px 0;
+  padding: 4px;
+  gap: 2px;
+  border-radius: 16px;
+  background: var(--ios-menu-inset);
+}
+.tabs button {
+  min-height: 32px;
+  padding: 6px 11px;
+  border-radius: 12px;
+}
+.tabs button[aria-pressed="true"] {
+  background: var(--system-surface);
+  color: var(--system-text);
+  box-shadow:
+    0 2px 5px rgb(0 0 0 / 8%),
+    0 0 0 0.5px var(--ios-menu-edge);
+}
+.item {
+  position: relative;
+  padding: 16px 18px;
+  border-bottom: 0;
+}
+.list li + li .item::before {
+  content: "";
+  position: absolute;
+  left: 35px;
+  right: 18px;
+  top: 0;
+  border-top: 1px solid var(--ios-menu-edge);
+}
+.item strong,
+.item p {
+  font-size: 13px;
+}
+.item small {
+  font-size: 11px;
+}
+.item[data-unread="true"] strong {
+  font-weight: 700;
+}
+.controls {
+  padding-inline: 18px;
+}
+.footer {
+  padding: 12px 18px 16px;
+}
+.state {
+  padding: 28px 18px;
+  font-size: 13px;
+}

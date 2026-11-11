@@ -571,23 +571,25 @@ export const readStaffAlert = (alert: StaffAlert) => {
   }
 
   const body: StaffAlertReadInput =
-    alert.entity === "payment"
-      ? { entity: "payment", version: alert.version }
-      : alert.entity === "payment-review"
-        ? { entity: "payment-review", version: alert.version }
-        : alert.entity === "enrollment"
-          ? { entity: "enrollment", version: alert.version }
-          : alert.entity === "payment-result"
-            ? { entity: "payment-result" }
-            : alert.entity === "support"
-              ? { entity: "support" }
-              : alert.entity === "account"
-                ? { entity: "account" }
-                : {
-                    entity: "task",
-                    kind: alert.kind,
-                    deadline: alert.deadline,
-                  };
+    alert.entity === "workflow"
+      ? { entity: "workflow", kind: alert.kind, version: alert.version }
+      : alert.entity === "payment"
+        ? { entity: "payment", version: alert.version }
+        : alert.entity === "payment-review"
+          ? { entity: "payment-review", version: alert.version }
+          : alert.entity === "enrollment"
+            ? { entity: "enrollment", version: alert.version }
+            : alert.entity === "payment-result"
+              ? { entity: "payment-result" }
+              : alert.entity === "support"
+                ? { entity: "support" }
+                : alert.entity === "account"
+                  ? { entity: "account" }
+                  : {
+                      entity: "task",
+                      kind: alert.kind,
+                      deadline: alert.deadline,
+                    };
 
   return tsRequest<{ id: string; readAt: string }>(
     `/staff/alerts/${alert.id}/read`,

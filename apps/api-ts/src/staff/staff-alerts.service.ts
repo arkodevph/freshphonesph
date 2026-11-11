@@ -6,6 +6,12 @@ import {
   deleteHandlerInbox,
 } from "./handler-inbox";
 import { staffAlertView, type AlertRow } from "./staff-alert-view";
+import {
+  canReadWorkflowAlerts,
+  workflowAlertRows,
+  workflowAlertTitles,
+  markWorkflowAlertsRead,
+} from "./workflow-alerts";
 import { safeUser } from "../auth/auth.service";
 import { batchScope } from "../records/scope";
 import {
@@ -22,6 +28,7 @@ import type {
   StaffAlertReadInput,
   StaffAlertScope,
   User,
+  WorkflowAlertKind,
 } from "@freshphones/contracts";
 import { allowed } from "../auth/access";
 import { Database } from "../database";
@@ -65,6 +72,10 @@ export class StaffAlertsService {
       throw new ForbiddenException("Staff access required.");
     }
 
+    if (scope === "workflow" && !canReadWorkflowAlerts(user)) {
+      throw new ForbiddenException("Operational workflow access required.");
+    }
+
     if (scope === "finance" && !allowed(user, "PAYMENT_VERIFY")) {
       throw new ForbiddenException("Finance verification access required.");
     }
@@ -101,7 +112,7 @@ export class StaffAlertsService {
   ): Promise<StaffAlertPage> {
     this.access(user, query.scope);
 
-    if (isHandlerInbox(user.role)) {
+    if (isHandlerInbox(user.role) && query.scope !== "workflow") {
       return this.db.$transaction(async (tx) => {
         const current = await tx.user.findUnique({ where: { id: user.id } });
 
@@ -148,16 +159,23 @@ export class StaffAlertsService {
       source = Prisma.sql`${source} UNION ALL ${enrollmentAlertRows(user.id)}`;
     }
 
+    if (canReadWorkflowAlerts(user)) {
+      source = Prisma.sql`${source} UNION ALL SELECT * FROM (${workflowAlertRows(user, now)}) workflow`;
+    }
+
     const scope = alertScopeSql(query.scope);
 
     const [rows, counts] = await this.db.$transaction(
-      [
-        this.db.$queryRaw<
+      async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.monitor_actor_id', ${user.id}, true)`;
+
+        const rows = await tx.$queryRaw<
           AlertRow[]
         >`WITH alerts AS (${source}) SELECT * FROM alerts
-        WHERE ${scope} ${query.unreadOnly ? Prisma.sql`AND "readAt" IS NULL` : Prisma.empty}
-        ORDER BY "occurredAt" DESC, id DESC, entity DESC LIMIT ${pageSize} OFFSET ${(query.page - 1) * pageSize}`,
-        this.db.$queryRaw<
+          WHERE ${scope} ${query.unreadOnly ? Prisma.sql`AND "readAt" IS NULL` : Prisma.empty}
+          ORDER BY "occurredAt" DESC, id DESC, entity DESC LIMIT ${pageSize} OFFSET ${(query.page - 1) * pageSize}`;
+
+        const counts = await tx.$queryRaw<
           {
             active: bigint;
             unread: bigint;
@@ -170,6 +188,7 @@ export class StaffAlertsService {
             support: bigint;
             accounts: bigint;
             enrollments: bigint;
+            workflow: bigint;
           }[]
         >`
         WITH alerts AS (${source}) SELECT COUNT(*) AS active, COUNT(*) FILTER (WHERE "readAt" IS NULL) AS unread,
@@ -178,15 +197,20 @@ export class StaffAlertsService {
           COUNT(*) FILTER (WHERE entity = 'payment-result') AS results,
           COUNT(*) FILTER (WHERE entity = 'payment-review') AS reviews, COUNT(*) FILTER (WHERE entity = 'support') AS support,
           COUNT(*) FILTER (WHERE entity = 'account') AS accounts,
-          COUNT(*) FILTER (WHERE entity = 'enrollment') AS enrollments FROM alerts`,
-      ],
+          COUNT(*) FILTER (WHERE entity = 'enrollment') AS enrollments,
+          COUNT(*) FILTER (WHERE entity = 'workflow') AS workflow FROM alerts`;
+
+        return [rows, counts] as const;
+      },
       { isolationLevel: "RepeatableRead" },
     );
 
     const count = counts[0];
 
     return {
-      items: rows.map(staffAlertView),
+      items: rows.map((row) => {
+        return staffAlertView(row, user);
+      }),
       page: query.page,
       pageSize,
       total: Number(query.unreadOnly ? count.filteredUnread : count.filtered),
@@ -201,6 +225,7 @@ export class StaffAlertsService {
       supportCount: Number(count.support),
       accountCount: Number(count.accounts),
       enrollmentCount: Number(count.enrollments),
+      workflowCount: Number(count.workflow),
     };
   }
   private async write<T>(
@@ -223,6 +248,8 @@ export class StaffAlertsService {
 
       this.access(current, scope);
 
+      await tx.$executeRaw`SELECT set_config('app.monitor_actor_id', ${current.id}, true)`;
+
       if (isHandlerInbox(current.role)) {
         await captureHandlerInbox(tx, current.id);
       }
@@ -238,6 +265,38 @@ export class StaffAlertsService {
   }
   async read(user: User, id: string, input: StaffAlertReadInput) {
     this.access(user);
+
+    if (input.entity === "workflow") {
+      return this.write(user, "workflow", async (tx, current, now) => {
+        const [alert] = await tx.$queryRaw<
+          { version: number; readAt: Date | null }[]
+        >`
+          SELECT version, "readAt" FROM (${workflowAlertRows(current, now)}) visible
+          WHERE id = ${id}::uuid AND kind = ${input.kind}`;
+
+        if (!alert) {
+          throw new NotFoundException("Current workflow alert not found.");
+        }
+
+        if (alert.version !== input.version) {
+          throw new ConflictException(
+            "This workflow changed. Refresh alerts and open the current record.",
+          );
+        }
+
+        if (alert.readAt) {
+          return { id, readAt: alert.readAt.toISOString() };
+        }
+
+        await markWorkflowAlertsRead(tx, current, now, id, input.kind);
+
+        await tx.changeEvent.create({
+          data: { entity: "staff-alert-read", recordId: current.id },
+        });
+
+        return { id, readAt: now.toISOString() };
+      });
+    }
 
     if (input.entity === "enrollment") {
       return this.write(user, "enrollments", async (tx, current, now) => {
@@ -501,6 +560,12 @@ export class StaffAlertsService {
           ? await markEnrollmentAlertsRead(tx, current.id, now)
           : 0;
 
+      const workflow =
+        (scope === "all" || scope === "workflow") &&
+        canReadWorkflowAlerts(current)
+          ? await markWorkflowAlertsRead(tx, current, now)
+          : 0;
+
       if (
         tasks +
         finance +
@@ -508,7 +573,8 @@ export class StaffAlertsService {
         reviews +
         support +
         accounts +
-        enrollments
+        enrollments +
+        workflow
       ) {
         await tx.changeEvent.create({
           data: { entity: "staff-alert-read", recordId: user.id },
@@ -534,7 +600,8 @@ export class StaffAlertsService {
           reviews +
           support +
           accounts +
-          enrollments,
+          enrollments +
+          workflow,
       };
     });
   }

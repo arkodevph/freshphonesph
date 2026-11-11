@@ -1,5 +1,6 @@
 "use client";
 
+import DateInput from "@/components/DateInput";
 import { useState } from "react";
 import {
   gcashCorrectionSchema,
@@ -106,27 +107,39 @@ export function CorrectionForm({
                     balance: "Balance (PHP)",
                   }[key]
                 }
-                <input
-                  type={key === "date" ? "date" : "text"}
-                  autoFocus={key === "date"}
-                  inputMode={
-                    ["debit", "credit", "balance"].includes(key)
-                      ? "decimal"
-                      : undefined
-                  }
-                  required={key === "date" || key === "description"}
-                  maxLength={
-                    key === "description"
-                      ? 1500
-                      : key === "reference"
-                        ? 100
-                        : 32
-                  }
-                  value={draft[key]}
-                  onChange={(event) => {
-                    setDraft({ ...draft, [key]: event.target.value });
-                  }}
-                />
+                {key === "date" ? (
+                  <DateInput
+                    type="date"
+                    autoFocus
+                    required
+                    value={draft.date}
+                    onChange={(event) => {
+                      setDraft({ ...draft, date: event.target.value });
+                    }}
+                  />
+                ) : (
+                  <input
+                    type="text"
+
+                    inputMode={
+                      ["debit", "credit", "balance"].includes(key)
+                        ? "decimal"
+                        : undefined
+                    }
+                    required={key === "description"}
+                    maxLength={
+                      key === "description"
+                        ? 1500
+                        : key === "reference"
+                          ? 100
+                          : 32
+                    }
+                    value={draft[key]}
+                    onChange={(event) => {
+                      setDraft({ ...draft, [key]: event.target.value });
+                    }}
+                  />
+                )}
               </label>
             );
           })}
@@ -152,6 +165,7 @@ export function CorrectionForm({
       <div className={styles.toolbar}>
         <button
           type="submit"
+          data-variant="primary"
           className={styles.primary}
           disabled={saving || !reason.trim()}
         >

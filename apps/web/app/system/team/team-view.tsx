@@ -1,5 +1,7 @@
 "use client";
 
+import ModalCloseButton from "@/components/ModalCloseButton";
+import { TableSkeletonRows } from "@/components/WorkspaceProgress";
 import { ROLES } from "@/lib/api";
 import { Users, X } from "@phosphor-icons/react";
 import { type ReactNode } from "react";
@@ -153,36 +155,11 @@ export function DialogHeading({
         <h3 id={headingId}>{title}</h3>
         <p>{description}</p>
       </div>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onClose}
-        aria-label="Close dialog"
-      >
-        <X />
-      </button>
+      <ModalCloseButton disabled={disabled} onClick={onClose} />
     </header>
   );
 }
 
 export function SkeletonRow() {
-  return (
-    <tr className="team-skeleton-row" aria-hidden="true">
-      <td>
-        <span className="team-skeleton is-person" />
-      </td>
-      <td>
-        <span className="team-skeleton" />
-      </td>
-      <td>
-        <span className="team-skeleton is-short" />
-      </td>
-      <td>
-        <span className="team-skeleton" />
-      </td>
-      <td>
-        <span className="team-skeleton is-short" />
-      </td>
-    </tr>
-  );
+  return <TableSkeletonRows columns={5} label="Loading accounts" />;
 }

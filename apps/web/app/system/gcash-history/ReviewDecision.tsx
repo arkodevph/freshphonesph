@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useState } from "react";
 import type { GcashHistory, GcashHistoryReview } from "@freshphones/contracts";
 import styles from "./workspace.module.css";
@@ -38,7 +39,7 @@ export function ReviewDecision({
       <fieldset disabled={disabled}>
         <label>
           Records decision
-          <select
+          <WorkspaceNativeSelect
             aria-label="Records decision"
             value={status}
             onChange={(event) => {
@@ -47,7 +48,7 @@ export function ReviewDecision({
           >
             <option value="REVIEWED">Reviewed</option>
             <option value="NEEDS_CLARIFICATION">Needs clarification</option>
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <label>
           Review note
@@ -63,6 +64,7 @@ export function ReviewDecision({
         </label>
         <button
           type="submit"
+          data-variant="primary"
           className={styles.primary}
           disabled={disabled || !note.trim()}
         >

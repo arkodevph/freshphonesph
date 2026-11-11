@@ -108,7 +108,7 @@ export const sectionCopy: Record<
     eyebrow: "Explore",
     title: "Phones & plans",
     description:
-      "Find your next device and explore sample installments before joining a batch.",
+      "Find your next device and explore available installment plans before joining a batch.",
   },
   membership: {
     eyebrow: "Workspace",

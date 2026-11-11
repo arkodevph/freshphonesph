@@ -138,7 +138,10 @@ enum StaffEmailStatus {
   SKIPPED
 }
 model User {
+  monitoringEvents OperationsFollowUpEvent[]
   paymentOperationalReviews PaymentOperationalReview[]
+  assistantConversations AssistantConversation[]
+  assistantActions AssistantAction[]
   enrollmentFormDrafts EnrollmentFormConfig[] @relation("EnrollmentFormReceivingAgent")
   enrollmentFormRevisions EnrollmentFormRevision[] @relation("EnrollmentRevisionReceivingAgent")
   assignedPublicApplications PublicEnrollmentApplication[] @relation("PublicApplicationAgent")
@@ -286,6 +289,7 @@ model PasswordReset {
   usedAt DateTime?
 }
 model Batch {
+  evidenceRequirements EvidenceRequirement[]
   gcashHistories GcashHistory[]
   id String @id @default(uuid()) @db.Uuid
   code String @unique @db.VarChar(71)
@@ -349,6 +353,7 @@ model BatchNumberCounter {
   lastNumber Int @default(0)
 }
 model Client {
+  evidenceRequirements EvidenceRequirement[]
   membershipPlan Json?
   replacementCompletedAt DateTime?
   withdrawalRequests WithdrawalRequest[] @relation("WithdrawalOrigin")
@@ -531,6 +536,8 @@ model ScheduleItem {
 }
 model Payment {
   inboxNotifications StaffInboxNotification[]
+  expectedEvidence EvidenceRequirement[]
+  monitoringFollowUp OperationsFollowUp?
   evidenceVersion Int @default(1)
   operationalReviews PaymentOperationalReview[]
   id String @id @default(uuid()) @db.Uuid
@@ -610,7 +617,7 @@ model PaymentResultAlert {
   decision PaymentStatus
   amount Decimal @db.Decimal(12, 2)
   clientName String @db.VarChar(200)
-  batchCode String @db.VarChar(30)
+  batchCode String @db.VarChar(71)
   notes String @db.VarChar(1000)
   verifierName String @db.VarChar(100)
   readAt DateTime?
@@ -1272,6 +1279,8 @@ enum GcashHistoryStatus {
   NEEDS_CLARIFICATION
 }
 model GcashHistory {
+  expectedEvidence EvidenceRequirement[]
+  monitoringFollowUp OperationsFollowUp?
   id String @id @default(uuid()) @db.Uuid
   batchId String @db.Uuid
   batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
@@ -1423,6 +1432,35 @@ model WithdrawalScheduleRelease {
   @@index([withdrawalId])
 }
 
+// One immutable proposal payload; execution is claimed once and never retried automatically.
+model AssistantAction {
+  id String @id @default(uuid()) @db.Uuid
+  actorId String @db.Uuid
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  sessionHash String @db.VarChar(64)
+  operation String @db.VarChar(100)
+  input Json
+  status String @default("pending") @db.VarChar(20)
+  expiresAt DateTime
+  finishedAt DateTime?
+  message String?
+  createdAt DateTime @default(now())
+  @@index([actorId, createdAt])
+  @@index([expiresAt, status])
+}
+
+model AssistantConversation {
+  id String @id @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title String @db.VarChar(100)
+  revision Int @default(1)
+  state Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, updatedAt])
+}
+
 model PaymentOperationalReview {
   id String @id @default(uuid()) @db.Uuid
   paymentId String @db.Uuid
@@ -1460,4 +1498,58 @@ model StaffInboxNotification {
   @@index([recipientId, deletedAt, occurredAt, id])
   @@index([taskId])
   @@index([paymentId])
+}
+
+model OperationsMonitorPolicy {
+  id String @id @default("global") @db.VarChar(20)
+  reviewDueHours Int @default(24)
+  version Int @default(1)
+}
+model OperationsFollowUp {
+  id String @id @default(uuid()) @db.Uuid
+  paymentId String? @unique @db.Uuid
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  historyId String? @unique @db.Uuid
+  history GcashHistory? @relation(fields: [historyId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  status String @db.VarChar(16)
+  note String @db.VarChar(1000)
+  dueAt DateTime?
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+  events OperationsFollowUpEvent[]
+  @@index([status, dueAt])
+}
+model OperationsFollowUpEvent {
+  id String @id @default(uuid()) @db.Uuid
+  followUpId String @db.Uuid
+  followUp OperationsFollowUp @relation(fields: [followUpId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  actorId String @db.Uuid
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  status String @db.VarChar(16)
+  note String @db.VarChar(1000)
+  dueAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([followUpId, createdAt, id])
+}
+
+model EvidenceRequirement {
+  id String @id @default(uuid()) @db.Uuid
+  batchId String @db.Uuid
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  clientId String? @db.Uuid
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  kind String @db.VarChar(16)
+  description String @db.VarChar(500)
+  periodStart DateTime @db.Date
+  periodEnd DateTime @db.Date
+  paymentId String? @db.Uuid
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  historyId String? @db.Uuid
+  history GcashHistory? @relation(fields: [historyId], references: [id], onDelete: Restrict)
+  cancelled Boolean @default(false)
+  reason String @db.VarChar(1000)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([batchId, cancelled, periodStart, periodEnd])
 }

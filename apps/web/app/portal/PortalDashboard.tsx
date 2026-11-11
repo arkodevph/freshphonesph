@@ -118,6 +118,7 @@ export default function PortalDashboard({
     <main
       className={`${styles.shell} ${styles.macDashboard} ${glass.material} ${glass.interactions} portal-shell`}
       data-glass-portal=""
+      data-workspace-theme="monex"
       data-portal-section={section}
     >
       {(menuOpen || moreOpen) && (

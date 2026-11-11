@@ -117,59 +117,6 @@
   border-radius: 12px;
 }
 
-.brand,
-.navItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.brand {
-  min-height: 46px;
-  padding: 5px;
-}
-
-.mark,
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-}
-
-.avatar {
-  border-radius: 50%;
-}
-
-.brandName {
-  width: 120px;
-  height: 16px;
-}
-
-.navigation {
-  display: grid;
-  gap: 8px;
-  margin-top: 28px;
-}
-
-.navItem {
-  min-height: 38px;
-  padding: 8px;
-}
-
-.icon {
-  width: 18px;
-  height: 18px;
-}
-
-.navLabel {
-  width: 65%;
-}
-
-.topbarTitle {
-  width: 140px;
-  height: 18px;
-}
-
 @keyframes pulse {
   0%,
   100% {
@@ -177,21 +124,6 @@
   }
   50% {
     opacity: 1;
-  }
-}
-
-@media (max-width: 820px) {
-  .navigation {
-    display: flex;
-    gap: 10px;
-    margin-top: 8px;
-    overflow: hidden;
-  }
-  .navItem {
-    min-width: 100px;
-  }
-  .navLabel {
-    width: 60px;
   }
 }
 
@@ -218,4 +150,20 @@
   .bar {
     animation: none;
   }
+}
+
+.sessionPending {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  background: var(--system-bg, #f5f7fc);
+  color: var(--system-muted, #64748b);
+  font-size: 14px;
+}
+.sessionPending .bar {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
 }

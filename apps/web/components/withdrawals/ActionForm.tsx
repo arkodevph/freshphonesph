@@ -60,14 +60,24 @@ export function ActionForm({
             >
               Keep editing
             </button>
-            <button type="submit" disabled={busy} className={styles.primary}>
+            <button
+              type="submit"
+              disabled={busy}
+              data-variant="primary"
+              className={styles.primary}
+            >
               {busy ? "Saving…" : "Confirm and save"}
             </button>
           </div>
         </div>
       ) : (
         <div>
-          <button type="submit" className={styles.primary} disabled={busy}>
+          <button
+            type="submit"
+            data-variant="primary"
+            className={styles.primary}
+            disabled={busy}
+          >
             {busy ? "Saving…" : label}
           </button>
         </div>

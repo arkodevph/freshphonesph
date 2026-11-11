@@ -126,10 +126,10 @@ async function authenticatedResponse(
   return response;
 }
 
-export async function tsRequest<T>(
+export async function tsResponse(
   path: string,
   options: RequestInit = {},
-): Promise<T> {
+): Promise<Response> {
   const selectedHeaders = membershipHeaders(path);
 
   const response = await authenticatedResponse(
@@ -148,6 +148,15 @@ export async function tsRequest<T>(
     !path.startsWith("/auth/") || path === "/auth/me",
     "Request failed",
   );
+
+  return response;
+}
+
+export async function tsRequest<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await tsResponse(path, options);
 
   return response.status === 204
     ? (undefined as T)

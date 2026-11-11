@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { API_URL } from "@/lib/backend";
 import { tsRequest } from "@/lib/ts-api";
 import {
@@ -114,6 +115,8 @@ export function CustomerSecuritySettings({
       setConfirmPassword("");
 
       setChangeSuccess(true);
+
+      toast.success("Password changed.");
     } catch (caught) {
       setChangeError(
         caught instanceof Error
@@ -143,6 +146,8 @@ export function CustomerSecuritySettings({
       });
 
       setRequestState("sent");
+
+      toast.success("If this account is active, a reset email will be sent.");
     } catch (caught) {
       setRequestError(
         caught instanceof Error
@@ -202,6 +207,8 @@ export function CustomerSecuritySettings({
       setResetConfirm("");
 
       setResetSuccess(true);
+
+      toast.success("Password reset successfully.");
     } catch (caught) {
       setResetError(
         caught instanceof Error

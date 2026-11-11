@@ -10,6 +10,7 @@ export const workspacePermissions: Record<string, readonly string[]> = {
     "ENROLLMENT_SUBMIT",
     "ENROLLMENT_REVIEW",
   ],
+  "/system/operations-monitor": ["OPERATIONS_MONITOR"],
   "/system/records": ["BATCH_READ"],
   "/system/clients": ["CLIENT_READ"],
   "/system/agents": ["AGENT_MANAGE"],
@@ -50,6 +51,10 @@ export function canOpenWorkspace(
 ) {
   if (!role || role.toLowerCase() === "customer") {
     return false;
+  }
+
+  if (pathname === "/system/assistant") {
+    return ["ceo", "owner"].includes(role.toLowerCase());
   }
 
   if (pathname === "/system") {

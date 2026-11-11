@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import type { Paginated } from "@/lib/api";
 import { getApplicantAttachmentUrl, type Applicant } from "@/lib/api";
 import {
@@ -115,7 +116,7 @@ export default function ApplicantReviewPanel({
         </label>
         <label>
           Applicant status
-          <select
+          <WorkspaceNativeSelect
             aria-label="Applicant status"
             value={applicantFilter.status}
             onChange={(event) => {
@@ -133,7 +134,7 @@ export default function ApplicantReviewPanel({
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <button className={styles.secondaryButton} type="submit">
           Search applicants
@@ -344,7 +345,7 @@ export default function ApplicantReviewPanel({
                 >
                   <label>
                     <span>Hiring status</span>
-                    <select
+                    <WorkspaceNativeSelect
                       aria-label="Hiring status"
                       value={draft.status}
                       onChange={(event) => {
@@ -358,7 +359,7 @@ export default function ApplicantReviewPanel({
                           </option>
                         );
                       })}
-                    </select>
+                    </WorkspaceNativeSelect>
                   </label>
                   <label>
                     <span>Internal review notes</span>
@@ -379,6 +380,7 @@ export default function ApplicantReviewPanel({
                   </p>
                   <button
                     type="submit"
+                    data-variant="primary"
                     className={styles.primaryButton}
                     disabled={draft.conflict || !reviewDirty(draft)}
                   >

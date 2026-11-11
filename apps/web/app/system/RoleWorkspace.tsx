@@ -1,5 +1,18 @@
 "use client";
 
+import EnrollmentRequests from "./enrollments/EnrollmentRequests";
+import type {
+  Enrollment,
+  EnrollmentPage,
+} from "./enrollments/enrollment-types";
+import enrollmentStyles from "./enrollments/enrollment-requests.module.css";
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import PersonnelDirectory, { type Staff } from "./people/PersonnelDirectory";
+import AgentNetworkDirectory, {
+  type Network,
+} from "./people/AgentNetworkDirectory";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   useCallback,
   useEffect,
@@ -13,28 +26,6 @@ import { tsRequest } from "@/lib/ts-api";
 import { can, useMe } from "@/lib/useMe";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 
-type Staff = {
-  id: string;
-  name: string;
-  role: Role;
-  active: boolean;
-  supervisor?: { name: string } | null;
-};
-
-type Enrollment = {
-  id: string;
-  name: string;
-  batchCode: string;
-  status: string;
-  reason: string;
-  version: number;
-  submittedBy: string;
-  reviewedBy: string | null;
-  withdrawalId?: string | null;
-  replacementMode?: "CONTINUE_UNPAID" | "RESTART" | null;
-  publicApplicationId?: string | null;
-};
-
 type BatchChoice = { id: string; code: string; model: string };
 
 type MemberChoice = {
@@ -43,30 +34,6 @@ type MemberChoice = {
   email: string;
   phone: string;
   batch: { code: string };
-};
-
-type EnrollmentPage = {
-  items: Enrollment[];
-  total: number;
-  page: number;
-  pageSize: number;
-};
-
-type Network = {
-  agents: {
-    id: string;
-    name: string;
-    supervisor: { name: string } | null;
-    agentProfile: { code: string } | null;
-  }[];
-  batches: {
-    id: string;
-    code: string;
-    model: string;
-    status: string;
-    _count: { clients: number };
-  }[];
-  enrollmentCounts: { status: string; count: number }[];
 };
 
 const message = (error: unknown) => {
@@ -107,7 +74,7 @@ export default function RoleWorkspace({
 
   const [error, setError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   const [confirmReplacement, setConfirmReplacement] = useState<string | null>(
     null,
@@ -344,7 +311,7 @@ export default function RoleWorkspace({
   }
 
   if (!me) {
-    return <p role="status">Loading workspace…</p>;
+    return <WorkspaceProgress label="Loading workspace…" />;
   }
 
   if (!permitted) {
@@ -356,23 +323,30 @@ export default function RoleWorkspace({
       ? "Personnel"
       : section === "network"
         ? "Agent network"
-        : "Member enrollments";
+        : "Enrollment requests";
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+    <div
+      className={
+        section === "enrollments" ? enrollmentStyles.workspace : "space-y-5"
+      }
+    >
+      <header
+        className={
+          section === "enrollments"
+            ? enrollmentStyles.heading
+            : "flex flex-wrap items-center justify-between gap-3"
+        }
+      >
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="mt-1 text-sm">
-            {section === "personnel"
-              ? "Staff information available for your responsibilities."
-              : section === "network"
-                ? "Your assigned Agent network and recruitment progress."
-                : "Agent requests require Batch Manager approval, with COO oversight."}
-          </p>
         </div>
         <button
-          className="rounded-xl border px-4 py-2"
+          className={
+            section === "enrollments"
+              ? enrollmentStyles.refresh
+              : "rounded-xl border px-4 py-2"
+          }
           type="button"
           disabled={busy || loading}
           onClick={() => {
@@ -393,88 +367,10 @@ export default function RoleWorkspace({
         </p>
       )}
       {section === "personnel" && (
-        <section className="system-panel overflow-x-auto p-5">
-          <table className="w-full text-left text-sm">
-            <caption className="sr-only">
-              Authorized personnel directory
-            </caption>
-            <thead>
-              <tr>
-                <th className="p-3">Name</th>
-                <th className="p-3">Role</th>
-                <th className="p-3">Supervisor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((person) => {
-                return (
-                  <tr key={person.id}>
-                    <td className="p-3">{person.name}</td>
-                    <td className="p-3">{roleLabels[person.role]}</td>
-                    <td className="p-3">
-                      {person.supervisor?.name ?? "Not assigned"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {!loading && !staff.length && (
-            <p>No personnel assigned to your scope.</p>
-          )}
-        </section>
+        <PersonnelDirectory staff={staff} loading={loading} />
       )}
       {section === "network" && network && (
-        <>
-          <section className="system-panel p-5">
-            <h2 className="mb-3 text-lg font-bold">Enrollment progress</h2>
-            <div className="flex flex-wrap gap-6">
-              {["PENDING", "APPROVED", "REJECTED"].map((state) => {
-                return (
-                  <p key={state}>
-                    {state.toLowerCase()}:{" "}
-                    <strong>
-                      {network.enrollmentCounts.find((row) => {
-                        return row.status === state;
-                      })?.count ?? 0}
-                    </strong>
-                  </p>
-                );
-              })}
-            </div>
-          </section>
-          <section className="system-panel p-5">
-            <h2 className="mb-3 text-lg font-bold">Agents</h2>
-            <ul className="space-y-3">
-              {network.agents.map((agent) => {
-                return (
-                  <li key={agent.id}>
-                    <strong>{agent.name}</strong> ·{" "}
-                    {agent.agentProfile?.code ?? "Agent profile not assigned"}
-                    <p className="text-sm">
-                      Pioneer: {agent.supervisor?.name ?? "Not assigned"}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-            {!network.agents.length && <p>No Agents assigned to your team.</p>}
-          </section>
-          <section className="system-panel p-5">
-            <h2 className="mb-3 text-lg font-bold">Assigned batches</h2>
-            <ul>
-              {network.batches.map((batch) => {
-                return (
-                  <li className="py-2" key={batch.id}>
-                    {batch.code} · {batch.model} · {batch._count.clients}{" "}
-                    members
-                  </li>
-                );
-              })}
-            </ul>
-            {!network.batches.length && <p>No batches assigned yet.</p>}
-          </section>
-        </>
+        <AgentNetworkDirectory network={network} />
       )}
       {section === "enrollments" && (
         <>
@@ -624,7 +520,7 @@ export default function RoleWorkspace({
                 </label>
                 <label>
                   Batch
-                  <select
+                  <WorkspaceNativeSelect
                     className="mt-1 w-full rounded-lg border p-2"
                     required
                     value={draft.batchId}
@@ -640,7 +536,7 @@ export default function RoleWorkspace({
                         </option>
                       );
                     })}
-                  </select>
+                  </WorkspaceNativeSelect>
                 </label>
                 <button
                   className="rounded-xl border px-4 py-2 sm:col-span-2"
@@ -658,190 +554,39 @@ export default function RoleWorkspace({
               )}
             </form>
           )}
-          <section className="system-panel p-5">
-            <label className="mb-4 block">
-              Request status
-              <select
-                className="ml-3 rounded-lg border p-2"
-                value={status}
-                onChange={(e) => {
-                  setStatus(e.target.value);
+          <EnrollmentRequests
+            items={requests?.items ?? []}
+            total={requests?.total ?? null}
+            page={page}
+            pageSize={requests?.pageSize ?? 20}
+            status={status}
+            loading={loading}
+            busy={busy}
+            canReview={can(me, "ENROLLMENT_REVIEW")}
+            focusedId={requestId}
+            reasons={reasons}
+            confirmReplacement={confirmReplacement}
+            error={error}
+            onStatus={(value) => {
+              setStatus(value);
 
-                  setPage(1);
-                }}
-              >
-                <option value="">All statuses</option>
-                <option value="PENDING">Pending approval</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
-              </select>
-            </label>
-            <div className="space-y-4">
-              {requests?.items.map((item) => {
-                return (
-                  <article className="rounded-xl border p-4" key={item.id}>
-                    <h2 className="font-bold">
-                      {item.name} · {item.batchCode}
-                    </h2>
-                    <p className="text-sm">
-                      {item.status.toLowerCase()} · Submitted by{" "}
-                      {item.submittedBy}
-                    </p>
-                    {item.publicApplicationId && (
-                      <Link
-                        className="mt-2 inline-flex min-h-11 items-center text-sm underline"
-                        href={`/system/enrollments?application=${encodeURIComponent(item.publicApplicationId)}`}
-                      >
-                        View original website application
-                      </Link>
-                    )}
-                    {item.withdrawalId && (
-                      <div className="mt-3 rounded-lg border p-3 text-sm">
-                        <strong>Replacement enrollment</strong>
-                        <p>
-                          {item.replacementMode === "RESTART"
-                            ? "Start the new installment plan recorded by the COO."
-                            : "Continue only the departing member's unpaid installments."}{" "}
-                          Approval admits the replacement and completes the
-                          handover of this batch position. The original member's
-                          verified payments remain in their history.
-                        </p>
-                        <Link
-                          className="underline"
-                          href={`/system/withdrawals?request=${encodeURIComponent(item.withdrawalId)}`}
-                        >
-                          Review the withdrawal and COO replacement terms
-                        </Link>
-                      </div>
-                    )}
-                    {item.reason && (
-                      <p className="mt-2 text-sm">Review: {item.reason}</p>
-                    )}
-                    {item.status === "PENDING" &&
-                      can(me, "ENROLLMENT_REVIEW") && (
-                        <div className="mt-3 space-y-2">
-                          <label className="block">
-                            Review reason
-                            <textarea
-                              className="mt-1 w-full rounded-lg border p-2"
-                              minLength={3}
-                              maxLength={1000}
-                              value={reasons[item.id] ?? ""}
-                              onChange={(e) => {
-                                return setReasons({
-                                  ...reasons,
-                                  [item.id]: e.target.value,
-                                });
-                              }}
-                            />
-                          </label>
-                          {confirmReplacement === item.id && (
-                            <div
-                              className="rounded-lg border p-3 text-sm"
-                              role="group"
-                              aria-label="Confirm replacement handover"
-                            >
-                              <strong>Confirm replacement admission</strong>
-                              <p>
-                                Admit {item.name} under the COO's recorded
-                                terms, release the departing member's unpaid
-                                obligation, and issue the replacement schedule.
-                                This preserves the existing payments and
-                                completes a one-for-one handover.
-                              </p>
-                              <div className="mt-3 flex flex-wrap gap-3">
-                                <button
-                                  type="button"
-                                  className="rounded-lg border px-3 py-2"
-                                  disabled={busy}
-                                  onClick={() => {
-                                    setConfirmReplacement(null);
-                                  }}
-                                >
-                                  Keep reviewing
-                                </button>
-                                <button
-                                  type="button"
-                                  className="rounded-lg border px-3 py-2"
-                                  disabled={
-                                    busy ||
-                                    (reasons[item.id] ?? "").trim().length < 3
-                                  }
-                                  onClick={() => {
-                                    void review(item, "APPROVED", true);
-                                  }}
-                                >
-                                  Confirm replacement admission
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex flex-wrap gap-3">
-                            <button
-                              type="button"
-                              className="rounded-lg border px-3 py-2"
-                              disabled={
-                                busy ||
-                                (reasons[item.id] ?? "").trim().length < 3
-                              }
-                              onClick={() => {
-                                return void review(item, "APPROVED");
-                              }}
-                            >
-                              {item.withdrawalId
-                                ? "Review replacement admission"
-                                : "Approve enrollment"}
-                            </button>
-                            <button
-                              type="button"
-                              className="rounded-lg border px-3 py-2"
-                              disabled={
-                                busy ||
-                                (reasons[item.id] ?? "").trim().length < 3
-                              }
-                              onClick={() => {
-                                return void review(item, "REJECTED");
-                              }}
-                            >
-                              Reject request
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                  </article>
-                );
-              })}
-            </div>
-            {!loading && !requests?.items.length && (
-              <p>No enrollment requests in this view.</p>
-            )}
-            <div className="mt-4 flex items-center gap-4">
-              <button
-                type="button"
-                disabled={loading || page === 1}
-                onClick={() => {
-                  return setPage(page - 1);
-                }}
-              >
-                Previous
-              </button>
-              <span>
-                Page {page} · {requests?.total ?? 0} requests
-              </span>
-              <button
-                type="button"
-                disabled={loading || page * 20 >= (requests?.total ?? 0)}
-                onClick={() => {
-                  return setPage(page + 1);
-                }}
-              >
-                Next
-              </button>
-            </div>
-          </section>
+              setPage(1);
+            }}
+            onPage={setPage}
+            onReason={(id, value) => {
+              setReasons((current) => {
+                return { ...current, [id]: value };
+              });
+            }}
+            onConfirm={setConfirmReplacement}
+            onRefresh={load}
+            onReview={review}
+          />
         </>
       )}
-      {loading && <p role="status">Loading…</p>}
+      {loading && section !== "personnel" && section !== "enrollments" && (
+        <WorkspaceProgress label="Loading…" />
+      )}
     </div>
   );
 }

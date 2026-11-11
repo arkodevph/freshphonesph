@@ -1,5 +1,7 @@
 "use client";
 
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import { useToastNotice } from "@/lib/useToastNotice";
 import {
   createPayment,
   decidePayment,
@@ -86,9 +88,9 @@ export function usePaymentsWorkspace() {
 
   const [loading, setLoading] = useState(true);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useToastNotice(null, "error");
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -122,6 +124,8 @@ export function usePaymentsWorkspace() {
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   const [reviewSaving, setReviewSaving] = useState(false);
+
+  const [reviewClosing, setReviewClosing] = useState(false);
 
   const [detailsPayment, setDetailsPayment] = useState<Payment | null>(null);
 
@@ -166,6 +170,30 @@ export function usePaymentsWorkspace() {
   const detailsDialog = useRef<HTMLDialogElement>(null);
 
   const financeNoteInput = useRef<HTMLTextAreaElement>(null);
+
+  useSpringDialog(
+    financeDialog,
+    Boolean(reviewPayment) && !reviewClosing,
+    finishReview,
+  );
+
+  function finishReview() {
+    if (!financeDialog.current?.open) {
+      setReviewPayment(null);
+
+      setReviewDecision(null);
+
+      setReviewError(null);
+
+      setReviewClosing(false);
+    }
+  }
+
+  function closeReview() {
+    if (!reviewSaving) {
+      setReviewClosing(true);
+    }
+  }
 
   const [recordClient, setRecordClient] = useState<ClientChoice | null>(null);
 
@@ -331,22 +359,8 @@ export function usePaymentsWorkspace() {
       return;
     }
 
-    if (!financeDialog.current.open) {
-      financeDialog.current.showModal();
-    }
-
     financeNoteInput.current?.focus();
   }, [reviewPayment]);
-
-  useEffect(() => {
-    if (
-      detailsPayment &&
-      detailsDialog.current &&
-      !detailsDialog.current.open
-    ) {
-      detailsDialog.current.showModal();
-    }
-  }, [detailsPayment]);
 
   useEffect(() => {
     const reference = form.reference_no.trim();
@@ -830,6 +844,8 @@ export function usePaymentsWorkspace() {
 
     setReviewDecision(decision);
 
+    setReviewClosing(false);
+
     setReviewPayment(payment);
   }
 
@@ -885,7 +901,7 @@ export function usePaymentsWorkspace() {
         return next;
       });
 
-      financeDialog.current?.close();
+      setReviewClosing(true);
 
       load();
     } catch (e) {
@@ -976,6 +992,8 @@ export function usePaymentsWorkspace() {
       form,
     },
     financeReviewDialogProps: {
+      closeReview,
+      finishReview,
       reviewStage,
       financeDialog,
       setReviewPayment,

@@ -1,4 +1,8 @@
 import { captureHandlerInbox } from "../staff/handler-inbox";
+import {
+  requireCompleteSubmission,
+  submissionReady,
+} from "../submission-checklists/evidence";
 import { requireOpenMembership } from "../withdrawals/withdrawal-tools";
 import { batchScope, clientScope } from "../records/scope";
 import { safeUser } from "../auth/auth.service";
@@ -229,6 +233,11 @@ export class FinanceService {
         ? {
             workflow: {
               ...workflow(payment),
+              submissionComplete: await submissionReady(
+                tx,
+                payment.batchId,
+                payment.paymentDate,
+              ),
               evidenceVersion: payment.evidenceVersion,
               managerId: batch.managerId,
               history: operationalReviews.map((review) => {
@@ -597,6 +606,10 @@ export class FinanceService {
         );
       }
 
+      if (input.stage === "MANAGER" && input.decision === "APPROVED") {
+        await requireCompleteSubmission(tx, before.batchId, before.paymentDate);
+      }
+
       const changed = await tx.payment.updateMany({
         where: { id, version: input.version, status: "PENDING" },
         data: {
@@ -689,6 +702,10 @@ export class FinanceService {
         throw new ConflictException(
           "Records completeness approval and the assigned Manager cross-check are required before Finance review.",
         );
+      }
+
+      if (decision === "VERIFIED") {
+        await requireCompleteSubmission(tx, before.batchId, before.paymentDate);
       }
 
       const changed = await tx.payment.updateMany({

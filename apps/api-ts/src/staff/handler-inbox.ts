@@ -195,6 +195,7 @@ export async function handlerInboxPage(
     supportCount: 0,
     accountCount: 0,
     enrollmentCount: 0,
+    workflowCount: 0,
   };
 }
 

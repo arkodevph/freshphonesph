@@ -1,0 +1,353 @@
+.workspace {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.heading h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.heading .refresh,
+.directory button,
+.dialog button:not([data-modal-close]) {
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid var(--system-border);
+  border-radius: 8px;
+  background: var(--workspace-control-bg, var(--system-surface));
+  color: var(--system-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.heading .refresh:disabled,
+.directory button:disabled,
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.directory {
+  min-width: 0;
+}
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.filter {
+  display: grid;
+  gap: 8px;
+  width: 220px;
+  max-width: 100%;
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.total {
+  color: var(--system-muted);
+  font-size: 13px;
+  padding-bottom: 11px;
+}
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.tableWrap table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+.tableWrap thead {
+  color: var(--system-muted);
+}
+.tableWrap th,
+.tableWrap td {
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--system-border);
+  vertical-align: middle;
+  font-weight: 400;
+}
+.tableWrap thead th {
+  padding-block: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tableWrap :is(th, td):first-child {
+  width: 39%;
+  padding-left: 0;
+}
+.tableWrap :is(th, td):last-child {
+  padding-right: 0;
+  text-align: right;
+}
+.tableWrap tr[data-selected="true"] {
+  background: var(--workspace-control-hover);
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.avatar {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--workspace-control-hover);
+  color: var(--system-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.member {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+.member strong {
+  color: var(--system-text);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.member small {
+  color: var(--system-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.status i {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--system-muted);
+}
+.status[data-status="APPROVED"] i {
+  background: var(--system-accent, #69b78e);
+}
+.status[data-status="PENDING"] i {
+  background: #c6974c;
+}
+.status[data-status="REJECTED"] i {
+  background: #db7d86;
+}
+.directory .detailButton {
+  min-height: 36px;
+  background: transparent;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-block: 20px;
+  font-size: 13px;
+}
+.pagination span {
+  margin-right: auto;
+  color: var(--system-muted);
+}
+.tableWrap td.empty {
+  padding: 36px 0;
+  text-align: left;
+  color: var(--system-muted);
+}
+.empty button {
+  display: block;
+  margin-top: 16px;
+}
+.caption {
+  margin: 0 0 6px;
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.dialog [data-modal-header] > div {
+  min-width: 0;
+}
+.detailTabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dialog .detailTabs button {
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--system-muted);
+}
+.dialog .detailTabs button[aria-pressed="true"] {
+  background: var(--workspace-control-hover);
+  color: var(--system-text);
+}
+.detailBody [data-enrollment-pane][hidden] {
+  display: none;
+}
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.metadata > div {
+  min-width: 0;
+}
+.metadata dt {
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.metadata dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.full {
+  grid-column: 1 / -1;
+}
+.terms {
+  margin-top: 28px;
+}
+.terms h3,
+.confirmation h3 {
+  margin: 0 0 12px;
+}
+.terms p,
+.confirmation p {
+  margin: 0 0 12px;
+  color: var(--system-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.terms a,
+.sourceLink {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  color: var(--system-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.sourceLink {
+  margin-top: 20px;
+}
+.reason {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+}
+.reason textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--system-border);
+  border-radius: 9px;
+  background: var(--workspace-control-bg, var(--system-bg));
+  color: var(--system-text);
+  font: inherit;
+  line-height: 1.6;
+}
+.confirmation {
+  margin-top: 24px;
+}
+.detailFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.dialog .detailFooter [data-variant="primary"] {
+  background: var(--system-accent);
+  border-color: var(--system-accent);
+  color: var(--monitor-on-accent, #fff);
+}
+.error {
+  margin: 0 0 20px;
+  color: var(--system-danger, #dc7d89);
+}
+.directory :is(button, [role="combobox"]):focus-visible,
+.tableWrap:focus-visible,
+.dialog :is(button, textarea, a):focus-visible {
+  outline: 2px solid var(--system-text);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .heading h1 {
+    font-size: 25px;
+  }
+  .metadata {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .detailFooter button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 680px) {
+  .tableWrap {
+    overflow: visible;
+  }
+  .tableWrap table {
+    min-width: 0;
+  }
+  .tableWrap thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+  }
+  .tableWrap :is(table, tbody, tr) {
+    display: block;
+    width: 100%;
+  }
+  .tableWrap tbody tr {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--system-border);
+  }
+  .tableWrap :is(th, td),
+  .tableWrap :is(th, td):first-child,
+  .tableWrap :is(th, td):last-child {
+    display: block;
+    width: auto;
+    padding: 6px 0;
+    border: 0;
+    text-align: left;
+  }
+  .tableWrap td[data-label] {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 12px;
+    overflow-wrap: anywhere;
+  }
+  .tableWrap td[data-label]::before {
+    content: attr(data-label);
+    color: var(--system-muted);
+    font-size: 12px;
+    align-self: center;
+  }
+  .tableWrap td[data-label="Request"] button {
+    justify-self: start;
+  }
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -25,7 +27,7 @@ export default function EnrollmentFormWorkspace() {
   const [previewAnswers, setPreviewAnswers] = useState<EnrollmentAnswers>({});
 
   if (draft.loading) {
-    return <p role="status">Loading enrollment form…</p>;
+    return <WorkspaceProgress label="Loading enrollment form…" />;
   }
 
   if (!draft.config || !draft.definition) {
@@ -106,6 +108,7 @@ export default function EnrollmentFormWorkspace() {
           </button>
           <button
             type="button"
+            data-variant="primary"
             className={styles.primary}
             disabled={
               draft.pending ||
@@ -154,7 +157,7 @@ export default function EnrollmentFormWorkspace() {
       <section className={styles.panel}>
         <label className={styles.field}>
           Receiving Agent
-          <select
+          <WorkspaceNativeSelect
             value={draft.receivingAgentId ?? ""}
             disabled={draft.pending || draft.outdated}
             onChange={(event) => {
@@ -179,7 +182,7 @@ export default function EnrollmentFormWorkspace() {
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <p>
           Choose an active Agent, save the draft, then publish. Changing this

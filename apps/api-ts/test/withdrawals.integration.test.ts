@@ -633,7 +633,41 @@ test("approval leaves dues and full capacity unchanged; continuing replacement r
 
   assert.equal((await admit(row, 1)).clientId, admitted.clientId);
 
+  for (const role of ["AGENT", "MANAGER", "COO"]) {
+    const visible = await checked(request(role, `/withdrawals/${row.id}`));
+
+    assert.equal(visible.actions.viewReplacementEnrollment, true);
+
+    assert.equal(
+      (
+        await request(
+          role,
+          `/enrollment/requests?requestId=${row.replacementEnrollmentId}`,
+        )
+      ).status,
+      200,
+    );
+  }
+
+  const financeView = await checked(
+    request("FINANCE", `/withdrawals/${row.id}`),
+  );
+
+  assert.equal(financeView.actions.viewReplacementEnrollment, false);
+
+  assert.equal(
+    (
+      await request(
+        "FINANCE",
+        `/enrollment/requests?requestId=${row.replacementEnrollmentId}`,
+      )
+    ).status,
+    403,
+  );
+
   const closed = await checked(request(f.key, `/withdrawals/${row.id}`));
+
+  assert.equal(closed.actions.viewReplacementEnrollment, false);
 
   assert.equal(closed.status, "REPLACED");
 

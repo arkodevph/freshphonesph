@@ -1,5 +1,6 @@
 "use client";
 
+import ModalCloseButton from "@/components/ModalCloseButton";
 import { X } from "@phosphor-icons/react";
 import type { RefObject } from "react";
 import { ClientChoice } from "./payment-view";
@@ -30,6 +31,9 @@ export default function ReceiptViewerDialog({
 }: Props) {
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-size="media"
       ref={receiptDialog}
       className="receipt-viewer"
       aria-labelledby="receipt-viewer-title"
@@ -40,20 +44,16 @@ export default function ReceiptViewerDialog({
       }}
     >
       <div className="receipt-viewer-shell">
-        <header className="receipt-viewer-heading">
+        <header data-modal-header className="receipt-viewer-heading">
           <div>
             <h2 id="receipt-viewer-title">Receipt image</h2>
             <p>{receiptImage?.name}</p>
           </div>
-          <button
-            type="button"
+          <ModalCloseButton
             onClick={() => {
               return receiptDialog.current?.close();
             }}
-            aria-label="Close receipt image"
-          >
-            <X weight="bold" />
-          </button>
+          />
         </header>
         <div className="receipt-viewer-body">
           <div className="receipt-viewer-image-wrap">

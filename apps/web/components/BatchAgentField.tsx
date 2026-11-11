@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useEffect, useState } from "react";
 import { getAssignmentOptions, type AssignmentOptions } from "@/lib/api";
 import { Field, inputCls } from "@/components/FormField";
@@ -59,7 +60,7 @@ export function BatchAgentField({
   return (
     <div className="min-w-0">
       <Field label="Agent">
-        <select
+        <WorkspaceNativeSelect
           required
           value={value}
           disabled={loading || Boolean(error)}
@@ -80,7 +81,7 @@ export function BatchAgentField({
               </option>
             );
           })}
-        </select>
+        </WorkspaceNativeSelect>
       </Field>
       <p id="batch-number-help" className="mt-1 text-xs text-ink-soft">
         The batch number uses this Agent&apos;s code and next sequence, for

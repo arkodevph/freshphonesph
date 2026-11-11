@@ -21,7 +21,8 @@
     "production:config": "docker compose --env-file .env.production -f docker-compose.production.yml config --quiet",
     "production:build": "docker compose --env-file .env.production -f docker-compose.production.yml build",
     "production:start": "docker compose --env-file .env.production -f docker-compose.production.yml up -d --wait",
-    "production:stop": "docker compose --env-file .env.production -f docker-compose.production.yml stop"
+    "production:stop": "docker compose --env-file .env.production -f docker-compose.production.yml stop",
+    "check:client-secrets": "node scripts/check-client-secrets.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

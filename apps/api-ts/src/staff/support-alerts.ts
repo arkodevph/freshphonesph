@@ -100,7 +100,7 @@ export function supportAlertVisibleSql(userId: string) {
 }
 
 export function supportAlertRows(userId: string) {
-  return Prisma.sql`SELECT r.id, NULL::uuid AS "paymentId", r."caseId", NULL::uuid AS "accountId", r."caseVersion" AS version, 'support'::text AS entity,
+  return Prisma.sql`SELECT r.id, NULL::uuid AS "paymentId", r."caseId", NULL::uuid AS "accountId", NULL::uuid AS "sourceId", NULL::text AS "sourceType", r."caseVersion" AS version, 'support'::text AS entity,
     r.kind::text AS kind, NULL::text AS amount, NULL::text AS "clientName", NULL::text AS "batchCode",
     NULL::text AS "taskTitle", NULL::timestamp AS deadline, r."createdAt", r."createdAt" AS "updatedAt", r."readAt", r."createdAt" AS "occurredAt"
     FROM "SupportAlert" r JOIN "SupportCase" c ON c.id = r."caseId" JOIN "User" u ON u.id = r."userId"

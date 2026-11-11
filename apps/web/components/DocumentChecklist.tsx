@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceDetails from "@/components/WorkspaceDetails";
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
@@ -99,7 +101,7 @@ export function DocumentChecklist({
 
   const [error, setError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [working, setWorking] = useState<string | null>(null);
 
@@ -650,7 +652,7 @@ export function DocumentChecklist({
                     </div>
                   )}
                   {item.history.length > 1 && (
-                    <details className={styles.history}>
+                    <WorkspaceDetails className={styles.history}>
                       <summary>
                         Previous submissions ({item.history.length - 1})
                       </summary>
@@ -676,7 +678,7 @@ export function DocumentChecklist({
                           );
                         })}
                       </ul>
-                    </details>
+                    </WorkspaceDetails>
                   )}
                 </div>
               </article>

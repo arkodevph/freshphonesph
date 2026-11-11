@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import Link from "next/link";
 import type { Me } from "@/lib/api";
 import { can } from "@/lib/useMe";
@@ -21,7 +22,7 @@ export default function EnrollmentApplicationDetail({
   const application = workspace.application;
 
   if (workspace.loading) {
-    return <p role="status">Loading application details…</p>;
+    return <WorkspaceProgress label="Loading application details…" />;
   }
 
   if (!application) {

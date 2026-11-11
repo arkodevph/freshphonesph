@@ -111,6 +111,7 @@ export const permissions = [
   "PAYMENT_VERIFY",
   "PAYMENT_COMPLETENESS_REVIEW",
   "PAYMENT_MANAGER_REVIEW",
+  "OPERATIONS_MONITOR",
   "SUPPORT_MANAGE",
   "REPORT_VIEW",
   "REPORT_WRITE",
@@ -203,6 +204,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     ].includes(permission);
   }),
   COO: [
+    "OPERATIONS_MONITOR",
     "ENROLLMENT_FORM_MANAGE",
     "ENROLLMENT_APPLICATION_READ",
     "ENROLLMENT_APPLICATION_MANAGE",
@@ -278,6 +280,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     ...ownWork,
   ],
   OPERATIONS_COORDINATOR: [
+    "OPERATIONS_MONITOR",
     "STAFF_READ",
     "AGENT_NETWORK_READ",
     "TASK_ASSIGN",
@@ -815,6 +818,7 @@ export type PaymentOperationalReviewInput = z.infer<
 >;
 
 export interface PaymentWorkflow {
+  submissionComplete?: boolean;
   evidenceVersion: number;
   recordsApproved: boolean;
   managerApproved: boolean;
@@ -1388,7 +1392,20 @@ export const enrollmentAlertKinds = [
 
 export type EnrollmentAlertKind = (typeof enrollmentAlertKinds)[number];
 
+export const workflowAlertKinds = [
+  "PAYMENT_RECORDS_PENDING",
+  "PAYMENT_MANAGER_PENDING",
+  "PAYMENT_PROOF_REQUIRED",
+  "PAYMENT_RETURNED",
+  "STATEMENT_RECORDS_PENDING",
+  "STATEMENT_RETURNED",
+  "OPERATIONS_FOLLOW_UP",
+] as const;
+
+export type WorkflowAlertKind = (typeof workflowAlertKinds)[number];
+
 export const staffAlertScopeSchema = z.enum([
+  "workflow",
   "all",
   "tasks",
   "finance",
@@ -1406,6 +1423,13 @@ export const staffAlertQuerySchema = financeAlertQuerySchema.extend({
 });
 
 export const staffAlertReadSchema = z.discriminatedUnion("entity", [
+  z
+    .object({
+      entity: z.literal("workflow"),
+      kind: z.enum(workflowAlertKinds),
+      version: z.number().int().positive(),
+    })
+    .strict(),
   z
     .object({
       entity: z.literal("payment"),
@@ -1455,6 +1479,13 @@ type StaffAlertBase = {
 
 export type StaffAlert = StaffAlertBase &
   (
+    | {
+        entity: "workflow";
+        kind: WorkflowAlertKind;
+        version: number;
+        source: "PAYMENT" | "STATEMENT";
+        sourceId: string;
+      }
     | { entity: "payment"; kind: "FINANCE_PENDING"; version: number }
     | { entity: "task"; kind: TaskAlertKind; deadline: string }
     | {
@@ -1500,6 +1531,7 @@ export interface StaffAlertPage extends Page<StaffAlert> {
   supportCount: number;
   accountCount: number;
   enrollmentCount: number;
+  workflowCount: number;
 }
 
 export interface PaymentReviewDetail {
@@ -2068,3 +2100,11 @@ export const reportHistoryQuerySchema = z
       .optional(),
   })
   .strict();
+
+export * from "./assistant";
+
+export * from "./event-stream";
+
+export * from "./operations-monitor";
+
+export * from "./submission-checklists";

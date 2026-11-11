@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { catalogPrice } from "@/lib/catalog";
 import { catalogPlanLabels, type CatalogInput } from "@freshphones/contracts";
 import type { Dispatch, SetStateAction } from "react";
@@ -156,7 +157,7 @@ export default function CatalogPaymentTermsForm({
             </label>
             <label>
               Payment interval
-              <select
+              <WorkspaceNativeSelect
                 value={draft.installmentPlan.cadence}
                 onChange={(event) => {
                   return setDraft({
@@ -177,7 +178,7 @@ export default function CatalogPaymentTermsForm({
                     </option>
                   );
                 })}
-              </select>
+              </WorkspaceNativeSelect>
               <small>
                 Fixed day intervals, matching the current records system.
               </small>

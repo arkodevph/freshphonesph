@@ -1,10 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useSpringDialog } from "@/lib/useSpringDialog";
+import ModalCloseButton from "@/components/ModalCloseButton";
 import { type Payment } from "@/lib/api";
+import PaymentTransactionSummary from "./PaymentTransactionSummary";
 import { Paperclip, X } from "@phosphor-icons/react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { AdjustmentHistory } from "./PaymentAdjustmentDialog";
-import { formatTimestamp, STATUS_STYLES } from "./payment-view";
+import { formatTimestamp } from "./payment-view";
 
 type Props = {
   detailsDialog: RefObject<HTMLDialogElement | null>;
@@ -21,38 +25,65 @@ export default function PaymentDetailsDialog({
   viewProof,
   onAttachProof,
 }: Props) {
+  const [closing, setClosing] = useState(false);
+
+  useSpringDialog(
+    detailsDialog,
+    Boolean(detailsPayment) && !closing,
+    finishClose,
+  );
+
+  useEffect(() => {
+    setClosing(false);
+  }, [detailsPayment?.id]);
+
+  function finishClose() {
+    if (!detailsDialog.current?.open) {
+      setDetailsPayment(null);
+
+      setClosing(false);
+    }
+  }
+
+  function close() {
+    setClosing(true);
+  }
+
   return (
     <dialog
+      data-workspace-modal
+      data-modal-framed
+      data-modal-size="wide"
       ref={detailsDialog}
       className="finance-review-dialog payment-details-dialog"
       aria-labelledby="payment-details-title"
-      onClose={() => {
-        return setDetailsPayment(null);
+      onClose={finishClose}
+      onCancel={(event) => {
+        event.preventDefault();
+
+        close();
       }}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
-          detailsDialog.current?.close();
+          close();
         }
       }}
     >
       {detailsPayment && (
         <div className="payment-details-shell">
-          <header className="finance-review-heading">
+          <header data-modal-header className="finance-review-heading">
             <div>
               <p>Payment record</p>
               <h2 id="payment-details-title">Transaction details</h2>
             </div>
-            <button
-              type="button"
+            <ModalCloseButton
               onClick={() => {
-                return detailsDialog.current?.close();
+                return close();
               }}
-              aria-label="Close transaction details"
-            >
-              <X weight="bold" />
-            </button>
+            />
           </header>
           <div className="payment-details-body">
+            <PaymentTransactionSummary payment={detailsPayment} />
             {onAttachProof && (
               <section aria-label="Receipt proof">
                 <h3>Receipt proof</h3>
@@ -112,58 +143,6 @@ export default function PaymentDetailsDialog({
               </section>
             )}
 
-            <section aria-label="Transaction">
-              <h3>Transaction</h3>
-              <dl className="payment-details-grid">
-                <div>
-                  <dt>Status</dt>
-                  <dd>
-                    <span
-                      className={`payment-details-status ${STATUS_STYLES[detailsPayment.status]}`}
-                    >
-                      {detailsPayment.status.replaceAll("_", " ")}
-                    </span>
-                  </dd>
-                </div>
-                <div>
-                  <dt>
-                    {detailsPayment.status === "verified"
-                      ? "Current credit"
-                      : "Amount"}
-                  </dt>
-                  <dd>₱{detailsPayment.amount}</dd>
-                </div>
-                <div>
-                  <dt>Client</dt>
-                  <dd>
-                    {detailsPayment.client_name ??
-                      String(detailsPayment.client)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Batch</dt>
-                  <dd>
-                    {detailsPayment.batch_code ?? String(detailsPayment.batch)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Payment date</dt>
-                  <dd>{detailsPayment.payment_date}</dd>
-                </div>
-                <div>
-                  <dt>Method</dt>
-                  <dd className="capitalize">{detailsPayment.method}</dd>
-                </div>
-                <div>
-                  <dt>Reference number</dt>
-                  <dd>{detailsPayment.reference_no || "—"}</dd>
-                </div>
-                <div>
-                  <dt>Payment ID</dt>
-                  <dd>{detailsPayment.id}</dd>
-                </div>
-              </dl>
-            </section>
             <AdjustmentHistory payment={detailsPayment} />
             <section aria-label="Finance review">
               <h3>Finance review</h3>
@@ -225,6 +204,10 @@ export default function PaymentDetailsDialog({
               <h3>Record history</h3>
               <dl className="payment-details-grid">
                 <div>
+                  <dt>Payment ID</dt>
+                  <dd className="payment-record-id">{detailsPayment.id}</dd>
+                </div>
+                <div>
                   <dt>Recorded by</dt>
                   <dd>{detailsPayment.recorded_by_name || "—"}</dd>
                 </div>
@@ -256,14 +239,6 @@ export default function PaymentDetailsDialog({
                 <Paperclip weight="bold" aria-hidden="true" /> View proof
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                return detailsDialog.current?.close();
-              }}
-            >
-              Close
-            </button>
           </footer>
         </div>
       )}

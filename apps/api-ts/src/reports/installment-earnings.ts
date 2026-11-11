@@ -13,8 +13,10 @@ export async function installmentEarnings(
   db: Prisma.TransactionClient,
   query: InstallmentEarningsQuery,
   fullScope = false,
+  dateRange?: { dateFrom: string; dateTo: string },
 ): Promise<InstallmentEarningsReport> {
-  const range = earningsPeriods(query.year, query.frequency)[query.period - 1];
+  const range =
+    dateRange ?? earningsPeriods(query.year, query.frequency)[query.period - 1];
 
   const [result] = await db.$queryRaw<
     { report: Pick<InstallmentEarningsReport, "totals" | "items" | "total"> }[]

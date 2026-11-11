@@ -6,6 +6,7 @@
 > [`docs/BUILD_STATUS.md`](docs/BUILD_STATUS.md).
 
 ## What this is
+
 A business operations & records platform for **Fresh Phones PH** (a Philippine iPhone/iPad
 **Paluwagan** — group-savings installment — business). It is **NOT** an online payment gateway,
 **NOT** a BIR POS, and **NOT** an autonomous HR decision-maker. Customers pay **externally**
@@ -14,6 +15,7 @@ A business operations & records platform for **Fresh Phones PH** (a Philippine i
 Source of truth for scope: **Full Scope v5 (Rev 1.4)** → summarized in [`docs/`](docs/README.md).
 
 ## 🔑 Golden rules (do not break these)
+
 1. **Money:** only **Finance-verified** payments move a customer's balance. Balance is derived
    (`total_due − verified_paid`), never a mutable column. Verify is Finance-only, atomic, audited.
 2. **No auto wage actions:** task on-time/late is an **objective fact only**; the system never
@@ -21,12 +23,13 @@ Source of truth for scope: **Full Scope v5 (Rev 1.4)** → summarized in [`docs/
 3. **BIR boundary:** the system may produce a "Statement of Account" / "Payment Confirmation"
    (operational docs, flagged `not_official_bir_invoice`), never the official BIR invoice (§7).
 4. **Privacy-limited public:** the public agent verification returns only name + **masked** code
-   + active status — never phone/address/IDs (§18.8). Collect only necessary data (§14).
+   - active status — never phone/address/IDs (§18.8). Collect only necessary data (§14).
 5. **Server-side authz:** permissions are enforced by NestJS guards in the API, never UI-only. The role-aware UI is UX on
    top of that.
 6. **Secrets** live only in env vars (`apps/api-ts/.env`, `apps/web/.env.local`) — never committed.
 
 ## Monorepo layout
+
 ```
 apps/web/    Next.js 16 + React 19 + Tailwind v4 (client-owned VPS) — landing, /system staff, /portal customer
 apps/api-ts/ NestJS + Prisma + TypeScript (Railway) — one module per business domain
@@ -36,6 +39,7 @@ docker-compose.yml   local infra: Postgres:5435 + Redis:6380 + MinIO + MailHog
 ```
 
 ## Stack (decided — see docs/09-tech-stack.md)
+
 - **Backend:** NestJS · TypeScript · Prisma · Neon PostgreSQL · Better Auth ·
   private S3-compatible object storage (production provider pending; MinIO locally) · Resend ·
   Redis Streams and BullMQ background workers (reaffirmed by the user on 2026-10-09).
@@ -47,6 +51,7 @@ docker-compose.yml   local infra: Postgres:5435 + Redis:6380 + MinIO + MailHog
   Receipt OCR uses a separate Python/Tesseract helper in `apps/api-ts/scripts/`.
 
 ## Run it locally
+
 ```bash
 # 1) infra
 docker compose up -d                      # Postgres:5435, Redis:6380, MinIO:9000/9001, MailHog:1025/8025
@@ -62,6 +67,7 @@ pnpm --filter @fresh/api-ts dev           # http://localhost:4100
 pnpm --filter @fresh/api-ts worker:dev
 pnpm --filter @fresh/web dev              # http://localhost:3000
 ```
+
 Create local test accounts with a private seed script or through the application; keep
 account details outside Git. Provision employee and linked customer accounts through `POST /api/accounts`.
 Development role previews use `pnpm --filter @fresh/api-ts seed:demo` with a local database
@@ -77,6 +83,7 @@ For the active TypeScript preview, run `pnpm --filter @fresh/api-ts dev` and
 Redis namespace and private storage configuration. See [docs/53-redis-events-workers.md](docs/53-redis-events-workers.md).
 
 ## Backend conventions (NestJS + TypeScript)
+
 - Build backend behavior in `apps/api-ts/`. Prisma owns the database schema and migrations.
 - **Layering:** thin controllers → services (writes/business rules) / query functions (reads)
   → Prisma data access. Never put business rules in controllers or DTOs.
@@ -92,6 +99,7 @@ Redis namespace and private storage configuration. See [docs/53-redis-events-wor
 - Migration workflow: [`docs/17-full-scope-workflow.md`](docs/17-full-scope-workflow.md).
 
 ## Frontend conventions (Next.js App Router)
+
 - Keep page components focused on routing, access states and arranging feature components.
   Put state, effects and actions in feature hooks; keep forms, dialogs, tables and navigation
   in separate components with typed props. Group related view props by feature.
@@ -111,11 +119,13 @@ Redis namespace and private storage configuration. See [docs/53-redis-events-wor
 - **Next.js 16 is different from training data** — see the block below before touching config.
 
 ## Module ownership (team)
+
 Justine Rhey Tambong = Auth/Records spine · **Justine Cane Bacurin = Payments/Finance + Reporting**
 · Rovic James Somontina = Public site + Portal · Ralph Rowel Dela Rosa = Tasks/KPI + CS +
 Recruitment + Notifications. See `docs/10-team-roles.md`.
 
 ## Branch / PR status
+
 `main` is the production release branch and remains the GitHub default. `staging` is the shared
 integration branch. Develop on short-lived `feature/<scope>` or `fix/<issue>` branches, merge
 reviewed work into `staging`, and promote tested `staging` changes to `main` by pull request.
@@ -123,7 +133,27 @@ See [`docs/24-branch-flow.md`](docs/24-branch-flow.md). The older `foundation` b
 as historical migration work; do not use it as the active integration branch.
 
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
+
+## Readability and frontend boundaries
+
+- Keep route/page files focused on composing the screen. Put substantial sections in
+  named feature components, state/effects in feature hooks, and HTTP calls in API
+  modules. Group related files by feature; avoid a single file owning the entire UI.
+- Reuse repeated behavior and shared layouts. Render repeated structures from typed
+  data with `map` or a clear loop. Extract helpers when they remove real duplication;
+  do not build speculative abstractions or combine unrelated responsibilities.
+- Prefer pure functions and immutable transformations for calculations and formatting.
+  Keep side effects explicit in hooks and service/API boundaries. NestJS services
+  retain their established class-based dependency injection.
+- Private provider keys, passwords and credentials belong in server-side environment
+  variables and server-only modules. Browser code calls an authorized backend endpoint.
+  `NEXT_PUBLIC_*`, Next.js `env` exports, and variables evaluated in browser code are
+  public; assigning a private key to an environment variable does not make it private.
+- Run `pnpm check:client-secrets` for frontend credential-boundary changes and the
+  existing formatting/type checks for edited source. Never print secret values in
+  diagnostics, fixtures, screenshots or review reports.

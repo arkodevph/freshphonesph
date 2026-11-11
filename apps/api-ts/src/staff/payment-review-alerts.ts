@@ -22,7 +22,7 @@ export const canReadPaymentReviews = (user: Pick<User, "role">) => {
  */
 export function paymentReviewAlertRows(userId: string) {
   return Prisma.sql`
-    SELECT r.id, p.id AS "paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId",
+    SELECT r.id, p.id AS "paymentId", NULL::uuid AS "caseId", NULL::uuid AS "accountId", NULL::uuid AS "sourceId", NULL::text AS "sourceType",
       r."paymentVersion" AS version, 'payment-review'::text AS entity,
       r.stage || '_' || r.decision AS kind, p.amount::text AS amount,
       c.name AS "clientName", b.code AS "batchCode", NULL::text AS "taskTitle", NULL::timestamp AS deadline,

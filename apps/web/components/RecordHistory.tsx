@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getRecordHistory,
@@ -104,7 +105,7 @@ export function RecordHistory({
           </button>
         </div>
       ) : loading ? (
-        <p role="status">Loading change history…</p>
+        <WorkspaceProgress label="Loading change history…" />
       ) : items.length === 0 ? (
         <p>No recorded changes yet.</p>
       ) : (

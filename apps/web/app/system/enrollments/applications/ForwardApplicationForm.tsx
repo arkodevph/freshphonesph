@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useEffect, useRef, useState } from "react";
 import {
   enrollmentApplicationForwardSchema,
@@ -45,7 +47,7 @@ export default function ForwardApplicationForm({
 
   const [error, setError] = useState("");
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   useEffect(() => {
     alive.current = true;
@@ -259,7 +261,7 @@ export default function ForwardApplicationForm({
           </label>
           <label className={styles.field}>
             Assigned batch
-            <select
+            <WorkspaceNativeSelect
               required
               value={batchId}
               onChange={(event) => {
@@ -274,7 +276,7 @@ export default function ForwardApplicationForm({
                   </option>
                 );
               })}
-            </select>
+            </WorkspaceNativeSelect>
           </label>
         </div>
         {error && (
@@ -296,6 +298,7 @@ export default function ForwardApplicationForm({
         <div className={styles.actions}>
           <button
             type="submit"
+            data-variant="primary"
             className={styles.primary}
             disabled={pending || !batchId}
           >

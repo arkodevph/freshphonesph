@@ -1,3 +1,4 @@
+import { assistantAccess } from "../assistant/access";
 import { requireOpenMembership } from "../withdrawals/withdrawal-tools";
 import {
   BadRequestException,
@@ -294,12 +295,9 @@ export class RecordsService {
   async assignmentOptions(user: User) {
     user = await requireCurrentUser(this.db, user, "BATCH_READ");
 
-    const global = [
-      "SYSTEM_ADMIN",
-      "COO",
-      "RECORDS",
-      "FINANCE_OFFICER",
-    ].includes(user.role);
+    const global =
+      assistantAccess(user, "BATCH_READ") ||
+      ["SYSTEM_ADMIN", "COO", "RECORDS", "FINANCE_OFFICER"].includes(user.role);
 
     const [handlers, agents, managers] = await this.db.$transaction([
       this.db.user.findMany({
@@ -387,7 +385,6 @@ export class RecordsService {
 
       if (
         input.handlerId &&
-        input.handlerId !== before.handlerId &&
         !(await tx.user.findFirst({
           where: {
             id: input.handlerId,
@@ -419,7 +416,6 @@ export class RecordsService {
 
       if (
         input.agentId &&
-        input.agentId !== before.agentId &&
         !(await tx.agent.findFirst({
           where: { id: input.agentId, active: true },
           select: { id: true },

@@ -34,6 +34,7 @@ test("every business role has a matching workspace policy, including direct URL 
       "/system/tasks",
     ],
     OPERATIONS_COORDINATOR: [
+      "/system/operations-monitor",
       "/system/personnel",
       "/system/agent-network",
       "/system/enrollments",
@@ -121,4 +122,26 @@ test("an explicit HR grant enables only the corresponding private workspace", ()
   assert.equal(canOpenWorkspace("kpi_officer", "/system/hr-actions"), false);
 
   assert.equal(canOpenWorkspace("agent", "/system/not-a-workspace"), false);
+});
+
+test("the owner AI workspace denies other roles even with reporting grants", () => {
+  assert.equal(
+    canOpenWorkspace("ceo", "/system/assistant", ["REPORT_VIEW"]),
+    true,
+  );
+
+  assert.equal(canOpenWorkspace("owner", "/system/assistant"), true);
+
+  for (const role of [
+    "finance_officer",
+    "records",
+    "customer",
+    "system_admin",
+  ]) {
+    assert.equal(
+      canOpenWorkspace(role, "/system/assistant", ["REPORT_VIEW"]),
+      false,
+      role,
+    );
+  }
 });

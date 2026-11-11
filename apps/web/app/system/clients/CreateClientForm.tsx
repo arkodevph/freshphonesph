@@ -1,5 +1,7 @@
 "use client";
 
+import FormSelect from "@/components/FormSelect";
+import DateInput from "@/components/DateInput";
 import { type Batch } from "@/lib/api";
 import { Plus } from "@phosphor-icons/react";
 import type * as React from "react";
@@ -46,33 +48,35 @@ export default function CreateClientForm({
       </h2>
       <fieldset
         disabled={saving}
-        className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4"
+        className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
       >
-        <Field label="Batch">
-          <select
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-600 text-ink-soft">Batch</span>
+          <FormSelect
+            label="Batch"
             required
             value={form.batch}
-            onChange={(e) => {
-              return setForm({ ...form, batch: e.target.value });
+            searchable
+            onValueChange={(next) => {
+              return setForm({ ...form, batch: next });
             }}
-            className={inputCls}
-          >
-            <option value="">Select batch…</option>
-            {form.batch &&
+            options={[
+              { value: "", label: "Select batch…" },
+              ...(form.batch &&
               !batches.some((batch) => {
                 return String(batch.id) === form.batch;
-              }) && (
-                <option value={form.batch}>Selected batch unavailable</option>
-              )}
-            {batches.map((b) => {
-              return (
-                <option key={b.id} value={b.id}>
-                  {b.batch_number} — {b.unit_model}
-                </option>
-              );
-            })}
-          </select>
-        </Field>
+              })
+                ? [{ value: form.batch, label: "Selected batch unavailable" }]
+                : []),
+              ...batches.map((batch) => {
+                return {
+                  value: String(batch.id),
+                  label: `${batch.batch_number} — ${batch.unit_model}`,
+                };
+              }),
+            ]}
+          />
+        </div>
         <Field label="Full name">
           <input
             required
@@ -96,7 +100,7 @@ export default function CreateClientForm({
           />
         </Field>
         <Field label="Joined date">
-          <input
+          <DateInput
             type="date"
             required
             value={form.joined_at}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastNotice } from "@/lib/useToastNotice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   enrollmentFormDefinitionSchema,
@@ -37,7 +38,7 @@ export function useEnrollmentFormDraft() {
 
   const [error, setError] = useState("");
 
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useToastNotice("");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 

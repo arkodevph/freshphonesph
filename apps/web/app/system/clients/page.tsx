@@ -1,10 +1,16 @@
+import WorkspaceProgress from "@/components/WorkspaceProgress";
 import { Suspense } from "react";
 import ClientsDashboard from "./ClientsDashboard";
 
 export default function ClientsPage() {
   return (
     <Suspense
-      fallback={<p className="p-5 text-sm text-ink-soft">Loading clients…</p>}
+      fallback={
+        <WorkspaceProgress
+          className="p-5 text-sm text-ink-soft"
+          label="Loading clients…"
+        />
+      }
     >
       <ClientsDashboard />
     </Suspense>

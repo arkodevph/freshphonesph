@@ -1,0 +1,49 @@
+/* Shared iOS-style scroll indicators: native scrolling and a quiet rounded thumb. */
+:root {
+  --scrollbar-thumb: #7d8795;
+  --scrollbar-thumb-hover: #586476;
+}
+html[data-system-theme="dark"] {
+  --scrollbar-thumb: #929ca9;
+  --scrollbar-thumb-hover: #b4bdc9;
+}
+:where(html, body, body *) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+/* Chromium/Safari need the legacy painter for rounded thumbs and no arrow buttons.
+   Firefox retains the standard thin native scrollbar above. */
+@supports selector(::-webkit-scrollbar) {
+  :where(html, body, body *) {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+@media (forced-colors: active) {
+  :where(html, body, body *) {
+    scrollbar-color: auto;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: CanvasText;
+  }
+}

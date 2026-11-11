@@ -1,6 +1,9 @@
 "use client";
 
-import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
+import ModalCloseButton from "@/components/ModalCloseButton";
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceDetails from "@/components/WorkspaceDetails";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { GcashHistory, GcashSubmission } from "@freshphones/contracts";
@@ -9,6 +12,7 @@ import { CorrectionForm } from "./CorrectionForm";
 import { CorrectionHistory } from "./CorrectionHistory";
 import { ReviewDecision } from "./ReviewDecision";
 import { SubmissionActions } from "./SubmissionActions";
+import { PaymentMatch } from "./PaymentMatch";
 import { ReviewHistory } from "./ReviewHistory";
 import styles from "./workspace.module.css";
 
@@ -19,7 +23,7 @@ const OriginalPdf = dynamic(
   {
     ssr: false,
     loading: () => {
-      return <p role="status">Loading PDF viewer…</p>;
+      return <WorkspaceProgress label="Loading PDF viewer…" />;
     },
   },
 );
@@ -85,6 +89,9 @@ export function ReadingDialog({
 
   return (
     <dialog
+      data-workspace-modal
+      data-modal-size="review"
+      data-modal-framed
       ref={dialog}
       className={styles.dialog}
       aria-labelledby="gcash-workspace-title"
@@ -94,7 +101,7 @@ export function ReadingDialog({
         requestClose();
       }}
     >
-      <header className={styles.header}>
+      <header data-modal-header className={styles.header}>
         <div>
           <span className={styles.eyebrow}>GCash statement review</span>
           <h2 id="gcash-workspace-title">{record.batch.code}</h2>
@@ -133,9 +140,7 @@ export function ReadingDialog({
           {canReview && work.edit === null && !work.saving && (
             <SubmissionActions row={record} changed={work.updated} />
           )}
-          <button type="button" onClick={requestClose} disabled={work.saving}>
-            Close workspace
-          </button>
+          <ModalCloseButton onClick={requestClose} disabled={work.saving} />
         </div>
       </header>
       <p className={styles.boundary}>
@@ -212,6 +217,7 @@ export function ReadingDialog({
       <div className={styles.comparison} data-view={view}>
         <OriginalPdf
           key={submission.id}
+          active={view === "pdf"}
           id={submission.id}
           filename={submission.fileName}
           page={pdfPage}
@@ -230,13 +236,22 @@ export function ReadingDialog({
                   : "Extracted from this PDF revision"}
               </p>
             </div>
+            <button
+              type="button"
+              disabled={work.edit !== null || work.saving || work.loading}
+              onClick={work.reload}
+            >
+              Refresh transactions and matches
+            </button>
             <label>
               Reading version
-              <WorkspaceSelect
+              <WorkspaceNativeSelect
                 aria-label="Reading version"
                 disabled={work.edit !== null || work.saving}
                 value={work.source}
-                onValueChange={(value) => {
+                onChange={(event) => {
+                  const value = event.target.value;
+
                   work.setSource(value as "current" | "original");
 
                   work.setPage(1);
@@ -244,12 +259,12 @@ export function ReadingDialog({
               >
                 <option value="current">Current interpretation</option>
                 <option value="original">Original extraction</option>
-              </WorkspaceSelect>
+              </WorkspaceNativeSelect>
             </label>
           </header>
           <div className={styles.transactionBody}>
             {work.loading ? (
-              <p role="status">Loading extracted transactions…</p>
+              <WorkspaceProgress label="Loading extracted transactions…" />
             ) : work.readingError ? (
               <div className={styles.warning} role="alert">
                 <p>{work.readingError}</p>
@@ -261,6 +276,21 @@ export function ReadingDialog({
             ) : (
               result && (
                 <>
+                  <WorkspaceDetails className={styles.matchHelp}>
+                    <summary>
+                      Payment matching rules · {result.unmatchedPayments}{" "}
+                      unmatched
+                    </summary>
+                    <p>
+                      Suggestions require the exact reference, amount and
+                      Philippine calendar date within this batch. Finance still
+                      verifies payments.
+                    </p>
+                    <p>
+                      Recorded GCash payments without an exact statement row:{" "}
+                      <strong>{result.unmatchedPayments}</strong>.
+                    </p>
+                  </WorkspaceDetails>
                   <dl className={styles.totals}>
                     {[
                       ["Opening", result.openingBalance],
@@ -302,7 +332,7 @@ export function ReadingDialog({
                     })}
                   </div>
                   {result.warnings.length > 0 && (
-                    <details className={styles.warning}>
+                    <WorkspaceDetails className={styles.warning}>
                       <summary>
                         {result.warnings.length} reading{" "}
                         {result.warnings.length === 1 ? "warning" : "warnings"}{" "}
@@ -313,7 +343,7 @@ export function ReadingDialog({
                           return <li key={warning}>{warning}</li>;
                         })}
                       </ul>
-                    </details>
+                    </WorkspaceDetails>
                   )}
                   {work.edit !== null && result.items[work.edit] && (
                     <CorrectionForm
@@ -350,6 +380,7 @@ export function ReadingDialog({
                               "Debit",
                               "Credit",
                               "Balance",
+                              "Payment match",
                               "Actions",
                             ].map((heading) => {
                               return (
@@ -367,7 +398,7 @@ export function ReadingDialog({
                                 key={`${work.page}-${index}`}
                                 data-editing={work.edit === index}
                               >
-                                <td>
+                                <td data-label="Date / source">
                                   {item.date}
                                   <small>{item.time}</small>
                                   <button
@@ -389,10 +420,13 @@ export function ReadingDialog({
                                     PDF page {item.page}
                                   </button>
                                 </td>
-                                <td className={styles.description}>
+                                <td
+                                  data-label="Description"
+                                  className={styles.description}
+                                >
                                   {item.description || "Not read"}
                                   {item.warnings.length > 0 && (
-                                    <details>
+                                    <WorkspaceDetails>
                                       <summary>
                                         Reading flags ({item.warnings.length})
                                       </summary>
@@ -403,22 +437,36 @@ export function ReadingDialog({
                                           );
                                         })}
                                       </ul>
-                                    </details>
+                                    </WorkspaceDetails>
                                   )}
                                 </td>
-                                <td>{item.reference || "Not read"}</td>
-                                <td>
+                                <td data-label="Reference">
+                                  {item.reference || "Not read"}
+                                </td>
+                                <td data-label="Debit">
                                   {item.debit === null
                                     ? "—"
                                     : money(item.debit)}
                                 </td>
-                                <td>
+                                <td data-label="Credit">
                                   {item.credit === null
                                     ? "—"
                                     : money(item.credit)}
                                 </td>
-                                <td>{money(item.balance)}</td>
-                                <td>
+                                <td data-label="Balance">
+                                  {money(item.balance)}
+                                </td>
+                                <td
+                                  data-label="Payment match"
+                                  className={styles.matchCell}
+                                >
+                                  {result.paymentMatches[index] && (
+                                    <PaymentMatch
+                                      match={result.paymentMatches[index]}
+                                    />
+                                  )}
+                                </td>
+                                <td data-label="Actions">
                                   {canReview && result.editable ? (
                                     <button
                                       type="button"
@@ -488,7 +536,7 @@ export function ReadingDialog({
       {current &&
         canReview &&
         !record.archivedAt &&
-        record.status === "SUBMITTED" &&
+        (record.reviewRequired ?? record.status === "SUBMITTED") &&
         record.current.uploadedBy.id !== viewerId && (
           <ReviewDecision
             key={record.version}

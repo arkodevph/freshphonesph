@@ -283,3 +283,7 @@
     padding: 13px;
   }
 }
+
+:global(.system-shell[data-workspace-role="coo"]) .decisionRecord {
+  border-left: 0;
+}

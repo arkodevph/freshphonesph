@@ -15,6 +15,7 @@ coverage/
 
 # next.js
 .next/
+.next-*/
 out/
 
 # production
@@ -49,6 +50,14 @@ __pycache__/
 # turbo
 .turbo
 .gstack/
+.serena/
+
+# preview build state markers
+.next-preview-active
+.next-preview-ready
+
+# stray compiled output emitted inside contracts src
+packages/contracts/src/*.js
 
 # generated Prisma client and local service output
 apps/api-ts/src/generated/

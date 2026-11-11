@@ -1,5 +1,12 @@
 "use client";
 
+import WorkspaceProgress, {
+  TableSkeletonRows,
+} from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import DateInput from "@/components/DateInput";
+import CooActionDisclosure from "../CooActionDisclosure";
+import { useToastNotice } from "@/lib/useToastNotice";
 import { createBatch, listBatches, type Batch } from "@/lib/api";
 import { isBatchHandler } from "@/lib/handler-workspace";
 import {
@@ -72,7 +79,7 @@ export default function RecordsPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useToastNotice(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -334,112 +341,117 @@ export default function RecordsPage() {
       )}
 
       {can(me, "BATCH_CREATE") && (
-        <form onSubmit={onCreate} className="glass mb-4 rounded-3xl p-5">
-          <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
-            <Plus weight="bold" className="h-4 w-4" /> New batch
-          </h2>
-          <fieldset
-            disabled={saving}
-            className="grid min-w-0 grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:grid-cols-4"
-          >
-            <BatchAgentField
-              value={form.agent_id}
-              onChange={(agent_id) => {
-                setForm((current) => {
-                  return { ...current, agent_id };
-                });
-              }}
+        <CooActionDisclosure role={me?.role} title="Create a batch">
+          <form onSubmit={onCreate} className="glass mb-4 rounded-3xl p-5">
+            <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
+              <Plus weight="bold" className="h-4 w-4" /> New batch
+            </h2>
+            <fieldset
+              disabled={saving}
+              className="grid min-w-0 grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:grid-cols-4"
+            >
+              <BatchAgentField
+                value={form.agent_id}
+                onChange={(agent_id) => {
+                  setForm((current) => {
+                    return { ...current, agent_id };
+                  });
+                }}
+              />
+              <Field label="Batch number">
+                <input
+                  readOnly
+                  value="Assigned on creation"
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Unit / model">
+                <input
+                  required
+                  value={form.unit_model}
+                  onChange={(e) => {
+                    return setForm({ ...form, unit_model: e.target.value });
+                  }}
+                  className={inputCls}
+                  placeholder="iPhone 15"
+                />
+              </Field>
+              <Field label="Contract price (₱)">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={form.contract_price}
+                  onChange={(e) => {
+                    return setForm({ ...form, contract_price: e.target.value });
+                  }}
+                  className={inputCls}
+                  placeholder="15000.00"
+                />
+              </Field>
+              <Field label="Installments">
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={form.num_installments}
+                  onChange={(e) => {
+                    return setForm({
+                      ...form,
+                      num_installments: e.target.value,
+                    });
+                  }}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Start date">
+                <DateInput
+                  type="date"
+                  required
+                  value={form.start_date}
+                  onChange={(e) => {
+                    return setForm({ ...form, start_date: e.target.value });
+                  }}
+                  className={inputCls}
+                />
+              </Field>
+              <BatchScheduleFields
+                value={form}
+                onChange={(change) => {
+                  setForm((current) => {
+                    return { ...current, ...change };
+                  });
+                }}
+              />
+              <Field label="Status">
+                <WorkspaceNativeSelect
+                  value={form.status}
+                  onChange={(e) => {
+                    return setForm({ ...form, status: e.target.value });
+                  }}
+                  className={inputCls}
+                >
+                  <option value="forming">Forming</option>
+                  <option value="active">Active</option>
+                  <option value="closed">Closed</option>
+                </WorkspaceNativeSelect>
+              </Field>
+            </fieldset>
+            <BatchSchedulePreview
+              plan={batchSchedulePlan(form)}
+              requireFirstDate
             />
-            <Field label="Batch number">
-              <input
-                readOnly
-                value="Assigned on creation"
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Unit / model">
-              <input
-                required
-                value={form.unit_model}
-                onChange={(e) => {
-                  return setForm({ ...form, unit_model: e.target.value });
-                }}
-                className={inputCls}
-                placeholder="iPhone 15"
-              />
-            </Field>
-            <Field label="Contract price (₱)">
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={form.contract_price}
-                onChange={(e) => {
-                  return setForm({ ...form, contract_price: e.target.value });
-                }}
-                className={inputCls}
-                placeholder="15000.00"
-              />
-            </Field>
-            <Field label="Installments">
-              <input
-                type="number"
-                min="1"
-                required
-                value={form.num_installments}
-                onChange={(e) => {
-                  return setForm({ ...form, num_installments: e.target.value });
-                }}
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Start date">
-              <input
-                type="date"
-                required
-                value={form.start_date}
-                onChange={(e) => {
-                  return setForm({ ...form, start_date: e.target.value });
-                }}
-                className={inputCls}
-              />
-            </Field>
-            <BatchScheduleFields
-              value={form}
-              onChange={(change) => {
-                setForm((current) => {
-                  return { ...current, ...change };
-                });
-              }}
-            />
-            <Field label="Status">
-              <select
-                value={form.status}
-                onChange={(e) => {
-                  return setForm({ ...form, status: e.target.value });
-                }}
-                className={inputCls}
-              >
-                <option value="forming">Forming</option>
-                <option value="active">Active</option>
-                <option value="closed">Closed</option>
-              </select>
-            </Field>
-          </fieldset>
-          <BatchSchedulePreview
-            plan={batchSchedulePlan(form)}
-            requireFirstDate
-          />
-          <button
-            type="submit"
-            disabled={saving || !form.agent_id}
-            className="btn-candy mt-4 inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-700 disabled:opacity-70"
-          >
-            <Plus weight="bold" className="h-4 w-4" />
-            {saving ? "Creating…" : "Create batch"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={saving || !form.agent_id}
+              className="btn-candy mt-4 inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-700 disabled:opacity-70"
+            >
+              <Plus weight="bold" className="h-4 w-4" />
+              {saving ? "Creating…" : "Create batch"}
+            </button>
+          </form>
+        </CooActionDisclosure>
       )}
 
       {canRead && (
@@ -515,14 +527,11 @@ export default function RecordsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td
-                    colSpan={canManage ? 10 : 9}
-                    className="px-2 py-6 text-center text-ink-soft"
-                  >
-                    Loading…
-                  </td>
-                </tr>
+                <TableSkeletonRows
+                  columns={canManage ? 10 : 9}
+                  cellClassName="px-2 py-2.5"
+                  label="Loading…"
+                />
               ) : batches.length === 0 ? (
                 <tr>
                   <td

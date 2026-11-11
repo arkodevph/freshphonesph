@@ -1,5 +1,7 @@
 "use client";
 
+import viewStyles from "../people/people.module.css";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Headset } from "@phosphor-icons/react";
@@ -28,6 +30,8 @@ import SupportConversationPanel from "./SupportConversationPanel";
 
 export default function SupportDashboard() {
   const me = useMe();
+
+  const [view, setView] = useState<"cases" | "lookup" | "create">("cases");
 
   const canManage = can(me, "SUPPORT_MANAGE");
 
@@ -541,6 +545,8 @@ export default function SupportDashboard() {
 
       setPage(1);
 
+      setView("cases");
+
       openCase(String(created.id));
     } catch (caught) {
       if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
@@ -589,7 +595,42 @@ export default function SupportDashboard() {
           </p>
         </div>
       </header>
-      {canManage && <CustomerLookup />}
+      <div
+        className={viewStyles.views}
+        role="group"
+        aria-label="Customer service view"
+      >
+        <button
+          type="button"
+          aria-pressed={view === "cases"}
+          onClick={() => {
+            return setView("cases");
+          }}
+        >
+          Cases
+        </button>
+        {can(me, "SUPPORT_CREATE") && (
+          <button
+            type="button"
+            aria-pressed={view === "create"}
+            onClick={() => {
+              return setView("create");
+            }}
+          >
+            Log concern
+          </button>
+        )}
+        <button
+          type="button"
+          aria-pressed={view === "lookup"}
+          onClick={() => {
+            return setView("lookup");
+          }}
+        >
+          Customer lookup
+        </button>
+      </div>
+      <div hidden={view !== "lookup"}>{canManage && <CustomerLookup />}</div>
       {error && (
         <div
           role="alert"
@@ -609,150 +650,154 @@ export default function SupportDashboard() {
           </button>
         </div>
       )}
-      {can(me, "SUPPORT_CREATE") && (
-        <CreateSupportConcern
-          findClient={findClient}
-          clientQuery={clientQuery}
-          lookupVersion={lookupVersion}
-          setClientQuery={setClientQuery}
-          setSelectedClient={setSelectedClient}
-          setClientOptions={setClientOptions}
-          setClientSearchDone={setClientSearchDone}
-          pending={pending}
-          lookupError={lookupError}
-          clientOptions={clientOptions}
-          selectedClient={selectedClient}
-          clientSearchDone={clientSearchDone}
-          createCase={createCase}
-          newSource={newSource}
-          setNewSource={setNewSource}
-          category={category}
-          setCategory={setCategory}
-          description={description}
-          setDescription={setDescription}
-        />
-      )}
-      <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        {focusedCase && (
-          <button
-            type="button"
-            onClick={() => {
-              closeThread();
-
-              setFilter("");
-
-              setPage(1);
-            }}
-            className="rounded-full bg-violet-100 px-3.5 py-1.5 text-sm font-700 text-violet-700"
-          >
-            Show all cases
-          </button>
+      <div hidden={view !== "create"}>
+        {can(me, "SUPPORT_CREATE") && (
+          <CreateSupportConcern
+            findClient={findClient}
+            clientQuery={clientQuery}
+            lookupVersion={lookupVersion}
+            setClientQuery={setClientQuery}
+            setSelectedClient={setSelectedClient}
+            setClientOptions={setClientOptions}
+            setClientSearchDone={setClientSearchDone}
+            pending={pending}
+            lookupError={lookupError}
+            clientOptions={clientOptions}
+            selectedClient={selectedClient}
+            clientSearchDone={clientSearchDone}
+            createCase={createCase}
+            newSource={newSource}
+            setNewSource={setNewSource}
+            category={category}
+            setCategory={setCategory}
+            description={description}
+            setDescription={setDescription}
+          />
         )}
-        {[["", "All"], ...SUPPORT_STATUSES].map(([value, label]) => {
-          return (
+      </div>
+      <div hidden={view !== "cases"}>
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          {focusedCase && (
             <button
               type="button"
-              key={value}
-              aria-pressed={!focusedCase && filter === value}
               onClick={() => {
                 closeThread();
 
-                setFilter(value);
+                setFilter("");
 
                 setPage(1);
               }}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-700 ${!focusedCase && filter === value ? "bg-blue text-white" : "bg-white/60 text-ink-soft hover:bg-white"}`}
+              className="rounded-full bg-violet-100 px-3.5 py-1.5 text-sm font-700 text-violet-700"
             >
-              {label}
+              Show all cases
             </button>
-          );
-        })}
-      </div>
-      {!focusedCase && (
-        <label className="mb-3 flex items-center gap-2 text-sm font-700 text-blue-ink">
-          Source
-          <select
-            value={sourceFilter}
-            onChange={(event) => {
-              setSourceFilter(event.target.value);
+          )}
+          {[["", "All"], ...SUPPORT_STATUSES].map(([value, label]) => {
+            return (
+              <button
+                type="button"
+                key={value}
+                aria-pressed={!focusedCase && filter === value}
+                onClick={() => {
+                  closeThread();
 
-              setPage(1);
-            }}
-            className="rounded-xl border border-violet-200 bg-white/70 px-3 py-2 font-normal"
+                  setFilter(value);
+
+                  setPage(1);
+                }}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-700 ${!focusedCase && filter === value ? "bg-blue text-white" : "bg-white/60 text-ink-soft hover:bg-white"}`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        {!focusedCase && (
+          <label className="mb-3 flex items-center gap-2 text-sm font-700 text-blue-ink">
+            Source
+            <WorkspaceNativeSelect
+              value={sourceFilter}
+              onChange={(event) => {
+                setSourceFilter(event.target.value);
+
+                setPage(1);
+              }}
+              className="rounded-xl border border-violet-200 bg-white/70 px-3 py-2 font-normal"
+            >
+              <option value="">All sources</option>
+              {SUPPORT_SOURCES.map(([value, label]) => {
+                return (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                );
+              })}
+            </WorkspaceNativeSelect>
+          </label>
+        )}
+        {activeCaseId && (
+          <SupportConversationPanel
+            activeCaseId={activeCaseId}
+            closeThread={closeThread}
+            caseLoading={caseLoading}
+            detailError={detailError}
+            loadDetail={loadDetail}
+            caseDetail={caseDetail}
+            sendReply={sendReply}
+            reply={reply}
+            setReplies={setReplies}
+            pending={pending}
+          />
+        )}
+        {!focusedCase && count > 20 && (
+          <nav
+            className="my-3 flex items-center justify-between text-xs text-ink-soft"
+            aria-label="Support case pages"
           >
-            <option value="">All sources</option>
-            {SUPPORT_SOURCES.map(([value, label]) => {
-              return (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-      )}
-      {activeCaseId && (
-        <SupportConversationPanel
-          activeCaseId={activeCaseId}
-          closeThread={closeThread}
-          caseLoading={caseLoading}
-          detailError={detailError}
-          loadDetail={loadDetail}
-          caseDetail={caseDetail}
-          sendReply={sendReply}
-          reply={reply}
-          setReplies={setReplies}
+            <button
+              type="button"
+              disabled={page === 1 || loading}
+              onClick={() => {
+                return setPage((current) => {
+                  return current - 1;
+                });
+              }}
+              className="rounded-lg bg-white/70 px-3 py-1.5 font-700 text-blue-ink disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span>
+              Page {page} of {Math.ceil(count / 20)}
+            </span>
+            <button
+              type="button"
+              disabled={page * 20 >= count || loading}
+              onClick={() => {
+                return setPage((current) => {
+                  return current + 1;
+                });
+              }}
+              className="rounded-lg bg-white/70 px-3 py-1.5 font-700 text-blue-ink disabled:opacity-40"
+            >
+              Next
+            </button>
+          </nav>
+        )}
+        <SupportCasesTable
+          loading={loading}
+          cases={cases}
+          focusedCase={focusedCase}
+          drafts={drafts}
           pending={pending}
+          editCase={editCase}
+          me={me}
+          assignToMe={assignToMe}
+          saveCase={saveCase}
+          discardDraft={discardDraft}
+          activeCaseId={activeCaseId}
+          openCase={openCase}
         />
-      )}
-      {!focusedCase && count > 20 && (
-        <nav
-          className="my-3 flex items-center justify-between text-xs text-ink-soft"
-          aria-label="Support case pages"
-        >
-          <button
-            type="button"
-            disabled={page === 1 || loading}
-            onClick={() => {
-              return setPage((current) => {
-                return current - 1;
-              });
-            }}
-            className="rounded-lg bg-white/70 px-3 py-1.5 font-700 text-blue-ink disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <span>
-            Page {page} of {Math.ceil(count / 20)}
-          </span>
-          <button
-            type="button"
-            disabled={page * 20 >= count || loading}
-            onClick={() => {
-              return setPage((current) => {
-                return current + 1;
-              });
-            }}
-            className="rounded-lg bg-white/70 px-3 py-1.5 font-700 text-blue-ink disabled:opacity-40"
-          >
-            Next
-          </button>
-        </nav>
-      )}
-      <SupportCasesTable
-        loading={loading}
-        cases={cases}
-        focusedCase={focusedCase}
-        drafts={drafts}
-        pending={pending}
-        editCase={editCase}
-        me={me}
-        assignToMe={assignToMe}
-        saveCase={saveCase}
-        discardDraft={discardDraft}
-        activeCaseId={activeCaseId}
-        openCase={openCase}
-      />
+      </div>
     </>
   );
 }

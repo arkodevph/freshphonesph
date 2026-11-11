@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
   type CanActivate,
 } from "@nestjs/common";
+import { assistantAccess } from "../assistant/access";
 import { Reflector } from "@nestjs/core";
 import {
   effectivePermissions,
@@ -65,10 +66,13 @@ export const CurrentUser = createParamDecorator(
 );
 
 export function allowed(
-  user: Pick<User, "role" | "hrConfidentialAccess">,
+  user: Pick<User, "role" | "hrConfidentialAccess"> & { id?: string },
   permission: Permission,
 ) {
-  return effectivePermissions(user).includes(permission);
+  return (
+    assistantAccess(user, permission) ||
+    effectivePermissions(user).includes(permission)
+  );
 }
 
 export async function requireCurrentUser(

@@ -214,3 +214,108 @@
     max-width: none;
   }
 }
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme]) .page {
+  max-width: 1400px;
+  padding: 4px 0 32px;
+  color: var(--system-text);
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme]) .card {
+  border-color: var(--system-border);
+  background: var(--system-surface);
+  color: var(--system-text);
+  box-shadow: none;
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  :is(.page header > p:last-child, .card > p, .note) {
+  color: var(--system-muted);
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  :is(.eyebrow, .page h1 svg, .note svg) {
+  color: var(--system-accent);
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  :is(.card button, .audience button[aria-pressed="true"]) {
+  border-color: var(--system-border);
+  background: var(--workspace-action);
+  color: var(--workspace-on-action);
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  :is(.card h2, .card label) {
+  font-weight: 500;
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  .audience
+  button:not([aria-pressed="true"]) {
+  border-color: var(--system-border);
+  background: var(--workspace-control);
+  color: var(--system-text);
+}
+
+:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  .note
+  code {
+  background: var(--workspace-raised);
+  color: var(--system-text);
+}
+
+:global(html[data-system-theme="dark"])
+  :global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
+  .setup {
+  background: #2c2518;
+  color: #e9c780 !important;
+}
+
+.templateLayout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.templateNav {
+  display: grid;
+  gap: 4px;
+}
+.templateNav button {
+  padding: 12px 14px;
+  text-align: left;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--system-muted);
+  font-size: 14px;
+}
+.templateNav button[aria-pressed="true"] {
+  background: var(--workspace-control-hover, var(--system-surface));
+  color: var(--system-text);
+  font-weight: 600;
+}
+.templateNav button:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+}
+.templateLayout .grid {
+  display: block;
+}
+.templateLayout .note {
+  margin-top: 0;
+}
+.page [hidden] {
+  display: none !important;
+}
+@media (max-width: 700px) {
+  .templateLayout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .templateNav {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}

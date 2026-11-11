@@ -1,6 +1,9 @@
 "use client";
 
-import { WorkspaceSelect } from "@/components/dropdown/WorkspaceSelect";
+import WorkspaceProgress from "@/components/WorkspaceProgress";
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
+import DateInput from "@/components/DateInput";
+import { getGcashHistory } from "@/lib/gcash-history";
 import { useEffect, useState } from "react";
 import type {
   GcashHistory,
@@ -13,7 +16,7 @@ import { ReadingDialog } from "./ReadingDialog";
 import { GcashFeedback } from "./GcashFeedback";
 import { PdfPasswordField } from "./PdfPasswordField";
 import { HistoryDialog } from "./HistoryDialog";
-import { SubmissionCard } from "./SubmissionCard";
+import { SubmissionCard, SubmissionCardSkeleton } from "./SubmissionCard";
 import { ArchiveConfirmation } from "./SubmissionActions";
 import styles from "./workspace.module.css";
 
@@ -40,6 +43,66 @@ export default function GcashHistoryPage() {
     setArchiving(null);
   }, [work.me?.id, work.canRead, work.canReview]);
 
+  const [linkedError, setLinkedError] = useState("");
+
+  useEffect(() => {
+    if (!work.canRead) {
+      return;
+    }
+
+    let generation = 0;
+
+    const openLinked = () => {
+      const token = ++generation;
+
+      const id = new URLSearchParams(window.location.search).get("history");
+
+      setLinkedError("");
+
+      setReading(null);
+
+      if (!id) {
+        return;
+      }
+
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          id,
+        )
+      ) {
+        setLinkedError("Invalid statement link.");
+
+        return;
+      }
+
+      void getGcashHistory(id)
+        .then((row) => {
+          if (token === generation) {
+            setReading({ row, submission: row.current });
+          }
+        })
+        .catch((reason) => {
+          if (token === generation) {
+            setLinkedError(
+              reason instanceof Error
+                ? reason.message
+                : "Could not open the linked statement.",
+            );
+          }
+        });
+    };
+
+    openLinked();
+
+    window.addEventListener("popstate", openLinked);
+
+    return () => {
+      generation++;
+
+      window.removeEventListener("popstate", openLinked);
+    };
+  }, [work.me?.id, work.canRead]);
+
   if (work.me && !work.canRead) {
     return (
       <section className="glass rounded-3xl p-8">
@@ -63,6 +126,7 @@ export default function GcashHistoryPage() {
           This workspace does not verify payments or change balances.
         </p>
       </header>
+      {linkedError && <p role="alert">{linkedError}</p>}
       <GcashFeedback feedback={work.feedback} dismiss={work.dismissFeedback} />
       {work.canUpload && (
         <form
@@ -100,12 +164,13 @@ export default function GcashHistoryPage() {
             className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3"
           >
             <Field label="Batch">
-              <WorkspaceSelect
-                aria-label="Batch"
+              <WorkspaceNativeSelect
                 required
                 disabled={Boolean(work.correcting)}
                 value={work.draft.batchId}
-                onValueChange={(value) => {
+                onChange={(event) => {
+                  const value = event.target.value;
+
                   work.setDraft({ ...work.draft, batchId: value });
                 }}
                 className={inputCls}
@@ -126,10 +191,10 @@ export default function GcashHistoryPage() {
                     </option>
                   );
                 })}
-              </WorkspaceSelect>
+              </WorkspaceNativeSelect>
             </Field>
             <Field label="History from">
-              <input
+              <DateInput
                 required
                 type="date"
                 readOnly={Boolean(work.correcting)}
@@ -144,7 +209,7 @@ export default function GcashHistoryPage() {
               />
             </Field>
             <Field label="History through">
-              <input
+              <DateInput
                 required
                 type="date"
                 min={work.draft.periodStart}
@@ -240,10 +305,12 @@ export default function GcashHistoryPage() {
             />
           </Field>
           <Field label="Review status">
-            <WorkspaceSelect
+            <WorkspaceNativeSelect
               aria-label="Review status"
               value={work.status}
-              onValueChange={(value) => {
+              onChange={(event) => {
+                const value = event.target.value;
+
                 work.setStatus(value as GcashHistoryStatus | "");
 
                 work.setPage(1);
@@ -254,14 +321,16 @@ export default function GcashHistoryPage() {
               <option value="SUBMITTED">Awaiting Records review</option>
               <option value="NEEDS_CLARIFICATION">Needs clarification</option>
               <option value="REVIEWED">Reviewed</option>
-            </WorkspaceSelect>
+            </WorkspaceNativeSelect>
           </Field>
           <Field label="Queue view">
-            <WorkspaceSelect
+            <WorkspaceNativeSelect
               aria-label="Queue view"
               className={inputCls}
               value={work.archived}
-              onValueChange={(value) => {
+              onChange={(event) => {
+                const value = event.target.value;
+
                 work.setArchived(value as "active" | "archived");
 
                 work.setPage(1);
@@ -269,7 +338,7 @@ export default function GcashHistoryPage() {
             >
               <option value="active">Active submissions</option>
               <option value="archived">Archived submissions</option>
-            </WorkspaceSelect>
+            </WorkspaceNativeSelect>
           </Field>
           <button
             type="button"
@@ -283,7 +352,7 @@ export default function GcashHistoryPage() {
           </button>
         </div>
         {work.loading ? (
-          <p role="status">Loading GCash history…</p>
+          <SubmissionCardSkeleton />
         ) : work.listError ? (
           <p role="alert">
             {work.listError}{" "}

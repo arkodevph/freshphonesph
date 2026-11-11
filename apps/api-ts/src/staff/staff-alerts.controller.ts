@@ -28,6 +28,10 @@ export class StaffAlertsController {
   ) {}
   @Get()
   @RequiresAny(
+    "OPERATIONS_MONITOR",
+    "PAYMENT_COMPLETENESS_REVIEW",
+    "PAYMENT_MANAGER_REVIEW",
+    "GCASH_HISTORY_REVIEW",
     "TASK_READ",
     "SUPPORT_MANAGE",
     "PAYMENT_RECORD",
@@ -75,6 +79,10 @@ export class StaffAlertsController {
   @Post("read-all")
   @HttpCode(200)
   @RequiresAny(
+    "OPERATIONS_MONITOR",
+    "PAYMENT_COMPLETENESS_REVIEW",
+    "PAYMENT_MANAGER_REVIEW",
+    "GCASH_HISTORY_REVIEW",
     "TASK_READ",
     "SUPPORT_MANAGE",
     "PAYMENT_RECORD",
@@ -93,6 +101,10 @@ export class StaffAlertsController {
   @Post(":id/read")
   @HttpCode(200)
   @RequiresAny(
+    "OPERATIONS_MONITOR",
+    "PAYMENT_COMPLETENESS_REVIEW",
+    "PAYMENT_MANAGER_REVIEW",
+    "GCASH_HISTORY_REVIEW",
     "TASK_READ",
     "SUPPORT_MANAGE",
     "PAYMENT_RECORD",

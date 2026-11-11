@@ -1,5 +1,6 @@
 "use client";
 
+import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import {
   retentionScopeLabels,
   retentionScopes,
@@ -46,7 +47,7 @@ export default function RetentionPolicyForm({
       <div className={styles.fields}>
         <label>
           Category
-          <select
+          <WorkspaceNativeSelect
             value={draft.scope}
             onChange={(event) => {
               return setDraft({
@@ -62,7 +63,7 @@ export default function RetentionPolicyForm({
                 </option>
               );
             })}
-          </select>
+          </WorkspaceNativeSelect>
         </label>
         <label>
           Days after final activity

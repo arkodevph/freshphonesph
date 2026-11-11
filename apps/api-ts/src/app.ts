@@ -1,4 +1,13 @@
+import { SubmissionChecklistsController } from "./submission-checklists/checklists.controller";
+import { SubmissionChecklistsService } from "./submission-checklists/checklists.service";
+import { OperationsMonitorController } from "./operations-monitor/monitor.controller";
+import { OperationsMonitorService } from "./operations-monitor/monitor.service";
+import { AssistantConversationsService } from "./assistant/conversations.service";
+import { AssistantConversationsController } from "./assistant/conversations.controller";
 import { WithdrawalsController } from "./withdrawals/withdrawals.controller";
+import { assistantCallContext } from "./assistant/access";
+import { AssistantToolsService } from "./assistant/tools.service";
+import { AssistantController } from "./assistant/assistant.controller";
 import { WithdrawalsService } from "./withdrawals/withdrawals.service";
 import { RoleWorkspaceController } from "./records/role-workspace.controller";
 import { RoleWorkspaceService } from "./records/role-workspace.service";
@@ -15,6 +24,7 @@ import { APP_GUARD, NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import type { Request, Response, NextFunction } from "express";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { CONFIG, readConfig, type Config } from "./config";
 import { Database } from "./database";
 import { CatalogController } from "./catalog/catalog.controller";
@@ -29,6 +39,7 @@ import { Errors } from "./http";
 import { AccessGuard, Public } from "./auth/access";
 import { AuthService } from "./auth/auth.service";
 import { AuthController } from "./auth/auth.controller";
+import { DashController } from "./auth/dash.controller";
 import { allowsBrowserWrite, browserOrigins } from "./auth/browser-origins";
 import { RecordsController } from "./records/records.controller";
 import { AgentsController } from "./records/agents.controller";
@@ -117,10 +128,14 @@ class HealthController {
 class AppModule {}
 
 export async function createApp(config: Config = readConfig()) {
-  const app = await NestFactory.create(
+  const app = await NestFactory.create<NestExpressApplication>(
     {
       module: AppModule,
       controllers: [
+        SubmissionChecklistsController,
+        OperationsMonitorController,
+        AssistantController,
+        AssistantConversationsController,
         OperationsController,
         RetentionController,
         CatalogController,
@@ -128,6 +143,7 @@ export async function createApp(config: Config = readConfig()) {
         EnrollmentFormsController,
         HealthController,
         AuthController,
+        DashController,
         LegalController,
         RecordsController,
         RoleWorkspaceController,
@@ -151,6 +167,10 @@ export async function createApp(config: Config = readConfig()) {
         OperationsSupportController,
       ],
       providers: [
+        SubmissionChecklistsService,
+        OperationsMonitorService,
+        AssistantToolsService,
+        AssistantConversationsService,
         AbuseService,
         RedisEventsService,
         WorkQueueService,
@@ -212,7 +232,7 @@ export async function createApp(config: Config = readConfig()) {
   app.enableCors({
     origin: browserOrigins(config),
     credentials: true,
-    methods: ["GET", "POST", "PATCH", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "X-Membership-Id"],
     exposedHeaders: ["Retry-After"],
     preflightContinue: true,
@@ -255,6 +275,10 @@ export async function createApp(config: Config = readConfig()) {
   });
 
   app.use(cookieParser());
+
+  app.useBodyParser("json", { limit: "512kb" });
+
+  app.use(assistantCallContext);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Cache-Control", "no-store");
