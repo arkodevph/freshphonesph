@@ -1,4 +1,6 @@
-import EnrollmentHome, { type EnrollmentView } from "./EnrollmentHome";
+import EnrollmentHome from "../_role-designs/enrollments";
+
+type EnrollmentView = "requests" | "applications" | "form";
 
 export default async function Page({
   searchParams,

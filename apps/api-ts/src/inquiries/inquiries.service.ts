@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   ConflictException,
   Inject,
@@ -106,41 +107,43 @@ export class InquiriesService {
 
       await requireCurrentUser(tx, user, "SUPPORT_MANAGE");
 
-      const previous = await tx.deviceInquiry.findUnique({ where: { id } });
+      return replayCooWrite(tx, user.id, async () => {
+        const previous = await tx.deviceInquiry.findUnique({ where: { id } });
 
-      if (!previous) {
-        throw new NotFoundException("Inquiry not found.");
-      }
+        if (!previous) {
+          throw new NotFoundException("Inquiry not found.");
+        }
 
-      const changed = await tx.deviceInquiry.updateMany({
-        where: { id, version: input.version },
-        data: { status: input.status, version: { increment: 1 } },
-      });
+        const changed = await tx.deviceInquiry.updateMany({
+          where: { id, version: input.version },
+          data: { status: input.status, version: { increment: 1 } },
+        });
 
-      if (!changed.count) {
-        throw new ConflictException(
-          "This inquiry changed. Refresh and try again.",
-        );
-      }
+        if (!changed.count) {
+          throw new ConflictException(
+            "This inquiry changed. Refresh and try again.",
+          );
+        }
 
-      await tx.auditEntry.create({
-        data: {
-          actorId: user.id,
-          action: "device_inquiry.updated",
-          entity: "device_inquiry",
-          recordId: id,
-          before: { status: previous.status },
-          after: { status: input.status },
-        },
-      });
+        await tx.auditEntry.create({
+          data: {
+            actorId: user.id,
+            action: "device_inquiry.updated",
+            entity: "device_inquiry",
+            recordId: id,
+            before: { status: previous.status },
+            after: { status: input.status },
+          },
+        });
 
-      await tx.changeEvent.create({
-        data: { entity: "device_inquiry", recordId: id },
-      });
+        await tx.changeEvent.create({
+          data: { entity: "device_inquiry", recordId: id },
+        });
 
-      return tx.deviceInquiry.findUniqueOrThrow({
-        where: { id },
-        select: selection,
+        return tx.deviceInquiry.findUniqueOrThrow({
+          where: { id },
+          select: selection,
+        });
       });
     });
   }

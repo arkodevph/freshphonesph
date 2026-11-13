@@ -1,3 +1,4 @@
+import { CooCachedRead } from "../coo-security/read-cache.interceptor";
 import {
   Body,
   ForbiddenException,
@@ -77,12 +78,16 @@ export class RecordsController {
   constructor(
     @Inject(RecordsService) private readonly records: RecordsService,
   ) {}
+  @CooCachedRead()
   @Get("overview")
   @RequiresAny("BATCH_READ", "CLIENT_READ", "ACCOUNT_MANAGE", "TASK_READ")
   overview(@CurrentUser() user: User) {
     return this.records.overview(user);
   }
-  @Get("batches") @Requires("BATCH_READ") batches(
+  @CooCachedRead()
+  @Get("batches")
+  @Requires("BATCH_READ")
+  batches(
     @CurrentUser() user: User,
     @Query(new Validate(batchListQuerySchema)) query: BatchListQuery,
   ) {
@@ -94,9 +99,10 @@ export class RecordsController {
   ) {
     return this.records.createBatch(user, body);
   }
-  @Get("records/assignment-options") @Requires("BATCH_READ") assignmentOptions(
-    @CurrentUser() user: User,
-  ) {
+  @CooCachedRead()
+  @Get("records/assignment-options")
+  @Requires("BATCH_READ")
+  assignmentOptions(@CurrentUser() user: User) {
     return this.records.assignmentOptions(user);
   }
   @Patch("batches/:id/assignments") @Requires("BATCH_ASSIGN") assignBatch(
@@ -129,7 +135,10 @@ export class RecordsController {
   ) {
     return this.records.updateBatch(user, id, body.record, body.version);
   }
-  @Get("clients") @Requires("CLIENT_READ") clients(
+  @CooCachedRead()
+  @Get("clients")
+  @Requires("CLIENT_READ")
+  clients(
     @CurrentUser() user: User,
     @Query(new Validate(clientListQuerySchema)) query: ClientListQuery,
   ) {

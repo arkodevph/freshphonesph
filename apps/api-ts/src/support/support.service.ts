@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   ConflictException,
   ForbiddenException,
@@ -136,39 +137,41 @@ export class SupportService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      const client = await tx.client.findUnique({ where: { id: clientId } });
+      return replayCooWrite(tx, user.id, async () => {
+        const client = await tx.client.findUnique({ where: { id: clientId } });
 
-      if (!client) {
-        throw new NotFoundException("Client not found.");
-      }
+        if (!client) {
+          throw new NotFoundException("Client not found.");
+        }
 
-      const result = await tx.supportCase.create({
-        data: {
-          clientId,
-          category: input.category,
-          description: input.description,
-          source: input.source,
-        },
-        include,
+        const result = await tx.supportCase.create({
+          data: {
+            clientId,
+            category: input.category,
+            description: input.description,
+            source: input.source,
+          },
+          include,
+        });
+
+        await tx.auditEntry.create({
+          data: {
+            actorId: user.id,
+            action: "support_case.created",
+            entity: "support_case",
+            recordId: result.id,
+            after: json(result),
+          },
+        });
+
+        await tx.changeEvent.create({
+          data: { entity: "support_case", recordId: result.id },
+        });
+
+        await notifySupport(tx, result, "SUPPORT_NEW_CASE");
+
+        return this.view(result);
       });
-
-      await tx.auditEntry.create({
-        data: {
-          actorId: user.id,
-          action: "support_case.created",
-          entity: "support_case",
-          recordId: result.id,
-          after: json(result),
-        },
-      });
-
-      await tx.changeEvent.create({
-        data: { entity: "support_case", recordId: result.id },
-      });
-
-      await notifySupport(tx, result, "SUPPORT_NEW_CASE");
-
-      return this.view(result);
     });
   }
 
@@ -192,89 +195,91 @@ export class SupportService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      const before = await tx.supportCase.findUnique({
-        where: { id },
-        include,
-      });
-
-      if (!before) {
-        throw new NotFoundException("Support case not found.");
-      }
-
-      if (
-        input.assignedStaffId &&
-        !(await tx.user.findFirst({
-          where: {
-            id: input.assignedStaffId,
-            active: true,
-            role: { not: "CUSTOMER" },
-          },
-        }))
-      ) {
-        throw new NotFoundException("Active staff assignee not found.");
-      }
-
-      const closes = input.status === "RESOLVED" || input.status === "CLOSED";
-
-      const reopens =
-        input.status && !["RESOLVED", "CLOSED"].includes(input.status);
-
-      const changed = await tx.supportCase.updateMany({
-        where: { id, version: input.version },
-        data: {
-          ...(input.status ? { status: input.status } : {}),
-          ...(input.assignedStaffId !== undefined
-            ? { assignedStaffId: input.assignedStaffId }
-            : {}),
-          ...(input.resolution !== undefined
-            ? { resolution: input.resolution }
-            : {}),
-          ...(closes && !before.closedAt ? { closedAt: new Date() } : {}),
-          ...(reopens ? { closedAt: null } : {}),
-          version: { increment: 1 },
-        },
-      });
-
-      if (!changed.count) {
-        throw new ConflictException(
-          "This support case changed. Refresh and try again.",
-        );
-      }
-
-      const after = await tx.supportCase.findUniqueOrThrow({
-        where: { id },
-        include,
-      });
-
-      await tx.auditEntry.create({
-        data: {
-          actorId: user.id,
-          action: "support_case.updated",
-          entity: "support_case",
-          recordId: id,
-          before: json(before),
-          after: json(after),
-        },
-      });
-
-      await tx.changeEvent.create({
-        data: { entity: "support_case", recordId: id },
-      });
-
-      if (after.client.account && input.status) {
-        await this.notifications.enqueue(tx, {
-          recipientId: after.client.account.id,
-          eventKey: "support.updated",
-          dedupeKey: `support:${id}:status:${after.version}`,
-          variables: {
-            category: after.category,
-            status: after.status.replaceAll("_", " ").toLowerCase(),
-          },
-          link: "/portal",
+      return replayCooWrite(tx, user.id, async () => {
+        const before = await tx.supportCase.findUnique({
+          where: { id },
+          include,
         });
-      }
 
-      return this.view(after);
+        if (!before) {
+          throw new NotFoundException("Support case not found.");
+        }
+
+        if (
+          input.assignedStaffId &&
+          !(await tx.user.findFirst({
+            where: {
+              id: input.assignedStaffId,
+              active: true,
+              role: { not: "CUSTOMER" },
+            },
+          }))
+        ) {
+          throw new NotFoundException("Active staff assignee not found.");
+        }
+
+        const closes = input.status === "RESOLVED" || input.status === "CLOSED";
+
+        const reopens =
+          input.status && !["RESOLVED", "CLOSED"].includes(input.status);
+
+        const changed = await tx.supportCase.updateMany({
+          where: { id, version: input.version },
+          data: {
+            ...(input.status ? { status: input.status } : {}),
+            ...(input.assignedStaffId !== undefined
+              ? { assignedStaffId: input.assignedStaffId }
+              : {}),
+            ...(input.resolution !== undefined
+              ? { resolution: input.resolution }
+              : {}),
+            ...(closes && !before.closedAt ? { closedAt: new Date() } : {}),
+            ...(reopens ? { closedAt: null } : {}),
+            version: { increment: 1 },
+          },
+        });
+
+        if (!changed.count) {
+          throw new ConflictException(
+            "This support case changed. Refresh and try again.",
+          );
+        }
+
+        const after = await tx.supportCase.findUniqueOrThrow({
+          where: { id },
+          include,
+        });
+
+        await tx.auditEntry.create({
+          data: {
+            actorId: user.id,
+            action: "support_case.updated",
+            entity: "support_case",
+            recordId: id,
+            before: json(before),
+            after: json(after),
+          },
+        });
+
+        await tx.changeEvent.create({
+          data: { entity: "support_case", recordId: id },
+        });
+
+        if (after.client.account && input.status) {
+          await this.notifications.enqueue(tx, {
+            recipientId: after.client.account.id,
+            eventKey: "support.updated",
+            dedupeKey: `support:${id}:status:${after.version}`,
+            variables: {
+              category: after.category,
+              status: after.status.replaceAll("_", " ").toLowerCase(),
+            },
+            link: "/portal",
+          });
+        }
+
+        return this.view(after);
+      });
     });
   }
 }

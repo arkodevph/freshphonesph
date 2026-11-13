@@ -227,7 +227,34 @@ export type AssistantConversationState = z.infer<
   typeof assistantConversationStateSchema
 >;
 
+export const assistantConversationMetadataSchema = z
+  .object({
+    accountId: z.string().uuid(),
+    revision: z.number().int().positive(),
+    title: z.string().trim().min(1).max(100).optional(),
+    projectId: z.string().uuid().nullable().optional(),
+  })
+  .strict()
+  .refine((value) => {
+    return value.title !== undefined || value.projectId !== undefined;
+  }, "Choose a title or project.");
+
+export const assistantProjectWriteSchema = z
+  .object({
+    accountId: z.string().uuid(),
+    name: z.string().trim().min(1).max(100),
+  })
+  .strict();
+
+export type AssistantProject = {
+  id: string;
+  name: string;
+  revision: number;
+  updatedAt: string;
+};
+
 export type AssistantConversationSummary = {
+  projectId?: string | null;
   id: string;
   title: string;
   revision: number;

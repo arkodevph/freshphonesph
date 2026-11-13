@@ -1,0 +1,45 @@
+# Cloud workspace, mascot, and live data retrieval
+
+Implemented locally on 13 November 2026. This work changes the Owner/CEO assistant, its shared behavior hooks, and its existing authorized API tools. Other roles retain independent design components and styles. No production deployment is implied.
+
+## Workspace and mascot
+
+The assistant now uses a restrained neutral palette in both themes, one readable transcript column, a compact composer, a scrollable conversation library, and a mobile library disclosure. Repeated loading panels, SVG cloud artwork, rotating rings, pixel grids, elapsed timers and streaming carets were removed. Completed answers render paragraphs, lists, emphasis, inline code and small tables as safe React content; HTML and links remain text.
+
+Cloud is an original live 3D character, rendered procedurally with WebGL rather than an image, SVG logo, literal dots or an abstract orb. It has a soft pearl/mint body, eyes, feet and a small tuft. It responds to the pointer with spring-driven turns and a soft press response. Pending requests produce breathing, gentle head movement and blinking; the character settles after completion. One GPU context serves the visible avatars. Off-screen avatars skip rendering, idle avatars avoid unnecessary repaints, and mounts paint a resting frame immediately, including in a background tab. A CSS character supplies a fallback when WebGL is unavailable. Reduced motion keeps the character still.
+
+The user explicitly clarified that “dots in OpenAI” meant the **Dots mascots**, not a four-dot graphic or a loading orb, and rejected the interim flat generated PNG. That PNG is not referenced or shipped. The retained generated source remains outside the repository; the final character is native rendering code.
+
+Primary character reference: [OpenAI, Introducing dots](https://openai.com/index/introducing-dots/), inspected through OpenCLI on 13 November 2026. Reference screenshots are under `/home/nami/.agent-reach/design-references/freshphones-chat-20261113/`. Dots supplied the small expressive companion direction; no named character artwork was copied. The user's screenshots control the rejected patterns: mixed loading treatments, inconsistent colors, unnecessary framing, missing history controls and a static image-like character. The historical [ChatGPT search introduction](https://openai.com/index/introducing-chatgpt-search/) was inspected only for reading-column/composer hierarchy, not as a current product screenshot or a mandate to copy its interface. Existing Nami iOS motion notes supplied the interruption and velocity-preservation requirements.
+
+## Conversation and project controls
+
+The library supports opening and deleting conversations, editing titles, creating/renaming/removing project folders, moving conversations between folders and showing all conversations. Deletion requires a concrete in-app confirmation. Removing a folder preserves its conversations and returns them to All conversations. Projects currently organize conversations; they do not add file uploads, project instructions or cross-conversation model memory.
+
+`AssistantProject` belongs to an account. Conversations reference projects through a composite foreign key `(projectId, userId)`, preventing cross-account filing even at the database layer. New account-scoped indexes support project lists and project conversation lists. Project creation serializes each account's 100-project limit. Folder removal locks the project, unfiles conversations and deletes the folder in one transaction.
+
+`PATCH /api/assistant/conversations/:id` changes a title or project using an expected revision and account ID. Explicit titles survive later transcript autosaves. Project endpoints live under `/api/assistant/projects`. Authentication, executive-role checks and existing browser-write/rate-limit controls precede all operations. Title/folder changes serialize with autosave; stale revisions fail rather than overwrite another tab. Deleted conversations cannot be recreated by late revision updates. Responses with conversation content remain private/no-store.
+
+A real browser deletion test found the previous CORS allow-methods list omitted DELETE. DELETE is now permitted by preflight, including the command-key header; the endpoints still enforce ownership and authorization. This fix is covered by a dedicated preflight regression.
+
+Migration: `20261113090000_assistant_organization`. It was applied to the guarded local `_preview` database and dedicated `_test` database. A private preview backup was taken before local migration. Production migration is still required before deployment.
+
+## Retrieval corrections
+
+The reported batch-count failure came from choosing the wrong operation/filter, then treating that failed query as evidence that data was unavailable. Read operations now expose exact input schemas in the model's operation catalog. Validation errors return the operation schema and bounded correction guidance. The model is directed to resolve real batch IDs, distinguish memberships from people/login accounts, use the full matching total rather than page length, and avoid irrelevant report-date filters for current catalog/membership questions.
+
+`records.batch_memberships` is a narrow read capability over the existing guarded `/clients` API. Its only input is a resolved batch UUID; it returns the exact full matching count across all statuses without forwarding a page of private client details. It grants no additional permissions. Status-specific requests retain `records.clients`. Catalog reads use the existing catalog endpoint and present established availability/condition labels instead of raw enum codes; no numeric inventory is invented.
+
+Narrow catalog and batch-count requests get one bounded retrieval-recovery turn if the model prematurely stops without the requested read. Unretrieved premature text is buffered so it does not flash as a final answer before correction. Some live provider turns ended with `finish_reason=stop` and no text or tool calls. The adapter retries that model turn at most twice, retaining prior tool results and proposals; it does not replay completed tools or bypass confirmation. Compatible stop frames containing actual tool calls are accepted, while truncated/uncompleted tool frames remain rejected. Existing tool/run/time/data budgets and confirmation gates remain in force. Classified, redacted failure diagnostics contain no request body or credentials.
+
+## Verification and limits
+
+Evidence logs are in ignored `.local/chat-fix-20261113/`; retained browser screenshots are in the reference directory above. Checks covered schema-error recovery, premature refusal recovery, empty provider completion recovery without repeated reads, live catalog availability, exact selected-batch counts, ownership, direct foreign-key rejection, revision conflicts, title persistence, folder removal preserving transcripts, late-save rejection after deletion, and DELETE preflight.
+
+Actual browser checks covered project creation, conversation rename/move and reload, conversation deletion, project removal, pointer response, pending-to-loaded continuity and native dialog controls. A live pending request produced 50 distinct mascot frames spanning Preparing your answer and Reading your records, then returned the correct membership count. The reduced-motion code path stayed still under a temporary browser preference override, which was restored; this is not physical-device or native OS-setting verification. Desktop and 390/320px screenshots and resize measurements showed no horizontal page overflow or composer overflow. Both themes were inspected. The full API unit suite passed 145/145, the full web suite passed 235/235, and the action/conversation integration suites passed 18 tests with one optional Redis test skipped. API type checks, scoped source formatting, whitespace and client-credential checks passed. These results do not establish production load or independent user acceptance.
+
+Final optimized preview `.next-preview-a`, build `z3hIJ_8YEOxVHL_6hipEY`, runs at `http://localhost:3000/system/assistant`, with API at port 4101. The final browser report check verified dark text on the light summary surface and restored the dark theme. Model behavior remains probabilistic; these changes improve the verified requests and bounded recovery, not every possible query. Physical iOS hardware, assistive technology, other browser engines, production GPU/model/provider behavior and production load remain unverified. Durable conversation/project data is distinct from temporary response caching; this task adds no Redis service.
+
+## Session persistence
+
+The requested brain save/resume commands were attempted for Freshphones and Nami, but returned empty output. Reading the vault verify-stage contract also failed with `OSError 5` (I/O error). Persistence is therefore **unverified**. Local session JSON and verification logs remain under `.local/chat-fix-20261113/` for retry after the vault recovers; no vault repair was attempted.

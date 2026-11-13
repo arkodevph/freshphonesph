@@ -1,7 +1,1 @@
-"use client";
-
-import StaffTasksDashboard from "./StaffTasksDashboard";
-
-export default function TasksPage() {
-  return <StaffTasksDashboard />;
-}
+export { default } from "../_role-designs/tasks";

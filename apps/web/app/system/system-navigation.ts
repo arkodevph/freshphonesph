@@ -51,7 +51,7 @@ export const systemNavigation = [
   },
   {
     icon: ChatRoundDots,
-    label: "AI assistant",
+    label: "Cloud",
     href: "/system/assistant",
     group: "Workspace",
     perms: [],

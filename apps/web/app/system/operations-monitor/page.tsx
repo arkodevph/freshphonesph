@@ -1,4 +1,1 @@
-import OperationsMonitor from "./OperationsMonitor";
-export default function OperationsMonitorPage() {
-  return <OperationsMonitor />;
-}
+export { default } from "../_role-designs/operations-monitor";

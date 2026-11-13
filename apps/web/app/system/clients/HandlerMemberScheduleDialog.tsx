@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
-import { X, ArrowClockwise } from "@phosphor-icons/react";
+import { useEffect, useId, useRef, useState } from "react";
+import { ArrowClockwise } from "@phosphor-icons/react";
+import ModalCloseButton from "@/components/ModalCloseButton";
+import { useSpringDialog } from "@/lib/useSpringDialog";
 import type { ClientRecord } from "@/lib/api";
 import { formatPeso } from "@/lib/currency";
 import { useHandlerMemberSchedule } from "./useHandlerMemberSchedule";
@@ -20,14 +22,20 @@ export function HandlerMemberScheduleDialog({
 
   const titleId = useId();
 
+  const [closing, setClosing] = useState(false);
+
+  useSpringDialog(dialog, !closing, onClose);
+
+  function close() {
+    setClosing(true);
+  }
+
   const { items, loading, error, accessLost, load } = useHandlerMemberSchedule(
     client.id,
   );
 
   useEffect(() => {
     const element = dialog.current;
-
-    element?.showModal();
 
     heading.current?.focus();
 
@@ -51,6 +59,7 @@ export function HandlerMemberScheduleDialog({
   return (
     <dialog
       ref={dialog}
+      data-handler-modal
       className={styles.dialog}
       aria-modal="true"
       aria-labelledby={titleId}
@@ -58,7 +67,7 @@ export function HandlerMemberScheduleDialog({
       onCancel={(event) => {
         event.preventDefault();
 
-        onClose();
+        close();
       }}
       onClick={(event) => {
         if (event.target !== event.currentTarget) {
@@ -73,7 +82,7 @@ export function HandlerMemberScheduleDialog({
           event.clientY < box.top ||
           event.clientY > box.bottom
         ) {
-          onClose();
+          close();
         }
       }}
       onKeyDown={(event) => {
@@ -110,14 +119,7 @@ export function HandlerMemberScheduleDialog({
         <h2 ref={heading} id={titleId} tabIndex={-1}>
           Installment schedule
         </h2>
-        <button
-          type="button"
-          className={styles.close}
-          aria-label="Close schedule"
-          onClick={onClose}
-        >
-          <X aria-hidden="true" />
-        </button>
+        <ModalCloseButton onClick={close} />
       </header>
       <div
         className={styles.body}
@@ -223,7 +225,7 @@ export function HandlerMemberScheduleDialog({
         >
           <ArrowClockwise aria-hidden="true" /> Refresh schedule
         </button>
-        <button type="button" className={styles.done} onClick={onClose}>
+        <button type="button" className={styles.done} onClick={close}>
           Done
         </button>
       </footer>

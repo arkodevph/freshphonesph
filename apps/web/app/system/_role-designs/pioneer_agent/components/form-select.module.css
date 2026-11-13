@@ -1,0 +1,21 @@
+.root {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.error {
+  display: block;
+  margin-top: 6px;
+  color: var(--system-danger, #b63849);
+  font-size: 12px;
+}

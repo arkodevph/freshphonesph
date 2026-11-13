@@ -1254,9 +1254,13 @@
   border-radius: var(--report-tab-radius, 6px);
   background: var(--ceo-control-hover);
   box-shadow: inset 0 1px 0 var(--ceo-rim);
-  transition:
-    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    width 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  width: calc(var(--tab-width, 0) * 1px);
+  height: calc(var(--tab-height, 0) * 1px);
+  transform: translate3d(
+    calc(var(--tab-x, 0) * 1px),
+    calc(var(--tab-y, 0) * 1px),
+    0
+  );
 }
 .ceoPage .slidingTabs button[aria-pressed="true"],
 .ceoPage .slidingTabs button[aria-pressed="true"]:hover:not(:disabled) {
@@ -1304,26 +1308,6 @@
 .reportViewport,
 .reportContent {
   min-width: 0;
-}
-.reportViews {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--system-border);
-}
-.ceoPage .reportViews button {
-  min-height: 44px;
-  padding: 8px 0;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--system-muted);
-  font-weight: 500;
-}
-.ceoPage .reportViews button[aria-pressed="true"] {
-  border-bottom-color: var(--system-text);
-  color: var(--system-text);
 }
 .ceoPage .highlights {
   gap: 24px;
@@ -1457,21 +1441,6 @@
   --ceo-amber: #e4bc7c;
   --ceo-red: #ef9cab;
 }
-:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
-  .ceoPage
-  .reportViews
-  button {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-:global(.system-shell[data-workspace-role="coo"][data-workspace-theme])
-  .ceoPage
-  .reportViews
-  button[aria-pressed="true"] {
-  font-weight: 600;
-}
-
 /* Earnings use one reading surface, with columns contained independently of the footer. */
 .page .panel.earningsPanel {
   min-width: 0;
@@ -1589,4 +1558,86 @@
   .skeletonDonut::after {
     animation: none;
   }
+}
+
+/* Report navigation owns its geometry and selection; shared action styles do not. */
+.page.ceoPage [data-report-tabs] {
+  position: relative;
+  isolation: isolate;
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
+  margin-bottom: 20px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--system-surface-inset, var(--system-surface));
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.page.ceoPage [data-report-tabs] button {
+  position: relative;
+  z-index: 1;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--system-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+}
+.page.ceoPage [data-report-tabs] button[aria-pressed="true"] {
+  background: transparent;
+  color: var(--system-text);
+  font-weight: 600;
+}
+.page.ceoPage [data-report-tabs] button::after {
+  content: none;
+}
+.page.ceoPage [data-report-tabs] button:hover:not(:disabled) {
+  color: var(--system-text);
+  background: transparent;
+  box-shadow: none;
+}
+.page.ceoPage [data-report-tabs] button:focus-visible {
+  outline-offset: -3px;
+}
+.page.ceoPage [data-report-tabs] .tabIndicator {
+  border: 0;
+  border-radius: 10px;
+  background: var(
+    --workspace-control-hover,
+    var(--ceo-control-hover, var(--system-surface))
+  );
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+.page.ceoPage .viewTabs[data-report-tabs] {
+  margin-top: 4px;
+}
+@media (max-width: 480px) {
+  .page.ceoPage .viewTabs[data-report-tabs] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  .page.ceoPage .viewTabs[data-report-tabs] button {
+    min-width: 0;
+    padding: 8px;
+  }
+}
+
+:global(html[data-system-theme="light"]) .page.ceoPage [data-report-tabs] {
+  background: color-mix(in srgb, var(--system-text) 6%, var(--system-bg));
+}
+:global(html[data-system-theme="light"])
+  .page.ceoPage
+  [data-report-tabs]
+  .tabIndicator {
+  background: var(--system-surface);
 }

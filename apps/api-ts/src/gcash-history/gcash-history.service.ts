@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import { statementState } from "../submission-checklists/evidence";
 import {
   BadRequestException,
@@ -128,7 +129,9 @@ export class GcashHistoryService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      return run(tx, safeUser(current));
+      return replayCooWrite(tx, user.id, () => {
+        return run(tx, safeUser(current));
+      });
     });
   }
 

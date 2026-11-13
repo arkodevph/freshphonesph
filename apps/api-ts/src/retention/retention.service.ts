@@ -683,6 +683,9 @@ export class RetentionService {
 
       await this.eraseRecords(tx, manifest);
 
+      // A prior command response may contain erased fields. Keep only its retry tombstone.
+      await tx.$executeRaw`UPDATE "CooRequestReplay" SET result = NULL WHERE result IS NOT NULL`;
+
       for (const file of manifest.files) {
         await tx.storedFile.update({
           where: { id: file.id },

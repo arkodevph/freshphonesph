@@ -332,7 +332,6 @@ export function CatalogEditor({
           <h2 id="catalog-editor-title">
             {item ? `Edit ${item.name}` : "Add catalog listing"}
           </h2>
-          <p>Published details appear on the public website.</p>
         </div>
         <ModalCloseButton disabled={saving} onClick={close} />
       </header>

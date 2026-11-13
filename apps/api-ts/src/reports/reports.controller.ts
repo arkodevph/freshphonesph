@@ -1,3 +1,4 @@
+import { CooCachedRead } from "../coo-security/read-cache.interceptor";
 import { AbusePolicy } from "../abuse/policies";
 import {
   Body,
@@ -41,13 +42,18 @@ export class ReportsController {
     @Inject(ReportsService) private readonly reports: ReportsService,
   ) {}
 
-  @Get("charts") @Requires("REPORT_VIEW") @ReportFamily("PAYMENTS") charts(
+  @CooCachedRead()
+  @Get("charts")
+  @Requires("REPORT_VIEW")
+  @ReportFamily("PAYMENTS")
+  charts(
     @Query(new Validate(executiveChartQuerySchema))
     query: z.infer<typeof executiveChartQuerySchema>,
   ) {
     return this.reports.charts(query.months);
   }
 
+  @CooCachedRead()
   @Get("dashboard")
   @Requires("REPORT_VIEW")
   @ReportFamily("PAYMENTS")
@@ -55,6 +61,7 @@ export class ReportsController {
     return this.reports.dashboard(query);
   }
 
+  @CooCachedRead()
   @Get("installment-earnings")
   @Requires("REPORT_VIEW")
   @ReportFamily("COLLECTIONS")
@@ -91,19 +98,26 @@ export class ReportsController {
     response.send(data);
   }
 
-  @Get("payments") @Requires("REPORT_VIEW") @ReportFamily("PAYMENTS") payments(
-    @Query(new Validate(reportQuerySchema)) query: ReportQuery,
-  ) {
+  @CooCachedRead()
+  @Get("payments")
+  @Requires("REPORT_VIEW")
+  @ReportFamily("PAYMENTS")
+  payments(@Query(new Validate(reportQuerySchema)) query: ReportQuery) {
     return this.reports.paymentReport(query);
   }
 
-  @Get("batches") @Requires("REPORT_VIEW") @ReportFamily("COLLECTIONS") batches(
+  @CooCachedRead()
+  @Get("batches")
+  @Requires("REPORT_VIEW")
+  @ReportFamily("COLLECTIONS")
+  batches(
     @Query(new Validate(reportBatchQuerySchema))
     query: z.infer<typeof reportBatchQuerySchema>,
   ) {
     return this.reports.batchOptions(query);
   }
 
+  @CooCachedRead()
   @Get("collections")
   @Requires("REPORT_VIEW")
   @ReportFamily("COLLECTIONS")
@@ -125,6 +139,7 @@ export class ReportsController {
     return this.reports.paymentCsv(query);
   }
 
+  @CooCachedRead()
   @Get("reconciliation")
   @Requires("REPORT_VIEW")
   @ReportFamily("RECONCILIATION")
@@ -135,6 +150,7 @@ export class ReportsController {
     return this.reports.reconciliationReport(query);
   }
 
+  @CooCachedRead()
   @Get("reconciliation/exceptions")
   @Requires("REPORT_VIEW")
   @ReportFamily("RECONCILIATION")
@@ -146,14 +162,22 @@ export class ReportsController {
     return this.reports.reconciliationExceptions(user, query);
   }
 
-  @Get("tasks") @Requires("REPORT_VIEW") @ReportFamily("TASKS") tasks(
+  @CooCachedRead()
+  @Get("tasks")
+  @Requires("REPORT_VIEW")
+  @ReportFamily("TASKS")
+  tasks(
     @Query(new Validate(operationsReportQuerySchema))
     query: z.infer<typeof operationsReportQuerySchema>,
   ) {
     return this.reports.taskReport(query);
   }
 
-  @Get("support") @Requires("REPORT_VIEW") @ReportFamily("SUPPORT") support(
+  @CooCachedRead()
+  @Get("support")
+  @Requires("REPORT_VIEW")
+  @ReportFamily("SUPPORT")
+  support(
     @Query(new Validate(operationsReportQuerySchema))
     query: z.infer<typeof operationsReportQuerySchema>,
   ) {
@@ -200,7 +224,10 @@ export class ReportsController {
     return this.reports.submitAnalysis(user, id, body.body);
   }
 
-  @Get("snapshots") @Requires("REPORT_VIEW") snapshots(
+  @CooCachedRead()
+  @Get("snapshots")
+  @Requires("REPORT_VIEW")
+  snapshots(
     @CurrentUser() user: User,
     @Query(new Validate(reportHistoryQuerySchema))
     query: z.infer<typeof reportHistoryQuerySchema>,

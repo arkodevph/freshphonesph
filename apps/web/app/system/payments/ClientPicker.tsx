@@ -199,7 +199,8 @@ export function ClientPicker({
           autoComplete="off"
           value={query}
           maxLength={100}
-          placeholder="Search name, phone, or batch…"
+          placeholder="Search clients…"
+          title="Search by name, phone, or batch"
           className={`${inputCls} client-picker-input`}
           onFocus={(event) => {
             if (results.length || loading || searchError) {

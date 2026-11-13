@@ -141,6 +141,7 @@ model User {
   monitoringEvents OperationsFollowUpEvent[]
   paymentOperationalReviews PaymentOperationalReview[]
   assistantConversations AssistantConversation[]
+  assistantProjects AssistantProject[]
   assistantActions AssistantAction[]
   enrollmentFormDrafts EnrollmentFormConfig[] @relation("EnrollmentFormReceivingAgent")
   enrollmentFormRevisions EnrollmentFormRevision[] @relation("EnrollmentRevisionReceivingAgent")
@@ -791,6 +792,24 @@ model AuditEntry {
   @@index([createdAt])
   @@index([entity, recordId, action])
 }
+// Monotonic write metadata only: cached response bodies never enter this table.
+model CooReadRevision {
+  id String @id
+  version BigInt @default(0)
+}
+
+// Successful COO commands only. Payloads expire; key tombstones prevent accidental re-execution.
+model CooRequestReplay {
+  actorId String @db.Uuid
+  keyHash String @db.VarChar(64)
+  fingerprint String @db.VarChar(64)
+  result Json?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@id([actorId, keyHash])
+  @@index([expiresAt])
+}
+
 model ChangeEvent {
   id BigInt @id @default(autoincrement())
   entity String
@@ -1449,16 +1468,33 @@ model AssistantAction {
   @@index([expiresAt, status])
 }
 
+model AssistantProject {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name String @db.VarChar(100)
+  revision Int @default(1)
+  conversations AssistantConversation[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([id, userId])
+  @@index([userId, updatedAt, id])
+}
+
 model AssistantConversation {
   id String @id @db.Uuid
   userId String @db.Uuid
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   title String @db.VarChar(100)
+  titleEdited Boolean @default(false)
+  projectId String? @db.Uuid
+  project AssistantProject? @relation(fields: [projectId, userId], references: [id, userId], onDelete: Restrict)
   revision Int @default(1)
   state Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([userId, updatedAt])
+  @@index([userId, projectId, updatedAt, id])
 }
 
 model PaymentOperationalReview {

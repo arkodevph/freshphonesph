@@ -1,0 +1,662 @@
+.workspace {
+  --withdrawal-surface: var(--portal-surface, var(--system-surface, #fff));
+  --withdrawal-muted: var(--portal-muted, var(--system-muted, #626276));
+  --withdrawal-text: var(--portal-text, var(--system-text, #242438));
+  --withdrawal-border: var(--portal-border, var(--system-border, #dedfea));
+  --withdrawal-accent: var(--portal-accent, var(--system-accent, #6958c2));
+  color: var(--withdrawal-text);
+  min-width: 0;
+}
+.panel,
+.header,
+.card {
+  min-width: 0;
+  border: 1px solid var(--withdrawal-border);
+  border-radius: 18px;
+  background: var(--withdrawal-surface);
+  padding: 20px;
+}
+.header {
+  margin-bottom: 18px;
+}
+.header h1,
+.panel h2 {
+  font-size: 1.3rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+.header p,
+.muted,
+.help {
+  color: var(--withdrawal-muted);
+}
+.header p {
+  margin-top: 7px;
+  font-size: 0.875rem;
+  max-width: 78ch;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.list {
+  display: grid;
+  gap: 12px;
+}
+.card {
+  padding: 16px;
+}
+.card h3 {
+  font-size: 0.95rem;
+  font-weight: 750;
+  margin: 7px 0;
+  overflow-wrap: anywhere;
+}
+.card p,
+.panel p,
+.panel li {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.cardSelected {
+  background: var(--withdrawal-surface);
+  box-shadow: none;
+}
+.card footer {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+.reference {
+  font-size: 0.75rem;
+  color: var(--withdrawal-muted);
+}
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid var(--withdrawal-border);
+  background: color-mix(
+    in srgb,
+    var(--withdrawal-accent) 8%,
+    var(--withdrawal-surface)
+  );
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.toolbar,
+.actions,
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.toolbar {
+  margin-bottom: 16px;
+}
+.toolbar label {
+  flex: 1;
+  min-width: 150px;
+}
+.heading {
+  justify-content: space-between;
+  margin-bottom: 16px;
+  align-items: start;
+}
+.heading h2 {
+  overflow-wrap: anywhere;
+}
+.stack {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.section {
+  border-top: 1px solid var(--withdrawal-border);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+.section h3 {
+  font-weight: 750;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+.form {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.form h3 {
+  font-size: 1rem;
+  font-weight: 750;
+}
+.form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+.workspace :is(input:not([type="checkbox"]), select, textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  background: var(--withdrawal-surface);
+  border: 1px solid var(--withdrawal-border);
+  border-radius: 10px;
+  color: inherit;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 0.875rem;
+}
+.workspace textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+.workspace :is(input, select, textarea):disabled {
+  opacity: 0.65;
+}
+.workspace
+  :is(button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--withdrawal-accent);
+  outline-offset: 3px;
+}
+.workspace button,
+.link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 42px;
+  max-width: 100%;
+  border: 1px solid var(--withdrawal-border);
+  border-radius: 10px;
+  background: var(--withdrawal-surface);
+  color: inherit;
+  padding: 9px 13px;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.4;
+  cursor: pointer;
+  text-decoration: none;
+}
+.workspace button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.workspace .primary {
+  color: #fff;
+  background: var(--withdrawal-accent);
+  border-color: var(--withdrawal-accent);
+}
+.workspace .danger {
+  color: #b22941;
+  border-color: #d78a97;
+}
+.check {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-top: 4px;
+  accent-color: var(--withdrawal-accent);
+}
+.help {
+  font-size: 0.8125rem !important;
+  line-height: 1.6;
+}
+.notice,
+.error,
+.consequence {
+  padding: 13px 15px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.notice {
+  border: 1px solid #9ab6bc;
+  background: color-mix(in srgb, #3c8a83 10%, var(--withdrawal-surface));
+}
+.error {
+  border: 1px solid #d78a97;
+  background: color-mix(in srgb, #b22941 7%, var(--withdrawal-surface));
+}
+.consequence {
+  border: 1px solid var(--withdrawal-border);
+  background: color-mix(
+    in srgb,
+    var(--withdrawal-accent) 7%,
+    var(--withdrawal-surface)
+  );
+}
+.consequence strong {
+  display: block;
+  margin-bottom: 3px;
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.summary > div {
+  border: 1px solid var(--withdrawal-border);
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+.summary dt {
+  color: var(--withdrawal-muted);
+  font-size: 0.75rem;
+  margin-bottom: 5px;
+}
+.summary dd {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.reason {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.timeline {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 14px;
+}
+.timeline strong,
+.timeline time {
+  display: block;
+}
+.timeline time {
+  color: var(--withdrawal-muted);
+  font-size: 0.75rem;
+}
+.panel details {
+  margin-top: 18px;
+}
+.panel summary {
+  padding: 10px 0;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.table {
+  overflow: auto;
+  max-width: 100%;
+  border: 1px solid var(--withdrawal-border);
+  border-radius: 10px;
+}
+.table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--withdrawal-border);
+  white-space: nowrap;
+}
+.table th {
+  font-weight: 650;
+}
+.empty {
+  text-align: center;
+  padding: 30px 18px;
+}
+.empty h2 {
+  margin-bottom: 8px;
+}
+.memberChoices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+.memberChoices button {
+  justify-content: start;
+  text-align: left;
+  width: 100%;
+}
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  font-size: 0.8125rem;
+}
+.fullWidth {
+  grid-column: 1 / -1;
+}
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .selected .queue {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .panel,
+  .header,
+  .card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+  .fields,
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toolbar {
+    align-items: stretch;
+  }
+  .toolbar label {
+    flex-basis: 100%;
+  }
+  .heading {
+    gap: 14px;
+  }
+  .layout {
+    gap: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace * {
+    scroll-behavior: auto !important;
+  }
+}
+
+.detail {
+  min-width: 0;
+  outline: none;
+}
+.workspace[data-portal-theme="dark"],
+:global([data-portal-theme="dark"]) .workspace,
+:global([data-system-theme="dark"]) .workspace {
+  --withdrawal-surface: #24252c;
+  --withdrawal-muted: #b8b9c4;
+  --withdrawal-text: #f2f2f6;
+  --withdrawal-border: #44454f;
+  --withdrawal-accent: #8d7aef;
+}
+.workspace .consequence p {
+  margin: 0;
+}
+.workspace .section h4 {
+  font-weight: 650;
+  font-size: 0.875rem;
+  margin-top: 12px;
+}
+.workspace .queue > h2 {
+  margin-bottom: 16px;
+}
+.workspace .table {
+  max-height: none;
+}
+.selected .queue {
+  display: none;
+}
+.workspace:not(.selected) .detail {
+  display: none;
+}
+.list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+.workspace .pagination {
+  flex-wrap: wrap;
+}
+
+:global(.system-shell[data-workspace-role="system_admin"][data-workspace-theme])
+  .workspace {
+  --withdrawal-surface: var(--system-surface);
+  --withdrawal-muted: var(--system-muted);
+  --withdrawal-text: var(--system-text);
+  --withdrawal-border: var(--system-border);
+  --withdrawal-accent: var(--system-accent);
+}
+
+/* A case journal and a financial ledger, adapted from the inspected refund case. */
+.workspace > .header {
+  border: 0;
+  border-radius: 0;
+  padding: 4px 0 24px;
+  background: transparent;
+}
+.workspace > .header h1 {
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.workspace > .header p {
+  max-width: 80ch;
+  line-height: 1.65;
+}
+.workspace .casePage {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+.casePage > .heading {
+  margin: 0;
+  padding-block: 4px 16px;
+}
+.casePage > .heading h2 {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.casePage > .badges {
+  margin-bottom: 24px;
+}
+.casePage .badge {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--withdrawal-accent);
+  font-weight: 500;
+  font-size: 13px;
+}
+.caseLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  align-items: start;
+  gap: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--withdrawal-border);
+}
+.caseLedger {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--withdrawal-border);
+  border-radius: 16px;
+  background: var(--withdrawal-surface);
+  box-shadow: 0 10px 26px -18px rgb(0 0 0 / 30%);
+}
+.caseLedger > section + section {
+  border-top: 1px solid var(--withdrawal-border);
+  margin-top: 28px;
+  padding-top: 24px;
+}
+.caseLedger h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.caseLedger .ledgerStatus {
+  margin: 0 0 24px;
+  color: var(--withdrawal-muted);
+  font-size: 13px;
+}
+.ledgerAmount {
+  margin: 0 0 24px;
+}
+.ledgerAmount dt {
+  color: var(--withdrawal-muted);
+  font-size: 12px;
+}
+.ledgerAmount dd {
+  margin: 6px 0 0;
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.ledgerRows {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ledgerRows > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
+}
+.ledgerRows dt {
+  color: var(--withdrawal-muted);
+}
+.ledgerRows dd {
+  margin: 0;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.ledgerNote {
+  margin-top: 24px;
+}
+.ledgerNote h4 {
+  margin-bottom: 8px;
+  color: var(--withdrawal-muted);
+  font-weight: 500;
+}
+.caseJournal {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.caseJournal > :is(.notice, .consequence) {
+  border: 0;
+  border-radius: 0;
+  padding: 0 0 24px;
+  margin: 0;
+  background: transparent;
+}
+.caseJournal > :is(.notice, .consequence) strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.caseJournal > :is(.notice, .consequence) p {
+  margin: 0;
+  color: var(--withdrawal-muted);
+}
+.caseJournal .section {
+  margin-top: 0;
+  padding-block: 24px;
+}
+.caseJournal .section h3 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.journalHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.journalHeading :is(time, span) {
+  color: var(--withdrawal-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.journalHeading span {
+  margin-left: 8px;
+}
+.caseJournal .reason {
+  margin: 0;
+  line-height: 1.75;
+}
+.casePage .summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.casePage .summary > div {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.casePage .summary dd {
+  font-weight: 500;
+}
+@media (max-width: 900px) {
+  .caseLayout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .caseLedger,
+  .caseJournal {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .caseLedger {
+    padding: 20px;
+  }
+}
+@media (max-width: 380px) {
+  .ledgerRows > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .ledgerRows dd {
+    text-align: left;
+  }
+}

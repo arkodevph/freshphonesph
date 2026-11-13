@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   ConflictException,
   ForbiddenException,
@@ -277,68 +278,72 @@ export class OperationsMonitorService {
 
       const row = await this.source(tx, current, source, id);
 
-      if (
-        (row.followUpVersion ?? 0) !== input.version ||
-        row.sourceVersion !== input.sourceVersion
-      ) {
-        throw new ConflictException(
-          "This item changed. Refresh it before saving your follow-up.",
-        );
-      }
+      return replayCooWrite(tx, user.id, async () => {
+        if (
+          (row.followUpVersion ?? 0) !== input.version ||
+          row.sourceVersion !== input.sourceVersion
+        ) {
+          throw new ConflictException(
+            "This item changed. Refresh it before saving your follow-up.",
+          );
+        }
 
-      if (!row.followUpId && input.status === "RESOLVED") {
-        throw new ConflictException(
-          "Flag this item before resolving a follow-up.",
-        );
-      }
+        if (!row.followUpId && input.status === "RESOLVED") {
+          throw new ConflictException(
+            "Flag this item before resolving a follow-up.",
+          );
+        }
 
-      const data = {
-        status: input.status,
-        note: input.note,
-        dueAt: input.dueAt ? new Date(input.dueAt) : null,
-      };
+        const data = {
+          status: input.status,
+          note: input.note,
+          dueAt: input.dueAt ? new Date(input.dueAt) : null,
+        };
 
-      const after = row.followUpId
-        ? await tx.operationsFollowUp.update({
-            where: { id: row.followUpId },
-            data: { ...data, version: { increment: 1 } },
-          })
-        : await tx.operationsFollowUp.create({
-            data: {
-              ...data,
-              ...(source === "PAYMENT" ? { paymentId: id } : { historyId: id }),
-            },
-          });
+        const after = row.followUpId
+          ? await tx.operationsFollowUp.update({
+              where: { id: row.followUpId },
+              data: { ...data, version: { increment: 1 } },
+            })
+          : await tx.operationsFollowUp.create({
+              data: {
+                ...data,
+                ...(source === "PAYMENT"
+                  ? { paymentId: id }
+                  : { historyId: id }),
+              },
+            });
 
-      await tx.operationsFollowUpEvent.create({
-        data: { ...data, followUpId: after.id, actorId: current.id },
-      });
+        await tx.operationsFollowUpEvent.create({
+          data: { ...data, followUpId: after.id, actorId: current.id },
+        });
 
-      await tx.auditEntry.create({
-        data: {
-          actorId: current.id,
-          entity: "operations_follow_up",
-          recordId: after.id,
-          action:
-            input.status === "OPEN"
-              ? "operations.follow_up_opened"
-              : "operations.follow_up_resolved",
-          before: json(row),
-          after: json(after),
-        },
-      });
-
-      await tx.changeEvent.createMany({
-        data: [
-          {
-            entity: source === "PAYMENT" ? "payment" : "gcash-history",
-            recordId: id,
+        await tx.auditEntry.create({
+          data: {
+            actorId: current.id,
+            entity: "operations_follow_up",
+            recordId: after.id,
+            action:
+              input.status === "OPEN"
+                ? "operations.follow_up_opened"
+                : "operations.follow_up_resolved",
+            before: json(row),
+            after: json(after),
           },
-          { entity: "operations-monitor", recordId: row.batchId },
-        ],
-      });
+        });
 
-      return { version: after.version };
+        await tx.changeEvent.createMany({
+          data: [
+            {
+              entity: source === "PAYMENT" ? "payment" : "gcash-history",
+              recordId: id,
+            },
+            { entity: "operations-monitor", recordId: row.batchId },
+          ],
+        });
+
+        return { version: after.version };
+      });
     });
   }
   async setPolicy(
@@ -356,35 +361,37 @@ export class OperationsMonitorService {
         );
       }
 
-      const before = await this.policy(tx);
+      return replayCooWrite(tx, user.id, async () => {
+        const before = await this.policy(tx);
 
-      if (before.version !== input.version) {
-        throw new ConflictException(
-          "The review rule changed. Refresh before saving.",
-        );
-      }
+        if (before.version !== input.version) {
+          throw new ConflictException(
+            "The review rule changed. Refresh before saving.",
+          );
+        }
 
-      const after = await tx.operationsMonitorPolicy.upsert({
-        where: { id: "global" },
-        create: { reviewDueHours: input.reviewDueHours },
-        update: {
-          reviewDueHours: input.reviewDueHours,
-          version: { increment: 1 },
-        },
+        const after = await tx.operationsMonitorPolicy.upsert({
+          where: { id: "global" },
+          create: { reviewDueHours: input.reviewDueHours },
+          update: {
+            reviewDueHours: input.reviewDueHours,
+            version: { increment: 1 },
+          },
+        });
+
+        await tx.auditEntry.create({
+          data: {
+            actorId: current.id,
+            entity: "operations_monitor_policy",
+            recordId: policyAuditId,
+            action: "operations.review_policy_changed",
+            before: json(before),
+            after: json(after),
+          },
+        });
+
+        return after;
       });
-
-      await tx.auditEntry.create({
-        data: {
-          actorId: current.id,
-          entity: "operations_monitor_policy",
-          recordId: policyAuditId,
-          action: "operations.review_policy_changed",
-          before: json(before),
-          after: json(after),
-        },
-      });
-
-      return after;
     });
   }
 }

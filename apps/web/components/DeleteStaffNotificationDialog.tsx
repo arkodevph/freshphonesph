@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import ModalCloseButton from "./ModalCloseButton";
+import { useSpringDialog } from "@/lib/useSpringDialog";
 import type { StaffAlert } from "@/lib/api";
 import styles from "./staff-alerts.module.css";
 
@@ -31,12 +33,20 @@ export function DeleteStaffNotificationDialog({
 
   const locked = busy || pending;
 
+  const [closing, setClosing] = useState(false);
+
+  useSpringDialog(dialog, !closing, onClose);
+
+  function close() {
+    if (!locked) {
+      setClosing(true);
+    }
+  }
+
   useEffect(() => {
     const element = dialog.current;
 
     const trigger = document.activeElement as HTMLElement | null;
-
-    element?.showModal();
 
     cancel.current?.focus();
 
@@ -74,7 +84,7 @@ export function DeleteStaffNotificationDialog({
 
     try {
       if (await onConfirm(alert)) {
-        onClose();
+        close();
       }
     } finally {
       submitting.current = false;
@@ -86,6 +96,7 @@ export function DeleteStaffNotificationDialog({
   return (
     <dialog
       ref={dialog}
+      data-handler-modal
       className={styles.deleteDialog}
       aria-modal="true"
       aria-labelledby={`${id}-title`}
@@ -95,7 +106,7 @@ export function DeleteStaffNotificationDialog({
         event.preventDefault();
 
         if (!locked) {
-          onClose();
+          close();
         }
       }}
       onClick={(event) => {
@@ -111,7 +122,7 @@ export function DeleteStaffNotificationDialog({
           event.clientY < bounds.top ||
           event.clientY > bounds.bottom
         ) {
-          onClose();
+          close();
         }
       }}
       onKeyDown={(event) => {
@@ -140,7 +151,10 @@ export function DeleteStaffNotificationDialog({
         }
       }}
     >
-      <h2 id={`${id}-title`}>Delete notification?</h2>
+      <header className={styles.deleteDialogHeading}>
+        <h2 id={`${id}-title`}>Delete notification?</h2>
+        <ModalCloseButton disabled={locked} onClick={close} />
+      </header>
       <p id={`${id}-description`}>
         This removes it from your inbox. The linked record will stay.
       </p>
@@ -159,7 +173,7 @@ export function DeleteStaffNotificationDialog({
         </p>
       )}
       <div className={styles.deleteDialogActions}>
-        <button ref={cancel} type="button" disabled={locked} onClick={onClose}>
+        <button ref={cancel} type="button" disabled={locked} onClick={close}>
           Cancel
         </button>
         <button

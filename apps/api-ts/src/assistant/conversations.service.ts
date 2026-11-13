@@ -58,7 +58,13 @@ export class AssistantConversationsService implements OnApplicationShutdown {
   list(userId: string) {
     return this.db.assistantConversation.findMany({
       where: { userId },
-      select: { id: true, title: true, revision: true, updatedAt: true },
+      select: {
+        id: true,
+        title: true,
+        projectId: true,
+        revision: true,
+        updatedAt: true,
+      },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       take: 100,
     });
@@ -68,7 +74,13 @@ export class AssistantConversationsService implements OnApplicationShutdown {
     // Ownership and current version are read from PostgreSQL before every cache lookup.
     const row = await this.db.assistantConversation.findFirst({
       where: { id, userId },
-      select: { id: true, title: true, revision: true, updatedAt: true },
+      select: {
+        id: true,
+        title: true,
+        projectId: true,
+        revision: true,
+        updatedAt: true,
+      },
     });
 
     if (!row) {
@@ -152,6 +164,7 @@ export class AssistantConversationsService implements OnApplicationShutdown {
         return {
           id: row.id,
           title: row.title,
+          projectId: row.projectId,
           revision: row.revision,
           updatedAt: row.updatedAt.toISOString(),
         };
@@ -170,9 +183,24 @@ export class AssistantConversationsService implements OnApplicationShutdown {
     }
 
     const row = await this.db.$transaction(async (tx) => {
+      const current = await tx.assistantConversation.findFirst({
+        where: { id, userId, revision },
+        select: { titleEdited: true },
+      });
+
+      if (!current) {
+        throw new ConflictException(
+          "Conversation changed. Reopen it before saving.",
+        );
+      }
+
       const updated = await tx.assistantConversation.updateMany({
         where: { id, userId, revision },
-        data: { title, state: payload, revision: { increment: 1 } },
+        data: {
+          ...(!current.titleEdited ? { title } : {}),
+          state: payload,
+          revision: { increment: 1 },
+        },
       });
 
       if (!updated.count) {
@@ -183,7 +211,13 @@ export class AssistantConversationsService implements OnApplicationShutdown {
 
       return tx.assistantConversation.findFirstOrThrow({
         where: { id, userId },
-        select: { id: true, title: true, revision: true, updatedAt: true },
+        select: {
+          id: true,
+          title: true,
+          projectId: true,
+          revision: true,
+          updatedAt: true,
+        },
       });
     });
 
@@ -194,6 +228,126 @@ export class AssistantConversationsService implements OnApplicationShutdown {
     await this.db.assistantConversation.deleteMany({ where: { id, userId } });
 
     return { deleted: true };
+  }
+
+  async metadata(
+    userId: string,
+    id: string,
+    body: { revision: number; title?: string; projectId?: string | null },
+  ) {
+    return this.db.$transaction(async (tx) => {
+      if (body.projectId) {
+        const project = await tx.$queryRaw<
+          { id: string }[]
+        >`SELECT id FROM "AssistantProject" WHERE id = ${body.projectId}::uuid AND "userId" = ${userId}::uuid FOR SHARE`;
+
+        if (!project.length) {
+          throw new NotFoundException("Project not found.");
+        }
+      }
+
+      const updated = await tx.assistantConversation.updateMany({
+        where: { id, userId, revision: body.revision },
+        data: {
+          ...(body.title !== undefined
+            ? { title: body.title, titleEdited: true }
+            : {}),
+          ...(body.projectId !== undefined
+            ? { projectId: body.projectId }
+            : {}),
+          revision: { increment: 1 },
+        },
+      });
+
+      if (!updated.count) {
+        throw new ConflictException(
+          "Conversation changed. Reopen it before editing.",
+        );
+      }
+
+      const row = await tx.assistantConversation.findFirstOrThrow({
+        where: { id, userId },
+        select: {
+          id: true,
+          title: true,
+          projectId: true,
+          revision: true,
+          updatedAt: true,
+        },
+      });
+
+      return { ...row, updatedAt: row.updatedAt.toISOString() };
+    });
+  }
+
+  projects(userId: string) {
+    return this.db.assistantProject.findMany({
+      where: { userId },
+      select: { id: true, name: true, revision: true, updatedAt: true },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: 100,
+    });
+  }
+
+  async createProject(userId: string, name: string) {
+    return this.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 740016))::text AS locked`;
+
+      if ((await tx.assistantProject.count({ where: { userId } })) >= 100) {
+        throw new ConflictException(
+          "The project limit is 100. Remove an unused project first.",
+        );
+      }
+
+      return tx.assistantProject.create({
+        data: { userId, name },
+        select: { id: true, name: true, revision: true, updatedAt: true },
+      });
+    });
+  }
+
+  async renameProject(
+    userId: string,
+    id: string,
+    name: string,
+    revision: number,
+  ) {
+    return this.db.$transaction(async (tx) => {
+      const result = await tx.assistantProject.updateMany({
+        where: { id, userId, revision },
+        data: { name, revision: { increment: 1 } },
+      });
+
+      if (!result.count) {
+        throw new ConflictException("Project changed. Refresh before editing.");
+      }
+
+      return tx.assistantProject.findFirstOrThrow({
+        where: { id, userId },
+        select: { id: true, name: true, revision: true, updatedAt: true },
+      });
+    });
+  }
+
+  async removeProject(userId: string, id: string) {
+    return this.db.$transaction(async (tx) => {
+      const project = await tx.$queryRaw<
+        { id: string }[]
+      >`SELECT id FROM "AssistantProject" WHERE id = ${id}::uuid AND "userId" = ${userId}::uuid FOR UPDATE`;
+
+      if (!project.length) {
+        throw new NotFoundException("Project not found.");
+      }
+
+      await tx.assistantConversation.updateMany({
+        where: { userId, projectId: id },
+        data: { projectId: null, revision: { increment: 1 } },
+      });
+
+      await tx.assistantProject.delete({ where: { id } });
+
+      return { deleted: true };
+    });
   }
 
   private async readCache(key: string) {

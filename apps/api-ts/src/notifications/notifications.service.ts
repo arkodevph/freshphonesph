@@ -12,7 +12,8 @@ import {
   type StaffNotification,
   type User as StoredUser,
 } from "../generated/prisma/client";
-import { allowed } from "../auth/access";
+import { allowed, requireCurrentUser } from "../auth/access";
+import { replayCooWrite } from "../coo-security/request-replay";
 import { notificationVisibilitySql } from "../staff/enrollment-alerts";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -237,19 +238,27 @@ export class NotificationsService {
     },
   ) {
     return this.db.$transaction(async (tx) => {
-      const template = await tx.notificationTemplate.create({ data: input });
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
 
-      await tx.auditEntry.create({
-        data: {
-          actorId: user.id,
-          action: "notification_template.created",
-          entity: "notification_template",
-          recordId: template.id,
-          after: JSON.parse(JSON.stringify(template)) as Prisma.InputJsonValue,
-        },
+      await requireCurrentUser(tx, user, "NOTIFICATION_MANAGE");
+
+      return replayCooWrite(tx, user.id, async () => {
+        const template = await tx.notificationTemplate.create({ data: input });
+
+        await tx.auditEntry.create({
+          data: {
+            actorId: user.id,
+            action: "notification_template.created",
+            entity: "notification_template",
+            recordId: template.id,
+            after: JSON.parse(
+              JSON.stringify(template),
+            ) as Prisma.InputJsonValue,
+          },
+        });
+
+        return template;
       });
-
-      return template;
     });
   }
 
@@ -266,44 +275,50 @@ export class NotificationsService {
     version: number,
   ) {
     return this.db.$transaction(async (tx) => {
-      const before = await tx.notificationTemplate.findUnique({
-        where: { id },
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(740015)`;
+
+      await requireCurrentUser(tx, user, "NOTIFICATION_MANAGE");
+
+      return replayCooWrite(tx, user.id, async () => {
+        const before = await tx.notificationTemplate.findUnique({
+          where: { id },
+        });
+
+        if (!before) {
+          throw new NotFoundException("Notification template not found.");
+        }
+
+        const changed = await tx.notificationTemplate.updateMany({
+          where: { id, version },
+          data: {
+            ...input,
+            version: { increment: 1 },
+          },
+        });
+
+        if (!changed.count) {
+          throw new ConflictException(
+            "This template changed. Refresh and try again.",
+          );
+        }
+
+        const after = await tx.notificationTemplate.findUniqueOrThrow({
+          where: { id },
+        });
+
+        await tx.auditEntry.create({
+          data: {
+            actorId: user.id,
+            action: "notification_template.updated",
+            entity: "notification_template",
+            recordId: id,
+            before: JSON.parse(JSON.stringify(before)) as Prisma.InputJsonValue,
+            after: JSON.parse(JSON.stringify(after)) as Prisma.InputJsonValue,
+          },
+        });
+
+        return after;
       });
-
-      if (!before) {
-        throw new NotFoundException("Notification template not found.");
-      }
-
-      const changed = await tx.notificationTemplate.updateMany({
-        where: { id, version },
-        data: {
-          ...input,
-          version: { increment: 1 },
-        },
-      });
-
-      if (!changed.count) {
-        throw new ConflictException(
-          "This template changed. Refresh and try again.",
-        );
-      }
-
-      const after = await tx.notificationTemplate.findUniqueOrThrow({
-        where: { id },
-      });
-
-      await tx.auditEntry.create({
-        data: {
-          actorId: user.id,
-          action: "notification_template.updated",
-          entity: "notification_template",
-          recordId: id,
-          before: JSON.parse(JSON.stringify(before)) as Prisma.InputJsonValue,
-          after: JSON.parse(JSON.stringify(after)) as Prisma.InputJsonValue,
-        },
-      });
-
-      return after;
     });
   }
 

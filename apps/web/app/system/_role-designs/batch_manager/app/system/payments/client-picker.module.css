@@ -1,0 +1,30 @@
+.picker :global(.client-picker-results) {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  background:
+    linear-gradient(var(--system-surface), var(--system-surface)),
+    var(--system-bg);
+}
+.picker :global(.client-picker-option) > .batch {
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (hover: none), (pointer: coarse) {
+  .picker :global(.client-picker-option) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .picker :global(.client-picker-option) > .batch {
+    max-width: 100%;
+  }
+  .picker :global(.client-picker-option) strong,
+  .picker :global(.client-picker-option) small,
+  .picker :global(.client-picker-option) > .batch {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

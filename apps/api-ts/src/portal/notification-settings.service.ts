@@ -14,6 +14,7 @@ import {
   type Config,
 } from "../config";
 import { Prisma } from "../generated/prisma/client";
+import { replayCooWrite } from "../coo-security/request-replay";
 
 export const customerEmailKinds = [
   "payment",
@@ -117,7 +118,9 @@ export class NotificationSettingsService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      return run(tx);
+      return replayCooWrite(tx, user.id, () => {
+        return run(tx);
+      });
     });
   }
   async updateTemplate(

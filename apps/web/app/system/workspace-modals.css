@@ -434,14 +434,16 @@ html[data-system-theme="dark"] .system-shell {
 }
 
 .system-shell[data-workspace-theme]
-  dialog[data-workspace-modal][data-modal-spring][open] {
+  dialog[data-workspace-modal][data-modal-spring][open],
+dialog[data-handler-modal][data-modal-spring][open] {
   animation: none;
   opacity: var(--dialog-progress, 1);
   transform: translateY(calc((1 - var(--dialog-progress, 1)) * 8px))
     scale(calc(0.98 + var(--dialog-progress, 1) * 0.02));
 }
 .system-shell[data-workspace-theme]
-  dialog[data-workspace-modal][data-modal-spring][open]::backdrop {
+  dialog[data-workspace-modal][data-modal-spring][open]::backdrop,
+dialog[data-handler-modal][data-modal-spring][open]::backdrop {
   animation: none;
   opacity: var(--dialog-progress, 1);
 }

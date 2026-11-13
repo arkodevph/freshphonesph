@@ -1,0 +1,191 @@
+.dialog {
+  position: fixed;
+  inset: 0;
+  height: fit-content;
+  margin: auto;
+  width: min(540px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--system-border);
+  border-radius: 22px;
+  background:
+    linear-gradient(var(--system-surface), var(--system-surface)),
+    var(--system-bg);
+  color: var(--system-text);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 24%);
+}
+.dialog[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.dialog > form {
+  display: contents;
+}
+.dialog::backdrop {
+  background: rgb(0 0 0 / 52%);
+  backdrop-filter: blur(3px);
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--system-border);
+}
+.heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.heading button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+.heading svg {
+  width: 17px;
+  height: 17px;
+}
+.body {
+  min-height: 0;
+  max-height: calc(100dvh - 180px);
+  overflow: auto;
+  padding: 20px 22px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.body > p {
+  margin: 0 0 16px;
+  color: var(--system-muted);
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 0 20px;
+  padding: 16px;
+  border: 1px solid var(--system-border);
+  border-radius: 14px;
+}
+.summary dt {
+  color: var(--system-muted);
+  font-size: 11px;
+}
+.summary dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.wide {
+  grid-column: 1 / -1;
+}
+.actions,
+.noticeActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.actions {
+  justify-content: flex-end;
+  padding: 16px 22px;
+  border-top: 1px solid var(--system-border);
+}
+.dialog button,
+.notice button {
+  min-height: 40px;
+  border: 1px solid var(--system-border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--system-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dialog .primary,
+.notice .primary {
+  border-color: var(--system-accent);
+  background: var(--system-accent-soft);
+  color: var(--system-accent);
+}
+.dialog button:focus-visible,
+.notice button:focus-visible,
+.file input:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+}
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.file {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+.file input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--system-border);
+  border-radius: 12px;
+  font-size: 12px;
+}
+.file small {
+  color: var(--system-muted);
+  font-weight: 400;
+}
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+.preview img {
+  width: 72px;
+  height: 88px;
+  flex: none;
+  object-fit: contain;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+}
+.body .error {
+  margin: 14px 0 0;
+  color: var(--system-text);
+}
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--system-border);
+  border-radius: 18px;
+  background: var(--system-surface);
+  color: var(--system-text);
+  font-size: 13px;
+}
+.notice p {
+  margin: 5px 0 0;
+  color: var(--system-muted);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 400px) {
+  .heading,
+  .body,
+  .actions {
+    padding: 16px;
+  }
+}

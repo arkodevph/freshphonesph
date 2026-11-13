@@ -1,0 +1,162 @@
+.panel {
+  margin: 0 0 20px;
+  border-radius: 20px;
+  color: var(--system-text, #202b3c);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.panel summary {
+  padding: 18px 20px;
+  font-size: 16px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.body {
+  padding: 0 20px 20px;
+}
+.body > p,
+.heading p,
+.form p {
+  color: var(--system-muted, #536176);
+  margin: 0 0 16px;
+}
+.filters,
+.form fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+  padding: 0;
+  border: 0;
+}
+.panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 550;
+}
+.panel :is(input, select, textarea, button) {
+  font: inherit;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--system-border, #b7c1d0);
+  border-radius: 10px;
+  color: inherit;
+  background: var(--system-surface, #fff);
+  max-width: 100%;
+}
+.panel :is(input, select, textarea) {
+  width: 100%;
+  min-width: 0;
+}
+.panel :is(button, a) {
+  font-weight: 600;
+}
+.panel button {
+  cursor: pointer;
+}
+.panel :is(button, input, select, textarea):disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.panel :is(button, input, select, textarea, summary, a):focus-visible {
+  outline: 2px solid var(--system-accent, #2563c5);
+  outline-offset: 3px;
+}
+.panel a {
+  color: var(--system-accent, #2059a9);
+}
+.heading,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 20px 0 12px;
+}
+.heading h3,
+.form h3 {
+  font-size: 17px;
+  margin: 0 0 5px;
+}
+.heading p {
+  margin: 0;
+}
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.rows li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 180px) 130px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--system-border, #dbe1ea);
+}
+.rows li > div {
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+.rows li > div > span {
+  color: var(--system-muted, #536176);
+  font-size: 13px;
+}
+.rows [data-state="MISSING"],
+.rows [data-state="RETURNED"],
+.error {
+  color: #a33341;
+}
+.rows [data-state="COMPLETE"] {
+  color: #1d684b;
+}
+.form {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--system-border, #dbe1ea);
+}
+.form .checkbox {
+  flex-direction: row;
+  align-items: start;
+  font-weight: 400;
+}
+.checkbox input {
+  width: 20px;
+  min-height: 20px;
+  flex-shrink: 0;
+}
+:global(html[data-system-theme="dark"]) .panel {
+  color-scheme: dark;
+}
+:global(html[data-system-theme="dark"])
+  .rows
+  :is([data-state="MISSING"], [data-state="RETURNED"]),
+:global(html[data-system-theme="dark"]) .error {
+  color: #ffb4be;
+}
+:global(html[data-system-theme="dark"]) .rows [data-state="COMPLETE"] {
+  color: #9de2bd;
+}
+@media (max-width: 640px) {
+  .body {
+    padding: 0 16px 16px;
+  }
+  .filters,
+  .form fieldset {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .heading,
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .rows li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .rows li :is(button, a) {
+    justify-self: start;
+  }
+}

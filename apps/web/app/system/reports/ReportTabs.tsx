@@ -1,9 +1,12 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { createStyleSpring } from "@/lib/style-spring";
 import styles from "./reports.module.css";
 
 type Props = {
+  label?: string;
+  variant?: "types" | "views";
   items: { value: string; label: string }[];
   value: string;
   disabled: boolean;
@@ -12,6 +15,8 @@ type Props = {
 };
 
 export default function ReportTabs({
+  label = "Report types",
+  variant = "types",
   items,
   value,
   disabled,
@@ -22,7 +27,7 @@ export default function ReportTabs({
 
   const indicator = useRef<HTMLSpanElement>(null);
 
-  const positioned = useRef(false);
+  const motion = useRef<ReturnType<typeof createStyleSpring> | null>(null);
 
   useLayoutEffect(() => {
     const track = nav.current;
@@ -42,18 +47,20 @@ export default function ReportTabs({
         return;
       }
 
-      // Place the first selection immediately; later selections glide from here.
-      pill.style.transitionDuration = positioned.current ? "" : "0s";
+      const targets = {
+        "--tab-x": selected.offsetLeft,
+        "--tab-y": selected.offsetTop,
+        "--tab-width": selected.offsetWidth,
+        "--tab-height": selected.offsetHeight,
+      };
 
-      pill.style.width = `${selected.offsetWidth}px`;
-
-      pill.style.height = `${selected.offsetHeight}px`;
-
-      pill.style.transform = `translate3d(${selected.offsetLeft}px, ${selected.offsetTop}px, 0)`;
+      if (!motion.current) {
+        motion.current = createStyleSpring(pill, targets);
+      } else {
+        motion.current.to(targets);
+      }
 
       pill.style.visibility = "visible";
-
-      positioned.current = true;
     };
 
     position();
@@ -71,11 +78,21 @@ export default function ReportTabs({
     };
   }, [value, sliding]);
 
+  useLayoutEffect(() => {
+    return () => {
+      motion.current?.dispose();
+
+      motion.current = null;
+    };
+  }, []);
+
   return (
     <nav
       ref={nav}
-      className={`${styles.tabs} ${sliding ? styles.slidingTabs : ""}`}
-      aria-label="Report types"
+      className={`${styles.tabs} ${sliding ? styles.slidingTabs : ""} ${variant === "views" ? styles.viewTabs : ""}`}
+      data-report-tabs
+      data-report-tab-kind={variant}
+      aria-label={label}
     >
       {sliding && (
         <span
@@ -89,6 +106,7 @@ export default function ReportTabs({
           <button
             key={item.value}
             type="button"
+            data-report-tab
             aria-pressed={value === item.value}
             disabled={disabled}
             onClick={() => {

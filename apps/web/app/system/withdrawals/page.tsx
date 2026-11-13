@@ -1,4 +1,4 @@
-import { WithdrawalStaffWorkspace } from "@/components/withdrawals/WithdrawalStaffWorkspace";
+import WithdrawalStaffWorkspace from "../_role-designs/withdrawals";
 
 export default async function WithdrawalsPage({
   searchParams,

@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   BadRequestException,
   ConflictException,
@@ -202,7 +203,9 @@ export class WithdrawalsService {
           throw new ForbiddenException("Your withdrawal access has changed.");
         }
 
-        return run(tx, { ...safeUser(current), clientId: user.clientId });
+        return replayCooWrite(tx, user.id, () => {
+          return run(tx, { ...safeUser(current), clientId: user.clientId });
+        });
       },
       { timeout: 20000 },
     );

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
-import { X } from "@phosphor-icons/react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import ModalCloseButton from "@/components/ModalCloseButton";
+import { useSpringDialog } from "@/lib/useSpringDialog";
 import { formatPeso } from "@/lib/currency";
 import {
   acceptsReceipt,
@@ -20,18 +21,26 @@ function ReceiptDialog({
   paymentId?: string;
   busy?: boolean;
   onClose: () => void;
-  children: ReactNode;
+  children: (close: () => void) => ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
   const id = useId();
 
+  const [closing, setClosing] = useState(false);
+
+  useSpringDialog(dialog, !closing, onClose);
+
+  function close() {
+    if (!busy) {
+      setClosing(true);
+    }
+  }
+
   useEffect(() => {
     const element = dialog.current;
 
     const previous = document.activeElement as HTMLElement | null;
-
-    element?.showModal();
 
     element?.querySelector<HTMLButtonElement>("[data-initial-focus]")?.focus();
 
@@ -44,7 +53,10 @@ function ReceiptDialog({
             "[data-payment-proof-trigger]",
           ),
         ).find((button) => {
-          return button.dataset.paymentProofTrigger === paymentId;
+          return (
+            button.dataset.paymentProofTrigger === paymentId &&
+            button.getClientRects().length > 0
+          );
         });
 
         const row = paymentId
@@ -60,7 +72,9 @@ function ReceiptDialog({
         (
           card ??
           row ??
-          (previous?.isConnected && !previous.matches(":disabled")
+          (previous?.isConnected &&
+          !element?.contains(previous) &&
+          !previous.matches(":disabled")
             ? previous
             : null) ??
           submit ??
@@ -73,6 +87,7 @@ function ReceiptDialog({
   return (
     <dialog
       ref={dialog}
+      data-handler-modal
       className={styles.dialog}
       aria-labelledby={`${id}-title`}
       aria-busy={busy}
@@ -80,7 +95,7 @@ function ReceiptDialog({
         event.preventDefault();
 
         if (!busy) {
-          onClose();
+          close();
         }
       }}
       onClick={(event) => {
@@ -96,33 +111,28 @@ function ReceiptDialog({
           event.clientY < bounds.top ||
           event.clientY > bounds.bottom
         ) {
-          onClose();
+          close();
         }
       }}
     >
       <header className={styles.heading}>
         <h2 id={`${id}-title`}>{title}</h2>
-        <button
-          type="button"
-          aria-label={`Close ${title.toLowerCase()}`}
-          disabled={busy}
-          onClick={onClose}
-        >
-          <X aria-hidden="true" />
-        </button>
+        <ModalCloseButton disabled={busy} onClick={close} />
       </header>
-      {children}
+      {children(close)}
     </dialog>
   );
 }
 
 export function HandlerReceiptDialogs({ flow }: { flow: HandlerReceiptFlow }) {
+  const confirmation = flow.confirmation;
+
   return (
     <>
-      {flow.confirmation && (
+      {confirmation && (
         <ReceiptDialog
           title={
-            flow.confirmation.editing
+            confirmation.editing
               ? "Save without a receipt?"
               : "Record without a receipt?"
           }
@@ -130,61 +140,59 @@ export function HandlerReceiptDialogs({ flow }: { flow: HandlerReceiptFlow }) {
             flow.answer(false);
           }}
         >
-          <div className={styles.body}>
-            <p>
-              The payment will stay pending. Attach proof later before Records
-              and Finance can approve it. It will not change the client’s
-              balance.
-            </p>
-            <dl className={styles.summary}>
-              <div>
-                <dt>Client</dt>
-                <dd>{flow.confirmation.client}</dd>
+          {(close) => (
+            <>
+              <div className={styles.body}>
+                <p>
+                  The payment will stay pending. Attach proof later before
+                  Records and Finance can approve it. It will not change the
+                  client’s balance.
+                </p>
+                <dl className={styles.summary}>
+                  <div>
+                    <dt>Client</dt>
+                    <dd>{confirmation.client}</dd>
+                  </div>
+                  <div>
+                    <dt>Amount</dt>
+                    <dd className={styles.amount}>
+                      {formatPeso(confirmation.amount)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Payment date</dt>
+                    <dd>{confirmation.date}</dd>
+                  </div>
+                  <div>
+                    <dt>Method</dt>
+                    <dd>{confirmation.method}</dd>
+                  </div>
+                  {confirmation.reference && (
+                    <div className={styles.wide}>
+                      <dt>Reference</dt>
+                      <dd>{confirmation.reference}</dd>
+                    </div>
+                  )}
+                </dl>
               </div>
-              <div>
-                <dt>Amount</dt>
-                <dd className={styles.amount}>
-                  {formatPeso(flow.confirmation.amount)}
-                </dd>
-              </div>
-              <div>
-                <dt>Payment date</dt>
-                <dd>{flow.confirmation.date}</dd>
-              </div>
-              <div>
-                <dt>Method</dt>
-                <dd>{flow.confirmation.method}</dd>
-              </div>
-              {flow.confirmation.reference && (
-                <div className={styles.wide}>
-                  <dt>Reference</dt>
-                  <dd>{flow.confirmation.reference}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
-          <footer className={styles.actions}>
-            <button
-              type="button"
-              data-initial-focus
-              onClick={() => {
-                flow.answer(false);
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={styles.primary}
-              onClick={() => {
-                flow.answer(true);
-              }}
-            >
-              {flow.confirmation.editing
-                ? "Save without proof"
-                : "Record without proof"}
-            </button>
-          </footer>
+              <footer className={styles.actions}>
+                <button type="button" data-initial-focus onClick={close}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={styles.primary}
+                  onClick={() => {
+                    flow.answer(true);
+                  }}
+                >
+                  {confirmation.editing
+                    ? "Save without proof"
+                    : "Record without proof"}
+                </button>
+              </footer>
+            </>
+          )}
         </ReceiptDialog>
       )}
       {flow.open && (
@@ -194,98 +202,100 @@ export function HandlerReceiptDialogs({ flow }: { flow: HandlerReceiptFlow }) {
           busy={flow.busy}
           onClose={flow.close}
         >
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
+          {(close) => (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
 
-              void flow.upload();
-            }}
-          >
-            <div className={styles.body}>
-              {flow.target && (
-                <>
-                  <p>
-                    This payment is already recorded. Attach its receipt here to
-                    continue the review.
-                  </p>
-                  <dl className={styles.summary}>
-                    <div>
-                      <dt>Client</dt>
-                      <dd>{flow.target.client_name || "Selected client"}</dd>
-                    </div>
-                    <div>
-                      <dt>Amount</dt>
-                      <dd className={styles.amount}>
-                        {formatPeso(flow.target.amount)}
-                      </dd>
-                    </div>
-                    <div className={styles.wide}>
-                      <dt>Payment</dt>
-                      <dd>{flow.target.id}</dd>
-                    </div>
-                  </dl>
-                  {acceptsReceipt(flow.target) && (
-                    <label className={styles.file}>
-                      Receipt image
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        disabled={flow.busy}
-                        onChange={(event) => {
-                          flow.selectFile(event.target.files?.[0] ?? null);
+                void flow.upload();
+              }}
+            >
+              <div className={styles.body}>
+                {flow.target && (
+                  <>
+                    <p>
+                      This payment is already recorded. Attach its receipt here
+                      to continue the review.
+                    </p>
+                    <dl className={styles.summary}>
+                      <div>
+                        <dt>Client</dt>
+                        <dd>{flow.target.client_name || "Selected client"}</dd>
+                      </div>
+                      <div>
+                        <dt>Amount</dt>
+                        <dd className={styles.amount}>
+                          {formatPeso(flow.target.amount)}
+                        </dd>
+                      </div>
+                      <div className={styles.wide}>
+                        <dt>Payment</dt>
+                        <dd>{flow.target.id}</dd>
+                      </div>
+                    </dl>
+                    {acceptsReceipt(flow.target) && (
+                      <label className={styles.file}>
+                        Receipt image
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          disabled={flow.busy}
+                          onChange={(event) => {
+                            flow.selectFile(event.target.files?.[0] ?? null);
 
-                          event.target.value = "";
-                        }}
-                      />
-                      <small>
-                        JPG, PNG or WebP · up to 5 MB. Scanning is optional.
-                      </small>
-                    </label>
-                  )}
-                  {flow.file && (
-                    <div className={styles.preview}>
-                      {flow.preview && (
-                        <img
-                          src={flow.preview}
-                          alt="Receipt selected for this payment"
+                            event.target.value = "";
+                          }}
                         />
-                      )}
-                      <span>{flow.file.name}</span>
-                    </div>
-                  )}
-                </>
-              )}
-              {flow.error && (
-                <p role="alert" className={styles.error}>
-                  {flow.error}
-                </p>
-              )}
-              {flow.busy && <p role="status">Attaching receipt…</p>}
-            </div>
-            <footer className={styles.actions}>
-              <button
-                type="button"
-                data-initial-focus
-                disabled={flow.busy}
-                onClick={flow.close}
-              >
-                {flow.target ? "Cancel" : "Close"}
-              </button>
-              {flow.target && acceptsReceipt(flow.target) && (
+                        <small>
+                          JPG, PNG or WebP · up to 5 MB. Scanning is optional.
+                        </small>
+                      </label>
+                    )}
+                    {flow.file && (
+                      <div className={styles.preview}>
+                        {flow.preview && (
+                          <img
+                            src={flow.preview}
+                            alt="Receipt selected for this payment"
+                          />
+                        )}
+                        <span>{flow.file.name}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {flow.error && (
+                  <p role="alert" className={styles.error}>
+                    {flow.error}
+                  </p>
+                )}
+                {flow.busy && <p role="status">Attaching receipt…</p>}
+              </div>
+              <footer className={styles.actions}>
                 <button
-                  type="submit"
-                  className={styles.primary}
-                  disabled={!flow.file || flow.busy}
+                  type="button"
+                  data-initial-focus
+                  disabled={flow.busy}
+                  onClick={close}
                 >
-                  {flow.busy
-                    ? "Attaching…"
-                    : flow.error && flow.file
-                      ? "Retry upload"
-                      : "Attach proof"}
+                  {flow.target ? "Cancel" : "Close"}
                 </button>
-              )}
-            </footer>
-          </form>
+                {flow.target && acceptsReceipt(flow.target) && (
+                  <button
+                    type="submit"
+                    className={styles.primary}
+                    disabled={!flow.file || flow.busy}
+                  >
+                    {flow.busy
+                      ? "Attaching…"
+                      : flow.error && flow.file
+                        ? "Retry upload"
+                        : "Attach proof"}
+                  </button>
+                )}
+              </footer>
+            </form>
+          )}
         </ReceiptDialog>
       )}
     </>

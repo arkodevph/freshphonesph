@@ -19,6 +19,76 @@ const json = (body: unknown, status = 200) => {
   return Response.json(body, { status });
 };
 
+test("a JSON command keeps one idempotency key through session recovery", async () => {
+  const keys: string[] = [];
+
+  let fresh = false;
+
+  globalThis.fetch = async (input, options) => {
+    const path = new URL(String(input)).pathname;
+
+    if (path.endsWith("/auth/me")) {
+      return json({}, fresh ? 200 : 401);
+    }
+
+    if (path.endsWith("/auth/refresh")) {
+      fresh = true;
+
+      return json({});
+    }
+
+    const headers = new Headers(options?.headers);
+
+    keys.push(headers.get("Idempotency-Key")!);
+
+    assert.equal(headers.get("Content-Type"), "application/json");
+
+    return json({ saved: true }, fresh ? 200 : 401);
+  };
+
+  assert.deepEqual(
+    await tsRequest("/agents", {
+      method: "POST",
+      body: JSON.stringify({ name: "Synthetic" }),
+    }),
+    { saved: true },
+  );
+
+  assert.equal(keys.length, 2);
+
+  assert.match(keys[0], /^[0-9a-f-]{36}$/);
+
+  assert.equal(keys[0], keys[1]);
+});
+
+test("explicit retry keys and Headers objects survive while separate commands get separate keys", async () => {
+  const keys: (string | null)[] = [];
+
+  globalThis.fetch = async (_input, options) => {
+    keys.push(new Headers(options?.headers).get("Idempotency-Key"));
+
+    return json({ saved: true });
+  };
+
+  await tsRequest("/agents", {
+    method: "POST",
+    body: "{}",
+    headers: new Headers({ "Idempotency-Key": "caller-owned-command-key" }),
+  });
+
+  await tsRequest("/agents", { method: "POST", body: "{}" });
+
+  await tsRequest("/agents", { method: "POST", body: "{}" });
+
+  await tsRequest("/agents");
+
+  assert.equal(keys[0], "caller-owned-command-key");
+
+  assert.notEqual(keys[1], keys[2]);
+
+  assert.equal(keys[3], null);
+});
+
 test("concurrent expired requests share one cookie refresh and retry the original reads", async () => {
   let fresh = false;
 

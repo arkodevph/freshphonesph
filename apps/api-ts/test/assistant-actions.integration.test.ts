@@ -473,6 +473,98 @@ test("old deletion proposals cannot be confirmed after removal from chat tools",
   }
 });
 
+test("live assistant reads catalog availability and counts only the selected batch", async () => {
+  const label = `AI retrieval ${randomUUID().slice(0, 8)}`;
+
+  const listing = await db.catalogItem.create({
+    data: {
+      code: `AI-${randomUUID().slice(0, 8)}`,
+      name: label,
+      condition: "PRE_OWNED",
+      availability: "AVAILABLE",
+      published: true,
+    },
+  });
+
+  const catalog = await tools.read(actor, "catalog.list", {
+    query: { q: label },
+  });
+
+  assert.equal(catalog.total, 1);
+
+  assert.equal(catalog.items[0].id, listing.id);
+
+  assert.equal(catalog.items[0].availability, "Available");
+
+  const batch = await db.batch.create({
+    data: {
+      code: `AI-${randomUUID().slice(0, 8)}`,
+      model: label,
+      startDate: new Date("2026-01-01"),
+      endDate: new Date("2026-12-31"),
+    },
+  });
+
+  const other = await db.batch.create({
+    data: {
+      code: `AI-${randomUUID().slice(0, 8)}`,
+      model: label,
+      startDate: new Date("2026-01-01"),
+      endDate: new Date("2026-12-31"),
+    },
+  });
+
+  for (const batchId of [batch.id, batch.id, other.id]) {
+    const email = `${randomUUID()}@example.test`;
+
+    const member = await db.member.create({
+      data: { name: label, email, phone: "09000000000" },
+    });
+
+    await db.client.create({
+      data: {
+        name: label,
+        email,
+        phone: "09000000000",
+        batchId,
+        memberId: member.id,
+      },
+    });
+  }
+
+  const found = await tools.read(actor, "records.batches", {
+    query: { q: batch.code },
+  });
+
+  assert.equal(found.items[0].id, batch.id);
+
+  const members = await tools.read(actor, "records.clients", {
+    query: { batchId: batch.id },
+  });
+
+  assert.equal(members.total, 2);
+
+  const count = await tools.read(actor, "records.batch_memberships", {
+    query: { batchId: batch.id },
+  });
+
+  assert.equal(count.total, 2);
+
+  assert.equal(count.statuses, "all");
+
+  assert.equal(count.items, undefined);
+
+  assert.ok(
+    members.items.every((item: { batchId: string }) => {
+      return item.batchId === batch.id;
+    }),
+  );
+
+  await assert.rejects(
+    tools.read(actor, "reports.collections", { query: { batch: batch.id } }),
+  );
+});
+
 test("revoked role and anonymous requests fail before execution; protected financial/security operations stay unavailable", async () => {
   assert.equal((await fetch(`${base}/api/assistant/capabilities`)).status, 401);
 

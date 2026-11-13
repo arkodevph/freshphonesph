@@ -1,3 +1,4 @@
+import { CooCachedRead } from "../coo-security/read-cache.interceptor";
 import {
   Body,
   Controller,
@@ -20,14 +21,17 @@ import {
 import { CurrentUser, Requires } from "../auth/access";
 import { Validate } from "../http";
 import { OperationsMonitorService } from "./monitor.service";
+import { AbusePolicy } from "../abuse/policies";
 
 @Controller("operations/monitor")
+@AbusePolicy("expensive")
 @Requires("OPERATIONS_MONITOR")
 export class OperationsMonitorController {
   constructor(
     @Inject(OperationsMonitorService)
     private readonly monitor: OperationsMonitorService,
   ) {}
+  @CooCachedRead()
   @Get()
   list(
     @CurrentUser() user: User,
@@ -45,6 +49,7 @@ export class OperationsMonitorController {
   ) {
     return this.monitor.setPolicy(user, input);
   }
+  @CooCachedRead()
   @Get(":source/:id")
   detail(
     @CurrentUser() user: User,

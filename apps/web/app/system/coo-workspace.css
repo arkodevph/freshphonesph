@@ -102,7 +102,9 @@ html[data-system-theme="dark"]
 
 .system-shell[data-workspace-role="coo"][data-workspace-theme]
   :is(.system-content, dialog)
-  :where(button:not([data-chart-month]):not([role="switch"])) {
+  :where(
+    button:not([data-chart-month]):not([data-report-tab]):not([role="switch"])
+  ) {
   border-radius: var(--workspace-control-radius);
   font-weight: 500;
   transition:
@@ -385,7 +387,7 @@ html[data-system-theme="dark"]
   .system-content
   .team-search-field
   input {
-  padding-left: 42px;
+  padding-left: 42px !important;
 }
 
 .system-shell[data-workspace-role="coo"][data-workspace-theme]
@@ -474,13 +476,13 @@ html[data-system-theme="dark"]
   :is(.system-content, dialog)
   .client-picker-control
   .client-picker-input {
-  padding-left: 42px;
+  padding-left: 42px !important;
 }
 
 /* Selection has no decorative edge; keyboard focus remains a separate state. */
 .system-shell[data-workspace-role="coo"][data-workspace-theme]
   :is(
-    button[aria-pressed="true"]:not([data-chart-month]),
+    button[aria-pressed="true"]:not([data-chart-month]):not([data-report-tab]),
     a[aria-current="page"],
     [role="tab"][aria-selected="true"],
     .finance-review-choice[data-selected="true"]

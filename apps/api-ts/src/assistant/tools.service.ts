@@ -9,7 +9,13 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import type { AssistantAction, User } from "@freshphones/contracts";
+import {
+  catalogAvailabilityLabels,
+  catalogConditionLabels,
+  type CatalogItem,
+  type AssistantAction,
+  type User,
+} from "@freshphones/contracts";
 import { Database } from "../database";
 import { CONFIG, type Config } from "../config";
 import type { AuthRequest } from "../auth/access";
@@ -146,7 +152,40 @@ export class AssistantToolsService {
       );
     }
 
-    return this.call(request, operation, input, signal);
+    const data = await this.call(request, operation, input, signal);
+
+    if (name === "catalog.list") {
+      return {
+        ...data,
+        items: data.items.map((item: CatalogItem) => {
+          return {
+            ...item,
+            availability: catalogAvailabilityLabels[item.availability],
+            condition: catalogConditionLabels[item.condition],
+          };
+        }),
+      };
+    }
+
+    if (name === "records.batch_memberships") {
+      const parsed = operation.schema.parse(input);
+
+      if (!Number.isSafeInteger(data.total) || data.total < 0) {
+        throw new BadRequestException(
+          "The membership count was incomplete. Try again.",
+        );
+      }
+
+      return {
+        batchId: parsed.query.batchId,
+        total: data.total,
+        measure: "client memberships",
+        statuses: "all",
+        basis: "current records",
+      };
+    }
+
+    return data;
   }
 
   async proposeEdit(

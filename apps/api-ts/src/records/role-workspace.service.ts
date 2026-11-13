@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   applicationChanged,
   receivingAgentWhere,
@@ -282,7 +283,9 @@ export class RoleWorkspaceService {
         throw new ForbiddenException("Your enrollment access has changed.");
       }
 
-      return run(tx, safeUser(current));
+      return replayCooWrite(tx, user.id, () => {
+        return run(tx, safeUser(current));
+      });
     });
   }
 

@@ -132,17 +132,32 @@ export async function tsResponse(
 ): Promise<Response> {
   const selectedHeaders = membershipHeaders(path);
 
+  const headers = new Headers({
+    ...selectedHeaders,
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+  });
+
+  new Headers(options.headers).forEach((value, name) => {
+    return headers.set(name, value);
+  });
+
+  if (
+    !["GET", "HEAD", "OPTIONS"].includes(
+      (options.method ?? "GET").toUpperCase(),
+    ) &&
+    !headers.has("Idempotency-Key")
+  ) {
+    // Created once, so a session-refresh retry keeps the same command identity.
+    headers.set("Idempotency-Key", crypto.randomUUID());
+  }
+
   const response = await authenticatedResponse(
     () => {
       return fetch(`${API_URL}/api${path}`, {
         ...options,
         credentials: "include",
         cache: "no-store",
-        headers: {
-          ...selectedHeaders,
-          ...(options.body ? { "Content-Type": "application/json" } : {}),
-          ...options.headers,
-        },
+        headers,
       });
     },
     !path.startsWith("/auth/") || path === "/auth/me",

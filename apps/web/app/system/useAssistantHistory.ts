@@ -10,9 +10,16 @@ import {
 } from "react";
 import type {
   AssistantConversationState,
+  AssistantProject,
   AssistantConversationSummary,
 } from "@freshphones/contracts";
 import {
+  listAssistantProjects,
+  editAssistantConversation,
+  deleteAssistantConversation,
+  createAssistantProject,
+  renameAssistantProject,
+  deleteAssistantProject,
   getAssistantConversation,
   listAssistantConversations,
   saveAssistantConversation,
@@ -84,6 +91,10 @@ export function useAssistantHistory() {
   const [conversations, setConversations] = useState<
     AssistantConversationSummary[]
   >([]);
+
+  const [projects, setProjects] = useState<AssistantProject[]>([]);
+
+  const [organizing, setOrganizing] = useState(false);
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -236,11 +247,16 @@ export function useAssistantHistory() {
     try {
       await writes.get(accountId)?.catch(() => {});
 
-      const items = await listAssistantConversations();
+      const [items, folders] = await Promise.all([
+        listAssistantConversations(),
+        listAssistantProjects(),
+      ]);
 
       if (!mounted.current || token !== generation.current) {
         return;
       }
+
+      setProjects(folders);
 
       setConversations(items);
 
@@ -275,6 +291,8 @@ export function useAssistantHistory() {
     setState(emptyState());
 
     setConversations([]);
+
+    setProjects([]);
 
     setActiveId(null);
 
@@ -355,6 +373,186 @@ export function useAssistantHistory() {
     }
   }
 
+  async function manage(run: (identity: string) => Promise<void>) {
+    if (!accountId || organizing) {
+      return;
+    }
+
+    const token = generation.current;
+
+    setOrganizing(true);
+
+    try {
+      await flush();
+
+      if (token !== generation.current) {
+        return;
+      }
+
+      const previous = writes.get(accountId) ?? Promise.resolve();
+
+      const job = previous.then(() => {
+        return run(accountId);
+      });
+
+      writes.set(accountId, job);
+
+      try {
+        await job;
+      } finally {
+        if (writes.get(accountId) === job) {
+          writes.delete(accountId);
+        }
+      }
+
+      if (token === generation.current) {
+        setSaveError(null);
+      }
+    } catch (error) {
+      if (token === generation.current) {
+        setSaveError(
+          error instanceof Error
+            ? error.message
+            : "Could not update the conversation.",
+        );
+      }
+
+      throw error;
+    } finally {
+      if (mounted.current) {
+        setOrganizing(false);
+      }
+    }
+  }
+
+  async function editConversation(
+    id: string,
+    changes: { title?: string; projectId?: string | null },
+  ) {
+    await manage(async (identity) => {
+      const revision =
+        session.current?.id === id
+          ? session.current.revision
+          : conversations.find((item) => {
+              return item.id === id;
+            })?.revision;
+
+      if (!revision) {
+        throw new Error("Save this conversation before editing it.");
+      }
+
+      const row = await editAssistantConversation(
+        identity,
+        id,
+        revision,
+        changes,
+      );
+
+      if (session.current?.accountId !== identity) {
+        return;
+      }
+
+      if (session.current.id === id) {
+        session.current.revision = row.revision;
+      }
+
+      setConversations((current) => {
+        return current.map((item) => {
+          return item.id === id ? row : item;
+        });
+      });
+    });
+  }
+
+  async function removeConversation(id: string) {
+    await manage(async (identity) => {
+      await deleteAssistantConversation(id);
+
+      if (session.current?.accountId !== identity) {
+        return;
+      }
+
+      setConversations((current) => {
+        return current.filter((item) => {
+          return item.id !== id;
+        });
+      });
+
+      if (session.current.id === id) {
+        session.current = null;
+
+        await open(null, identity, ++generation.current);
+      }
+    });
+  }
+
+  async function createProject(name: string) {
+    await manage(async (identity) => {
+      const project = await createAssistantProject(identity, name);
+
+      if (session.current?.accountId === identity) {
+        setProjects((current) => {
+          return [project, ...current];
+        });
+      }
+    });
+  }
+
+  async function renameProject(id: string, name: string) {
+    await manage(async (identity) => {
+      const project = projects.find((item) => {
+        return item.id === id;
+      });
+
+      if (!project) {
+        throw new Error("Project not found.");
+      }
+
+      const row = await renameAssistantProject(
+        identity,
+        id,
+        project.revision,
+        name,
+      );
+
+      if (session.current?.accountId === identity) {
+        setProjects((current) => {
+          return current.map((item) => {
+            return item.id === id ? row : item;
+          });
+        });
+      }
+    });
+  }
+
+  async function removeProject(id: string) {
+    await manage(async (identity) => {
+      await deleteAssistantProject(id);
+
+      const items = await listAssistantConversations();
+
+      if (session.current?.accountId !== identity) {
+        return;
+      }
+
+      const current = items.find((item) => {
+        return item.id === session.current?.id;
+      });
+
+      if (current) {
+        session.current.revision = current.revision;
+      }
+
+      setConversations(items);
+
+      setProjects((folders) => {
+        return folders.filter((item) => {
+          return item.id !== id;
+        });
+      });
+    });
+  }
+
   function field<K extends keyof AssistantConversationState>(
     key: K,
   ): Dispatch<SetStateAction<AssistantConversationState[K]>> {
@@ -387,8 +585,16 @@ export function useAssistantHistory() {
     setQuestions: field("questions"),
     setIncludeContext: field("includeContext"),
     conversations,
+    projects,
+    organizing,
+    editConversation,
+    removeConversation,
+    createProject,
+    renameProject,
+    removeProject,
     activeId,
-    historyReady: ready && session.current?.accountId === accountId,
+    historyReady:
+      ready && !organizing && session.current?.accountId === accountId,
     saveError,
     saving,
     flush,

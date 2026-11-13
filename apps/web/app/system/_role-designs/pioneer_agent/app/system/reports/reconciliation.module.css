@@ -1,0 +1,228 @@
+.summary {
+  margin: 24px 0 32px;
+}
+.headline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  margin: 0 0 28px;
+}
+.headline dt {
+  color: var(--system-muted);
+  font-size: 0.875rem;
+}
+.headline dd {
+  margin: 8px 0;
+  font-size: clamp(1.5rem, 2.3vw, 2rem);
+  font-weight: 550;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.headline p,
+.auditDisclosure p {
+  color: var(--system-muted);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+.reviewHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  border-top: 1px solid var(--system-border);
+  padding-top: 20px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+}
+.reviewHeading h3 {
+  font-size: inherit;
+  font-weight: 600;
+}
+.reviewHeading p {
+  color: var(--system-muted);
+}
+.reviewHeading strong {
+  color: var(--system-text);
+}
+.reviewList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 48px;
+}
+.reviewList > div,
+.auditFigures > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+.reviewList dt,
+.auditFigures dt {
+  color: var(--system-muted);
+}
+.reviewList dd,
+.auditFigures dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.auditStatus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 20px 0 12px;
+  font-size: 0.8125rem;
+  color: var(--system-muted);
+}
+.auditStatus strong {
+  color: var(--system-text);
+  font-weight: 550;
+}
+.auditDisclosure > summary {
+  width: fit-content;
+  padding: 10px 0;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.auditFigures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 40px;
+  padding: 20px 0;
+}
+.auditDisclosure p + p {
+  margin-top: 8px;
+}
+.tableRegion {
+  max-width: 100%;
+  overflow: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.table caption {
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 550;
+  padding: 0 0 16px;
+}
+.table caption span {
+  display: block;
+  margin-top: 5px;
+  color: var(--system-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+.table th,
+.table td {
+  padding: 16px 12px;
+  text-align: right;
+  vertical-align: top;
+  border-bottom: 1px solid var(--system-border);
+}
+.table th:first-child {
+  text-align: left;
+  padding-left: 0;
+}
+.table thead th {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--system-muted);
+}
+.table tbody th {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.table td {
+  white-space: nowrap;
+}
+.table small {
+  display: block;
+  margin-top: 6px;
+  color: var(--system-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.table .detailCell {
+  padding-top: 8px;
+  padding-right: 0;
+}
+.detailCell button span {
+  margin-left: 6px;
+}
+.table .expandedRow td {
+  white-space: normal;
+  padding: 0 16px;
+  background: var(--system-surface);
+  text-align: left;
+}
+.tableRegion:focus-visible,
+.auditDisclosure > summary:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  .headline {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .reviewList,
+  .auditFigures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .table,
+  .table tbody {
+    display: block;
+  }
+  .table caption {
+    display: block;
+  }
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+  }
+  .table tbody tr:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 20px 0;
+    border-top: 1px solid var(--system-border);
+  }
+  .table tbody th,
+  .table tbody td {
+    padding: 0;
+    border: 0;
+  }
+  .table tbody td[data-label] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 16px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .table td[data-label]::before {
+    content: attr(data-label);
+    text-align: left;
+    color: var(--system-muted);
+  }
+  .table td small {
+    grid-column: 1 / -1;
+  }
+  .table .detailCell {
+    text-align: left;
+    padding: 4px 0 0;
+  }
+  .table .expandedRow td {
+    padding: 0;
+    background: transparent;
+  }
+}

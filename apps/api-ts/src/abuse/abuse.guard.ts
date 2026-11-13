@@ -66,6 +66,14 @@ export class AccountAbuseGuard implements CanActivate {
       response,
     );
 
+    if (request.user.role === "COO") {
+      await this.abuse.consume(
+        ["GET", "HEAD"].includes(request.method) ? "cooRead" : "cooWrite",
+        `account:${request.user.id}`,
+        response,
+      );
+    }
+
     const configured = this.reflector.getAllAndOverride<AbusePolicyName>(
       "abusePolicy",
       [context.getHandler(), context.getClass()],

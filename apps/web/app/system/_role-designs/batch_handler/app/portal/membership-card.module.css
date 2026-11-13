@@ -1,0 +1,82 @@
+/* Slow tonal flow inspired by React Bits Silk; CSS keeps this small card lightweight. */
+:global(html[data-system-theme])
+  :global(.portal-shell)
+  .card[data-membership-card][data-portal-material] {
+  --membership-base: #edf2f8;
+  --membership-fold: #d9e5f2;
+  --membership-glow: #f8fafc;
+  --membership-text: #17283e;
+  --membership-muted: #40536b;
+  --membership-badge: #e3eaf2;
+  --membership-edge: #b9c6d5;
+  background: linear-gradient(
+    115deg,
+    var(--membership-base) 0%,
+    var(--membership-fold) 25%,
+    var(--membership-glow) 50%,
+    var(--membership-base) 75%,
+    var(--membership-fold) 100%
+  );
+  background-size: 280% 180%;
+  background-position: 0% 50%;
+  border-color: var(--membership-edge);
+  color: var(--membership-text);
+  animation: membershipFlow 18s ease-in-out infinite alternate;
+}
+:global(html[data-system-theme="dark"])
+  :global(.portal-shell)
+  .card[data-membership-card][data-portal-material] {
+  --membership-base: #191d25;
+  --membership-fold: #26384c;
+  --membership-glow: #30445c;
+  --membership-text: #f4f7fb;
+  --membership-muted: #c8d2df;
+  --membership-badge: #303a48;
+  --membership-edge: #526174;
+}
+:global(html[data-system-theme])
+  :global(.portal-shell)
+  .card[data-membership-card]
+  h2,
+:global(html[data-system-theme])
+  :global(.portal-shell)
+  .card[data-membership-card]
+  .badge,
+:global(html[data-system-theme])
+  :global(.portal-shell)
+  .card[data-membership-card]
+  .icon {
+  color: var(--membership-text);
+}
+:global(html[data-system-theme])
+  :global(.portal-shell)
+  .card[data-membership-card]
+  p {
+  color: var(--membership-muted);
+}
+:global(html[data-system-theme])
+  :global(.portal-shell)
+  .card[data-membership-card]
+  .badge,
+:global(html[data-system-theme])
+  :global(.portal-shell)
+  .card[data-membership-card]
+  .icon {
+  background: var(--membership-badge);
+  border-color: var(--membership-edge);
+}
+@keyframes membershipFlow {
+  from {
+    background-position: 0% 35%;
+  }
+  to {
+    background-position: 100% 65%;
+  }
+}
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
+  :global(html[data-system-theme])
+    :global(.portal-shell)
+    .card[data-membership-card][data-portal-material] {
+    animation: none;
+  }
+}

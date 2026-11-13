@@ -3,6 +3,7 @@ import { Requires } from "../auth/access";
 import { Database } from "../database";
 import { WorkQueueService } from "./work-queue.service";
 import { AbuseService } from "../abuse/abuse.service";
+import { CooReadCache } from "../coo-security/read-cache.service";
 
 @Controller("operations")
 export class OperationsController {
@@ -10,11 +11,13 @@ export class OperationsController {
     @Inject(WorkQueueService) private readonly queues: WorkQueueService,
     @Inject(Database) private readonly db: Database,
     @Inject(AbuseService) private readonly abuse: AbuseService,
+    @Inject(CooReadCache) private readonly cache: CooReadCache,
   ) {}
   @Get() @Requires("ACCOUNT_MANAGE") async status() {
     return {
       ...(await this.queues.status()),
       rateLimits: this.abuse.status(),
+      cooCache: this.cache.status(),
       unpublishedEvents: await this.db.changeEvent.count({
         where: { publishedAt: null },
       }),

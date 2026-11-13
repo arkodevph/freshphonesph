@@ -1,5 +1,7 @@
 "use client";
 
+import { AssistantSidebar } from "./AssistantSidebar";
+import { useWorkspaceMotion } from "@/lib/useWorkspaceMotion";
 import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
 import { useId, useState } from "react";
 import Link from "next/link";
@@ -11,14 +13,17 @@ import {
   CheckCircle,
   Copy,
   FileText,
-  Info,
   Plus,
-  Sparkle,
   Square,
   Stack,
 } from "@phosphor-icons/react";
 import { AssistantReportBrief } from "./AssistantReportBrief";
 import { AssistantProgress } from "./AssistantProgress";
+import {
+  AssistantStreamingText,
+  AssistantAnswer,
+} from "./AssistantStreamingText";
+import { CloudMark } from "./CloudMark";
 import { useCeoAssistant } from "./useCeoAssistant";
 import styles from "./ceo-assistant.module.css";
 
@@ -26,19 +31,16 @@ const prompts = [
   {
     icon: CheckCircle,
     title: "Understand payments",
-    description: "Make sense of verified and pending payments.",
     text: "Explain the difference between verified and pending payments.",
   },
   {
     icon: Stack,
     title: "Plan a new batch",
-    description: "Know what to prepare before getting started.",
     text: "What information should I prepare before creating a Freshphones batch?",
   },
   {
     icon: FileText,
     title: "Summarize my reports",
-    description: "See the numbers across your business.",
     text: "Can you summarize all company reports?",
   },
 ];
@@ -105,6 +107,12 @@ export default function CeoAssistant({
     scrollToQuestion,
     decideAction,
     conversations,
+    projects,
+    editConversation,
+    removeConversation,
+    createProject,
+    renameProject,
+    removeProject,
     activeId,
     historyReady,
     saveError,
@@ -114,77 +122,40 @@ export default function CeoAssistant({
     reloadSavedConversation,
   } = useCeoAssistant(period, dataAvailable, reportRange);
 
+  const motion = useWorkspaceMotion<HTMLElement>();
+
   const help = useId();
 
   const hasConversation = questions.length > 0;
 
+  const conversationTitle =
+    conversations.find((conversation) => {
+      return conversation.id === activeId;
+    })?.title ?? "New conversation";
+
   return (
     <section
+      ref={motion}
       className={styles.workspace}
-      aria-label="Fresh AI workspace"
+      aria-label="Cloud workspace"
       data-conversation={hasConversation}
     >
       <p className="sr-only" role="status" aria-live="polite">
         {questions.at(-1)?.error ?? questions.at(-1)?.status ?? ""}
       </p>
-      <aside className={styles.contextRail} aria-label="Conversation context">
-        <div className={styles.railBrand}>
-          <span className={styles.brandMark}>
-            <Sparkle aria-hidden="true" weight="fill" />
-          </span>
-          <span>
-            Fresh AI<small>Your operations companion</small>
-          </span>
-        </div>
-        <button
-          type="button"
-          className={styles.newChat}
-          onClick={newChat}
-          disabled={!historyReady}
-        >
-          <Plus aria-hidden="true" /> New conversation
-        </button>
-        <div className={styles.railSection}>
-          <p className={styles.label}>
-            SAVED CONVERSATIONS <span>{conversations.length || ""}</span>
-          </p>
-          <nav aria-label="Saved conversations" className={styles.historyList}>
-            {conversations.map((conversation) => {
-              return (
-                <button
-                  type="button"
-                  key={conversation.id}
-                  className={styles.currentChat}
-                  aria-current={
-                    conversation.id === activeId ? "page" : undefined
-                  }
-                  disabled={!historyReady || answerPending}
-                  title={conversation.title}
-                  onClick={() => {
-                    return openConversation(conversation.id);
-                  }}
-                >
-                  <ChatCircleDots aria-hidden="true" />
-                  <span>{conversation.title}</span>
-                </button>
-              );
-            })}
-          </nav>
-          {!conversations.length && (
-            <p className={styles.railHint}>
-              {historyReady
-                ? "Your conversations will be saved to your account."
-                : "Loading saved conversations…"}
-            </p>
-          )}
-          <p className={styles.railHint} role="status">
-            {saving
-              ? "Saving conversation…"
-              : historyReady
-                ? "Conversations saved to your account."
-                : ""}
-          </p>
-        </div>
+      <AssistantSidebar
+        conversations={conversations}
+        projects={projects}
+        activeId={activeId}
+        busy={!historyReady || answerPending}
+        onNew={newChat}
+        onOpen={openConversation}
+        onEdit={editConversation}
+        onDelete={removeConversation}
+        onCreateProject={createProject}
+        onRenameProject={renameProject}
+        onDeleteProject={removeProject}
+      >
         <div className={styles.railBottom}>
           <div className={styles.periodCard}>
             <p className={styles.label}>REPORTING PERIOD</p>
@@ -198,9 +169,6 @@ export default function CeoAssistant({
                     : "Period unavailable"}
               </span>
             </div>
-            <p className={styles.railHint}>
-              Optional date context for your questions.
-            </p>
             {error && (
               <div className={styles.reportError} role="status">
                 <p>Could not load the report period.</p>
@@ -217,17 +185,12 @@ export default function CeoAssistant({
             FRESH PHONES PH <span>Owner / CEO</span>
           </p>
         </div>
-      </aside>
+      </AssistantSidebar>
       <div
         className={`${styles.main} ${hasConversation ? styles.hasConversation : ""}`}
       >
         <header className={styles.workspaceHeader}>
-          <span className={styles.conversationTitle}>
-            <Sparkle aria-hidden="true" />
-            <span>
-              Fresh AI<small>Freshphones workspace</small>
-            </span>
-          </span>
+          <span className={styles.conversationTitle}>{conversationTitle}</span>
           <WorkspaceNativeSelect
             className={styles.mobileHistory}
             aria-label="Open saved conversation"
@@ -266,10 +229,6 @@ export default function CeoAssistant({
               Latest reply
             </button>
           )}
-          <span className={styles.status}>
-            <Info aria-hidden="true" />
-            Freshphones assistant
-          </span>
           <button
             type="button"
             className={styles.mobileNew}
@@ -302,7 +261,6 @@ export default function CeoAssistant({
               onScroll={onTranscriptScroll}
               tabIndex={0}
             >
-              <p className={styles.conversationStart}>A fresh conversation</p>
               {questions.map((question) => {
                 return (
                   <div
@@ -322,23 +280,28 @@ export default function CeoAssistant({
                     </div>
                     <div className={styles.reply} data-assistant-response>
                       <span className={styles.replyMark}>
-                        <Sparkle weight="fill" aria-hidden="true" />
+                        <CloudMark
+                          active={
+                            !question.partial &&
+                            !question.response &&
+                            !question.error
+                          }
+                        />
                       </span>
                       {question.response ? (
                         <div>
-                          <strong className={styles.replyName}>Fresh AI</strong>
+                          <strong className={styles.replyName}>Cloud</strong>
                           {question.response.brief && (
                             <AssistantReportBrief
                               brief={question.response.brief}
                             />
                           )}
                           <div className={styles.answerText}>
-                            {!question.response.brief &&
-                              question.response.paragraphs.map(
-                                (paragraph, index) => {
-                                  return <p key={index}>{paragraph}</p>;
-                                },
-                              )}
+                            {!question.response.brief && (
+                              <AssistantAnswer
+                                paragraphs={question.response.paragraphs}
+                              />
+                            )}
                           </div>
                           {question.response.actions?.map((action) => {
                             return (
@@ -467,15 +430,9 @@ export default function CeoAssistant({
                         </div>
                       ) : (
                         <div aria-busy="true">
-                          <strong className={styles.replyName}>Fresh AI</strong>
+                          <strong className={styles.replyName}>Cloud</strong>
                           {question.partial ? (
-                            <div className={styles.streamingText}>
-                              {question.partial}
-                              <span
-                                className={styles.streamCaret}
-                                aria-hidden="true"
-                              />
-                            </div>
+                            <AssistantStreamingText text={question.partial} />
                           ) : (
                             <AssistantProgress label={question.status} />
                           )}
@@ -489,30 +446,22 @@ export default function CeoAssistant({
           ) : (
             <div className={styles.welcome}>
               <span className={styles.assistantMark}>
-                <Sparkle aria-hidden="true" weight="fill" />
+                <CloudMark />
               </span>
-              <p className={styles.eyebrow}>A LITTLE CLARITY FOR YOUR DAY</p>
-              <h1>What can we work through?</h1>
-              <p>
-                Payments, batches, and the everyday details.
-                <br />
-                Let’s make sense of it together.
-              </p>
+              <h2>What’s on your mind?</h2>
             </div>
           )}
           <div className={styles.composerArea}>
             <form className={styles.composer} onSubmit={submit}>
-              <label className={styles.composerLabel} htmlFor={`${help}-input`}>
-                Ask Fresh AI
+              <label className="sr-only" htmlFor={`${help}-input`}>
+                Ask Cloud
               </label>
               <textarea
                 id={`${help}-input`}
                 ref={input}
                 aria-describedby={help}
                 placeholder={
-                  hasConversation
-                    ? "Ask another Freshphones question…"
-                    : "Ask anything about Freshphones…"
+                  hasConversation ? "Ask Cloud a follow-up…" : "Ask Cloud…"
                 }
                 disabled={!historyReady}
                 value={draft}
@@ -542,7 +491,7 @@ export default function CeoAssistant({
                   aria-pressed={dataAvailable && includeContext}
                   title={
                     dataAvailable
-                      ? `Date label only: ${period}`
+                      ? `Reporting period: ${period}`
                       : "Reporting period unavailable"
                   }
                   onClick={() => {
@@ -561,7 +510,7 @@ export default function CeoAssistant({
                     <Check aria-hidden="true" />
                   )}
                 </button>
-                <span className={styles.keyboardHint}>Enter to send</span>
+
                 {answerPending ? (
                   <button
                     className={styles.send}
@@ -594,13 +543,12 @@ export default function CeoAssistant({
           </div>
           {!hasConversation && (
             <div className={styles.starters}>
-              <p className={styles.startersLabel}>NOT SURE WHERE TO START?</p>
               <div
                 className={styles.suggestions}
                 role="group"
                 aria-label="Suggested questions"
               >
-                {prompts.map(({ icon: Icon, title, description, text }) => {
+                {prompts.map(({ icon: Icon, title, text }) => {
                   return (
                     <button
                       type="button"
@@ -613,7 +561,6 @@ export default function CeoAssistant({
                         <Icon aria-hidden="true" />
                       </span>
                       <strong>{title}</strong>
-                      <small>{description}</small>
                     </button>
                   );
                 })}
@@ -621,11 +568,6 @@ export default function CeoAssistant({
             </div>
           )}
         </div>
-        {!hasConversation && (
-          <p className={styles.note}>
-            Built around Freshphones. Here to help you understand.
-          </p>
-        )}
       </div>
     </section>
   );

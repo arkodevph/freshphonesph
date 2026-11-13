@@ -18,8 +18,8 @@
 .tools {
   display: block;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 :global(.system-shell[data-workspace-role="coo"]) .tools {
   display: flex;
@@ -28,7 +28,8 @@
   display: none;
 }
 .tools :global(.coo-action-disclosure) {
-  width: auto;
+  width: 100%;
+  flex: 1 0 100%;
   margin: 0;
   border-radius: 10px;
 }
@@ -36,7 +37,8 @@
   flex: 1 0 100%;
 }
 .tools :global(.coo-action-disclosure > summary) {
-  padding: 10px 14px;
+  min-height: 48px;
+  padding: 12px 18px;
 }
 .tableScroll {
   max-width: 100%;

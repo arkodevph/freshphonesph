@@ -2273,11 +2273,11 @@ html[data-system-theme="dark"] .finance-review-error {
   color: var(--system-muted);
   pointer-events: none;
 }
-.system-shell .client-picker-input {
+.system-shell .client-picker-control .client-picker-input {
   min-height: 42px;
   border-color: var(--system-border);
   background: var(--system-surface);
-  padding-left: 38px;
+  padding-left: 42px;
   color: var(--system-text);
 }
 .system-shell .client-picker-input:hover {

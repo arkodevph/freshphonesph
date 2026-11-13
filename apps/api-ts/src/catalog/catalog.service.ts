@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   ConflictException,
   ForbiddenException,
@@ -192,7 +193,9 @@ export class CatalogService {
         throw new ForbiddenException("Your catalog access has changed.");
       }
 
-      return run(tx);
+      return replayCooWrite(tx, user.id, () => {
+        return run(tx);
+      });
     });
   }
   private async record(

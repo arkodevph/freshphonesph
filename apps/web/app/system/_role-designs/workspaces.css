@@ -1,0 +1,14 @@
+@import "./ceo/workspace.css";
+@import "./system_admin/workspace.css";
+@import "./coo/workspace.css";
+@import "./batch_manager/workspace.css";
+@import "./hr_payroll/workspace.css";
+@import "./finance_officer/workspace.css";
+@import "./records/workspace.css";
+@import "./kpi_officer/workspace.css";
+@import "./operations_coordinator/workspace.css";
+@import "./csr/workspace.css";
+@import "./pioneer_agent/workspace.css";
+@import "./agent/workspace.css";
+@import "./batch_handler/workspace.css";
+@import "./analytics/workspace.css";

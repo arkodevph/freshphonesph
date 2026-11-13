@@ -29,6 +29,7 @@
     "test:earnings": "tsx --test --test-concurrency=1 test/installment-earnings.integration.test.ts",
     "test:redis": "tsx --test --test-concurrency=1 test/redis.integration.test.ts",
     "test:abuse": "tsx --test --test-concurrency=1 test/abuse.integration.test.ts",
+    "test:coo-security": "tsx --test --test-concurrency=1 test/coo-security.integration.test.ts",
     "test:gcash": "tsx --test --test-concurrency=1 test/gcash-history.integration.test.ts",
     "test:notifications": "tsx --test --test-concurrency=1 test/workflow-notifications.integration.test.ts test/operational-handoffs.integration.test.ts",
     "test:numbering": "tsx --test --test-concurrency=1 test/batch-numbering.integration.test.ts",

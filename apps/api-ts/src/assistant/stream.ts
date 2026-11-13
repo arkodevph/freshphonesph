@@ -34,7 +34,7 @@ export async function* streamFreshphones(
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
-        "X-OpenRouter-Title": "Freshphones Fresh AI",
+        "X-OpenRouter-Title": "Freshphones Cloud",
       },
       body: JSON.stringify({
         model: process.env.OPENROUTER_MODEL ?? "google/gemini-2.5-flash-lite",
@@ -111,7 +111,7 @@ export async function* streamFreshphones(
 
   const reply: AssistantReply = {
     ...guide,
-    title: "Fresh AI",
+    title: "Cloud",
     kind: guide.kind === "change-request" ? "change-request" : "knowledge",
     paragraphs: text.trim().split(/\n\s*\n/),
     sources: guide.sources.length

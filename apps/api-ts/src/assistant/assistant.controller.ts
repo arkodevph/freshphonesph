@@ -1,3 +1,4 @@
+import { redactModelText } from "./guardrails";
 import {
   Body,
   Get,
@@ -7,6 +8,7 @@ import {
   Controller,
   ForbiddenException,
   Inject,
+  Logger,
   Post,
   Res,
   ServiceUnavailableException,
@@ -51,7 +53,7 @@ export class AssistantController {
     // Match the existing owner-only workspace independently of REPORT_VIEW.
     if (!["CEO", "OWNER"].includes(user.role)) {
       throw new ForbiddenException(
-        "Fresh AI is available to the Owner / CEO workspace.",
+        "Cloud is available to the Owner / CEO workspace.",
       );
     }
 
@@ -88,7 +90,7 @@ export class AssistantController {
   ) {
     if (!["CEO", "OWNER"].includes(user.role)) {
       throw new ForbiddenException(
-        "Fresh AI is available to the Owner / CEO workspace.",
+        "Cloud is available to the Owner / CEO workspace.",
       );
     }
 
@@ -143,7 +145,18 @@ export class AssistantController {
           send(event);
         }
       }
-    } catch {
+    } catch (error) {
+      Logger.warn(
+        {
+          event: "assistant_stream_failed",
+          reason: error instanceof Error ? error.name : "Unknown",
+          message: redactModelText(
+            error instanceof Error ? error.message : "Unknown failure",
+          ).slice(0, 300),
+        },
+        "AssistantController",
+      );
+
       send({
         type: "error",
         message:
@@ -195,7 +208,7 @@ export class AssistantController {
   private requireExecutive(user: User) {
     if (!["CEO", "OWNER"].includes(user.role)) {
       throw new ForbiddenException(
-        "Fresh AI is available to the Owner / CEO workspace.",
+        "Cloud is available to the Owner / CEO workspace.",
       );
     }
   }

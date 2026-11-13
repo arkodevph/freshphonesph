@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   BadRequestException,
   ConflictException,
@@ -154,91 +155,93 @@ export class SupportService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      const before = await tx.supportCase.findFirst({
-        where: { id, ...(clientId ? { clientId } : {}) },
-        include,
-      });
-
-      if (!before) {
-        throw new NotFoundException("Case not found.");
-      }
-
-      if (before.status === "CLOSED" || before.status === "RESOLVED") {
-        throw new ConflictException(
-          "This case is finished. Create a follow-up case.",
-        );
-      }
-
-      const status = clientId
-        ? before.status === "WAITING_FOR_CLIENT"
-          ? "IN_PROGRESS"
-          : before.status
-        : input.needsReply
-          ? "WAITING_FOR_CLIENT"
-          : before.status === "WAITING_FOR_CLIENT"
-            ? "IN_PROGRESS"
-            : before.status;
-
-      const message = await tx.supportMessage.create({
-        data: { caseId: id, authorId: user.id, body: input.body },
-      });
-
-      const updated = await tx.supportCase.update({
-        where: { id },
-        data: { status, version: { increment: 1 } },
-      });
-
-      await tx.auditEntry.create({
-        data: {
-          actorId: user.id,
-          action: "support.replied",
-          entity: "support",
-          recordId: id,
-          after: json({
-            messageId: message.id,
-            authorType: clientId ? "customer" : "staff",
-            status,
-          }),
-        },
-      });
-
-      await tx.changeEvent.create({
-        data: { entity: "support", recordId: id },
-      });
-
-      if (clientId) {
-        await notifySupport(tx, updated, "SUPPORT_CUSTOMER_REPLY");
-      } else {
-        await tx.supportAlert.updateMany({
-          where: {
-            caseId: id,
-            kind: "SUPPORT_CUSTOMER_REPLY",
-            handledAt: null,
-          },
-          data: { handledAt: new Date() },
+      return replayCooWrite(tx, user.id, async () => {
+        const before = await tx.supportCase.findFirst({
+          where: { id, ...(clientId ? { clientId } : {}) },
+          include,
         });
-      }
 
-      if (!clientId) {
-        await notifyCustomer(
-          tx,
-          before.clientId,
-          "support",
-          "Customer Service replied",
-          input.needsReply
-            ? `Customer Service needs your reply on your ${before.category} request.`
-            : `Customer Service replied to your ${before.category} request.`,
-          `/portal/support#case-${id}`,
-        );
-      }
+        if (!before) {
+          throw new NotFoundException("Case not found.");
+        }
 
-      return {
-        id: message.id,
-        body: message.body,
-        author_type: clientId ? "customer" : "staff",
-        created_at: message.createdAt.toISOString(),
-        status: status.toLowerCase(),
-      };
+        if (before.status === "CLOSED" || before.status === "RESOLVED") {
+          throw new ConflictException(
+            "This case is finished. Create a follow-up case.",
+          );
+        }
+
+        const status = clientId
+          ? before.status === "WAITING_FOR_CLIENT"
+            ? "IN_PROGRESS"
+            : before.status
+          : input.needsReply
+            ? "WAITING_FOR_CLIENT"
+            : before.status === "WAITING_FOR_CLIENT"
+              ? "IN_PROGRESS"
+              : before.status;
+
+        const message = await tx.supportMessage.create({
+          data: { caseId: id, authorId: user.id, body: input.body },
+        });
+
+        const updated = await tx.supportCase.update({
+          where: { id },
+          data: { status, version: { increment: 1 } },
+        });
+
+        await tx.auditEntry.create({
+          data: {
+            actorId: user.id,
+            action: "support.replied",
+            entity: "support",
+            recordId: id,
+            after: json({
+              messageId: message.id,
+              authorType: clientId ? "customer" : "staff",
+              status,
+            }),
+          },
+        });
+
+        await tx.changeEvent.create({
+          data: { entity: "support", recordId: id },
+        });
+
+        if (clientId) {
+          await notifySupport(tx, updated, "SUPPORT_CUSTOMER_REPLY");
+        } else {
+          await tx.supportAlert.updateMany({
+            where: {
+              caseId: id,
+              kind: "SUPPORT_CUSTOMER_REPLY",
+              handledAt: null,
+            },
+            data: { handledAt: new Date() },
+          });
+        }
+
+        if (!clientId) {
+          await notifyCustomer(
+            tx,
+            before.clientId,
+            "support",
+            "Customer Service replied",
+            input.needsReply
+              ? `Customer Service needs your reply on your ${before.category} request.`
+              : `Customer Service replied to your ${before.category} request.`,
+            `/portal/support#case-${id}`,
+          );
+        }
+
+        return {
+          id: message.id,
+          body: message.body,
+          author_type: clientId ? "customer" : "staff",
+          created_at: message.createdAt.toISOString(),
+          status: status.toLowerCase(),
+        };
+      });
     });
   }
 
@@ -380,120 +383,122 @@ export class SupportService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      const before = await tx.supportCase.findUnique({
-        where: { id },
-        include,
-      });
+      return replayCooWrite(tx, user.id, async () => {
+        const before = await tx.supportCase.findUnique({
+          where: { id },
+          include,
+        });
 
-      if (!before) {
-        throw new NotFoundException("Case not found.");
-      }
+        if (!before) {
+          throw new NotFoundException("Case not found.");
+        }
 
-      if (before.version !== input.version) {
-        throw new ConflictException(
-          "This case changed. Refresh and review it.",
-        );
-      }
+        if (before.version !== input.version) {
+          throw new ConflictException(
+            "This case changed. Refresh and review it.",
+          );
+        }
 
-      if (input.assignedStaffId) {
-        const assignee = await tx.user.findUnique({
-          where: { id: input.assignedStaffId },
+        if (input.assignedStaffId) {
+          const assignee = await tx.user.findUnique({
+            where: { id: input.assignedStaffId },
+          });
+
+          if (
+            !assignee?.active ||
+            !["CSR", "COO", "CS_HEAD", "CS_TEAM"].includes(assignee.role)
+          ) {
+            throw new BadRequestException(
+              "Assign an active Customer Service staff member.",
+            );
+          }
+        }
+
+        const status = input.status ?? before.status;
+
+        if (before.status === "CLOSED") {
+          throw new ConflictException(
+            "Closed cases cannot be changed. Create a follow-up case.",
+          );
+        }
+
+        const resolution = input.resolution ?? before.resolution;
+
+        if (["RESOLVED", "CLOSED"].includes(status) && !resolution.trim()) {
+          throw new BadRequestException(
+            "A resolution is required before resolving or closing a case.",
+          );
+        }
+
+        const row = await tx.supportCase.update({
+          where: { id },
+          data: {
+            status,
+            resolution,
+            assignedStaffId:
+              input.assignedStaffId === undefined
+                ? undefined
+                : input.assignedStaffId,
+            closedAt:
+              status === "CLOSED" ? (before.closedAt ?? new Date()) : null,
+            version: { increment: 1 },
+          },
+          include,
+        });
+
+        await tx.auditEntry.create({
+          data: {
+            actorId: user.id,
+            action: "support.updated",
+            entity: "support",
+            recordId: id,
+            before: json(view(before)),
+            after: json(view(row)),
+          },
+        });
+
+        await tx.changeEvent.create({
+          data: { entity: "support", recordId: id },
         });
 
         if (
-          !assignee?.active ||
-          !["CSR", "COO", "CS_HEAD", "CS_TEAM"].includes(assignee.role)
+          ["RESOLVED", "CLOSED"].includes(row.status) ||
+          before.assignedStaffId !== row.assignedStaffId
         ) {
-          throw new BadRequestException(
-            "Assign an active Customer Service staff member.",
+          await tx.supportAlert.updateMany({
+            where: { caseId: id, handledAt: null },
+            data: { handledAt: new Date() },
+          });
+        }
+
+        if (
+          before.assignedStaffId !== row.assignedStaffId ||
+          (before.status === "RESOLVED" &&
+            !["RESOLVED", "CLOSED"].includes(row.status))
+        ) {
+          await notifySupport(
+            tx,
+            row,
+            row.assignedStaffId ? "SUPPORT_ASSIGNED" : "SUPPORT_NEW_CASE",
           );
         }
-      }
 
-      const status = input.status ?? before.status;
+        if (
+          before.status !== row.status ||
+          before.resolution !== row.resolution
+        ) {
+          await notifyCustomer(
+            tx,
+            row.clientId,
+            "support",
+            "Support case updated",
+            `Your ${row.category} concern is now ${row.status.toLowerCase().replaceAll("_", " ")}.`,
+            `/portal/support#case-${id}`,
+          );
+        }
 
-      if (before.status === "CLOSED") {
-        throw new ConflictException(
-          "Closed cases cannot be changed. Create a follow-up case.",
-        );
-      }
-
-      const resolution = input.resolution ?? before.resolution;
-
-      if (["RESOLVED", "CLOSED"].includes(status) && !resolution.trim()) {
-        throw new BadRequestException(
-          "A resolution is required before resolving or closing a case.",
-        );
-      }
-
-      const row = await tx.supportCase.update({
-        where: { id },
-        data: {
-          status,
-          resolution,
-          assignedStaffId:
-            input.assignedStaffId === undefined
-              ? undefined
-              : input.assignedStaffId,
-          closedAt:
-            status === "CLOSED" ? (before.closedAt ?? new Date()) : null,
-          version: { increment: 1 },
-        },
-        include,
+        return view(row);
       });
-
-      await tx.auditEntry.create({
-        data: {
-          actorId: user.id,
-          action: "support.updated",
-          entity: "support",
-          recordId: id,
-          before: json(view(before)),
-          after: json(view(row)),
-        },
-      });
-
-      await tx.changeEvent.create({
-        data: { entity: "support", recordId: id },
-      });
-
-      if (
-        ["RESOLVED", "CLOSED"].includes(row.status) ||
-        before.assignedStaffId !== row.assignedStaffId
-      ) {
-        await tx.supportAlert.updateMany({
-          where: { caseId: id, handledAt: null },
-          data: { handledAt: new Date() },
-        });
-      }
-
-      if (
-        before.assignedStaffId !== row.assignedStaffId ||
-        (before.status === "RESOLVED" &&
-          !["RESOLVED", "CLOSED"].includes(row.status))
-      ) {
-        await notifySupport(
-          tx,
-          row,
-          row.assignedStaffId ? "SUPPORT_ASSIGNED" : "SUPPORT_NEW_CASE",
-        );
-      }
-
-      if (
-        before.status !== row.status ||
-        before.resolution !== row.resolution
-      ) {
-        await notifyCustomer(
-          tx,
-          row.clientId,
-          "support",
-          "Support case updated",
-          `Your ${row.category} concern is now ${row.status.toLowerCase().replaceAll("_", " ")}.`,
-          `/portal/support#case-${id}`,
-        );
-      }
-
-      return view(row);
     });
   }
 }

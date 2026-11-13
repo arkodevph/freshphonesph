@@ -62,7 +62,7 @@ export const assistantOperations: Operation[] = [
     "GET",
     "/reports/collections",
     ["REPORT_VIEW"],
-    "Membership balances, verified credit and batch totals. Balances are current lifetime amounts, not period revenue.",
+    "Membership balances, verified credit and batch totals. Filter with query.batchId (UUID), not batch. Balances are current lifetime amounts, not period revenue; for membership counts prefer records.clients total.",
     query(contracts.collectionReportQuerySchema),
   ),
   operation(
@@ -102,7 +102,7 @@ export const assistantOperations: Operation[] = [
     "GET",
     "/reports/batches",
     ["REPORT_VIEW"],
-    "Search batch IDs and labels for reporting filters.",
+    "Resolve batch IDs and labels for reporting filters. Pass the returned UUID as batchId to reports.collections or records.clients.",
     query(contracts.reportBatchQuerySchema),
   ),
   operation(
@@ -150,8 +150,16 @@ export const assistantOperations: Operation[] = [
     "GET",
     "/clients",
     ["CLIENT_READ"],
-    "Search scoped memberships and clients by q, batch, status and page.",
+    "List scoped client memberships. Filter with query.batchId (UUID), q, status and page. The response total is the full matching membership count, not items.length. Memberships are not necessarily unique people or login accounts.",
     query(contracts.clientListQuerySchema),
+  ),
+  operation(
+    "records.batch_memberships",
+    "GET",
+    "/clients",
+    ["CLIENT_READ"],
+    "Get the exact current membership count for ONE resolved batch UUID, across ALL statuses. Only query.batchId is required; no status or dates. Returns total, not people/accounts or page length. Resolve the UUID with records.batches or reports.batches first.",
+    z.object({ query: z.object({ batchId: id }).strict() }).strict(),
   ),
   operation(
     "records.client",
@@ -222,7 +230,7 @@ export const assistantOperations: Operation[] = [
     "GET",
     "/catalog/items",
     ["CATALOG_MANAGE"],
-    "Search all catalog listings including unpublished items.",
+    "Fetch catalog listings and their current availability, published visibility and installment terms. Optional query.q, visibility (PUBLISHED or HIDDEN), availability and page. Follow pagination for all listings; availability is a listing status, not a numeric stock count.",
     query(contracts.catalogQuerySchema),
   ),
   operation(

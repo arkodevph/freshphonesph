@@ -22,6 +22,8 @@ existing landing page becomes the public-website surface (§4) of a larger produ
 
 Follow [Workspace UI patterns](UI-PATTERNS.md) for screen-specific patterns, current decisions and the People repair queue.
 
+Latest verification: [Cloud — CEO assistant](155-cloud-ceo-assistant.md). Previous: [Clients checklist and Public catalog](154-clients-checklist-and-catalog-copy.md), [Handler dialogs, report controls and Fresh AI loading](153-handler-dialogs-report-controls-and-ai-loading.md).
+
 ## What this system is (and is not)
 
 | It IS                                                 | It is NOT                                     |
@@ -167,3 +169,5 @@ The scheduled installment report is documented in [Scheduled installment earning
 - [F18 Excel payroll acceptance](134-f18-payroll-acceptance.md): retained workbook format, delivered artifact verification, calculation boundaries and manual Excel checklist.
 
 - [145 — COO portal remodel continuation](145-coo-portal-remodel.md): searchable People directories, earnings containment, Analysis, shared controls and route verification.
+- [156 — Independent role designs](156-independent-role-designs.md): separate page components and styles for each staff role, with shared business behavior and authorization.
+- [157 — Cloud workspace and retrieval](157-cloud-workspace-and-retrieval.md): live 3D mascot, conversation/project controls, safe answer formatting, live-data recovery and browser deletion fix.

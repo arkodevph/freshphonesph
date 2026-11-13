@@ -549,6 +549,16 @@ test("applicant erasure removes PII and audit copies; failed storage stays inacc
   const applicant = await application(),
     stored = await file();
 
+  const replay = await db.cooRequestReplay.create({
+    data: {
+      actorId: owner.id,
+      keyHash: randomUUID().replaceAll("-", "").padEnd(64, "0"),
+      fingerprint: "1".repeat(64),
+      result: { defined: true, value: { email: applicant.email } },
+      expiresAt: new Date(Date.now() + 86400000),
+    },
+  });
+
   const attachment = await db.applicantAttachment.create({
     data: {
       applicantId: applicant.id,
@@ -600,6 +610,17 @@ test("applicant erasure removes PII and audit copies; failed storage stays inacc
   }
 
   assert.equal(result!.status, "FILES_PENDING");
+
+  assert.equal(
+    (
+      await db.cooRequestReplay.findUniqueOrThrow({
+        where: {
+          actorId_keyHash: { actorId: replay.actorId, keyHash: replay.keyHash },
+        },
+      })
+    ).result,
+    null,
+  );
 
   assert.equal(result!.files[0].status, "FAILED");
 

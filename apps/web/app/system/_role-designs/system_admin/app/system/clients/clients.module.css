@@ -1,0 +1,207 @@
+.workspace {
+  min-width: 0;
+  color: var(--system-text);
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.heading h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+.tools {
+  display: block;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+:global(.system-shell[data-workspace-role="system_admin"]) .tools {
+  display: flex;
+}
+.tools:empty {
+  display: none;
+}
+.tools :global(.coo-action-disclosure) {
+  width: 100%;
+  flex: 1 0 100%;
+  margin: 0;
+  border-radius: 10px;
+}
+.tools :global(.coo-action-disclosure[open]) {
+  flex: 1 0 100%;
+}
+.tools :global(.coo-action-disclosure > summary) {
+  min-height: 48px;
+  padding: 12px 18px;
+}
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--system-border);
+  border-radius: 16px;
+  background: var(--system-surface);
+}
+.tableScroll:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+}
+.table {
+  width: 100%;
+  min-width: 760px;
+  text-align: left;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.table.table thead th {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--system-muted);
+  background: color-mix(in srgb, var(--system-text) 5%, transparent);
+  border-bottom: 1px solid var(--system-border);
+}
+.workspace.workspace .table.table tbody > tr > :is(td, th) {
+  padding: 16px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--system-border);
+}
+.table tbody > tr:last-child > :is(td, th) {
+  border-bottom: 0;
+}
+.table tbody > tr:hover {
+  background: color-mix(in srgb, var(--system-text) 5%, transparent);
+}
+.table .identity {
+  min-width: 240px;
+  font-weight: 400;
+}
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  vertical-align: top;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--system-text) 5%, transparent);
+  color: var(--system-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.clientText {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+.clientText strong {
+  font-weight: 500;
+}
+.clientText > span {
+  color: var(--system-muted);
+  font-size: 12px;
+}
+.clientText .identifier {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.records {
+  min-width: 108px;
+  text-align: left;
+}
+.records > summary {
+  cursor: pointer;
+  padding: 6px 10px;
+  border: 1px solid var(--system-border);
+  border-radius: 8px;
+  white-space: nowrap;
+  color: var(--system-text);
+  font-size: 12px;
+}
+.recordActions {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+}
+.workspace .table.table .recordActions.recordActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  text-align: left;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--system-text);
+  font-size: 12px;
+  font-weight: 400;
+}
+.recordActions button:hover {
+  background: color-mix(in srgb, var(--system-text) 5%, transparent);
+}
+.records summary:focus-visible,
+.recordActions button:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .heading {
+    margin-bottom: 16px;
+  }
+  .heading h1 {
+    font-size: 26px;
+  }
+  .tools {
+    margin-bottom: 16px;
+  }
+  .table {
+    min-width: 680px;
+  }
+  .workspace.workspace .table.table tbody > tr > :is(td, th) {
+    padding: 12px;
+  }
+  .table .identity {
+    min-width: 210px;
+  }
+  .clientText {
+    max-width: 180px;
+  }
+  .avatar {
+    display: none;
+  }
+  .workspace > nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 8px 0;
+  }
+}
+
+.workspace .table.table .releaseButton.releaseButton {
+  margin-left: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--system-border);
+  border-radius: 8px;
+  background: var(--system-surface);
+  color: var(--system-text);
+  font-size: 12px;
+  font-weight: 400;
+}
+.releaseButton:disabled {
+  opacity: 0.5;
+}
+.releaseButton:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 2px;
+}

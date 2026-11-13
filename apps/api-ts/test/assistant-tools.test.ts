@@ -504,3 +504,226 @@ test("tool loop follows pagination and dispatches a partial edit as a pending pr
 
   assert.equal(complete?.actions?.[0].status, "pending");
 });
+
+test("invalid batch filters return a schema so the model can recover and fetch the count", async () => {
+  const executor = new AssistantToolsService({} as Database, {} as Config);
+
+  const batchId = "00000000-0000-4000-8000-000000000099";
+
+  let attempts = 0;
+
+  executor.read = async (_request, name, input) => {
+    attempts++;
+
+    const parsed = executor.operation(identity, name).schema.parse(input);
+
+    assert.equal(name, "records.clients");
+
+    assert.equal(parsed.query.batchId, batchId);
+
+    return { items: [], total: 37, page: 1, pageSize: 25 };
+  };
+
+  let turn = 0;
+
+  let completed = false;
+
+  for await (const event of answerWithTools(
+    { question: "How many members are in that batch?" },
+    request,
+    executor,
+    {
+      signal: new AbortController().signal,
+      apiKey: "synthetic-key",
+      fetcher: async (_url, options) => {
+        const body = JSON.parse(String(options?.body));
+
+        if (turn++ === 0) {
+          const context = JSON.parse(body.messages[1].content);
+
+          const clients = context.operations.find((item: { name: string }) => {
+            return item.name === "records.clients";
+          });
+
+          assert.ok(clients.inputSchema.fields.query.schema.fields.batchId);
+
+          return sse(
+            tool("read_data", {
+              operation: "records.clients",
+              input: { query: { batch: batchId } },
+            }),
+            "tool_calls",
+          );
+        }
+
+        if (turn === 2) {
+          const error = JSON.parse(body.messages.at(-1).content);
+
+          assert.ok(error.error);
+
+          assert.ok(error.inputSchema.fields.query.schema.fields.batchId);
+
+          return sse(
+            tool("read_data", {
+              operation: "records.clients",
+              input: { query: { batchId } },
+            }),
+            "tool_calls",
+          );
+        }
+
+        assert.equal(JSON.parse(body.messages.at(-1).content).data.total, 37);
+
+        return sse(
+          { content: "That batch has 37 client memberships." },
+          "stop",
+        );
+      },
+    },
+  )) {
+    if (event.type === "complete") {
+      assert.deepEqual(event.reply.paragraphs, [
+        "That batch has 37 client memberships.",
+      ]);
+
+      completed = true;
+    }
+  }
+
+  assert.equal(attempts, 2);
+
+  assert.ok(completed);
+});
+
+test("batch-count retrieval repairs a premature tool refusal before showing the final answer", async () => {
+  const executor = new AssistantToolsService({} as Database, {} as Config);
+
+  const batchId = "00000000-0000-4000-8000-000000000099";
+
+  executor.read = async (_request, operation, input) => {
+    assert.equal(operation, "records.batch_memberships");
+
+    assert.deepEqual(input, { query: { batchId } });
+
+    return {
+      batchId,
+      total: 42,
+      statuses: "all",
+      measure: "client memberships",
+    };
+  };
+
+  let turn = 0;
+
+  let shown = "";
+
+  for await (const event of answerWithTools(
+    { question: "How many client memberships are in that batch?" },
+    request,
+    executor,
+    {
+      apiKey: "synthetic-key",
+      signal: new AbortController().signal,
+      fetcher: async (_url, options) => {
+        const body = JSON.parse(String(options?.body));
+
+        if (turn++ === 0) {
+          return sse(
+            {
+              content:
+                "The reports.clients operation is unavailable. Which status?",
+            },
+            "stop",
+          );
+        }
+
+        if (turn === 2) {
+          assert.match(
+            body.messages.at(-1).content,
+            /requires? no status|No status is required/,
+          );
+
+          return sse(
+            tool("read_data", {
+              operation: "records.batch_memberships",
+              input: { query: { batchId } },
+            }),
+            "tool_calls",
+          );
+        }
+
+        return sse(
+          { content: "The batch has 42 memberships across all statuses." },
+          "stop",
+        );
+      },
+    },
+  )) {
+    if (event.type === "delta") {
+      shown += event.text;
+    }
+
+    if (event.type === "complete") {
+      assert.match(event.reply.paragraphs.join(" "), /42 memberships/);
+    }
+  }
+
+  assert.doesNotMatch(shown, /reports.clients|Which status/);
+
+  assert.match(shown, /42 memberships/);
+});
+
+test("empty provider completions retry only the model turn and retain successful read evidence", async () => {
+  const executor = new AssistantToolsService({} as Database, {} as Config);
+
+  let reads = 0;
+
+  executor.read = async () => {
+    reads++;
+
+    return { total: 0, items: [], page: 1, pageSize: 20 };
+  };
+
+  let turn = 0;
+
+  let answer = "";
+
+  for await (const event of answerWithTools(
+    { question: "Fetch catalog availability" },
+    request,
+    executor,
+    {
+      apiKey: "synthetic-key",
+      signal: new AbortController().signal,
+      fetcher: async () => {
+        turn++;
+
+        if (turn === 1) {
+          return sse(
+            tool("read_data", {
+              operation: "catalog.list",
+              input: { query: {} },
+            }),
+            "stop",
+          );
+        }
+
+        if (turn === 2) {
+          return sse({}, "stop");
+        }
+
+        return sse({ content: "No catalog listings match." }, "stop");
+      },
+    },
+  )) {
+    if (event.type === "complete") {
+      answer = event.reply.paragraphs.join(" ");
+    }
+  }
+
+  assert.equal(reads, 1);
+
+  assert.equal(turn, 3);
+
+  assert.equal(answer, "No catalog listings match.");
+});

@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import { clientScope } from "../records/scope";
 import {
   ConflictException,
@@ -63,7 +64,9 @@ export class DocumentsService {
 
       const current = await requireCurrentUser(tx, user, permission);
 
-      return run(tx, safeUser(current));
+      return replayCooWrite(tx, user.id, () => {
+        return run(tx, safeUser(current));
+      });
     });
   }
 

@@ -611,3 +611,176 @@ test("bounded local fallback caches payloads without Redis and expires them; dat
 
   assert.equal(cold.cacheMetrics.hit, 0);
 });
+
+test("conversation titles and project folders persist, remain account-scoped and survive autosave", async () => {
+  const service = app.get(AssistantConversationsService);
+
+  const id = randomUUID();
+
+  const initial = await service.save(
+    owner.id,
+    id,
+    0,
+    state("Original question"),
+  );
+
+  const project = await service.createProject(owner.id, "Synthetic operations");
+
+  const foreign = await service.createProject(
+    other.id,
+    "Private other project",
+  );
+
+  let response = await request(`/${id}`, owner, "PATCH", {
+    accountId: owner.id,
+    revision: initial.revision,
+    title: "Monthly operations",
+    projectId: project.id,
+  });
+
+  assert.equal(response.status, 200, await response.clone().text());
+
+  const edited = await response.json();
+
+  const saved = await service.save(
+    owner.id,
+    id,
+    edited.revision,
+    state("Original question"),
+  );
+
+  assert.equal(saved.title, "Monthly operations");
+
+  assert.equal(saved.projectId, project.id);
+
+  assert.equal((await service.get(owner.id, id)).title, "Monthly operations");
+
+  response = await request(`/${id}`, owner, "PATCH", {
+    accountId: owner.id,
+    revision: saved.revision,
+    projectId: foreign.id,
+  });
+
+  assert.equal(response.status, 404);
+
+  response = await request(`/${id}`, other, "PATCH", {
+    accountId: other.id,
+    revision: saved.revision,
+    title: "Stolen",
+  });
+
+  assert.equal(response.status, 409);
+
+  response = await request(`/${id}`, owner, "PATCH", {
+    accountId: other.id,
+    revision: saved.revision,
+    title: "Wrong account",
+  });
+
+  assert.equal(response.status, 403);
+
+  await assert.rejects(
+    db.assistantConversation.update({
+      where: { id },
+      data: { projectId: foreign.id },
+    }),
+  );
+
+  await assert.rejects(
+    service.metadata(owner.id, id, {
+      revision: initial.revision,
+      title: "Stale tab",
+    }),
+  );
+
+  const renamed = await service.renameProject(
+    owner.id,
+    project.id,
+    "Renamed project",
+    project.revision,
+  );
+
+  assert.equal(renamed.name, "Renamed project");
+
+  await assert.rejects(
+    service.renameProject(
+      other.id,
+      project.id,
+      "Wrong owner",
+      renamed.revision,
+    ),
+  );
+
+  const projectResponse = await fetch(`${base}/api/assistant/projects`, {
+    headers: { Cookie: other.cookie },
+  });
+
+  assert.equal(projectResponse.status, 200);
+
+  assert.ok(
+    !(await projectResponse.json()).some((item: { id: string }) => {
+      return item.id === project.id;
+    }),
+  );
+
+  const staffResponse = await fetch(`${base}/api/assistant/projects`, {
+    headers: { Cookie: staff.cookie },
+  });
+
+  assert.equal(staffResponse.status, 403);
+
+  await service.removeProject(owner.id, project.id);
+
+  const unfiled = await service.get(owner.id, id);
+
+  assert.equal(unfiled.projectId, null);
+
+  assert.equal(unfiled.state.questions[0].text, "Original question");
+
+  assert.equal(unfiled.title, "Monthly operations");
+
+  await request(`/${id}`, owner, "DELETE");
+
+  assert.equal((await request(`/${id}`, owner)).status, 404);
+
+  await assert.rejects(
+    service.save(owner.id, id, unfiled.revision, state("Queued late write")),
+  );
+});
+
+test("browser preflight permits conversation and project deletion with command keys", async () => {
+  for (const path of [
+    `/assistant/conversations/${randomUUID()}`,
+    `/assistant/projects/${randomUUID()}`,
+  ]) {
+    const response = await fetch(`${base}/api${path}`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: origin,
+        "Access-Control-Request-Method": "DELETE",
+        "Access-Control-Request-Headers": "content-type,idempotency-key",
+      },
+    });
+
+    assert.equal(response.status, 204);
+
+    assert.ok(
+      response.headers
+        .get("access-control-allow-methods")
+        ?.split(",")
+        .includes("DELETE"),
+    );
+
+    assert.ok(
+      response.headers
+        .get("access-control-allow-headers")
+        ?.toLowerCase()
+        .includes("idempotency-key"),
+    );
+
+    assert.equal(
+      response.headers.get("access-control-allow-credentials"),
+      "true",
+    );
+  }
+});

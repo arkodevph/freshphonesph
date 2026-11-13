@@ -1,5 +1,4 @@
 import { BadRequestException } from "@nestjs/common";
-
 const credentialFields = new Set([
   "password",
   "passwordhash",
@@ -52,7 +51,7 @@ export function redactModelText(text: string) {
 export function assertSafeQuestion(question: string) {
   if (redactModelText(question) !== question) {
     throw new BadRequestException(
-      "Remove passwords, API keys and access tokens from your question before sending it to Fresh AI.",
+      "Remove passwords, API keys and access tokens from your question before sending it to Cloud.",
     );
   }
 }

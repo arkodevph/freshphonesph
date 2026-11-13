@@ -320,6 +320,12 @@ export class AuthService {
 
     await this.limit(`login-email:${email}`, 15);
 
+    // Password sign-in establishes a new identity. A revoked session cookie must
+    // not cause the framework's stale-session cleanup to clear the new cookie.
+    const headers = identityHeaders(req);
+
+    headers.delete("cookie");
+
     return this.locked(async () => {
       const user = await this.store.user.findUnique({ where: { email } });
 
@@ -329,7 +335,7 @@ export class AuthService {
         throw new UnauthorizedException("Email or password is incorrect.");
       }
 
-      const result = await this.call("/sign-in/email", identityHeaders(req), {
+      const result = await this.call("/sign-in/email", headers, {
         email,
         password,
       });
@@ -348,7 +354,7 @@ export class AuthService {
         return { twoFactorRedirect: true as const };
       }
 
-      return this.completed(identityHeaders(req), result, res);
+      return this.completed(headers, result, res);
     });
   }
   async localDemoLogin(email: string, req: Request, res: Response) {

@@ -1,0 +1,166 @@
+.root {
+  --split-text: var(
+    --document-text,
+    var(--summary-text, var(--portal-text, var(--system-text, #20242c)))
+  );
+  --split-surface: var(
+    --ceo-solid,
+    var(
+      --document-surface,
+      var(--summary-surface, var(--portal-surface, var(--system-surface, #fff)))
+    )
+  );
+  --split-edge: var(
+    --ceo-control-edge,
+    var(
+      --document-border,
+      var(--summary-border, var(--portal-border, var(--system-border, #d9dfe8)))
+    )
+  );
+  --split-control: var(--ceo-control, var(--split-surface));
+  --split-color: var(--split-text);
+  --split-focus: var(
+    --document-accent,
+    var(--summary-accent, var(--portal-accent, var(--system-accent, #245fb4)))
+  );
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  max-width: 100%;
+  border-radius: 999px;
+}
+.root[data-tone="primary"] {
+  --split-control: #245fb4;
+  --split-color: #fff;
+}
+.root[data-split-button] > button.main,
+.root[data-split-button] > button.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid var(--split-edge);
+  padding: 10px 16px;
+  background: var(--split-control);
+  color: var(--split-color);
+  box-shadow: inset 0 1px 0 var(--ceo-rim, rgb(255 255 255 / 12%));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+.root[data-split-button] > button.main {
+  border-radius: 999px 0 0 999px;
+}
+.root[data-split-button] > button.trigger {
+  flex: none;
+  width: 44px;
+  padding: 10px;
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+}
+.root[data-split-button] svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.trigger svg {
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.root[data-split-button] > button:hover:not(:disabled),
+.root[data-split-button] > button[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--split-control), var(--split-color) 7%);
+  border-color: var(--split-edge);
+  color: var(--split-color);
+}
+.root[data-split-button] button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.root[data-split-button] button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--split-focus);
+  outline-offset: 3px;
+}
+.root .menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 6px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--split-edge);
+  border-radius: 18px;
+  background: var(--split-surface);
+  color: var(--split-text);
+  box-shadow: 0 16px 40px -16px rgb(15 25 45 / 28%);
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top right;
+  transition:
+    opacity 140ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    display 180ms allow-discrete,
+    overlay 180ms allow-discrete;
+}
+.menu[data-placement="top"] {
+  transform-origin: bottom right;
+}
+.menu:popover-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.root[data-split-button] .menu > button.item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--split-text);
+  box-shadow: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.root[data-split-button] .menu > button.item:hover:not(:disabled),
+.root[data-split-button] .menu > button.item:focus-visible {
+  background: color-mix(in srgb, var(--split-surface), var(--split-text) 8%);
+  outline-offset: -3px;
+}
+@starting-style {
+  .menu:popover-open {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+@media (max-width: 960px) {
+  .root {
+    --split-safe-bottom: 112px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .root .menu,
+  .root .trigger svg {
+    transition: none;
+  }
+}
+@media print {
+  .root {
+    display: none;
+  }
+}

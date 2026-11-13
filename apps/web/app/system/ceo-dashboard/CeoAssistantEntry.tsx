@@ -12,21 +12,12 @@ export default function CeoAssistantEntry() {
       <span className={styles.aiEntryMark}>
         <Sparkle aria-hidden="true" weight="fill" />
       </span>
-      <p className={styles.eyebrow}>Fresh AI</p>
-      <h2 id="fresh-ai-title">
-        Your next question
-        <br />
-        starts here.
-      </h2>
-      <p>
-        Collections, batch balances, payment records. Bring your questions into
-        one focused workspace.
-      </p>
+      <p className={styles.eyebrow}>Cloud</p>
+      <h2 id="fresh-ai-title">What’s on your mind?</h2>
       <Link href="/system/assistant" className={styles.reportButton}>
         <ChatCircleDots aria-hidden="true" />
-        Open AI assistant
+        Open Cloud
       </Link>
-      <small>Uses your existing workspace access.</small>
     </section>
   );
 }

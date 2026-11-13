@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   ConflictException,
   ForbiddenException,
@@ -700,111 +701,113 @@ export class ReportsService {
           throw new ForbiddenException("Your report access has changed.");
         }
 
-        const batch = input.batchId
-          ? await tx.batch.findUnique({
-              where: { id: input.batchId },
-              select: { code: true },
-            })
-          : null;
+        return replayCooWrite(tx, user.id, async () => {
+          const batch = input.batchId
+            ? await tx.batch.findUnique({
+                where: { id: input.batchId },
+                select: { code: true },
+              })
+            : null;
 
-        if (input.batchId && !batch) {
-          throw new NotFoundException("This batch is no longer available.");
-        }
+          if (input.batchId && !batch) {
+            throw new NotFoundException("This batch is no longer available.");
+          }
 
-        const payload =
-          input.kind === "PAYMENTS"
-            ? {
-                ...(await this.paymentReport(query, tx)),
-                filters: {
-                  ...(input.batchId
-                    ? { batchId: input.batchId, batchCode: batch!.code }
-                    : {}),
-                  ...(input.status ? { status: input.status } : {}),
-                },
-              }
-            : input.kind === "COLLECTIONS"
-              ? await (async () => {
-                  const report = await collections(tx, query, true);
-
-                  return {
-                    totals: report.totals,
-                    batches: report.items,
-                    balanceBasis: "current",
-                    paymentGrouping: "current_client_batch",
-                    filters: input.batchId
+          const payload =
+            input.kind === "PAYMENTS"
+              ? {
+                  ...(await this.paymentReport(query, tx)),
+                  filters: {
+                    ...(input.batchId
                       ? { batchId: input.batchId, batchCode: batch!.code }
-                      : {},
-                  };
-                })()
-              : input.kind === "RECONCILIATION"
+                      : {}),
+                    ...(input.status ? { status: input.status } : {}),
+                  },
+                }
+              : input.kind === "COLLECTIONS"
                 ? await (async () => {
-                    const report = await reconciliation(tx, query, true);
+                    const report = await collections(tx, query, true);
 
                     return {
                       totals: report.totals,
-                      groups: report.items,
-                      basis: "current_payment_state",
-                      paymentGrouping: "recorded_payment_batch",
-                      externalStatementMatched: false,
+                      batches: report.items,
+                      balanceBasis: "current",
+                      paymentGrouping: "current_client_batch",
                       filters: input.batchId
                         ? { batchId: input.batchId, batchCode: batch!.code }
                         : {},
                     };
                   })()
-                : input.kind === "TASKS"
-                  ? await this.taskReport(query, tx)
-                  : await this.supportReport(query, tx);
+                : input.kind === "RECONCILIATION"
+                  ? await (async () => {
+                      const report = await reconciliation(tx, query, true);
 
-        const created = await tx.reportSnapshot.create({
-          data: {
-            kind: input.kind,
-            periodStart: new Date(input.periodStart),
-            periodEnd: new Date(input.periodEnd),
-            payload: JSON.parse(
-              JSON.stringify(payload),
-            ) as Prisma.InputJsonValue,
-            createdById: user.id,
-          },
-        });
+                      return {
+                        totals: report.totals,
+                        groups: report.items,
+                        basis: "current_payment_state",
+                        paymentGrouping: "recorded_payment_batch",
+                        externalStatementMatched: false,
+                        filters: input.batchId
+                          ? { batchId: input.batchId, batchCode: batch!.code }
+                          : {},
+                      };
+                    })()
+                  : input.kind === "TASKS"
+                    ? await this.taskReport(query, tx)
+                    : await this.supportReport(query, tx);
 
-        if (input.analysis) {
-          const submission = await tx.reportAnalysis.create({
+          const created = await tx.reportSnapshot.create({
             data: {
-              snapshotId: created.id,
-              body: input.analysis,
-              submittedById: user.id,
+              kind: input.kind,
+              periodStart: new Date(input.periodStart),
+              periodEnd: new Date(input.periodEnd),
+              payload: JSON.parse(
+                JSON.stringify(payload),
+              ) as Prisma.InputJsonValue,
+              createdById: user.id,
             },
+          });
+
+          if (input.analysis) {
+            const submission = await tx.reportAnalysis.create({
+              data: {
+                snapshotId: created.id,
+                body: input.analysis,
+                submittedById: user.id,
+              },
+            });
+
+            await tx.auditEntry.create({
+              data: {
+                actorId: user.id,
+                action: "report_analysis.submitted",
+                entity: "report_analysis",
+                recordId: submission.id,
+                after: { snapshotId: created.id, body: submission.body },
+              },
+            });
+          }
+
+          const snapshot = await tx.reportSnapshot.findUniqueOrThrow({
+            where: { id: created.id },
+            include: snapshotInclude,
           });
 
           await tx.auditEntry.create({
             data: {
               actorId: user.id,
-              action: "report_analysis.submitted",
-              entity: "report_analysis",
-              recordId: submission.id,
-              after: { snapshotId: created.id, body: submission.body },
+              action: "report_snapshot.created",
+              entity: "report_snapshot",
+              recordId: snapshot.id,
+              after: JSON.parse(
+                JSON.stringify(snapshot),
+              ) as Prisma.InputJsonValue,
             },
           });
-        }
 
-        const snapshot = await tx.reportSnapshot.findUniqueOrThrow({
-          where: { id: created.id },
-          include: snapshotInclude,
+          return snapshot;
         });
-
-        await tx.auditEntry.create({
-          data: {
-            actorId: user.id,
-            action: "report_snapshot.created",
-            entity: "report_snapshot",
-            recordId: snapshot.id,
-            after: JSON.parse(
-              JSON.stringify(snapshot),
-            ) as Prisma.InputJsonValue,
-          },
-        });
-
-        return snapshot;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
@@ -822,37 +825,39 @@ export class ReportsService {
         throw new ForbiddenException("Your report access has changed.");
       }
 
-      const snapshot = await tx.reportSnapshot.findFirst({
-        where: { id: snapshotId, kind: { in: [...reportKindsFor(current)] } },
-        include: { analysis: { select: { id: true } } },
+      return replayCooWrite(tx, user.id, async () => {
+        const snapshot = await tx.reportSnapshot.findFirst({
+          where: { id: snapshotId, kind: { in: [...reportKindsFor(current)] } },
+          include: { analysis: { select: { id: true } } },
+        });
+
+        if (!snapshot) {
+          throw new NotFoundException("Saved report not found.");
+        }
+
+        if (snapshot.analysis) {
+          throw new ConflictException(
+            "This saved report already has submitted analysis. It cannot be replaced.",
+          );
+        }
+
+        const submission = await tx.reportAnalysis.create({
+          data: { snapshotId, body, submittedById: user.id },
+          include: { submittedBy: { select: { id: true, name: true } } },
+        });
+
+        await tx.auditEntry.create({
+          data: {
+            actorId: user.id,
+            action: "report_analysis.submitted",
+            entity: "report_analysis",
+            recordId: submission.id,
+            after: { snapshotId, body: submission.body },
+          },
+        });
+
+        return submission;
       });
-
-      if (!snapshot) {
-        throw new NotFoundException("Saved report not found.");
-      }
-
-      if (snapshot.analysis) {
-        throw new ConflictException(
-          "This saved report already has submitted analysis. It cannot be replaced.",
-        );
-      }
-
-      const submission = await tx.reportAnalysis.create({
-        data: { snapshotId, body, submittedById: user.id },
-        include: { submittedBy: { select: { id: true, name: true } } },
-      });
-
-      await tx.auditEntry.create({
-        data: {
-          actorId: user.id,
-          action: "report_analysis.submitted",
-          entity: "report_analysis",
-          recordId: submission.id,
-          after: { snapshotId, body: submission.body },
-        },
-      });
-
-      return submission;
     });
   }
 

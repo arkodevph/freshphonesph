@@ -1,0 +1,1199 @@
+/* COO task workspace: Linear's focused list/creation flow, in Freshphones materials. */
+.page,
+.assignmentDialog,
+.detailDialog {
+  --task-panel: rgb(255 255 255 / 80%);
+  --task-menu: #f5f8fd;
+  --task-edge: rgb(255 255 255 / 90%);
+  --task-control-edge: #d5deea;
+  --task-inset: rgb(237 243 251 / 64%);
+  --task-rim: rgb(255 255 255 / 85%);
+  --task-shadow: 0 14px 34px -24px #23365355;
+  --task-green: #217354;
+  --task-amber: #91600b;
+  --task-purple: #765293;
+  --task-danger: #ad384d;
+  --portal-text: var(--system-text);
+  --portal-muted: var(--system-muted);
+  --portal-border: var(--task-control-edge);
+  --portal-surface: var(--task-menu);
+  --portal-accent: var(--system-accent);
+  --portal-accent-soft: var(--system-accent-soft);
+  --select-safe-top: 100px;
+  color: var(--system-text);
+}
+:global(html[data-system-theme="dark"])
+  :is(.page, .assignmentDialog, .detailDialog) {
+  --task-panel: rgb(39 50 68 / 80%);
+  --task-menu: #293549;
+  --task-edge: rgb(207 226 255 / 16%);
+  --task-control-edge: #43516a;
+  --task-inset: rgb(202 222 251 / 5%);
+  --task-rim: rgb(235 246 255 / 8%);
+  --task-shadow: 0 16px 36px -26px #0009;
+  --task-green: #86d9b8;
+  --task-amber: #e9c780;
+  --task-purple: #d1b1ea;
+  --task-danger: #f4a3b2;
+  color-scheme: dark;
+}
+:global(.system-content):has(.page) {
+  background:
+    radial-gradient(ellipse at 0% 0%, #bbd3ef77, transparent 52%),
+    radial-gradient(ellipse at 100% 74%, #d5c8ea5c, transparent 52%),
+    linear-gradient(140deg, #edf2f9, #f0f3f8 52%, #e9f0f5);
+}
+:global(html[data-system-theme="dark"]) :global(.system-content):has(.page) {
+  background:
+    radial-gradient(ellipse at 0% 0%, #2b5b7852, transparent 52%),
+    radial-gradient(ellipse at 100% 74%, #55456c40, transparent 52%),
+    linear-gradient(140deg, #131f2c, #1c2231 52%, #192a35);
+}
+.page {
+  max-width: 1600px;
+  gap: 24px;
+  margin-inline: auto;
+}
+.page .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 4px 0 2px;
+}
+.header h1 {
+  margin: 8px 0 7px;
+  font-size: clamp(28px, 2.6vw, 36px);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+.header p {
+  color: var(--system-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.header .eyebrow {
+  font-size: 11px;
+}
+.eyebrow > span {
+  margin-inline: 8px;
+  opacity: 0.6;
+}
+.page .primary,
+.assignmentDialog .primary,
+.detailDialog button[type="submit"] {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #ffffff55;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: #245fbd;
+  box-shadow:
+    0 4px 10px -4px #245fbd80,
+    inset 0 1px 0 #ffffff40;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.primary svg {
+  width: 18px;
+  height: 18px;
+}
+.page .primary:hover,
+.assignmentDialog .primary:hover {
+  background: #1d50a2;
+}
+.page .secondary,
+.assignmentDialog .secondary {
+  min-height: 44px;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: var(--task-inset);
+  color: var(--system-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.workload,
+.listPanel {
+  min-width: 0;
+  border: 1px solid var(--task-edge);
+  border-radius: 24px;
+  background: var(--task-panel);
+  box-shadow:
+    var(--task-shadow),
+    inset 0 1px 0 var(--task-rim);
+  -webkit-backdrop-filter: blur(20px) saturate(125%);
+  backdrop-filter: blur(20px) saturate(125%);
+}
+.workload {
+  position: relative;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 32px;
+  padding: 12px;
+}
+.total {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  border: 1px solid #ffffff24;
+  border-radius: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(118deg, #143b40, #22575e 60%, #4b6c91);
+  box-shadow: inset 0 1px 0 #ffffff14;
+  color: #f4fcff;
+}
+.total > span {
+  font-size: 12px;
+  color: #d1e8ed;
+}
+.total > strong {
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+.total > small {
+  color: #d1e8ed;
+  font-size: 10px;
+}
+.statusOverview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 20px;
+  padding-right: 20px;
+}
+.statusOverview .workloadFilter {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 8px;
+  border: 0;
+  border: 0;
+  background: transparent;
+  color: var(--system-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.workloadFilter > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--system-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.workloadFilter svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+
+.workloadFilter > strong {
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusOverview .workloadFilter:hover {
+  background: var(--workspace-inset);
+}
+
+.statusOverview .workloadFilter[aria-pressed="true"] {
+  color: var(--system-text);
+  font-weight: 600;
+}
+
+.statusOverview [data-task-status="IN_PROGRESS"] svg {
+  color: var(--system-accent);
+}
+.statusOverview [data-task-status="SUBMITTED"] svg {
+  color: var(--task-purple);
+}
+.statusOverview [data-task-status="DONE"] svg {
+  color: var(--task-green);
+}
+.page .countRetry {
+  position: absolute;
+  right: 20px;
+  bottom: 4px;
+  min-height: 30px;
+  color: var(--system-accent);
+  font-size: 11px;
+}
+.listPanel {
+  padding: 0;
+}
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+}
+.listHeader h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.listHeader h2 > span {
+  border: 1px solid var(--task-control-edge);
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: var(--system-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.listHeader p {
+  margin-top: 5px;
+  color: var(--system-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.statusFilter {
+  width: 175px;
+  flex: none;
+}
+.page .statusFilter [role="combobox"],
+.assignmentDialog .field [role="combobox"],
+.detailDialog [role="combobox"] {
+  min-height: 44px;
+  border-color: var(--task-control-edge);
+  border-radius: 12px;
+  background: var(--task-inset);
+  padding: 10px 14px;
+  box-shadow: inset 0 1px 0 var(--task-rim);
+  color: var(--system-text);
+  font-size: 13px;
+  font-weight: 400;
+}
+.page .statusFilter [role="combobox"] {
+  border-radius: 999px;
+  font-size: 12px;
+}
+.page [role="listbox"],
+.assignmentDialog [role="listbox"],
+.detailDialog [role="listbox"] {
+  border-color: var(--task-control-edge);
+  border-radius: 16px;
+  padding: 6px;
+  background: var(--task-menu);
+  color: var(--system-text);
+  box-shadow: 0 16px 40px -16px #10243c66;
+  font-size: 13px;
+}
+.page [role="option"],
+.assignmentDialog [role="option"] {
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 400;
+}
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+.table th {
+  border-block: 1px solid var(--task-control-edge);
+  padding: 14px 16px;
+  background: var(--task-inset);
+  color: var(--system-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.table th:first-child,
+.table td:first-child {
+  padding-left: 24px;
+}
+.table th:last-child,
+.table td:last-child {
+  padding-right: 24px;
+}
+.table td {
+  border-bottom: 1px solid var(--task-control-edge);
+  padding: 22px 16px;
+  vertical-align: middle;
+}
+.table tr:last-child td {
+  border-bottom: 0;
+}
+.table tbody tr:hover {
+  background: var(--task-inset);
+}
+.table td:first-child {
+  min-width: 180px;
+  width: 31%;
+}
+.page .taskTitle {
+  display: inline;
+  min-height: 0;
+  border-radius: 4px;
+  padding: 0;
+  background: transparent;
+  color: var(--system-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.taskTitle:hover {
+  color: var(--system-accent);
+}
+.instructions {
+  display: -webkit-box;
+  max-width: 42ch;
+  overflow: hidden;
+  margin-top: 6px;
+  color: var(--system-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.assignee {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 150px;
+  max-width: 210px;
+  line-height: 1.5;
+}
+.avatar {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 50%;
+  background: var(--system-accent-soft);
+  color: var(--system-accent);
+  font-size: 9px;
+  font-weight: 500;
+}
+.priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--system-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.priority i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--system-muted);
+}
+.priority[data-priority="HIGH"] i {
+  background: var(--task-danger);
+}
+.priority[data-priority="MEDIUM"] i {
+  background: var(--task-amber);
+}
+.table time {
+  display: block;
+  min-width: 100px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+.table time small,
+.timing {
+  display: block;
+  margin-top: 4px;
+  color: var(--system-muted);
+  font-size: 10px;
+}
+.status {
+  display: inline-block;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--system-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.status[data-task-status="IN_PROGRESS"] {
+  color: var(--system-accent);
+}
+.status[data-task-status="SUBMITTED"] {
+  color: var(--task-purple);
+}
+.status[data-task-status="DONE"] {
+  color: var(--task-green);
+}
+.page .openTask {
+  min-height: 36px;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: var(--task-inset);
+  color: var(--system-accent);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pagination {
+  padding: 0 24px;
+}
+.pagination > div {
+  border-top: 1px solid var(--task-control-edge);
+}
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  min-height: 220px;
+  align-content: center;
+  padding: 28px;
+  text-align: center;
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.empty > svg {
+  width: 34px;
+  height: 34px;
+  color: var(--system-accent);
+}
+.empty h3 {
+  color: var(--system-text);
+  font-size: 16px;
+  font-weight: 500;
+}
+.empty p {
+  max-width: 45ch;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.error {
+  border: 1px solid var(--task-control-edge);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--task-inset);
+  color: var(--task-danger);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.error button {
+  margin-top: 8px;
+  color: var(--system-accent);
+}
+.footnote {
+  color: var(--system-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.assignmentDialog {
+  opacity: var(--dialog-progress, 1);
+  transform: translateX(calc((1 - var(--dialog-progress, 1)) * 36px));
+  font-family: var(--font-workspace, ui-sans-serif, system-ui, sans-serif);
+  --select-safe-top: 170px;
+  --select-safe-bottom: 96px;
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(580px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 24px 0 0 24px;
+  padding: 0;
+  background: var(--task-menu);
+  box-shadow: -24px 0 80px -30px #0c182d80;
+}
+.assignmentDialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.assignmentDialog::backdrop,
+.detailDialog::backdrop {
+  background: #101c3466;
+  backdrop-filter: blur(5px);
+}
+.drawerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex: none;
+  border-bottom: 1px solid var(--task-control-edge);
+  padding: 28px;
+}
+.drawerHeader span {
+  color: var(--system-muted);
+  font-size: 11px;
+}
+.drawerHeader h2 {
+  margin: 8px 0;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.drawerHeader p {
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.assignmentDialog .closeButton {
+  display: grid;
+  width: 36px;
+  min-height: 36px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 50%;
+  padding: 8px;
+  color: var(--system-muted);
+  background: var(--task-inset);
+  cursor: pointer;
+}
+.closeButton svg {
+  width: 18px;
+  height: 18px;
+}
+.assignmentForm {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  padding: 28px;
+}
+.assignmentForm .field {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--system-text);
+}
+.field small {
+  color: var(--system-muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.assignmentDialog .assignmentForm input,
+.assignmentDialog .assignmentForm textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--task-inset);
+  color: var(--system-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.assignmentForm textarea {
+  resize: vertical;
+}
+.assignmentDialog .assignmentForm input:focus,
+.assignmentDialog .assignmentForm textarea:focus {
+  border-color: var(--system-accent);
+  outline: 2px solid var(--system-accent-soft);
+  outline-offset: 1px;
+}
+.formColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.dateInput {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+.assignmentForm .dateInput input {
+  font-size: 13px;
+}
+.fieldError {
+  color: var(--task-danger);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.drawerFooter {
+  position: sticky;
+  bottom: -28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: auto;
+  border-top: 1px solid var(--task-control-edge);
+  padding: 20px 0 0;
+  background: var(--task-menu);
+}
+.detailDialog {
+  border-color: var(--task-control-edge);
+  border-radius: 24px;
+  background: var(--task-menu);
+  box-shadow: 0 20px 80px -30px #07172caa;
+}
+.detailDialog h2 {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.detailDialog input,
+.detailDialog textarea,
+.detailDialog select {
+  border-color: var(--task-control-edge);
+  border-radius: 12px;
+  background: var(--task-inset);
+}
+.detailDialog button {
+  font-weight: 500;
+}
+:is(.page, .assignmentDialog, .detailDialog)
+  :is(button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+}
+.assignmentDialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (max-width: 1150px) {
+  .workload {
+    grid-template-columns: 165px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .total {
+    padding: 20px;
+  }
+  .statusOverview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    padding: 12px 8px 12px 0;
+  }
+  .statusOverview dd {
+    margin-top: 5px;
+    font-size: 24px;
+  }
+}
+@media (max-width: 760px) {
+  .page .header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .workload {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .total {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 20px;
+  }
+  .total strong {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .total small {
+    grid-column: 1;
+  }
+  .statusOverview {
+    gap: 20px;
+    padding: 4px 12px 12px;
+  }
+  .listHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+  .statusFilter {
+    width: 100%;
+  }
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: auto;
+  }
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    border-top: 1px solid var(--task-control-edge);
+    padding: 20px;
+  }
+  .table td,
+  .table td:first-child,
+  .table td:last-child {
+    min-width: 0;
+    border: 0;
+    padding: 0;
+  }
+  .table td:first-child,
+  .table td:last-child {
+    grid-column: 1 / -1;
+  }
+  .table td[data-label]:not(:first-child)::before {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--system-muted);
+    font-size: 10px;
+    content: attr(data-label);
+  }
+  .assignee {
+    min-width: 0;
+    max-width: none;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+  .table td:last-child .openTask {
+    width: 100%;
+    min-height: 44px;
+  }
+  .assignmentDialog {
+    width: 100vw;
+    border-radius: 0;
+  }
+  .drawerHeader,
+  .assignmentForm {
+    padding: 22px;
+  }
+  .formColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .drawerFooter {
+    bottom: -22px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page *,
+  .assignmentDialog *,
+  .detailDialog * {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Dedicated COO details: clear properties rail and a focused submission surface. */
+.detailDialog {
+  width: min(940px, calc(100vw - 40px));
+  max-width: calc(100vw - 40px);
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  overflow-y: auto;
+  padding: 0;
+  font-family: var(--font-workspace, ui-sans-serif, system-ui, sans-serif);
+}
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--task-control-edge);
+  padding: 26px 28px;
+}
+.detailHeader p {
+  margin-bottom: 8px;
+  color: var(--system-muted);
+  font-size: 11px;
+}
+.detailHeader h2 {
+  margin: 0 0 12px;
+  font-size: 27px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.detailDialog .closeButton {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 50%;
+  padding: 8px;
+  color: var(--system-muted);
+  background: var(--task-inset);
+}
+.detailLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+}
+.detailSidebar {
+  border-left: 1px solid var(--task-control-edge);
+  padding: 26px 24px;
+  background: var(--task-inset);
+}
+.detailSidebar dl {
+  display: grid;
+  gap: 26px;
+}
+.detailSidebar dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: var(--system-muted);
+  font-size: 11px;
+}
+.detailSidebar dt svg {
+  width: 15px;
+  height: 15px;
+}
+.detailSidebar dd {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.detailMain {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 28px;
+  padding: 28px;
+}
+.detailMain h3 {
+  margin-bottom: 12px;
+  color: var(--system-text);
+  font-size: 15px;
+  font-weight: 500;
+}
+.instructionBlock p,
+.submissionBlock > p {
+  color: var(--system-text);
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.submissionBlock,
+.reportForm {
+  display: grid;
+  gap: 16px;
+  border-top: 1px solid var(--task-control-edge);
+  padding-top: 26px;
+}
+.submissionBlock header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.submissionBlock header svg {
+  width: 20px;
+  height: 20px;
+  color: var(--task-green);
+}
+.submissionBlock header h3 {
+  margin: 0;
+}
+.submissionBlock .submissionTime {
+  color: var(--system-muted);
+  font-size: 11px;
+}
+.reportForm h3 {
+  margin-bottom: 6px;
+}
+.formIntro {
+  color: var(--system-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.reportForm .field {
+  display: grid;
+  gap: 9px;
+  color: var(--system-text);
+  font-size: 12px;
+  font-weight: 500;
+}
+.reportForm .field > span > small {
+  color: var(--system-muted);
+  font-weight: 400;
+}
+.detailDialog .reportForm textarea,
+.detailDialog .reportForm input:not([type="file"]) {
+  border: 1px solid var(--task-control-edge);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--task-inset);
+  color: var(--system-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+.detailDialog .reportForm textarea {
+  resize: vertical;
+}
+.detailDialog .fileUpload {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px dashed var(--task-control-edge);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--task-inset);
+  cursor: pointer;
+}
+.fileUpload:focus-within {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+}
+.fileIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 10px;
+  color: var(--system-accent);
+}
+.fileIcon svg {
+  width: 21px;
+  height: 21px;
+}
+.fileUpload strong,
+.fileUpload small {
+  display: block;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.fileUpload strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.fileUpload small {
+  margin-top: 3px;
+  color: var(--system-muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.detailDialog .removeAttachment {
+  justify-self: start;
+  min-height: 32px;
+  border-radius: 4px;
+  padding: 4px 0;
+  color: var(--system-accent);
+  font-size: 11px;
+  font-weight: 400;
+}
+.reportFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 4px;
+}
+.reportFooter > span {
+  max-width: 21ch;
+  color: var(--system-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.detailNotice {
+  margin: 20px 28px 0;
+  border: 1px solid var(--task-control-edge);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.detailDialog .primary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ffffff55;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: #245fbd;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+}
+.detailDialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (max-width: 760px) {
+  .detailDialog {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    border-radius: 18px;
+  }
+  .detailHeader,
+  .detailMain {
+    padding: 20px;
+  }
+  .detailHeader h2 {
+    font-size: 23px;
+  }
+  .detailLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .detailSidebar {
+    border-left: 0;
+    border-top: 1px solid var(--task-control-edge);
+    padding: 20px;
+  }
+  .detailSidebar dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .detailSidebar dd {
+    font-size: 12px;
+  }
+  .reportFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .reportFooter > span {
+    max-width: none;
+  }
+  .detailDialog .reportFooter .primary {
+    width: 100%;
+  }
+}
+
+.assignmentDialog .assignmentForm :is(input, textarea):disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* The legacy global dark form rule marks its fill important; keep this override COO-only. */
+.page .assignmentDialog .assignmentForm :is(input, textarea),
+.page .detailDialog .reportForm :is(input:not([type="file"]), textarea) {
+  background-color: var(--task-inset) !important;
+}
+
+.page .assignmentDialog .assignmentForm :is(input, textarea)::placeholder,
+.page .detailDialog .reportForm :is(input, textarea)::placeholder {
+  color: var(--system-muted);
+  opacity: 1;
+}
+
+/* COO operational material follows the shared workspace palette. */
+:global(
+    .system-shell[data-workspace-role="pioneer_agent"][data-workspace-theme]
+  )
+  :is(.page, .assignmentDialog, .detailDialog) {
+  --task-panel: var(--system-surface);
+  --task-menu: var(--workspace-control);
+  --task-edge: var(--system-border);
+  --task-control-edge: var(--system-border);
+  --task-inset: var(--workspace-inset);
+  --task-rim: transparent;
+  --task-shadow: none;
+}
+
+:global(
+    .system-shell[data-workspace-role="pioneer_agent"][data-workspace-theme]
+  )
+  :is(.workload, .listPanel) {
+  border-radius: var(--workspace-panel-radius);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* Beautiful UI's count filters sit with their results, with text/check selection. */
+.listPanel .workload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px 20px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.listPanel .statusOverview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
+}
+.listPanel .workload :is(.total, .workloadFilter) {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--system-muted);
+  box-shadow: none;
+  cursor: pointer;
+}
+.listPanel .workload :is(.total, .workloadFilter) > span {
+  color: inherit;
+  font-size: 12px;
+}
+.listPanel .workload :is(.total, .workloadFilter) > strong {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.listPanel .workload :is(.total, .workloadFilter)[aria-pressed="true"] {
+  color: var(--system-text);
+  font-weight: 600;
+}
+.listPanel .workload :is(.total, .workloadFilter):hover {
+  background: var(--workspace-inset);
+}
+.listPanel .workload :is(.selectedCheck, .total > svg) {
+  width: 14px;
+  height: 14px;
+  color: var(--system-muted);
+}
+.listPanel .workload .countRetry {
+  position: static;
+}
+@media (max-width: 760px), (pointer: coarse) {
+  .listPanel .workload {
+    padding-inline: 16px;
+  }
+  .listPanel .workload :is(.total, .workloadFilter) {
+    min-height: 44px;
+  }
+}

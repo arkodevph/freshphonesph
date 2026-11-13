@@ -1,5 +1,1 @@
-import RoleWorkspace from "../RoleWorkspace";
-
-export default function Page() {
-  return <RoleWorkspace section="network" />;
-}
+export { default } from "../_role-designs/agent-network";

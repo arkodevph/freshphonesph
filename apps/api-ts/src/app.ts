@@ -3,7 +3,10 @@ import { SubmissionChecklistsService } from "./submission-checklists/checklists.
 import { OperationsMonitorController } from "./operations-monitor/monitor.controller";
 import { OperationsMonitorService } from "./operations-monitor/monitor.service";
 import { AssistantConversationsService } from "./assistant/conversations.service";
-import { AssistantConversationsController } from "./assistant/conversations.controller";
+import {
+  AssistantConversationsController,
+  AssistantProjectsController,
+} from "./assistant/conversations.controller";
 import { WithdrawalsController } from "./withdrawals/withdrawals.controller";
 import { assistantCallContext } from "./assistant/access";
 import { AssistantToolsService } from "./assistant/tools.service";
@@ -20,7 +23,11 @@ import {
   Module,
   ServiceUnavailableException,
 } from "@nestjs/common";
-import { APP_GUARD, NestFactory } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR, NestFactory } from "@nestjs/core";
+import { cooRequestContext } from "./coo-security/request-replay";
+import { CooReadCache } from "./coo-security/read-cache.service";
+import { CooReplayMaintenance } from "./coo-security/replay-maintenance.service";
+import { CooReadCacheInterceptor } from "./coo-security/read-cache.interceptor";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import type { Request, Response, NextFunction } from "express";
@@ -136,6 +143,7 @@ export async function createApp(config: Config = readConfig()) {
         OperationsMonitorController,
         AssistantController,
         AssistantConversationsController,
+        AssistantProjectsController,
         OperationsController,
         RetentionController,
         CatalogController,
@@ -172,6 +180,8 @@ export async function createApp(config: Config = readConfig()) {
         AssistantToolsService,
         AssistantConversationsService,
         AbuseService,
+        CooReadCache,
+        CooReplayMaintenance,
         RedisEventsService,
         WorkQueueService,
         CatalogService,
@@ -210,6 +220,7 @@ export async function createApp(config: Config = readConfig()) {
         { provide: APP_GUARD, useClass: PublicAbuseGuard },
         { provide: APP_GUARD, useClass: AccessGuard },
         { provide: APP_GUARD, useClass: AccountAbuseGuard },
+        { provide: APP_INTERCEPTOR, useClass: CooReadCacheInterceptor },
       ],
     },
     { logger: config.NODE_ENV === "test" ? false : ["log", "warn", "error"] },
@@ -232,9 +243,9 @@ export async function createApp(config: Config = readConfig()) {
   app.enableCors({
     origin: browserOrigins(config),
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "X-Membership-Id"],
-    exposedHeaders: ["Retry-After"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "X-Membership-Id", "Idempotency-Key"],
+    exposedHeaders: ["Retry-After", "Idempotency-Replayed"],
     preflightContinue: true,
   });
 
@@ -279,6 +290,8 @@ export async function createApp(config: Config = readConfig()) {
   app.useBodyParser("json", { limit: "512kb" });
 
   app.use(assistantCallContext);
+
+  app.use(cooRequestContext(config));
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Cache-Control", "no-store");

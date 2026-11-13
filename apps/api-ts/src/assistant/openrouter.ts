@@ -39,7 +39,7 @@ export async function answerWithOpenRouter(
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "X-OpenRouter-Title": "Freshphones Fresh AI",
+          "X-OpenRouter-Title": "Freshphones Cloud",
         },
         body: JSON.stringify({
           model:
@@ -109,7 +109,7 @@ export async function answerWithOpenRouter(
     return {
       ...guide,
       kind: guide.kind === "change-request" ? "change-request" : "knowledge",
-      title: "Fresh AI guidance",
+      title: "Cloud guidance",
       paragraphs: answer.paragraphs,
       sources: guide.sources.length
         ? ["Curated Freshphones product guidance"]
@@ -123,11 +123,11 @@ export async function answerWithOpenRouter(
       policy: { ...guide.policy, providerConnected: true },
     };
   } catch {
-    console.warn("Fresh AI provider request failed", { stage, status });
+    console.warn("Cloud provider request failed", { stage, status });
 
     // Never return provider errors: they may contain credentials or request data.
     throw new ServiceUnavailableException(
-      "Fresh AI could not reach its model or receive a complete answer. Please try again shortly.",
+      "Cloud could not reach its model or receive a complete answer. Please try again shortly.",
     );
   }
 }

@@ -1,0 +1,48 @@
+.mark {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.mark canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fallback {
+  position: absolute;
+  inset: 12%;
+  border-radius: 45% 45% 40% 40%;
+  background: radial-gradient(circle at 35% 25%, #fafbf4, #b1d0c5);
+  box-shadow: inset -3px -5px 8px rgb(53 88 75 / 15%);
+}
+.fallback i {
+  position: absolute;
+  top: 42%;
+  width: 9%;
+  height: 13%;
+  border-radius: 50%;
+  background: #283431;
+}
+.fallback i:first-child {
+  left: 29%;
+}
+.fallback i:last-child {
+  right: 29%;
+}
+.mark[data-rendered="true"] .fallback {
+  display: none;
+}
+.mark[data-rendered="false"][data-active="true"] .fallback {
+  animation: fallback-think 1.8s ease-in-out infinite;
+}
+@keyframes fallback-think {
+  50% {
+    transform: translateY(-2px) rotate(4deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fallback {
+    animation: none !important;
+  }
+}

@@ -2,12 +2,9 @@
 
 import { createPortal, flushSync } from "react-dom";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import {
-  DownloadSimple,
-  Printer,
-  X,
-  ArrowClockwise,
-} from "@phosphor-icons/react";
+import { DownloadSimple, Printer, ArrowClockwise } from "@phosphor-icons/react";
+import ModalCloseButton from "./ModalCloseButton";
+import { useSpringDialog } from "@/lib/useSpringDialog";
 import { AccountDocumentSheet } from "./AccountDocumentSheet";
 import {
   getStaffAccountDocument,
@@ -35,6 +32,8 @@ export function HandlerAccountDocument({
 }) {
   const [mounted, setMounted] = useState(false);
 
+  const [closing, setClosing] = useState(false);
+
   const [snapshot, setSnapshot] = useState<AccountDocumentSnapshot | null>(
     null,
   );
@@ -48,6 +47,12 @@ export function HandlerAccountDocument({
   const [actionError, setActionError] = useState<string | null>(null);
 
   const dialog = useRef<HTMLDialogElement>(null);
+
+  useSpringDialog(dialog, mounted && !closing, onClose);
+
+  function close() {
+    setClosing(true);
+  }
 
   const title = useRef<HTMLHeadingElement>(null);
 
@@ -185,14 +190,6 @@ export function HandlerAccountDocument({
   );
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted || !dialog.current) {
-      return;
-    }
-
     const active = document.activeElement as HTMLElement | null;
 
     const popover = active?.closest("[popover]");
@@ -203,11 +200,17 @@ export function HandlerAccountDocument({
         )
       : active;
 
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !dialog.current) {
+      return;
+    }
+
     const overflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
-
-    dialog.current.showModal();
 
     title.current?.focus();
 
@@ -317,6 +320,7 @@ export function HandlerAccountDocument({
   return createPortal(
     <dialog
       ref={dialog}
+      data-handler-modal
       className={styles.dialog}
       aria-labelledby={headingId}
       data-account-document=""
@@ -324,12 +328,11 @@ export function HandlerAccountDocument({
       onCancel={(event) => {
         event.preventDefault();
 
-        onClose();
+        close();
       }}
-      onClose={onClose}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
-          onClose();
+          close();
         }
       }}
     >
@@ -340,14 +343,7 @@ export function HandlerAccountDocument({
             {name}
           </h2>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className={styles.close}
-          aria-label={`Close ${name}`}
-        >
-          <X aria-hidden="true" />
-        </button>
+        <ModalCloseButton onClick={close} />
         <div className={styles.actions}>
           <button
             type="button"

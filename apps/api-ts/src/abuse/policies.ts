@@ -25,6 +25,11 @@ export const abusePolicies = {
   streamAccount: [[40, 60]],
   accountRead: [[600, 60]],
   accountWrite: [[120, 60]],
+  cooRead: [[300, 60]],
+  cooWrite: [
+    [30, 60],
+    [300, 3600],
+  ],
 } as const;
 
 export type AbusePolicyName = keyof typeof abusePolicies;

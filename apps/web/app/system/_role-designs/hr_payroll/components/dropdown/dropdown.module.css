@@ -1,0 +1,167 @@
+.tooltip {
+  position: fixed;
+  inset: auto;
+  z-index: 85;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  margin: 0;
+  overflow: auto;
+  padding: 9px 12px;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  background:
+    linear-gradient(var(--system-surface), var(--system-surface)),
+    var(--system-bg);
+  color: var(--system-text);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.root {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--system-text);
+}
+.root .trigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--system-border);
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: var(--system-surface);
+  color: var(--system-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.trigger svg,
+.option svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--system-muted);
+}
+.trigger:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+}
+.trigger:hover:not(:disabled),
+.trigger[aria-expanded="true"] {
+  border-color: var(--system-accent);
+}
+.trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.text {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border: 1px solid var(--system-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(var(--system-surface), var(--system-surface)),
+    var(--system-bg);
+  color: var(--system-text);
+  box-shadow: 0 14px 30px rgb(0 0 0 / 16%);
+  font-size: 13px;
+  font-weight: 400;
+}
+.search {
+  position: sticky;
+  z-index: 1;
+  top: -5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px;
+  background:
+    linear-gradient(var(--system-surface), var(--system-surface)),
+    var(--system-bg);
+}
+.search > svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--system-muted);
+}
+.search input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 6px 8px;
+  border: 1px solid var(--system-border);
+  border-radius: 8px;
+  background: var(--system-surface);
+  color: var(--system-text);
+  font: inherit;
+}
+.search input:focus {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 1px;
+}
+.option {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.option[data-active] {
+  background: var(--system-accent-soft);
+}
+.option[aria-selected="true"] {
+  font-weight: 600;
+}
+.option[aria-selected="true"] svg {
+  color: var(--system-accent);
+}
+.option[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.empty {
+  padding: 14px 10px;
+  color: var(--system-muted);
+}
+.native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: none), (pointer: coarse) {
+  .text {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

@@ -1,0 +1,28 @@
+.eyebrow {
+  margin-bottom: 6px;
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.revision {
+  margin-top: 20px;
+  padding: 20px 0;
+  border-block: 1px solid var(--system-border);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.revision h3 {
+  margin-bottom: 8px;
+}
+.revision p {
+  color: var(--system-muted);
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.dialog > header {
+  align-items: flex-start;
+}

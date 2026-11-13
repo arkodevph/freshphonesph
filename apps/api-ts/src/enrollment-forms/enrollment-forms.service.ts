@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   BadRequestException,
   ConflictException,
@@ -54,7 +55,9 @@ export class EnrollmentFormsService {
 
       const current = await requireCurrentUser(tx, user, permission);
 
-      return run(tx, current);
+      return replayCooWrite(tx, user.id, () => {
+        return run(tx, current);
+      });
     });
   }
 

@@ -1,0 +1,24 @@
+.body {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+.content {
+  display: flow-root;
+  min-width: 0;
+}
+
+.summary {
+  list-style: none;
+}
+.summary::-webkit-details-marker {
+  display: none;
+}
+.indicator {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  transform: rotate(calc(var(--disclosure-progress, 0) * 90deg));
+}

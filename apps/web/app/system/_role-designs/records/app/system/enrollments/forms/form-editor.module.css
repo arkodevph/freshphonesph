@@ -1,0 +1,303 @@
+.editor {
+  --form-editor-danger: #a12442;
+  display: grid;
+  min-width: 0;
+  gap: 24px;
+  color: var(--system-text, #17181c);
+}
+
+:global(html[data-system-theme="dark"]) .editor {
+  --form-editor-danger: #ff9ab0;
+}
+
+.panel,
+.question {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+  margin: 0;
+  border: 1px solid var(--system-border, #e5e7ec);
+  border-radius: 16px;
+  padding: 22px;
+  background: var(--system-surface, #fff);
+}
+
+.panelLegend {
+  padding: 0 7px;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.field input,
+.field select,
+.field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--system-border, #d4d7df);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--system-bg, #f4f5f7);
+  color: var(--system-text, #17181c);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.editor button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--system-border, #d4d7df);
+  border-radius: 9px;
+  padding: 9px 12px;
+  background: var(--system-surface, #fff);
+  color: var(--system-text, #17181c);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.editor button:hover:not(:disabled) {
+  border-color: var(--system-accent, #5548ff);
+}
+
+.editor button:disabled,
+.editor input:disabled,
+.editor select:disabled,
+.editor textarea:disabled,
+.editor :disabled > input,
+.editor :disabled > select,
+.editor :disabled > textarea {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.editor input:focus-visible,
+.editor select:focus-visible,
+.editor textarea:focus-visible,
+.editor button:focus-visible,
+.question h3:focus-visible {
+  outline: 2px solid var(--system-accent, #5548ff);
+  outline-offset: 3px;
+}
+
+.help,
+.empty {
+  margin: 0;
+  color: var(--system-muted, #60636e);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.coreField {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+  border-top: 1px solid var(--system-border, #e5e7ec);
+  padding-top: 18px;
+}
+
+.coreField h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.coreField h3 span {
+  margin-left: 8px;
+  color: var(--system-muted, #60636e);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.questions {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+
+.questionsHeading,
+.questionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.questionsHeading > div {
+  min-width: 0;
+  flex: 1 1 250px;
+}
+
+.questionsHeading h2 {
+  margin: 0 0 6px;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.count {
+  border: 1px solid var(--system-border, #e5e7ec);
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: var(--system-muted, #60636e);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.questionHeader h3 {
+  margin: 10px 0 0;
+  border-radius: 4px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.editor .remove {
+  color: var(--system-danger, var(--form-editor-danger));
+}
+
+.questionGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.65fr);
+  gap: 16px;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.checkbox {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--system-accent, #5548ff);
+}
+
+.optionGroup {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--system-border, #e5e7ec);
+  padding: 18px 0 0;
+}
+
+.optionGroup legend {
+  padding: 0 7px 0 0;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.optionRow {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.optionRow .field {
+  flex: 1;
+}
+
+.optionAdd {
+  justify-self: start;
+}
+
+.addQuestion {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  border: 1px dashed var(--system-border, #d4d7df);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.addQuestion .field {
+  min-width: 180px;
+  flex: 1 1 180px;
+}
+
+.empty {
+  border: 1px solid var(--system-border, #e5e7ec);
+  border-radius: 14px;
+  padding: 20px;
+  background: var(--system-surface, #fff);
+}
+
+.error {
+  margin: 0;
+  color: var(--system-danger, var(--form-editor-danger));
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .panel,
+  .question {
+    padding: 16px;
+  }
+
+  .questionGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rowActions {
+    width: 100%;
+  }
+
+  .rowActions button {
+    flex: 1 1 auto;
+  }
+}

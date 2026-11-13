@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import {
   ConflictException,
   ForbiddenException,
@@ -54,7 +55,9 @@ export class RecruitmentService {
         throw new ForbiddenException("Your access has changed.");
       }
 
-      return run(tx);
+      return replayCooWrite(tx, user.id, () => {
+        return run(tx);
+      });
     });
   }
 

@@ -1,3 +1,4 @@
+import { replayCooWrite } from "../coo-security/request-replay";
 import { staffScope, taskScope } from "../records/scope";
 import { businessRole } from "@freshphones/contracts";
 import {
@@ -148,7 +149,9 @@ export class TasksService {
         throw new ForbiddenException("Staff access required.");
       }
 
-      return run(tx, current);
+      return replayCooWrite(tx, user.id, () => {
+        return run(tx, current);
+      });
     });
   }
   private async record(

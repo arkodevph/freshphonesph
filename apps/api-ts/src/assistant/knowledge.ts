@@ -111,13 +111,13 @@ const topics = [
       /\b(account|accounts|role|roles|permission|permissions|access|confirm|confirmation|approval|approve|security|password|passwords)\b/gi,
     title: "Permissions and confirmation",
     paragraphs: [
-      "Fresh AI is limited to Freshphones operations and approved system knowledge. Reading permitted guidance does not require a change confirmation. Access to business records still requires the user's existing role and record scope.",
+      "Cloud is limited to Freshphones operations and approved system knowledge. Reading permitted guidance does not require a change confirmation. Access to business records still requires the user's existing role and record scope.",
       "Adding, editing, deleting, publishing, verifying, approving, rejecting, uploading, importing, exporting private data, sending messages and changing access require explicit review and confirmation of the specific action. Confirmation never grants a missing permission.",
-      "Fresh AI currently has no record-changing tools. Changes must be completed by authorized staff in the existing system workflows.",
+      "Cloud currently has no record-changing tools. Changes must be completed by authorized staff in the existing system workflows.",
     ],
     sources: [
       "Role and access controls (§3, §16)",
-      "Fresh AI confirmation policy",
+      "Cloud confirmation policy",
     ],
   },
   {
@@ -135,7 +135,7 @@ const topics = [
     title: "Freshphones operations guide",
     paragraphs: [
       "Fresh Phones PH manages Paluwagan phone and tablet installment operations: public catalog, enrollment, batches, clients, external payment records, Finance verification, schedules, reports, support, tasks and recruitment.",
-      "Ask about these workflows, balances, payment status, reports or permissions. Fresh AI explains approved Freshphones knowledge. Live records and record-changing actions are not available in chat.",
+      "Ask about these workflows, balances, payment status, reports or permissions. Cloud explains approved Freshphones knowledge. Live records and record-changing actions are not available in chat.",
     ],
     sources: ["Freshphones scope and system overview"],
   },
@@ -172,7 +172,7 @@ export function answerFreshphones(input: AssistantQuestion): AssistantReply {
     paragraphs: [
       ...(change
         ? [
-            "No action has been taken. Fresh AI has no connected change tools. Use the authorized system workflow to review the exact record and proposed changes before submitting. A chat message, including ‘yes’ or ‘confirmed’, does not authorize execution.",
+            "No action has been taken. Cloud has no connected change tools. Use the authorized system workflow to review the exact record and proposed changes before submitting. A chat message, including ‘yes’ or ‘confirmed’, does not authorize execution.",
           ]
         : []),
       ...(topic?.paragraphs ?? [

@@ -1,0 +1,471 @@
+/* Independent ceo design. Edit this role only; this is not regenerated at build time. */
+
+/* Nami: one readable dialog system for the COO workspace. Calendars retain their own layout. */
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal] {
+  --modal-inset: 28px;
+  width: min(680px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: min(92dvh, 960px);
+  margin: auto;
+  padding: var(--modal-inset);
+  border: 1px solid var(--system-border);
+  border-radius: 20px;
+  background: var(--workspace-modal-surface, var(--system-surface));
+  color: var(--system-text);
+  box-shadow: 0 32px 100px -24px rgb(0 0 0 / 55%);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  text-align: left;
+  overflow-wrap: anywhere;
+  scrollbar-gutter: stable;
+}
+html[data-system-theme="dark"] .system-shell[data-workspace-role="ceo"] {
+  --workspace-modal-surface: #181b19;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-size="wide"] {
+  width: min(880px, calc(100vw - 32px));
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-size="media"] {
+  width: min(1120px, calc(100vw - 32px));
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-size="small"] {
+  width: min(520px, calc(100vw - 32px));
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-size="drawer"] {
+  width: min(620px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 0 0 auto;
+  border-radius: 20px 0 0 20px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]::backdrop {
+  background: rgb(0 0 0 / 58%);
+  backdrop-filter: blur(6px);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-framed] {
+  padding: 0;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(h2, .team-dialog-heading h3) {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+  color: var(--system-text);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(h3, h4) {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  dt {
+  color: var(--system-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  dd {
+  margin-top: 5px;
+  color: var(--system-text);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  small {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(input, textarea, [role="combobox"]):not([data-calendar] *) {
+  font-size: 14px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(button, a):not([data-calendar] *) {
+  font-size: 14px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  > header {
+  margin-bottom: 24px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(.finance-review-heading, .team-dialog-heading, .receipt-viewer-heading) {
+  flex: none;
+  padding: 24px var(--modal-inset);
+  border-bottom: 1px solid var(--system-border);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(.finance-review-heading, .team-dialog-heading, .receipt-viewer-heading)
+  p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--system-muted);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(.finance-review-heading, .team-dialog-heading, .receipt-viewer-heading)
+  button {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  flex: none;
+  border-radius: 10px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(
+    .payment-details-shell,
+    .receipt-viewer-shell,
+    form:has(> .finance-review-heading),
+    form:has(> .team-dialog-heading)
+  ) {
+  max-height: min(92dvh, 960px);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(.payment-details-body, .finance-review-body, .team-dialog-body) {
+  min-height: 0;
+  padding: 24px var(--modal-inset);
+  gap: 28px;
+  overscroll-behavior: contain;
+  scroll-padding-block: 24px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(.finance-review-actions, .team-dialog-actions) {
+  flex: none;
+  padding: 16px var(--modal-inset);
+  gap: 12px;
+  border-top: 1px solid var(--system-border);
+  background: var(--workspace-modal-surface, var(--system-surface));
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-details-grid {
+  gap: 20px 32px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-details-body
+  section
+  + section {
+  padding-top: 24px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-details-note {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-details-note
+  strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--system-muted);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .finance-review-payment {
+  padding: 0 0 24px;
+  gap: 20px 32px;
+  border: 0;
+  border-bottom: 1px solid var(--system-border);
+  border-radius: 0;
+  background: transparent;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-transaction-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-amount-label {
+  margin-bottom: 4px;
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-transaction-amount {
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-transaction-client {
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-details-status {
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  .payment-record-id {
+  font-size: 13px;
+  color: var(--system-muted);
+}
+@media (max-width: 600px) {
+  .system-shell[data-workspace-role="ceo"][data-workspace-theme]
+    dialog[data-workspace-modal] {
+    --modal-inset: 20px;
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px;
+  }
+  .system-shell[data-workspace-role="ceo"][data-workspace-theme]
+    dialog[data-workspace-modal][data-modal-size="drawer"] {
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .system-shell[data-workspace-role="ceo"][data-workspace-theme]
+    dialog[data-workspace-modal]
+    .payment-details-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+}
+
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(label, legend):not([data-calendar] *) {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Selected views use label emphasis and neutral fill; focus remains distinct. */
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  :is(
+    button[aria-pressed="true"],
+    .finance-review-choice[data-selected="true"]
+  ) {
+  border-color: transparent;
+  background: var(--workspace-control-hover);
+  color: var(--system-text);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-size="review"] {
+  width: min(1440px, calc(100vw - 40px));
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* One close control across staff dialogs; text buttons keep action semantics. */
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  button[data-modal-close] {
+  display: inline-flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--system-muted);
+  box-shadow: none;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  button[data-modal-close]:hover:not(:disabled) {
+  background: var(--workspace-control-hover);
+  color: var(--system-text);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  button[data-modal-close]
+  svg {
+  width: 18px;
+  height: 18px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  [data-modal-header] {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  footer:empty {
+  display: none;
+}
+
+/* Header, section navigation and task actions stay outside the content scroll. */
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-sections][open] {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  opacity: var(--dialog-progress, 1);
+  transform: translateY(calc((1 - var(--dialog-progress, 1)) * 8px))
+    scale(calc(0.98 + var(--dialog-progress, 1) * 0.02));
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-sections]
+  > [data-modal-header] {
+  flex: none;
+  margin: 0;
+  padding: 24px;
+  border-bottom: 1px solid var(--system-border);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-sections]
+  > nav {
+  flex: none;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--system-border);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-sections]
+  > [data-modal-body] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px;
+  scroll-padding-block: 24px;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-sections]
+  > [data-modal-footer] {
+  flex: none;
+  padding: 16px 24px;
+  border-top: 1px solid var(--system-border);
+}
+@media (pointer: coarse) {
+  .system-shell[data-workspace-role="ceo"][data-workspace-theme]
+    dialog[data-workspace-modal]
+    button[data-modal-close] {
+    flex-basis: 44px;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+@media (max-width: 600px) {
+  .system-shell[data-workspace-role="ceo"][data-workspace-theme]
+    dialog[data-workspace-modal][data-modal-sections]
+    > :is([data-modal-header], [data-modal-body], [data-modal-footer], nav) {
+    padding-inline: 20px;
+  }
+}
+
+/* Long record dialogs retain the same header and close affordance while reading. */
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]:not([data-modal-framed]):not(
+    [data-modal-sections]
+  )
+  > [data-modal-header] {
+  position: sticky;
+  top: calc(-1 * var(--modal-inset));
+  z-index: 3;
+  margin: calc(-1 * var(--modal-inset)) calc(-1 * var(--modal-inset)) 24px;
+  padding: 24px var(--modal-inset);
+  border-bottom: 1px solid var(--system-border);
+  background: var(--workspace-modal-surface, var(--system-surface));
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-size="drawer"]
+  > form {
+  height: 100%;
+  max-height: 100%;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  [data-modal-header]
+  > div {
+  min-width: 0;
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal]
+  [data-modal-header]
+  :is(h2, h3) {
+  overflow-wrap: anywhere;
+}
+
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-spring][open],
+dialog[data-handler-modal][data-modal-spring][open] {
+  animation: none;
+  opacity: var(--dialog-progress, 1);
+  transform: translateY(calc((1 - var(--dialog-progress, 1)) * 8px))
+    scale(calc(0.98 + var(--dialog-progress, 1) * 0.02));
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-spring][open]::backdrop,
+dialog[data-handler-modal][data-modal-spring][open]::backdrop {
+  animation: none;
+  opacity: var(--dialog-progress, 1);
+}
+.system-shell[data-workspace-role="ceo"][data-workspace-theme]
+  dialog[data-workspace-modal][data-modal-spring][data-modal-size="drawer"][open] {
+  opacity: calc(0.72 + var(--dialog-progress, 1) * 0.28);
+  transform: translateX(calc((1 - var(--dialog-progress, 1)) * 100%));
+}

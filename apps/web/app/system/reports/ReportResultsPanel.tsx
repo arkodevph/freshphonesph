@@ -8,6 +8,7 @@ import type { ReportBatchOption, ReportKind } from "@freshphones/contracts";
 import { DownloadSimple, FloppyDisk } from "@phosphor-icons/react";
 import SplitButton from "@/components/SplitButton";
 import styles from "./reports.module.css";
+import ReportTabs from "./ReportTabs";
 import ReportVisuals from "./ReportVisuals";
 import ReportHighlights from "./ReportHighlights";
 import {
@@ -144,26 +145,19 @@ export default function ReportResultsPanel({
         </div>
       </div>
       {showVisuals && (
-        <nav className={styles.reportViews} aria-label="Report view">
-          {[
-            ["overview", "Overview"],
-            ["records", "Detailed figures"],
-            ["history", "Saved reports"],
-          ].map(([value, label]) => {
-            return (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={view === value}
-                onClick={() => {
-                  return setView(value);
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </nav>
+        <ReportTabs
+          label="Report view"
+          variant="views"
+          sliding
+          disabled={false}
+          value={view}
+          onValueChange={setView}
+          items={[
+            { value: "overview", label: "Overview" },
+            { value: "records", label: "Detailed figures" },
+            { value: "history", label: "Saved reports" },
+          ]}
+        />
       )}
       <div
         className={styles.reportContent}

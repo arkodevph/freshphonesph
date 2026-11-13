@@ -16,7 +16,6 @@ import {
   type CatalogQuery,
   type Page,
 } from "@freshphones/contracts";
-import { Stack } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./catalog.module.css";
 import { CatalogEditor } from "./CatalogEditor";
@@ -92,31 +91,6 @@ export function CatalogWorkspace() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.heading}>
-        <span className={styles.icon}>
-          <Stack weight="duotone" />
-        </span>
-        <div>
-          <p>Public website</p>
-          <h1>Unit catalog</h1>
-          <p>
-            Manage the models, daily rates and availability customers can
-            browse.
-          </p>
-        </div>
-        <button
-          data-variant="primary"
-          className={styles.primary}
-          type="button"
-          onClick={() => {
-            setNotice("");
-
-            setEditing("new");
-          }}
-        >
-          Add listing
-        </button>
-      </header>
       <section className={styles.panel} aria-label="Catalog filters">
         <div className={styles.filters}>
           <label>
@@ -182,12 +156,19 @@ export function CatalogWorkspace() {
           >
             Refresh
           </button>
+          <button
+            data-variant="primary"
+            className={styles.primary}
+            type="button"
+            onClick={() => {
+              setNotice("");
+
+              setEditing("new");
+            }}
+          >
+            Add listing
+          </button>
         </div>
-        <p className={styles.help}>
-          Availability is maintained by your team. Hiding a listing removes it
-          from the public catalog. Existing batch agreements and customer
-          balances stay separate.
-        </p>
       </section>
       {notice && (
         <p role="status" className={styles.notice}>

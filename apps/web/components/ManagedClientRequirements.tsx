@@ -7,6 +7,8 @@ import {
   WarningCircle,
   GearSix,
 } from "@phosphor-icons/react";
+import { Field } from "@/components/FormField";
+import styles from "./managed-client-requirements.module.css";
 import {
   createRequirementType,
   listRequirementTypes,
@@ -115,90 +117,109 @@ export function RequirementsManager() {
   }
 
   return (
-    <section className="glass mb-4 rounded-3xl p-5">
-      <h2 className="mb-2 flex items-center gap-2 font-display font-700 text-blue-ink">
-        <GearSix /> Requirement checklist
+    <section
+      className={`glass ${styles.manager}`}
+      aria-label="Requirement checklist"
+    >
+      <h2 className={styles.heading}>
+        <GearSix aria-hidden="true" /> Requirement checklist
       </h2>
-      <p className="mb-3 text-xs text-ink-soft">
+      <p className={styles.intro}>
         Configure approved document types. Existing client documents remain
         available in Documents.
       </p>
       {error && (
-        <p role="alert" className="mb-3 text-sm text-rose-700">
+        <p role="alert" className={styles.error}>
           {error}
         </p>
       )}
-      <form onSubmit={add}>
+      <form onSubmit={add} className={styles.form}>
         <fieldset
           disabled={saving}
-          className="grid min-w-0 gap-3 md:grid-cols-3"
+          className={styles.fields}
+          aria-label="New requirement"
         >
-          <input
-            required
-            aria-label="Requirement code"
-            className={inputCls}
-            value={form.code}
-            maxLength={40}
-            onChange={(event) => {
-              return setForm({ ...form, code: event.target.value });
-            }}
-            placeholder="Requirement code"
-          />
-          <input
-            required
-            aria-label="Requirement label"
-            className={inputCls}
-            value={form.label}
-            maxLength={120}
-            onChange={(event) => {
-              return setForm({ ...form, label: event.target.value });
-            }}
-            placeholder="Requirement label"
-          />
-          <input
-            aria-label="Requirement instructions"
-            className={inputCls}
-            value={form.description}
-            maxLength={500}
-            onChange={(event) => {
-              return setForm({ ...form, description: event.target.value });
-            }}
-            placeholder="What the customer should provide"
-          />
-          <label className="flex items-center gap-2 text-xs text-ink-soft md:col-span-3">
+          <Field label="Requirement code">
             <input
-              type="checkbox"
-              checked={form.customerCanUpload}
+              required
+              aria-label="Requirement code"
+              className={inputCls}
+              value={form.code}
+              maxLength={40}
               onChange={(event) => {
-                return setForm({
-                  ...form,
-                  customerCanUpload: event.target.checked,
-                });
+                return setForm({ ...form, code: event.target.value });
               }}
-            />{" "}
-            Customer may upload and resubmit this document
-          </label>
-          <button
-            type="submit"
-            className="btn-candy rounded-xl px-3 py-2 text-xs font-700"
-          >
-            {saving ? "Adding…" : "Add requirement"}
-          </button>
+              placeholder="e.g. VALID_ID"
+            />
+          </Field>
+          <Field label="Requirement label">
+            <input
+              required
+              aria-label="Requirement label"
+              className={inputCls}
+              value={form.label}
+              maxLength={120}
+              onChange={(event) => {
+                return setForm({ ...form, label: event.target.value });
+              }}
+              placeholder="e.g. Valid government ID"
+            />
+          </Field>
+          <div className={styles.instructions}>
+            <Field label="Customer instructions (optional)">
+              <textarea
+                aria-label="Requirement instructions"
+                className={inputCls}
+                value={form.description}
+                maxLength={500}
+                rows={3}
+                onChange={(event) => {
+                  return setForm({ ...form, description: event.target.value });
+                }}
+                placeholder="What the customer should provide"
+              />
+            </Field>
+          </div>
+          <div className={styles.actions}>
+            <label className={styles.permission}>
+              <input
+                type="checkbox"
+                checked={form.customerCanUpload}
+                onChange={(event) => {
+                  return setForm({
+                    ...form,
+                    customerCanUpload: event.target.checked,
+                  });
+                }}
+              />
+              <span>Customer may upload and resubmit this document</span>
+            </label>
+            <button
+              type="submit"
+              className="btn-candy rounded-xl px-4 py-2 text-sm font-600"
+            >
+              {saving ? "Adding…" : "Add requirement"}
+            </button>
+          </div>
         </fieldset>
       </form>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {types.map((type) => {
-          return (
-            <span
-              key={type.id}
-              className="rounded-full bg-sky-2/70 px-3 py-1 text-xs text-blue-ink"
-            >
-              {type.label}
-              {type.active ? "" : " (inactive)"}
-            </span>
-          );
-        })}
-      </div>
+      {types.length > 0 && (
+        <div className={styles.existing}>
+          <h3>Configured requirements</h3>
+          <ul>
+            {types.map((type) => {
+              return (
+                <li key={type.id}>
+                  <span>{type.label}</span>
+                  {!type.active && (
+                    <span className={styles.inactive}>Inactive</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

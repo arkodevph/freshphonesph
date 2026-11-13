@@ -30,7 +30,7 @@ export default function CeoDashboardHeader({
         <div className={styles.introActions}>
           <Link href="/system/assistant" className={styles.askAiButton}>
             <Sparkle aria-hidden="true" weight="fill" />
-            Ask Fresh AI
+            Ask Cloud
           </Link>
           <span className={styles.accessBadge}>
             <ShieldCheck aria-hidden="true" />

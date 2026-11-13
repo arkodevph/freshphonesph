@@ -2,39 +2,15 @@
   color: var(--system-text);
   min-width: 0;
 }
-.heading,
 .editorHeading {
   display: flex;
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
 }
-.heading > div,
 .editorHeading > div {
   flex: 1;
   min-width: 0;
-}
-.heading h1 {
-  font-size: 26px;
-  font-weight: 750;
-}
-.heading p,
-.editorHeading p,
-.help {
-  color: var(--system-muted);
-  font-size: 13px;
-  line-height: 1.7;
-}
-.icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: var(--system-accent-soft);
-  color: var(--system-accent);
-  font-size: 28px;
 }
 .panel {
   background: var(--system-surface);
@@ -100,9 +76,6 @@
   background: var(--system-surface);
   color: inherit;
   font-size: 14px;
-}
-.help {
-  margin-top: 14px;
 }
 .tableWrap {
   overflow-x: auto;
@@ -304,12 +277,6 @@
   color: #a2e2bd;
 }
 @media (max-width: 600px) {
-  .heading {
-    flex-wrap: wrap;
-  }
-  .heading > button {
-    margin-left: 68px;
-  }
   .panel,
   .dialog {
     padding: 16px;

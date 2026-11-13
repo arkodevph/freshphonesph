@@ -1,6 +1,6 @@
 "use client";
 
-import HandlerSystemLayout from "./handler/HandlerSystemLayout";
+import HandlerSystemLayout from "./_role-designs/batch_handler/app/system/handler/HandlerSystemLayout";
 import { isBatchHandler } from "@/lib/handler-workspace";
 import SystemSidebar from "./SystemSidebar";
 import { systemNavigation } from "./system-navigation";
@@ -35,10 +35,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import ceoStyles from "./ceo-portal.module.css";
+import ceoStyles from "./_role-designs/ceo/app/system/ceo-portal.module.css";
+import { workspaceDesignRole } from "@/lib/workspace-design-role";
 import "./ios-menus.css";
-import "./coo-workspace.css";
-import "./workspace-modals.css";
+import "./_role-designs/workspaces.css";
 
 const formatRole = (role?: string | null) => {
   if (role === "ceo") {
@@ -322,7 +322,7 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
     <div
       className={`system-shell${me.role === "ceo" ? ` ${ceoStyles.shell}` : ""}${pathname === "/system/assistant" ? ` ${ceoStyles.assistantShell}` : ""}`}
       data-workspace-theme="monex"
-      data-workspace-role={me.role}
+      data-workspace-role={workspaceDesignRole(me.role) ?? me.role}
     >
       <SystemSidebar
         accountId={String(me.id)}
