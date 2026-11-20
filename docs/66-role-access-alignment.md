@@ -26,8 +26,10 @@ prohibition on Agent enrollment. The October 26 CEO report-only decision remains
 Owner and CEO are one report-only business role (`CEO`), displayed as **Owner / CEO**.
 Technical maintenance uses internal `SYSTEM_ADMIN`, never financial verification;
 see [the Owner / CEO correction](67-owner-ceo-role.md). COO cannot provision/change technical administrators
-or change their own role/access assignments. HR role-assignment delegation is undecided,
-so HR cannot grant roles. COO/administrator may approve confidential access for another
+or change their own role/access assignments. HR cannot grant roles. The 2026-11-19
+decision keeps account creation with COO and lets HR submit training-backed enrollment
+requests; see [HR onboarding](159-hr-personnel-onboarding.md). COO/administrator may
+approve confidential access for another
 active HR/COO account, with reason, version, audit and fresh sign-in; no self-grant.
 Consequential HR decisions retain their existing separate approval workflow.
 

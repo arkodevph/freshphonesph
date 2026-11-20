@@ -312,51 +312,51 @@ function StandardStaffAlerts({
             {busy ? "Updating…" : "Mark all as read"}
           </button>
         </header>
-        <nav className={styles.tabs} aria-label="Alert type">
-          {(
-            [
-              "all",
-              "tasks",
-              ...(canWorkflow ? ["workflow"] : []),
-              ...(canFinance ? ["finance"] : []),
-              ...(canResults ? ["results"] : []),
-              ...(canSupport ? ["support"] : []),
-              ...(canAccounts ? ["accounts"] : []),
-              ...(canEnrollments ? ["enrollments"] : []),
-            ] as StaffAlertScope[]
-          ).map((value) => {
-            return (
-              <button
-                type="button"
-                key={value}
-                aria-pressed={scope === value}
-                onClick={() => {
-                  setScope(value);
-
-                  setPage(1);
-
-                  setActionError(null);
-                }}
-              >
-                {value === "all"
-                  ? "All alerts"
-                  : value === "workflow"
-                    ? "Workflow"
-                    : value === "enrollments"
-                      ? "Enrollments"
-                      : value === "tasks"
-                        ? "Tasks"
-                        : value === "finance"
-                          ? "Finance"
-                          : value === "support"
-                            ? "Support"
-                            : value === "accounts"
-                              ? "Accounts"
-                              : "Results"}
-              </button>
-            );
-          })}
-        </nav>
+        <div className={styles.category}>
+          <label htmlFor={`${panelId}-category`}>Show</label>
+          <select
+            id={`${panelId}-category`}
+            value={scope}
+            onChange={(event) => {
+              setScope(event.target.value as StaffAlertScope);
+              setPage(1);
+              setActionError(null);
+            }}
+          >
+            {(
+              [
+                "all",
+                "tasks",
+                ...(canWorkflow ? ["workflow"] : []),
+                ...(canFinance ? ["finance"] : []),
+                ...(canResults ? ["results"] : []),
+                ...(canSupport ? ["support"] : []),
+                ...(canAccounts ? ["accounts"] : []),
+                ...(canEnrollments ? ["enrollments"] : []),
+              ] as StaffAlertScope[]
+            ).map((value) => {
+              return (
+                <option key={value} value={value}>
+                  {value === "all"
+                    ? "All alerts"
+                    : value === "workflow"
+                      ? "Workflow"
+                      : value === "enrollments"
+                        ? "Enrollments"
+                        : value === "tasks"
+                          ? "Tasks"
+                          : value === "finance"
+                            ? "Finance"
+                            : value === "support"
+                              ? "Support"
+                              : value === "accounts"
+                                ? "Accounts"
+                                : "Results"}
+                </option>
+              );
+            })}
+          </select>
+        </div>
         <div className={styles.controls}>
           <label>
             <input
@@ -377,7 +377,7 @@ function StandardStaffAlerts({
               return void load();
             }}
           >
-            Refresh alerts
+            Refresh
           </button>
         </div>
         {actionError && (
@@ -440,7 +440,7 @@ function StandardStaffAlerts({
             </p>
           </div>
         ) : (
-          <ul className={styles.list} aria-busy={loading}>
+          <ul className={styles.list} data-compact="true" aria-busy={loading}>
             {snapshot.items.map((alert) => {
               return (
                 <li key={`${alert.entity}:${alert.id}:${alert.kind}`}>
@@ -476,7 +476,6 @@ function StandardStaffAlerts({
                       <strong>{alert.title}</strong>
                       <p>{alert.message}</p>
                       <small>
-                        {alert.readAt ? "Read" : "Unread"} ·{" "}
                         {new Date(alert.occurredAt).toLocaleString("en-PH", {
                           timeZone: "Asia/Manila",
                           month: "short",
@@ -494,58 +493,36 @@ function StandardStaffAlerts({
           </ul>
         )}
         <footer className={styles.footer}>
-          <nav aria-label="Staff alert pages">
-            <button
-              type="button"
-              disabled={loading || page === 1}
-              onClick={() => {
-                return setPage(page - 1);
-              }}
-            >
-              Previous alerts
-            </button>
-            <span>Page {page}</span>
-            <button
-              type="button"
-              disabled={
-                loading ||
-                !snapshot ||
-                page * snapshot.pageSize >= snapshot.total
-              }
-              onClick={() => {
-                return setPage(page + 1);
-              }}
-            >
-              Next alerts
-            </button>
-          </nav>
-          <div className={styles.links}>
-            <Link href="/system/tasks" onClick={onClose}>
-              Open tasks
-            </Link>
-            {canFinance && (
-              <Link href="/system/payments?status=pending" onClick={onClose}>
-                Open pending payments
-              </Link>
-            )}
-          </div>
-          {canAccounts && (
-            <div className={styles.links}>
-              <Link href="/system/team" onClick={onClose}>
-                Open account directory
-              </Link>
-            </div>
+          {snapshot && snapshot.total > snapshot.pageSize && (
+            <nav aria-label="Staff alert pages">
+              <button
+                type="button"
+                disabled={loading || page === 1}
+                onClick={() => {
+                  return setPage(page - 1);
+                }}
+              >
+                Previous
+              </button>
+              <span>Page {page}</span>
+              <button
+                type="button"
+                disabled={
+                  loading ||
+                  !snapshot ||
+                  page * snapshot.pageSize >= snapshot.total
+                }
+                onClick={() => {
+                  return setPage(page + 1);
+                }}
+              >
+                Next
+              </button>
+            </nav>
           )}
-          {canSupport && (
-            <div className={styles.links}>
-              <Link href="/system/support" onClick={onClose}>
-                Open Support cases
-              </Link>
-            </div>
-          )}
-          <p>
-            Reading an alert marks it as seen. Take action in the source record.
-          </p>
+          <Link href="/system/notifications" onClick={onClose}>
+            View all alerts
+          </Link>
         </footer>
       </WorkspacePopover>
     </div>

@@ -80,7 +80,7 @@ export default function StaffTaskDialog(props: StaffTaskDialogProps) {
     canAssign,
   } = props;
 
-  if (me.role === "coo") {
+  if (me.role === "batch_manager") {
     return <CooTaskDetail {...props} />;
   }
 

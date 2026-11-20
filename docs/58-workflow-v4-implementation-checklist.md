@@ -89,11 +89,13 @@ Depends on 01–04. Payment permissions must remain closed until assignment enfo
 | [ ] 11 | Change | Split broad permissions into the required actions: Batch ID creation, enrollment, activation, handler assignment, payment recording, Records review, Manager review, financial verification and constrained personnel provisioning. | O3–O6; current `BATCH_MANAGE`, `CLIENT_MANAGE`, `ACCOUNT_MANAGE` |
 | [ ] 12 | Change | Make Finance Officer the only financial verifier. Current Owner inherits `PAYMENT_VERIFY`; remove that implicit authority under the approved V4 mapping. Apply equivalent authorization to corrections/reversals and prevent alternate-route bypasses. | O1, O6; [Finance controller](../apps/api-ts/src/finance/finance.controller.ts), [adjustments](40-payment-adjustments.md) |
 | [ ] 13 | New | Store approved reporting/assignment relationships for Batch Managers, Handlers, Operations Coordinator, Pioneer Agents and Agents. Enforce scoped reads and writes, including files, search, counts, exports and live hints. | O2–O4; [existing batch scope](../apps/api-ts/src/records/scope.ts) |
-| [ ] 14 | Change | Let HR provision only approved personnel and permitted roles. Prevent executive/admin self-escalation; preserve separately approved confidential access and customer account isolation. | W1; O3 HR; current account endpoints require Owner-held `ACCOUNT_MANAGE` |
+| [ ] 14 | Change | HR submits training-backed personnel enrollment; COO provisions approved operational roles. Prevent HR account/role writes and executive/admin self-escalation; preserve separately approved confidential access and customer isolation. API implemented locally; screens/acceptance open (docs/159). | W1; O3 HR; current account endpoints require Owner-held `ACCOUNT_MANAGE` |
 | [ ] 15 | Change | Update navigation, landing destinations, forms and role previews to match backend grants. Show each department its authorized work queue and retain drafts on live refresh. | O3–O4; `apps/web/app/system/`, `apps/web/lib/useMe.ts` |
 | [ ] 16 | Verify | Test every V4 role and anonymous/inactive/revoked users. Include CEO/COO denied financial verification, Handler denied enrollment/Batch ID creation, Agent denied payment writes, and assignment change revocation. | O4; extend existing authorization integration suites |
 
 ## Phase 3 Hiring and personnel onboarding
+
+2026-11-19: the user selected HR training submission → COO account creation. The onboarding API, evidence/history, role/supervisor checks and typed web client are implemented; UI integration and acceptance remain open. See [HR personnel onboarding](159-hr-personnel-onboarding.md). This supersedes direct HR role provisioning for this slice; tasks 14 and 18–21 are not marked complete.
 
 Depends on 07, 10–14. Recruitment, orientation and training remain outside the website; store only the approved evidence needed for enrollment.
 
@@ -101,7 +103,7 @@ Depends on 07, 10–14. Recruitment, orientation and training remain outside the
 |---|---|---|---|
 | [x] 17 | Reuse | Retain job listings, applicant review, private attachments and existing account creation services where they serve the approved hiring process. | [recruitment](41-recruitment-directory.md); `src/recruitment/` |
 | [ ] 18 | New | Add minimal, auditable external orientation/training approval evidence, with approved fields and no unnecessary Messenger transcript collection. | W1; O3 HR |
-| [ ] 19 | Change | Give HR a trained-personnel enrollment flow that links approved evidence to an individual account and authorized role; prevent duplicate enrollment and unauthorized activation. | W1; 14, 18 |
+| [ ] 19 | Change | Give HR a trained-personnel submission flow, with COO creating the linked account/role; prevent duplicate enrollment and unauthorized activation. API implemented locally; screens/acceptance open (docs/159). | W1; 14, 18 |
 | [ ] 20 | New | Assign supervisor/team and employment or agent onboarding status using the approved hierarchy; preserve dated changes. | O2–O3; 13 |
 | [ ] 21 | Verify | Walk through external applicant → training confirmation → HR enrollment → correct first login. Check unapproved personnel cannot start work through account-creation bypasses. | W1 |
 

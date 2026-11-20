@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useMe } from "@/lib/useMe";
 import { workspaceDesignRole } from "@/lib/workspace-design-role";
 import RoleDesignLoading from "./RoleDesignLoading";
+import BatchManagerDashboardSkeleton from "./batch_manager/app/system/batch-manager-dashboard/BatchManagerLoading";
 
 const views = {
   ceo: dynamic(() => import("@/app/system/_role-designs/ceo/app/system/page"), {
@@ -18,7 +19,7 @@ const views = {
   }),
   batch_manager: dynamic(
     () => import("@/app/system/_role-designs/batch_manager/app/system/page"),
-    { loading: RoleDesignLoading },
+    { loading: BatchManagerDashboardSkeleton },
   ),
   hr_payroll: dynamic(
     () => import("@/app/system/_role-designs/hr_payroll/app/system/page"),

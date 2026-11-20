@@ -2213,3 +2213,12 @@ export const downloadOperationsExport = (
 };
 
 export * from "./gcash-history";
+
+export {
+  getPersonnelOnboarding,
+  getPersonnelOnboardingOptions,
+  getPersonnelOnboardingHistory,
+  submitPersonnelOnboarding,
+  enrollPersonnel,
+  rejectPersonnelOnboarding,
+} from "./personnel-api";

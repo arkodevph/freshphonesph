@@ -22,9 +22,75 @@ const compact = new Intl.NumberFormat("en-PH", {
   maximumSignificantDigits: 3,
 });
 
-function CollectionsPlot({ data }: { data: ExecutiveChartData }) {
-  const id = useId().replaceAll(":", "");
+function SquareStack({
+  x,
+  y,
+  width,
+  height,
+  className,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  className: string;
+}) {
+  const gradientId = useId().replaceAll(":", "");
 
+  if (height <= 0) {
+    return null;
+  }
+
+  const size = Math.min(4, width);
+
+  const step = size + 2;
+
+  const columns = Math.max(1, Math.floor((width + 2) / step));
+
+  const rows = Math.max(1, Math.round((height + 2) / step));
+
+  const inset = (width - (columns * step - 2)) / 2;
+
+  return (
+    <g
+      data-square-stack
+      className={className}
+      style={{ fill: `url(#${gradientId})` }}
+    >
+      <defs>
+        <linearGradient
+          id={gradientId}
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          x2="0"
+          y1={y + height}
+          y2={y}
+        >
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="currentColor" />
+        </linearGradient>
+      </defs>
+      {Array.from({ length: rows * columns }, (_, index) => {
+        const row = Math.floor(index / columns);
+
+        const column = index % columns;
+
+        return (
+          <rect
+            key={index}
+            x={x + inset + column * step}
+            y={y + height - size - row * step}
+            width={size}
+            height={size}
+            rx="0.5"
+          />
+        );
+      })}
+    </g>
+  );
+}
+
+function CollectionsPlot({ data }: { data: ExecutiveChartData }) {
   const [selected, setSelected] = useState<number | null>(null);
 
   const chart = collectionLines(data);
@@ -55,7 +121,13 @@ function CollectionsPlot({ data }: { data: ExecutiveChartData }) {
     };
   }, []);
 
-  const bitmapWidth = Math.min(24, (chart.barWidth / 500) * plotWidth);
+  const stackWidth = Math.max(
+    4,
+    Math.min(
+      42,
+      ((plotWidth / Math.max(1, data.months.length)) * 0.72 - 6) / 2,
+    ),
+  );
 
   const selectedIndex =
     selected !== null && selected < data.months.length
@@ -68,7 +140,7 @@ function CollectionsPlot({ data }: { data: ExecutiveChartData }) {
     <>
       <div
         className={styles.plot}
-        data-collection-bitmap
+        data-collection-square-stack
         role="group"
         aria-label="Monthly collections. Select a month to inspect verified and pending amounts."
       >
@@ -87,24 +159,6 @@ function CollectionsPlot({ data }: { data: ExecutiveChartData }) {
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          <defs>
-            <pattern
-              id={`${id}-verified`}
-              width="4"
-              height="4"
-              patternUnits="userSpaceOnUse"
-            >
-              <rect width="2" height="2" fill="var(--chart-verified)" />
-            </pattern>
-            <pattern
-              id={`${id}-pending`}
-              width="4"
-              height="4"
-              patternUnits="userSpaceOnUse"
-            >
-              <rect width="2" height="2" fill="var(--dashboard-pending)" />
-            </pattern>
-          </defs>
           {chart.ticks.map(({ amount, y }) => {
             return (
               <line
@@ -130,21 +184,19 @@ function CollectionsPlot({ data }: { data: ExecutiveChartData }) {
             return (
               <g key={data.months[index].month}>
                 <title>{`${shortMonth(data.months[index].month)}: verified ${formatPeso(data.months[index].verifiedAmount)}, pending ${formatPeso(data.months[index].pendingAmount)}`}</title>
-                <rect
-                  x={(bar.x / 500) * plotWidth - bitmapWidth - 2}
+                <SquareStack
+                  x={(bar.x / 500) * plotWidth - stackWidth - 2}
                   y={bar.verified.y}
-                  width={bitmapWidth}
+                  width={stackWidth}
                   height={bar.verified.height}
                   className={styles.verifiedBar}
-                  style={{ fill: `url(#${id}-verified)` }}
                 />
-                <rect
+                <SquareStack
                   x={(bar.x / 500) * plotWidth + 2}
                   y={bar.pending.y}
-                  width={bitmapWidth}
+                  width={stackWidth}
                   height={bar.pending.height}
                   className={styles.pendingBar}
-                  style={{ fill: `url(#${id}-pending)` }}
                 />
               </g>
             );

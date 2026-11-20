@@ -95,7 +95,7 @@ export default function ClientsDashboard() {
       </div>
       {canRead && (
         <RecordFilters
-          compact={me?.role === "coo"}
+          compact={me?.role === "batch_manager"}
           kind="client"
           value={filters}
           onChange={changeFilter}

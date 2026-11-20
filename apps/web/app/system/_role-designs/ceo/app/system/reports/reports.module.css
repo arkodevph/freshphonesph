@@ -1641,3 +1641,33 @@
   .tabIndicator {
   background: var(--system-surface);
 }
+
+/* Navigation returns to the dashboard or the report that opened earnings. */
+.page .backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--system-muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.page .backLink svg {
+  width: 16px;
+  height: 16px;
+}
+.page .backLink:hover:not(:disabled) {
+  color: var(--system-text);
+  background: transparent;
+}
+.page .backLink:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

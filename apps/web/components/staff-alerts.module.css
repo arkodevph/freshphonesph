@@ -621,3 +621,105 @@
 .deleteDialogHeading h2 {
   margin: 0;
 }
+
+/* Compact bell: one category filter and one route to the complete inbox. */
+.panel .heading {
+  padding: 16px 18px;
+  gap: 16px;
+}
+.panel .heading p {
+  margin: 4px 0 0;
+  color: var(--alerts-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.panel .heading button {
+  min-height: 40px;
+  max-width: 112px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--alerts-accent);
+}
+.category {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 0;
+}
+.category label {
+  color: var(--alerts-muted);
+  font-size: 12px;
+}
+.category select {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--alerts-border);
+  border-radius: 10px;
+  background: var(--alerts-alt);
+  color: var(--alerts-text);
+  font: inherit;
+  font-size: 13px;
+  color-scheme: inherit;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 18px 8px;
+  border-bottom: 1px solid var(--alerts-border);
+}
+.controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  color: var(--alerts-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.controls input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--alerts-accent);
+}
+.controls button {
+  min-height: 40px;
+  padding: 6px 8px;
+  color: var(--alerts-accent);
+  font-size: 12px;
+  border-radius: 8px;
+}
+.panel .list {
+  flex: 1 1 auto;
+  scrollbar-width: thin;
+}
+.panel .footer {
+  padding: 8px 14px;
+}
+.panel .footer nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--alerts-muted);
+  font-size: 12px;
+}
+.panel .footer nav button {
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.panel .footer a {
+  font-weight: 500;
+}
+.panel select:focus-visible,
+.panel input:focus-visible {
+  outline: 2px solid var(--alerts-accent);
+  outline-offset: 2px;
+}

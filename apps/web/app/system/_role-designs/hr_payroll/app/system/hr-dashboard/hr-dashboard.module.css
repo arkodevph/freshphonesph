@@ -1,0 +1,575 @@
+.dashboard {
+  display: grid;
+  gap: 24px;
+  max-width: 1600px;
+  margin-inline: auto;
+  color: var(--system-text);
+}
+.dashboard :is(a, button) {
+  scale: calc(1 - var(--coo-press, 0) * 0.025);
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-block: 2px 4px;
+}
+.heading p {
+  margin-bottom: 6px;
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.heading h2 {
+  font-size: clamp(26px, 3vw, 32px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+.primaryAction {
+  background: var(--workspace-action);
+  color: var(--workspace-on-action);
+}
+.primaryAction:hover {
+  background: var(--workspace-action-hover);
+}
+.secondaryAction {
+  background: var(--workspace-control-hover);
+  color: var(--system-text);
+}
+.primaryAction svg,
+.secondaryAction svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px;
+  border: 1px solid var(--system-border);
+  border-radius: 16px;
+  background: var(--system-surface);
+  min-width: 0;
+}
+.metric > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.metric svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
+.metric > strong {
+  font-size: 38px;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.metric small {
+  margin-top: auto;
+  color: var(--system-muted);
+  font-size: 12px;
+}
+.metric:hover {
+  background: var(--workspace-inset);
+}
+.metric[data-featured] {
+  background: linear-gradient(125deg, #102b59, #194f9c);
+  color: #fff;
+  border-color: #315e9d;
+}
+.metric[data-featured] :is(div, small) {
+  color: #c7d9f5;
+}
+.metric[data-featured]:hover {
+  background: linear-gradient(125deg, #123066, #1d58ac);
+}
+.unavailable {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.mainGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.panel {
+  min-width: 0;
+  border: 1px solid var(--system-border);
+  border-radius: 18px;
+  padding: 24px;
+  background: var(--system-surface);
+}
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.panelHeader h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.panelHeader p {
+  color: var(--system-muted);
+  font-size: 12px;
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.textLink {
+  color: var(--system-accent);
+  font-size: 12px;
+  padding-block: 3px;
+  white-space: nowrap;
+}
+.textLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.roleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 28px;
+  list-style: none;
+  padding: 0;
+}
+.roleItem {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.roleItem > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  min-height: 34px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.roleItem strong {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.roleTrack {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--workspace-raised);
+}
+.roleTrack > span {
+  display: block;
+  min-width: 3px;
+  height: 100%;
+  background: var(--system-accent);
+  border-radius: inherit;
+}
+.moreRoles {
+  margin-top: 22px;
+  font-size: 12px;
+}
+.moreRoles > summary {
+  width: fit-content;
+  color: var(--system-accent);
+  cursor: pointer;
+  padding-block: 4px;
+}
+.moreRoles .roleGrid {
+  padding-top: 20px;
+}
+.hiringStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.hiringStats > div {
+  display: grid;
+  gap: 5px;
+}
+.hiringStats strong {
+  font-size: 27px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+.hiringStats span {
+  color: var(--system-muted);
+  font-size: 12px;
+}
+.hiringEmpty {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: start;
+  gap: 8px 12px;
+  border-top: 1px solid var(--system-border);
+  padding-top: 20px;
+}
+.hiringEmpty > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--system-accent);
+  margin-top: 1px;
+}
+.hiringEmpty strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.hiringEmpty p {
+  font-size: 12px;
+  color: var(--system-muted);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.hiringEmpty > a {
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 5px;
+}
+.jobList {
+  list-style: none;
+  padding: 0;
+  border-top: 1px solid var(--system-border);
+}
+.jobList li + li {
+  border-top: 1px solid var(--system-border);
+}
+.jobList a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 16px;
+}
+.jobList svg {
+  width: 20px;
+  height: 20px;
+  color: var(--system-accent);
+  flex: none;
+}
+.jobList strong,
+.jobList small {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.jobList small {
+  color: var(--system-muted);
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 5px;
+}
+.requestSummary {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-block: 8px 6px;
+}
+.stateIcon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--system-accent-soft);
+  color: var(--system-accent);
+}
+.stateIcon svg {
+  width: 21px;
+  height: 21px;
+}
+.requestSummary strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.requestSummary p {
+  color: var(--system-muted);
+  font-size: 12px;
+  line-height: 1.65;
+  margin-top: 5px;
+  max-width: 38ch;
+}
+.count {
+  color: var(--system-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.taskList {
+  list-style: none;
+  padding: 0;
+}
+.taskList li + li {
+  border-top: 1px solid var(--system-border);
+}
+.taskList a,
+.taskPlaceholder {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-block: 14px;
+}
+.taskList a {
+  border-radius: 8px;
+}
+.taskList a:hover {
+  background: var(--workspace-control-hover);
+}
+.taskIcon {
+  display: flex;
+  margin-top: 1px;
+  color: var(--system-muted);
+}
+.taskIcon svg {
+  width: 19px;
+  height: 19px;
+}
+.taskList a > span:nth-child(2),
+.taskPlaceholder > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+.taskList strong,
+.taskList small {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.taskList small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--system-muted);
+  margin-top: 5px;
+}
+.status {
+  font-size: 11px;
+  color: var(--system-muted);
+  white-space: nowrap;
+  padding-top: 2px;
+}
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding-block: 12px;
+}
+.empty > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--system-accent);
+}
+.empty strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.empty p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--system-muted);
+}
+.error {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  padding-block: 8px;
+}
+.error p {
+  color: var(--system-muted);
+}
+.error button {
+  color: var(--system-accent);
+  font-weight: 500;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  gap: 24px;
+  padding: 0;
+}
+.steps li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.stepNumber {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--workspace-raised);
+  color: var(--system-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.steps strong,
+.steps small {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.steps small {
+  color: var(--system-muted);
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 4px;
+}
+.stepOwner {
+  margin-left: auto;
+  padding-top: 4px;
+  color: var(--system-muted);
+  font-size: 11px;
+}
+.notes {
+  margin-top: 24px;
+  color: var(--system-muted);
+  font-size: 12px;
+}
+.notes > summary {
+  cursor: pointer;
+  width: fit-content;
+  padding-block: 4px;
+}
+.notes p {
+  padding-top: 10px;
+  line-height: 1.6;
+}
+@media (max-width: 1150px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mainGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+@media (max-width: 600px) {
+  .dashboard {
+    gap: 18px;
+  }
+  .heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .heading p {
+    font-size: 12px;
+  }
+  .heading h2 {
+    font-size: 28px;
+  }
+  .metrics {
+    gap: 10px;
+  }
+  .metric {
+    padding: 16px;
+    gap: 10px;
+    border-radius: 14px;
+  }
+  .metric > div {
+    font-size: 12px;
+    min-height: 36px;
+    align-items: start;
+    gap: 8px;
+  }
+  .metric > div svg {
+    width: 16px;
+    height: 16px;
+  }
+  .metric > strong {
+    font-size: 32px;
+  }
+  .metric small {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .unavailable {
+    font-size: 15px;
+  }
+  .panel {
+    padding: 20px;
+    border-radius: 16px;
+  }
+  .panelHeader {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .roleGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .roleItem > div:first-child {
+    min-height: 0;
+  }
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  .stepOwner {
+    display: block;
+  }
+  .taskList a,
+  .taskPlaceholder {
+    flex-wrap: wrap;
+  }
+  .taskList .status {
+    margin-left: 31px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .heading,
+  .metrics,
+  .mainGrid,
+  .onboarding {
+    animation: arrive 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+@keyframes arrive {
+  from {
+    translate: 0 6px;
+  }
+  to {
+    translate: 0 0;
+  }
+}

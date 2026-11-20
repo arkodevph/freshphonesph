@@ -8,7 +8,9 @@ import {
   type FormEvent,
 } from "react";
 import { toast } from "sonner";
-import { ChartBar } from "@phosphor-icons/react";
+import { CaretLeft, ChartBar } from "@phosphor-icons/react";
+import Link from "next/link";
+import { useReportNavigation } from "@/app/system/reports/useReportNavigation";
 import type { ReportBatchOption, ReportKind } from "@freshphones/contracts";
 import {
   createReportSnapshot,
@@ -104,6 +106,21 @@ export default function ReportsDashboard({
   const operation = useRef(false);
 
   const mounted = useRef(true);
+
+  const navigation = useReportNavigation({
+    allowedKinds,
+    value: showEarnings ? "earnings" : kind,
+    disabled: skeletonOnly,
+    onChange: (value) => {
+      if (value === "earnings") {
+        sequence.current++;
+
+        setShowEarnings(true);
+      } else {
+        selectKind(value as ReportKind);
+      }
+    },
+  });
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(applied);
 
@@ -239,6 +256,10 @@ export default function ReportsDashboard({
     sequence.current++;
 
     setShowEarnings(false);
+
+    if (next === kind) {
+      return;
+    }
 
     const filters = { ...applied, batchId: "", status: "" };
 
@@ -415,6 +436,10 @@ export default function ReportsDashboard({
           </div>
         )}
         <div>
+          <Link href="/system" className={styles.backLink}>
+            <CaretLeft aria-hidden="true" />
+            Back to dashboard
+          </Link>
           {!minimalHeading && (
             <p className={styles.kicker}>
               {showVisuals ? "Company reports" : "Operations overview"}
@@ -458,15 +483,7 @@ export default function ReportsDashboard({
             ? [{ value: "earnings", label: "Installment earnings" }]
             : []),
         ]}
-        onValueChange={(value) => {
-          if (value === "earnings") {
-            sequence.current++;
-
-            setShowEarnings(true);
-          } else {
-            selectKind(value as ReportKind);
-          }
-        }}
+        onValueChange={navigation.navigate}
       />
       {showEarnings ? (
         <div
@@ -476,6 +493,15 @@ export default function ReportsDashboard({
           aria-label={showVisuals ? "Installment earnings results" : undefined}
           ref={resultsViewport}
         >
+          <button
+            type="button"
+            className={styles.backLink}
+            disabled={Boolean(busy)}
+            onClick={() => navigation.back(kind)}
+          >
+            <CaretLeft aria-hidden="true" />
+            Back to {names[kind]}
+          </button>
           <InstallmentEarnings />
         </div>
       ) : (

@@ -1,3 +1,5 @@
+export * from "./personnel";
+
 import { z } from "zod";
 import { previewInstallments } from "./installment-schedule";
 

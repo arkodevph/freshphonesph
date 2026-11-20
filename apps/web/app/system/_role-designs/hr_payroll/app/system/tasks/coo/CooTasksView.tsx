@@ -85,7 +85,7 @@ export default function CooTasksView({
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>
-            COO workspace <span>/</span> Team operations
+            HR workspace <span>/</span> Staff work
           </p>
           <h1>Tasks &amp; KPI</h1>
           <p>Keep the work moving, from assignment to completion.</p>

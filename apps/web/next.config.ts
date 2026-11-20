@@ -19,7 +19,8 @@ const nextConfig: NextConfig = {
 
     return apiOrigin
       ? {
-          beforeFiles: [
+          // Keep Next.js API handlers (including local demo login) ahead of the proxy.
+          afterFiles: [
             { source: "/api/:path*", destination: `${apiOrigin}/api/:path*` },
           ],
         }

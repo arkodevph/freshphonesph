@@ -89,11 +89,13 @@ Evidence: [Reports](37-reports-page.md), [collections](38-batch-collection-repor
 
 ## 6 Personnel onboarding payroll and commissions
 
+**2026-11-19 decision:** HR records completed training and submits enrollment; COO creates the account. The API and typed client are implemented in [the HR onboarding increment](159-hr-personnel-onboarding.md). HR/COO screens and browser acceptance remain open, so G30–G32 stay unchecked. HR does not receive direct role/account-write powers.
+
 **Already available:** Owner-controlled accounts, confidential HR grants and human HR request/approval history. **Gap:** constrained HR provisioning, trained-personnel enrollment and payroll/commission preparation are incomplete.
 
 Evidence: [account endpoints](../apps/api-ts/src/records/records.controller.ts), [HR access](42-confidential-hr-access.md), [HR approvals](47-consequential-hr-action-approvals.md). Requirements: W1; O3 HR, Agents. Detailed checklist: 07, 14, 18–21, 67–70.
 
-- [ ] **G30 — Revise:** Let HR create/update only authorized personnel accounts and roles. Prevent self-escalation or provisioning technical administrators through the personnel flow.
+- [ ] **G30 — Revise:** HR records completed training and submits personnel enrollment; COO creates the account and assigns the requested operational role/supervisor. Prevent HR role/account writes, self-approval and executive/technical provisioning through this flow. API complete locally; HR/COO screens and acceptance remain open. See [the confirmed decision](159-hr-personnel-onboarding.md).
 - [ ] **G31 — Missing:** Record the minimum approved evidence that external orientation/training is complete, then enroll the approved person and assign their role/supervisor. Recruitment, orientation and training remain on Facebook/Messenger.
 - [ ] **G32 — Missing:** Provide HR with a personnel/agent onboarding directory and dated changes, limited to approved fields and access.
 - [ ] **G33 — Confirm:** Resolve payroll/commission preparation against the existing scope exclusion of a payroll engine. Specify inputs, eligibility rules, human approval and visibility; record any deferral.

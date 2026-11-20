@@ -214,6 +214,10 @@ model User {
   kpiReviews KpiReview[]
   proposedHrActions HrActionRequest[] @relation("HrActionProposer")
   decidedHrActions HrActionRequest[] @relation("HrActionDecider")
+  personnelSubmissions PersonnelOnboarding[] @relation("PersonnelSubmitter")
+  personnelDecisions PersonnelOnboarding[] @relation("PersonnelDecider")
+  personnelSupervision PersonnelOnboarding[] @relation("PersonnelSupervisor")
+  personnelOnboarding PersonnelOnboarding? @relation("PersonnelAccount")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -1588,4 +1592,38 @@ model EvidenceRequirement {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([batchId, cancelled, periodStart, periodEnd])
+}
+
+// Submitted training evidence is immutable; COO records a separate enrollment decision.
+model PersonnelOnboarding {
+  id String @id @default(uuid()) @db.Uuid
+  submissionId String @unique @db.Uuid
+  name String
+  email String
+  role Role
+  supervisorId String @db.Uuid
+  supervisor User @relation("PersonnelSupervisor", fields: [supervisorId], references: [id], onDelete: Restrict)
+  orientationCompletedAt DateTime
+  trainingCompletedAt DateTime
+  confirmedBy String
+  evidenceNote String
+  status PersonnelOnboardingStatus @default(PENDING)
+  submittedById String @db.Uuid
+  submittedBy User @relation("PersonnelSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  decidedById String? @db.Uuid
+  decidedBy User? @relation("PersonnelDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  accountId String? @unique @db.Uuid
+  account User? @relation("PersonnelAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  decisionReason String?
+  decidedAt DateTime?
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  @@index([status, createdAt, id])
+  @@index([createdAt, id])
+}
+
+enum PersonnelOnboardingStatus {
+  PENDING
+  ENROLLED
+  REJECTED
 }

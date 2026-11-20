@@ -60,7 +60,7 @@ export default function StaffTasksDashboard() {
 }
 
 function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
-  const coo = me.role === "coo";
+  const coo = me.role === "hr_payroll";
 
   const [assignmentOpen, setAssignmentOpen] = useState(false);
 

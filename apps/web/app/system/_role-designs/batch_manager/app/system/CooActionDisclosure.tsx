@@ -11,7 +11,7 @@ export default function CooActionDisclosure({
   title: string;
   children: ReactNode;
 }) {
-  if (role !== "coo") {
+  if (role !== "batch_manager") {
     return <>{children}</>;
   }
 

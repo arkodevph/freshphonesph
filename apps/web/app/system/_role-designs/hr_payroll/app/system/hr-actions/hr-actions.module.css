@@ -287,3 +287,40 @@
 :global(.system-shell[data-workspace-role="hr_payroll"]) .decisionRecord {
   border-left: 0;
 }
+
+/* Use the COO task/recruitment page type roles for the matching HR request panels. */
+.header h1 {
+  font-size: clamp(28px, 2.6vw, 36px);
+  font-weight: 500;
+}
+.sectionHead h2 {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.eyebrow {
+  color: var(--system-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+@media (max-width: 650px) {
+  .header > button {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 650px) {
+  .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .header .icon {
+    display: none;
+  }
+  .header > button {
+    justify-self: start;
+  }
+}

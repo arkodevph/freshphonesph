@@ -63,7 +63,7 @@ export function TableSkeletonRows({
   });
 }
 
-/** Compact activity feedback for an operation with unknown duration. */
+/** Skeleton feedback for Batch Manager loading states. */
 export default function WorkspaceProgress({
   label = "Loading…",
   className = "",
@@ -78,20 +78,8 @@ export default function WorkspaceProgress({
       aria-label={label}
       aria-busy="true"
     >
-      <span className={styles.indicator} aria-hidden="true">
-        {Array.from({ length: 12 }, (_, index) => {
-          return (
-            <span
-              key={index}
-              className={styles.spoke}
-              style={{
-                transform: `rotate(${index * 30}deg) translateY(-7px)`,
-                animationDelay: `${index / 12 - 1}s`,
-              }}
-            />
-          );
-        })}
-      </span>
+      <SkeletonLine width="100%" />
+      <SkeletonLine width="65%" />
       <span className={styles.label}>{label}</span>
     </span>
   );

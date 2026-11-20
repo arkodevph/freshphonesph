@@ -19,7 +19,7 @@ export default function RecruitmentPage() {
 
   return (
     <RecruitmentWorkspace
-      isCoo={me.role === "coo"}
+      isCoo
       key={`${me.id}:${canRecruit}:${canAgents}:${canReadApplicants}`}
       canRecruit={canRecruit}
       canAgents={canAgents}

@@ -659,3 +659,13 @@ their owned domains against the accepted business requirements.
 `pnpm test:api-ts` runs the API unit suite; PostgreSQL integration checks use `pnpm test:api-ts:integration`.
 Run web checks with `pnpm --filter @fresh/web test` and static checks with `pnpm typecheck`.
 Run instructions: see [../AGENTS.md](../AGENTS.md). Dev accounts: [DEV_ACCOUNTS.md](DEV_ACCOUNTS.md).
+
+## HR training submission and personnel enrollment — 2026-11-19
+
+The user confirmed HR submits completed training evidence and COO creates the account.
+The API, additive migration and typed web client now support private training submissions,
+server-filtered onboarding records/history, COO enrollment/rejection, role/supervisor
+checks, Agent-profile linking, atomic account/audit linkage and retry/concurrency controls.
+HR/COO screen integration and named acceptance remain open. Nami's required vault context
+is unavailable (`/mnt/storage`: No such device), so visual changes are deferred.
+See [the implementation and remaining work](159-hr-personnel-onboarding.md).

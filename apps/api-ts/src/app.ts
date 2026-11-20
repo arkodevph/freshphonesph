@@ -1,3 +1,5 @@
+import { PersonnelController } from "./personnel/personnel.controller";
+import { PersonnelService } from "./personnel/personnel.service";
 import { SubmissionChecklistsController } from "./submission-checklists/checklists.controller";
 import { SubmissionChecklistsService } from "./submission-checklists/checklists.service";
 import { OperationsMonitorController } from "./operations-monitor/monitor.controller";
@@ -166,6 +168,7 @@ export async function createApp(config: Config = readConfig()) {
         CustomerWorkController,
         TasksController,
         HrActionsController,
+        PersonnelController,
         StaffAlertsController,
         StaffEmailController,
         RequirementsController,
@@ -210,6 +213,7 @@ export async function createApp(config: Config = readConfig()) {
         CustomerWorkService,
         TasksService,
         HrActionsService,
+        PersonnelService,
         StaffAlertsService,
         StaffEmailService,
         RequirementsService,

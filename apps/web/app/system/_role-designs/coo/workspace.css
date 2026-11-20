@@ -1,23 +1,22 @@
 /* Independent coo design. Edit this role only; this is not regenerated at build time. */
-/* Nami: extend the COO dashboard's Ember study to operational workspaces.
-   Role scope keeps the customer portal and other executive workspaces independent. */
+/* Nami: match the Batch Manager blue palette within the independent COO workspace. */
 .system-shell[data-workspace-role="coo"][data-workspace-theme] {
-  --system-bg: #f5f6f5;
+  --system-bg: #f5f6f8;
   --system-surface: #fff;
-  --system-surface-inset: #f4f6f4;
-  --system-text: #202622;
-  --system-muted: #606963;
-  --system-border: #dce2dd;
-  --system-accent: #286247;
-  --system-accent-soft: #e9f2ec;
-  --workspace-raised: #edf0ed;
-  --workspace-inset: #f6f8f6;
-  --workspace-action: #286247;
-  --workspace-action-hover: #204f39;
+  --system-surface-inset: #f3f5f8;
+  --system-text: #20242c;
+  --system-muted: #626b79;
+  --system-border: #dce1e9;
+  --system-accent: #0f62fe;
+  --system-accent-soft: #eaf1ff;
+  --workspace-raised: #edf0f5;
+  --workspace-inset: #f6f8fb;
+  --workspace-action: #0f62fe;
+  --workspace-action-hover: #0043ce;
   --workspace-on-action: #fff;
-  --workspace-focus: #397c59;
+  --workspace-focus: #0f62fe;
   --workspace-control: #fff;
-  --workspace-control-hover: #f0f3f0;
+  --workspace-control-hover: #edf2fb;
   --workspace-panel-shadow: none;
   --workspace-control-radius: 9px;
   --workspace-panel-radius: 16px;
@@ -40,18 +39,18 @@ html[data-system-theme="dark"]
   --system-bg: #000;
   --system-surface: #0d0d0d;
   --system-surface-inset: #131313;
-  --system-text: #f0f2f0;
-  --system-muted: #a5ada7;
-  --system-border: #2b2f2c;
-  --system-accent: #a0d9ba;
-  --system-accent-soft: #19281f;
-  --workspace-raised: #202321;
-  --workspace-inset: #111312;
-  --workspace-action: #28553e;
-  --workspace-action-hover: #346d50;
-  --workspace-focus: #a0d9ba;
-  --workspace-control: #151716;
-  --workspace-control-hover: #202622;
+  --system-text: #f2f4f8;
+  --system-muted: #a8afb9;
+  --system-border: #292d34;
+  --system-accent: #78a9ff;
+  --system-accent-soft: #152238;
+  --workspace-raised: #202226;
+  --workspace-inset: #121416;
+  --workspace-action: #0f62fe;
+  --workspace-action-hover: #0353e9;
+  --workspace-focus: #78a9ff;
+  --workspace-control: #15171b;
+  --workspace-control-hover: #20242c;
   color-scheme: dark;
 }
 
@@ -597,7 +596,7 @@ html:has(.system-shell[data-workspace-role="coo"]) {
   scrollbar-gutter: stable;
 }
 html[data-system-theme="dark"] .system-shell[data-workspace-role="coo"] {
-  --workspace-modal-surface: #181b19;
+  --workspace-modal-surface: #181b21;
 }
 .system-shell[data-workspace-role="coo"][data-workspace-theme]
   dialog[data-workspace-modal][data-modal-size="wide"] {
@@ -1043,4 +1042,34 @@ dialog[data-handler-modal][data-modal-spring][open]::backdrop {
   dialog[data-workspace-modal][data-modal-spring][data-modal-size="drawer"][open] {
   opacity: calc(0.72 + var(--dialog-progress, 1) * 0.28);
   transform: translateX(calc((1 - var(--dialog-progress, 1)) * 100%));
+}
+
+/* Page search is one control: the wrapper owns its keyboard focus indicator. */
+.system-shell[data-workspace-role="coo"][data-workspace-theme]
+  .system-search-popover
+  .system-popover-search {
+  background: var(--workspace-inset);
+}
+
+.system-shell[data-workspace-role="coo"][data-workspace-theme]
+  .system-search-popover
+  .system-popover-search:focus-within {
+  border-color: var(--workspace-focus);
+  outline: 2px solid var(--workspace-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.system-shell[data-workspace-role="coo"][data-workspace-theme]
+  .system-search-popover
+  .system-popover-search
+  input {
+  min-height: 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--system-text);
+  outline: 0 !important;
+  box-shadow: none;
 }

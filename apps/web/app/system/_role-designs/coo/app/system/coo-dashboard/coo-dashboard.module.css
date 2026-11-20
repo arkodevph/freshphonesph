@@ -1,9 +1,9 @@
 /* COO dashboard. Dark surfaces follow the user-selected Ember study and black palette. */
 .dashboard {
-  --dashboard-pending: #9672ac;
+  --dashboard-pending: #466d96;
   --coo-skeleton: #89928c;
-  --chart-verified: #358267;
-  --chart-verified-base: #23513f;
+  --chart-verified: #0f62fe;
+  --chart-verified-base: #0043ce;
   --dashboard-grid: var(--system-border);
   display: grid;
   gap: 24px;
@@ -168,11 +168,11 @@
 }
 
 :global(html[data-system-theme="dark"]) .dashboard {
-  --dashboard-pending: #c4a4de;
-  --chart-verified: #a3e2c3;
-  --chart-verified-base: #3e8264;
-  --system-accent: #9cdbb9;
-  --system-accent-soft: #192e24;
+  --dashboard-pending: #527da8;
+  --chart-verified: #78a9ff;
+  --chart-verified-base: #4589ff;
+  --system-accent: #78a9ff;
+  --system-accent-soft: #152238;
   --coo-panel: #0d0d0d;
   --coo-edge: #282828;
   --coo-rim: transparent;
@@ -294,11 +294,13 @@
 }
 
 .verifiedBar {
+  color: var(--chart-verified);
   fill: var(--chart-verified);
   background: var(--chart-verified);
 }
 
 .pendingBar {
+  color: var(--dashboard-pending);
   fill: var(--dashboard-pending);
   background: var(--dashboard-pending);
 }
@@ -709,17 +711,17 @@
   border: 1px solid #ffffff55;
   border-radius: 999px;
   padding: 10px 16px;
-  background: #245fbd;
+  background: var(--workspace-action);
   color: #fff;
   box-shadow:
-    0 4px 10px -4px #245fbd80,
+    0 4px 10px -4px #0f62fe80,
     inset 0 1px 0 #ffffff40;
   font-size: 12px;
   font-weight: 500;
 }
 
 .primaryAction:hover {
-  background: #1d50a4;
+  background: var(--workspace-action-hover);
 }
 
 .primaryAction > svg {
@@ -1072,9 +1074,9 @@
   padding: 24px;
   border-radius: 16px;
   background:
-    radial-gradient(ellipse at 100% 95%, #63ae8260, transparent 65%),
-    linear-gradient(125deg, #142b23, #1d4030);
-  border-color: #72a48644;
+    radial-gradient(ellipse at 100% 95%, #78a9ff60, transparent 65%),
+    linear-gradient(125deg, #10264d, #163f85);
+  border-color: #78a9ff44;
   box-shadow: inset 0 1px 0 #ffffff12;
 }
 
@@ -1091,7 +1093,7 @@
 
 .summaryPanel .cardBrand {
   margin-bottom: 20px;
-  color: #bed5c7;
+  color: #c6daff;
 }
 
 .summaryPanel .cardScope {
@@ -1176,14 +1178,14 @@
 }
 
 :global(html[data-system-theme="dark"]) .dashboard .primaryAction {
-  border-color: #4e7b61;
+  border-color: var(--workspace-action);
   border-radius: 9px;
-  background: #26553e;
+  background: var(--workspace-action);
   box-shadow: inset 0 1px 0 #ffffff12;
 }
 
 :global(html[data-system-theme="dark"]) .dashboard .primaryAction:hover {
-  background: #326d50;
+  background: var(--workspace-action-hover);
 }
 
 @media (max-width: 900px) and (min-width: 601px) {
