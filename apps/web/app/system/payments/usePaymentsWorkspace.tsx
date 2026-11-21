@@ -23,6 +23,7 @@ import type {
   ReceiptScan,
   ReceiptType,
   PaymentSortField,
+  FinancePaymentQueue,
 } from "@freshphones/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isBatchHandler } from "@/lib/handler-workspace";
@@ -32,10 +33,32 @@ import {
   type HandlerTableSort,
 } from "@/lib/handler-table";
 import { today } from "@/lib/date";
+import { ApiError } from "@/lib/ts-api";
+import { safeFinanceReturn } from "@/lib/finance-navigation";
+import type { FinancePaymentLocation } from "@/lib/finance-workspace";
 import { ClientChoice, duplicateKey, ReviewDecision } from "./payment-view";
 import { useHandlerReceiptFlow } from "./useHandlerReceiptFlow";
 
-export function usePaymentsWorkspace() {
+export function usePaymentsWorkspace({
+  financeQueues = false,
+}: { financeQueues?: boolean } = {}) {
+  const [financeQueue, setFinanceQueue] = useState<FinancePaymentQueue | "all">(
+    financeQueues ? "ready" : "all",
+  );
+
+  const [financeBatchScope, setFinanceBatchScope] = useState({
+    batchId: "",
+    membershipBatchId: "",
+  });
+
+  const [financeReturnTo, setFinanceReturnTo] = useState<string | null>(null);
+
+  const [locationReady, setLocationReady] = useState(!financeQueues);
+
+  const [loadedListKey, setLoadedListKey] = useState<string | null>(null);
+
+  const loadedListKeyRef = useRef<string | null>(null);
+
   const me = useMe();
 
   const handler = isBatchHandler(me?.role);
@@ -125,6 +148,10 @@ export function usePaymentsWorkspace() {
 
   const [reviewSaving, setReviewSaving] = useState(false);
 
+  const reviewSubmitting = useRef(false);
+
+  const [reviewConflict, setReviewConflict] = useState(false);
+
   const [reviewClosing, setReviewClosing] = useState(false);
 
   const [detailsPayment, setDetailsPayment] = useState<Payment | null>(null);
@@ -204,8 +231,117 @@ export function usePaymentsWorkspace() {
 
   const [balance, setBalance] = useState<Balance | null>(null);
 
+  const listKey = JSON.stringify([
+    focusedPayment,
+    filter,
+    proofFilter,
+    appliedPaymentQuery,
+    dateFrom,
+    dateTo,
+    paymentPage,
+    sort,
+    financeQueue,
+    financeBatchScope,
+  ]);
+
+  useEffect(() => {
+    if (!financeQueues || !locationReady) {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+
+    for (const key of [
+      "payment",
+      "status",
+      "proof",
+      "queue",
+      "q",
+      "dateFrom",
+      "dateTo",
+      "page",
+      "sortBy",
+      "sortDirection",
+      "batchId",
+      "membershipBatchId",
+      "returnTo",
+    ]) {
+      url.searchParams.delete(key);
+    }
+
+    if (focusedPayment) {
+      url.searchParams.set("payment", focusedPayment);
+    } else {
+      url.searchParams.set("queue", financeQueue);
+    }
+
+    if (financeReturnTo) {
+      url.searchParams.set("returnTo", financeReturnTo);
+    }
+
+    if (!focusedPayment) {
+      for (const [key, value] of Object.entries(financeBatchScope)) {
+        if (value) {
+          url.searchParams.set(key, value);
+        }
+      }
+    }
+
+    if (filter) {
+      url.searchParams.set("status", filter);
+    }
+
+    if (proofFilter) {
+      url.searchParams.set("proof", "missing");
+    }
+
+    if (appliedPaymentQuery) {
+      url.searchParams.set("q", appliedPaymentQuery);
+    }
+
+    if (dateFrom) {
+      url.searchParams.set("dateFrom", dateFrom);
+    }
+
+    if (dateTo) {
+      url.searchParams.set("dateTo", dateTo);
+    }
+
+    if (paymentPage > 1) {
+      url.searchParams.set("page", String(paymentPage));
+    }
+
+    if (sort.key !== "createdAt" || sort.direction !== "desc") {
+      url.searchParams.set("sortBy", sort.key);
+
+      url.searchParams.set("sortDirection", sort.direction);
+    }
+
+    if (url.href !== window.location.href) {
+      window.history.replaceState(null, "", url);
+    }
+  }, [
+    financeQueues,
+    locationReady,
+    listKey,
+    focusedPayment,
+    filter,
+    proofFilter,
+    appliedPaymentQuery,
+    dateFrom,
+    dateTo,
+    paymentPage,
+    financeQueue,
+    financeBatchScope,
+    financeReturnTo,
+  ]);
+
   const load = useCallback(
     async (preserveError = false) => {
+      if (financeQueues && !locationReady) {
+        return;
+      }
+
       const requestVersion = ++paymentLoadVersion.current;
 
       if (!canRead) {
@@ -231,13 +367,26 @@ export function usePaymentsWorkspace() {
       try {
         const data = await listPayments({
           ...(focusedPayment ? { id: focusedPayment } : {}),
+          ...(financeQueues && financeQueue !== "all" && !focusedPayment
+            ? { financeQueue }
+            : {}),
+          ...(financeQueues && !focusedPayment
+            ? {
+                ...(financeBatchScope.batchId
+                  ? { batchId: financeBatchScope.batchId }
+                  : {}),
+                ...(financeBatchScope.membershipBatchId
+                  ? { membershipBatchId: financeBatchScope.membershipBatchId }
+                  : {}),
+              }
+            : {}),
           ...(filter ? { status: filter } : {}),
           ...(proofFilter ? { proof: "missing" } : {}),
           ...(appliedPaymentQuery ? { q: appliedPaymentQuery } : {}),
           ...(dateFrom ? { dateFrom } : {}),
           ...(dateTo ? { dateTo } : {}),
           page: String(paymentPage),
-          ...(handler
+          ...(handler || financeQueues
             ? { sortBy: sort.key, sortDirection: sort.direction }
             : {}),
         });
@@ -245,6 +394,10 @@ export function usePaymentsWorkspace() {
         if (requestVersion !== paymentLoadVersion.current) {
           return;
         }
+
+        loadedListKeyRef.current = listKey;
+
+        setLoadedListKey(listKey);
 
         setPayments(data.results);
 
@@ -258,11 +411,21 @@ export function usePaymentsWorkspace() {
           return;
         }
 
-        setPayments([]);
+        if (
+          !financeQueues ||
+          loadedListKeyRef.current !== listKey ||
+          (e instanceof ApiError && [401, 403].includes(e.status))
+        ) {
+          setPayments([]);
 
-        setPaymentCount(0);
+          setPaymentCount(0);
 
-        setPaymentHasNext(false);
+          setPaymentHasNext(false);
+
+          loadedListKeyRef.current = null;
+
+          setLoadedListKey(null);
+        }
 
         setListError(
           e instanceof Error ? e.message : "Failed to load payments.",
@@ -277,6 +440,10 @@ export function usePaymentsWorkspace() {
     },
     [
       canRead,
+      financeQueues,
+      financeQueue,
+      locationReady,
+      listKey,
       appliedPaymentQuery,
       dateFrom,
       dateTo,
@@ -300,11 +467,62 @@ export function usePaymentsWorkspace() {
   useEffect(() => {
     if (!canVerify) {
       setAdjustmentPayment(null);
+
+      if (financeQueues) {
+        setReviewPayment(null);
+
+        setReviewDecision(null);
+
+        setReviewNotes({});
+      }
     }
-  }, [canVerify]);
+  }, [canVerify, financeQueues]);
 
   const openLocation = useCallback(
-    (payment: string | null, status: string, missingProof = false) => {
+    (
+      payment: string | null,
+      status: string,
+      missingProof = false,
+      financeLocation?: FinancePaymentLocation,
+    ) => {
+      if (financeQueues) {
+        setFocusedPayment(payment);
+
+        setFinanceQueue(
+          payment
+            ? "all"
+            : (financeLocation?.queue ??
+                (status || missingProof ? "all" : "ready")),
+        );
+
+        setFilter(payment ? "" : status);
+
+        setProofFilter(!payment && missingProof);
+
+        setPaymentQuery(financeLocation?.q ?? "");
+
+        setAppliedPaymentQuery(financeLocation?.q ?? "");
+
+        setDateFrom(financeLocation?.dateFrom ?? "");
+
+        setDateTo(financeLocation?.dateTo ?? "");
+
+        setPaymentPage(financeLocation?.page ?? 1);
+
+        setSort(financeLocation?.sort ?? newestHandlerSort);
+
+        setFinanceBatchScope({
+          batchId: financeLocation?.batchId ?? "",
+          membershipBatchId: financeLocation?.membershipBatchId ?? "",
+        });
+
+        setFinanceReturnTo(safeFinanceReturn(financeLocation?.returnTo));
+
+        setLocationReady(true);
+
+        return;
+      }
+
       setFocusedPayment(payment);
 
       setProofFilter(missingProof);
@@ -327,7 +545,7 @@ export function usePaymentsWorkspace() {
         setPaymentPage(1);
       }
     },
-    [],
+    [financeQueues],
   );
 
   useEffect(() => {
@@ -359,7 +577,9 @@ export function usePaymentsWorkspace() {
       return;
     }
 
-    financeNoteInput.current?.focus();
+    if (!financeQueues) {
+      financeNoteInput.current?.focus();
+    }
   }, [reviewPayment]);
 
   useEffect(() => {
@@ -844,13 +1064,21 @@ export function usePaymentsWorkspace() {
 
     setReviewDecision(decision);
 
+    setReviewConflict(false);
+
     setReviewClosing(false);
 
     setReviewPayment(payment);
   }
 
   async function decide() {
-    if (!reviewPayment || !reviewDecision || reviewSaving) {
+    if (
+      !reviewPayment ||
+      !reviewDecision ||
+      reviewSaving ||
+      reviewSubmitting.current ||
+      (financeQueues && reviewConflict)
+    ) {
       return;
     }
 
@@ -867,6 +1095,8 @@ export function usePaymentsWorkspace() {
     }
 
     setReviewError(null);
+
+    reviewSubmitting.current = true;
 
     setReviewSaving(true);
 
@@ -905,8 +1135,28 @@ export function usePaymentsWorkspace() {
 
       load();
     } catch (e) {
-      setReviewError(e instanceof Error ? e.message : "Action failed.");
+      if (
+        financeQueues &&
+        e instanceof ApiError &&
+        [401, 403].includes(e.status)
+      ) {
+        setReviewPayment(null);
+
+        setReviewDecision(null);
+
+        setReviewNotes({});
+
+        setError(e.message);
+      } else {
+        setReviewError(e instanceof Error ? e.message : "Action failed.");
+
+        if (financeQueues && e instanceof ApiError && e.status === 409) {
+          setReviewConflict(true);
+        }
+      }
     } finally {
+      reviewSubmitting.current = false;
+
       setReviewSaving(false);
     }
   }
@@ -942,6 +1192,9 @@ export function usePaymentsWorkspace() {
   }
 
   const paymentExportFilters = {
+    ...(financeQueues && financeBatchScope.batchId
+      ? { batchId: financeBatchScope.batchId }
+      : {}),
     ...(filter ? { status: filter } : {}),
     ...(appliedPaymentQuery ? { q: appliedPaymentQuery } : {}),
     ...(dateFrom ? { dateFrom } : {}),
@@ -992,6 +1245,42 @@ export function usePaymentsWorkspace() {
       form,
     },
     financeReviewDialogProps: {
+      reviewAllowed: canVerify,
+      reviewConflict,
+      denyReview: () => {
+        setReviewPayment(null);
+
+        setReviewDecision(null);
+
+        setReviewNotes({});
+
+        setPayments([]);
+
+        setPaymentCount(0);
+
+        setPaymentHasNext(false);
+
+        loadedListKeyRef.current = null;
+
+        setLoadedListKey(null);
+
+        setListError(
+          "Finance access changed. Reload the workspace before continuing.",
+        );
+
+        setError(
+          "Finance access changed. Reload the workspace before continuing.",
+        );
+      },
+      reloadReview: (payment: Payment) => {
+        setReviewPayment(payment);
+
+        setReviewDecision(null);
+
+        setReviewError(null);
+
+        setReviewConflict(false);
+      },
       closeReview,
       finishReview,
       reviewStage,
@@ -1016,6 +1305,16 @@ export function usePaymentsWorkspace() {
       viewProof,
     },
     paymentListPanelProps: {
+      financeBatchScope,
+      financeReturnTo,
+      clearFinanceBatchScope: () => {
+        setFinanceBatchScope({ batchId: "", membershipBatchId: "" });
+
+        setPaymentPage(1);
+      },
+      financeQueue,
+      setFinanceQueue,
+      hasListSnapshot: financeQueues ? loadedListKey === listKey : true,
       attachReceipt,
       listError,
       sort,

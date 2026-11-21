@@ -14,7 +14,9 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
+import type { AccountDocumentTarget } from "@/lib/account-documents";
+import { HandlerAccountDocument as FinanceAccountDocument } from "@/app/system/_role-designs/finance_officer/components/HandlerAccountDocument";
 import { PaymentReviewDetails } from "@/app/system/_role-designs/finance_officer/components/PaymentReviewDetails";
 import { PaymentResultDetails } from "@/app/system/_role-designs/finance_officer/components/PaymentResultDetails";
 import { ClientPicker } from "@/app/system/_role-designs/finance_officer/app/system/payments/ClientPicker";
@@ -30,6 +32,9 @@ import {
 } from "@/app/system/_role-designs/finance_officer/app/system/payments/payment-view";
 
 export default function PaymentsPage() {
+  const [documentTarget, setDocumentTarget] =
+    useState<AccountDocumentTarget | null>(null);
+
   const {
     recordPaymentFormProps,
     receiptViewerDialogProps,
@@ -59,7 +64,7 @@ export default function PaymentsPage() {
     lookupBalance,
     balanceClient,
     balance,
-  } = usePaymentsWorkspace();
+  } = usePaymentsWorkspace({ financeQueues: true });
 
   if (me && !canRead) {
     return (
@@ -76,6 +81,15 @@ export default function PaymentsPage() {
 
   return (
     <>
+      {documentTarget && canRead && (
+        <FinanceAccountDocument
+          key={`${documentTarget.kind}:${documentTarget.id}`}
+          target={documentTarget}
+          onClose={() => {
+            return setDocumentTarget(null);
+          }}
+        />
+      )}
       <Suspense fallback={null}>
         <PaymentLocationSync onLocation={openLocation} />
       </Suspense>
@@ -125,15 +139,22 @@ export default function PaymentsPage() {
             Payments &amp; Finance
           </h1>
           <p className="text-xs text-ink-soft">
-            Record external payments · Finance verifies · only verified moves
-            the balance
+            Review eligible payment claims · only verified credit updates the
+            balance
           </p>
         </div>
       </header>
 
       <HandlerReceiptDialogs flow={receiptFlow} />
       {isBatchHandler(me?.role) && <PaymentReceiptNotice flow={receiptFlow} />}
-      <SubmissionChecklist enabled={Boolean(me && canRead)} />
+      <PaymentListPanel
+        {...paymentListPanelProps}
+        onDocument={setDocumentTarget}
+      />
+
+      <div className="mt-6">
+        <SubmissionChecklist enabled={Boolean(me && canRead)} />
+      </div>
       <div className="mb-4 grid gap-4 lg:grid-cols-3">
         {/* Record form */}
         {canRecord && <RecordPaymentForm {...recordPaymentFormProps} />}
@@ -163,6 +184,19 @@ export default function PaymentsPage() {
               Check
             </button>
           </div>
+          <button
+            type="button"
+            className="mt-3 min-h-11 underline"
+            disabled={!balanceClient}
+            onClick={() => {
+              return setDocumentTarget({
+                kind: "statement",
+                id: balanceClient,
+              });
+            }}
+          >
+            Statement of Account for selected member
+          </button>
           {balance && (
             <dl className="mt-4 space-y-1.5 text-sm">
               <Row k="Total due" v={`₱${balance.total_due}`} />
@@ -188,13 +222,9 @@ export default function PaymentsPage() {
 
       <PaymentDetailsDialog {...paymentDetailsDialogProps} />
 
-      {/* List */}
-      <PaymentListPanel {...paymentListPanelProps} />
-
       <p className="mt-3 text-center text-xs text-ink-soft">
-        {isBatchHandler(me?.role)
-          ? "Finance verification updates the customer's balance. Recorded claims await review."
-          : "Verify is Finance-only — a non-Finance account gets a 403 (enforced server-side)."}
+        Payments are made externally. Only Finance-verified credit updates the
+        member’s balance.
       </p>
     </>
   );

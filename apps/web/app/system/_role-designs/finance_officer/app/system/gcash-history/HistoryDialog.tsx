@@ -201,6 +201,7 @@ export function HistoryDialog({
           key={reading.id}
           row={row}
           submission={reading}
+          sourcePage={page}
           canReview={canReview}
           viewerId={viewerId}
           changed={(value) => {

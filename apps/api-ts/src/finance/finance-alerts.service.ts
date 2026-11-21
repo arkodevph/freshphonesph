@@ -69,7 +69,7 @@ export class FinanceAlertsService {
         return {
           id: row.id,
           version: row.version,
-          title: "Payment awaiting verification",
+          title: "Payment ready for Finance",
           message: `PHP ${row.amount} · ${row.clientName} · ${row.batchCode}`,
           targetPath: `/system/payments?payment=${row.id}`,
           readAt: row.readAt?.toISOString() ?? null,

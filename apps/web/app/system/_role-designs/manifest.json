@@ -850,6 +850,8 @@
         "app/system/_role-designs/finance_officer/app/system/StaffDashboard.tsx",
         "app/system/_role-designs/finance_officer/components/WorkspaceSkeleton.tsx",
         "app/system/_role-designs/finance_officer/app/system/reports/ReportsDashboard.tsx",
+        "app/system/_role-designs/finance_officer/app/system/reports/useFinanceReportLocation.ts",
+        "app/system/_role-designs/finance_officer/app/system/gcash-history/useFinanceGcashLocation.ts",
         "app/system/_role-designs/finance_officer/app/system/reports/reports.module.css",
         "app/system/_role-designs/finance_officer/app/system/reports/report-view.tsx",
         "app/system/_role-designs/finance_officer/components/WorkspaceDetails.tsx",
@@ -881,6 +883,7 @@
         "app/system/_role-designs/finance_officer/app/system/reports/ReportHighlights.tsx",
         "app/system/_role-designs/finance_officer/app/system/reports/InstallmentEarnings.tsx",
         "app/system/_role-designs/finance_officer/app/system/CustomerWorkQueues.tsx",
+        "app/system/_role-designs/finance_officer/app/system/customer-work-queues.module.css",
         "app/system/_role-designs/finance_officer/app/system/DashboardCards.tsx",
         "app/system/_role-designs/finance_officer/app/system/PaymentsCta.tsx",
         "app/system/_role-designs/finance_officer/app/system/notifications/page.tsx",
@@ -944,6 +947,10 @@
         "app/system/_role-designs/finance_officer/app/system/payments/payment-view.tsx",
         "app/system/_role-designs/finance_officer/app/system/payments/client-picker.module.css",
         "app/system/_role-designs/finance_officer/app/system/payments/FinanceReviewDialog.tsx",
+        "app/system/_role-designs/finance_officer/app/system/payments/FinancePaymentTable.tsx",
+        "app/system/_role-designs/finance_officer/app/system/payments/FinanceReviewEvidence.tsx",
+        "app/system/_role-designs/finance_officer/app/system/payments/useFinanceReviewEvidence.ts",
+        "app/system/_role-designs/finance_officer/app/system/payments/finance-review.module.css",
         "app/system/_role-designs/finance_officer/app/system/payments/PaymentAdjustmentDialog.tsx",
         "app/system/_role-designs/finance_officer/app/system/payments/adjustments.module.css",
         "app/system/_role-designs/finance_officer/app/system/payments/PaymentDetailsDialog.tsx",
@@ -991,7 +998,12 @@
         "app/system/_role-designs/finance_officer/app/system/tasks/TaskFiltersPanel.tsx",
         "app/system/_role-designs/finance_officer/app/system/tasks/coo/CooTasksView.tsx",
         "app/system/_role-designs/finance_officer/app/system/tasks/coo/CooTaskAssignment.tsx",
-        "app/system/_role-designs/finance_officer/app/system/customer-work/page.tsx"
+        "app/system/_role-designs/finance_officer/app/system/customer-work/page.tsx",
+        "app/system/_role-designs/finance_officer/app/system/finance-dashboard/FinanceDashboard.tsx",
+        "app/system/_role-designs/finance_officer/app/system/finance-dashboard/FinanceSummary.tsx",
+        "app/system/_role-designs/finance_officer/app/system/finance-dashboard/FinanceWorkPanels.tsx",
+        "app/system/_role-designs/finance_officer/app/system/finance-dashboard/finance-dashboard.module.css",
+        "app/system/_role-designs/finance_officer/app/system/finance-dashboard/useFinanceOverview.ts"
       ]
     },
     "records": {

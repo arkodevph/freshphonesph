@@ -9,6 +9,7 @@ import { Database } from "../database";
 import { allowed } from "../auth/access";
 import { requirement } from "./requirements";
 import { Prisma } from "../generated/prisma/client";
+import { financeReadySql } from "../finance/payment-workflow-query";
 
 export type CustomerWorkKind = "support" | "documents" | "payments";
 
@@ -125,21 +126,27 @@ export class CustomerWorkService {
         throw new ForbiddenException("Finance verification access required.");
       }
 
-      const [rows, count] = await this.db.$transaction([
-        this.db.payment.findMany({
-          where: { status: "PENDING" },
-          select: {
-            id: true,
-            amount: true,
-            createdAt: true,
-            client: { select: { name: true } },
-          },
-          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-          skip,
-          take: pageSize,
-        }),
-        this.db.payment.count({ where: { status: "PENDING" } }),
-      ]);
+      const [rows, counts] = await this.db.$transaction(
+        [
+          this.db.$queryRaw<
+            {
+              id: string;
+              amount: string;
+              createdAt: Date;
+              clientName: string;
+            }[]
+          >`
+          SELECT p.id, p.amount::text AS amount, p."createdAt", c.name AS "clientName"
+          FROM "Payment" p JOIN "Batch" b ON b.id = p."batchId" JOIN "Client" c ON c.id = p."clientId"
+          WHERE ${financeReadySql()} ORDER BY p."createdAt" ASC, p.id ASC LIMIT ${pageSize} OFFSET ${skip}`,
+          this.db.$queryRaw<
+            { count: bigint }[]
+          >`SELECT COUNT(*) AS count FROM "Payment" p JOIN "Batch" b ON b.id = p."batchId" WHERE ${financeReadySql()}`,
+        ],
+        { isolationLevel: "RepeatableRead" },
+      );
+
+      const count = Number(counts[0].count);
 
       return {
         kind,
@@ -149,8 +156,8 @@ export class CustomerWorkService {
         results: rows.map((row) => {
           return {
             id: row.id,
-            clientName: row.client.name,
-            label: `₱${row.amount.toFixed(2)}`,
+            clientName: row.clientName,
+            label: `₱${new Prisma.Decimal(row.amount).toFixed(2)}`,
             status: "PENDING",
             waitingSince: row.createdAt.toISOString(),
             href: `/system/payments?payment=${row.id}`,

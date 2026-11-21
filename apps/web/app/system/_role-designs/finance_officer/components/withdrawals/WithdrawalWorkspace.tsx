@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import WorkspaceProgress from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/finance_officer/components/WorkspaceNativeSelect";
 import { useEffect, useRef, useState } from "react";
@@ -24,11 +25,13 @@ export function WithdrawalWorkspace({
   customer = false,
   clientId,
   requestId,
+  refundOnly = false,
   enabled = true,
 }: {
   customer?: boolean;
   clientId?: string;
   requestId?: string;
+  refundOnly?: boolean;
   enabled?: boolean;
 }) {
   const state = useWithdrawalWorkspace({
@@ -36,6 +39,7 @@ export function WithdrawalWorkspace({
     customer,
     clientId,
     requestId,
+    refundOnly,
   });
 
   const [reason, setReason] = useState("");
@@ -108,6 +112,12 @@ export function WithdrawalWorkspace({
         }
       }}
     >
+      {refundOnly && (
+        <div className={styles.notice} role="status">
+          Showing COO-approved refunds with an outstanding amount.{" "}
+          <Link href="/system/withdrawals">Show all withdrawal cases</Link>
+        </div>
+      )}
       {!customer && (
         <header className={styles.header}>
           <h1>Member withdrawals</h1>

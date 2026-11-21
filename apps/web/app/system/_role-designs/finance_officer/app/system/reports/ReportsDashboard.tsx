@@ -7,6 +7,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useFinanceReportLocation } from "./useFinanceReportLocation";
+import { tsRequest } from "@/lib/ts-api";
 import { toast } from "sonner";
 import { ChartBar } from "@phosphor-icons/react";
 import type { ReportBatchOption, ReportKind } from "@freshphones/contracts";
@@ -99,11 +101,61 @@ export default function ReportsDashboard({
     }
   }, [kind, applied, reportPage, showEarnings, skeletonOnly]);
 
-  const sequence = useRef(0);
-
   const operation = useRef(false);
 
   const mounted = useRef(true);
+
+  const sequence = useRef(0);
+
+  const navigationReady = useFinanceReportLocation({
+    kind,
+    filters: applied,
+    page: reportPage,
+    earnings: showEarnings,
+    allowed: allowedKinds,
+    restore: (location) => {
+      sequence.current++;
+
+      setKind(location.kind);
+
+      setApplied(location.filters);
+
+      setDraft(location.filters);
+
+      setReportPage(location.page);
+
+      setShowEarnings(location.earnings);
+
+      setReport(null);
+
+      setValidation(location.error);
+
+      setBatch(null);
+
+      setAppliedBatch(null);
+
+      if (location.filters.batchId) {
+        const id = location.filters.batchId;
+
+        // Display the selected batch's authoritative label instead of inferring one from the URL.
+        setBatch({ id, code: "Selected batch" });
+
+        setAppliedBatch({ id, code: "Selected batch" });
+
+        void tsRequest<{ id: string; code: string }>(`/batches/${id}`)
+          .then((row) => {
+            setBatch((current) => {
+              return current?.id === id ? row : current;
+            });
+
+            setAppliedBatch((current) => {
+              return current?.id === id ? row : current;
+            });
+          })
+          .catch(() => {});
+      }
+    },
+  });
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(applied);
 
@@ -116,7 +168,7 @@ export default function ReportsDashboard({
   }, []);
 
   const load = useCallback(async () => {
-    if (skeletonOnly || showEarnings) {
+    if (!navigationReady || skeletonOnly || showEarnings) {
       return;
     }
 
@@ -187,7 +239,7 @@ export default function ReportsDashboard({
         setLoading(false);
       }
     }
-  }, [kind, applied, reportPage, showEarnings, skeletonOnly]);
+  }, [navigationReady, kind, applied, reportPage, showEarnings, skeletonOnly]);
 
   useEffect(() => {
     void load();
@@ -415,11 +467,6 @@ export default function ReportsDashboard({
           </div>
         )}
         <div>
-          {!minimalHeading && (
-            <p className={styles.kicker}>
-              {showVisuals ? "Company reports" : "Operations overview"}
-            </p>
-          )}
           <h1>{minimalHeading ? "Reports" : "Business reports"}</h1>
           {!minimalHeading && (
             <p>

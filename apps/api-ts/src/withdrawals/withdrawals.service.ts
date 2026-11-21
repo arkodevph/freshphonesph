@@ -1,3 +1,4 @@
+import { refundQueuePage } from "../finance/refund-queue-query";
 import { replayCooWrite } from "../coo-security/request-replay";
 import {
   BadRequestException,
@@ -398,16 +399,18 @@ export class WithdrawalsService {
           ],
         };
 
-        const [rows, total] = await Promise.all([
-          tx.withdrawalRequest.findMany({
-            where,
-            select: { id: true },
-            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-            take: 20,
-            skip: (query.page - 1) * 20,
-          }),
-          tx.withdrawalRequest.count({ where }),
-        ]);
+        const [rows, total] = query.refund
+          ? await refundQueuePage(tx, user, query)
+          : await Promise.all([
+              tx.withdrawalRequest.findMany({
+                where,
+                select: { id: true },
+                orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                take: 20,
+                skip: (query.page - 1) * 20,
+              }),
+              tx.withdrawalRequest.count({ where }),
+            ]);
 
         const items = [];
 

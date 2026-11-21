@@ -42,7 +42,6 @@ export function AccountDocumentSheet({
           </div>
         </div>
         <div className={styles.metadata}>
-          <strong>ACCOUNT DOCUMENT</strong>
           <span>Generated</span>
           <time dateTime={record.generatedAt}>{generated}</time>
           <span>Philippine time</span>

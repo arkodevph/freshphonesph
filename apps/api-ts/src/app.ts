@@ -61,6 +61,7 @@ import { FinanceController } from "./finance/finance.controller";
 import { FinanceAlertsController } from "./finance/finance-alerts.controller";
 import { FinanceAlertsService } from "./finance/finance-alerts.service";
 import { FinanceService } from "./finance/finance.service";
+import { FinanceOverviewService } from "./finance/finance-overview.service";
 import { ReceiptService } from "./finance/receipt.service";
 import { PrivateStorageService } from "./storage/private-storage.service";
 import { ReportsController } from "./reports/reports.controller";
@@ -201,6 +202,7 @@ export async function createApp(config: Config = readConfig()) {
         GcashHistoryService,
         GcashPdfService,
         FinanceService,
+        FinanceOverviewService,
         FinanceAlertsService,
         ReceiptService,
         PrivateStorageService,

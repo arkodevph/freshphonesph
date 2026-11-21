@@ -24,6 +24,7 @@ import {
   paymentDuplicateQuerySchema,
   paymentListQuerySchema,
   paymentSchema,
+  financeOverviewQuerySchema,
   type PaymentInput,
   type User,
 } from "@freshphones/contracts";
@@ -31,6 +32,7 @@ import type { z } from "zod";
 import { CurrentUser, Requires, RequiresAny } from "../auth/access";
 import { Validate } from "../http";
 import { FinanceService } from "./finance.service";
+import { FinanceOverviewService } from "./finance-overview.service";
 import { ReceiptService } from "./receipt.service";
 import type { PrivateUpload } from "../storage/private-storage.service";
 
@@ -40,8 +42,21 @@ type ReceiptUpload = { buffer: Buffer; mimetype: string; size: number };
 export class FinanceController {
   constructor(
     @Inject(FinanceService) private readonly finance: FinanceService,
+    @Inject(FinanceOverviewService)
+    private readonly overview: FinanceOverviewService,
     @Inject(ReceiptService) private readonly receipts: ReceiptService,
   ) {}
+
+  @Get("finance/overview")
+  @Requires("PAYMENT_VERIFY")
+  @AbusePolicy("expensive")
+  financeOverview(
+    @CurrentUser() user: User,
+    @Query(new Validate(financeOverviewQuerySchema))
+    query: z.infer<typeof financeOverviewQuerySchema>,
+  ) {
+    return this.overview.overview(user, query.period);
+  }
 
   @Post("payments/receipt-scan")
   @HttpCode(200)

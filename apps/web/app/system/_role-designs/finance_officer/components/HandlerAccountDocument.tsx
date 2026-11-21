@@ -51,6 +51,10 @@ export function HandlerAccountDocument({
   useSpringDialog(dialog, mounted && !closing, onClose);
 
   function close() {
+    ++version.current;
+
+    controller.current?.abort();
+
     setClosing(true);
   }
 
@@ -146,6 +150,24 @@ export function HandlerAccountDocument({
             !dialog.current?.open
           ) {
             return;
+          }
+
+          const fresh = await getStaffAccountDocument(target, abort.signal);
+
+          if (
+            request !== version.current ||
+            abort.signal.aborted ||
+            !dialog.current?.open
+          ) {
+            return;
+          }
+
+          if (content(fresh) !== content(current)) {
+            setSnapshot(fresh);
+
+            throw new Error(
+              "The document changed while preparing print. Review the updated preview and print again.",
+            );
           }
 
           dialog.current.dataset.printReady = "true";
@@ -338,7 +360,6 @@ export function HandlerAccountDocument({
     >
       <header className={styles.toolbar}>
         <div>
-          <p>Fresh Phones PH · Account document</p>
           <h2 ref={title} id={headingId} tabIndex={-1}>
             {name}
           </h2>

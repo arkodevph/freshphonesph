@@ -108,6 +108,8 @@ export function HandlerRowActions({
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("button, a")) {
             menu.current?.hidePopover();
+
+            trigger.current?.focus();
           }
         }}
       >
@@ -178,6 +180,8 @@ export default function HandlerDataTable<Row, Key extends string>({
   const tipRef = useRef<HTMLDivElement>(null);
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const lastTooltip = useRef(-1000);
 
   const tooltipId = useId();
 
@@ -324,18 +328,28 @@ export default function HandlerDataTable<Row, Key extends string>({
 
     const rect = target.getBoundingClientRect();
 
-    setTooltip({
-      target,
-      text,
-      left: Math.max(
-        12,
-        Math.min(
-          rect.left,
-          window.innerWidth - Math.min(360, window.innerWidth - 24) - 12,
+    const delay =
+      target === document.activeElement ||
+      performance.now() - lastTooltip.current < 600
+        ? 0
+        : 300;
+
+    timer.current = setTimeout(() => {
+      lastTooltip.current = performance.now();
+
+      setTooltip({
+        target,
+        text,
+        left: Math.max(
+          12,
+          Math.min(
+            rect.left,
+            window.innerWidth - Math.min(360, window.innerWidth - 24) - 12,
+          ),
         ),
-      ),
-      top: rect.bottom + 6,
-    });
+        top: rect.bottom + 6,
+      });
+    }, delay);
   }
 
   const height = densities.find((item) => {
@@ -371,10 +385,10 @@ export default function HandlerDataTable<Row, Key extends string>({
           <div>
             <strong>{label}</strong>
             <p>
-              {sort.key === "createdAt"
+              {sort.key === "createdAt" && sort.direction === "desc"
                 ? "Newest first"
                 : "Sorting all matching records"}
-              {sort.key !== "createdAt" && (
+              {(sort.key !== "createdAt" || sort.direction !== "desc") && (
                 <button
                   type="button"
                   className={styles.reset}

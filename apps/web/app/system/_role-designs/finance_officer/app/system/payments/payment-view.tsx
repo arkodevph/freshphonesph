@@ -5,6 +5,14 @@ import type { PaymentDuplicateMatch } from "@freshphones/contracts";
 import { CheckCircle, WarningCircle, XCircle } from "@phosphor-icons/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import {
+  financePaymentQueues,
+  paymentSortFields,
+  type PaymentSortField,
+  type FinancePaymentQueue,
+} from "@freshphones/contracts";
+import { isFinanceId, safeFinanceReturn } from "@/lib/finance-navigation";
+import type { FinancePaymentLocation } from "@/lib/finance-workspace";
 
 export const FILTERS: { label: string; value: string }[] = [
   { label: "All", value: "" },
@@ -30,7 +38,11 @@ export const REVIEW_ACTIONS: {
 }[] = [
   { value: "verified", label: "Verify", Icon: CheckCircle },
   { value: "rejected", label: "Reject", Icon: XCircle },
-  { value: "needs_clarification", label: "Clarify", Icon: WarningCircle },
+  {
+    value: "needs_clarification",
+    label: "Request clarification",
+    Icon: WarningCircle,
+  },
 ];
 
 export const formatTimestamp = (value?: string | null) => {
@@ -75,6 +87,7 @@ export function PaymentLocationSync({
     payment: string | null,
     status: string,
     missingProof: boolean,
+    financeLocation?: FinancePaymentLocation,
   ) => void;
 }) {
   const params = useSearchParams();
@@ -84,6 +97,26 @@ export function PaymentLocationSync({
   const rawStatus = params.get("status");
 
   const rawProof = params.get("proof");
+
+  const rawQueue = params.get("queue");
+
+  const rawQuery = params.get("q") ?? "";
+
+  const rawFrom = params.get("dateFrom") ?? "";
+
+  const rawTo = params.get("dateTo") ?? "";
+
+  const rawPage = params.get("page");
+
+  const rawBatch = params.get("batchId");
+
+  const rawMembershipBatch = params.get("membershipBatchId");
+
+  const rawReturn = params.get("returnTo");
+
+  const rawSort = params.get("sortBy");
+
+  const rawDirection = params.get("sortDirection");
 
   useEffect(() => {
     const payment =
@@ -100,8 +133,52 @@ export function PaymentLocationSync({
       ? rawStatus!
       : "";
 
-    onLocation(payment, status, !payment && rawProof === "missing");
-  }, [rawPayment, rawStatus, rawProof, onLocation]);
+    const queue = financePaymentQueues.includes(rawQueue as FinancePaymentQueue)
+      ? (rawQueue as FinancePaymentQueue)
+      : rawQueue === "all" || status || rawProof === "missing"
+        ? "all"
+        : "ready";
+
+    const page =
+      rawPage &&
+      /^\d+$/.test(rawPage) &&
+      Number(rawPage) >= 1 &&
+      Number(rawPage) <= 100000
+        ? Number(rawPage)
+        : 1;
+
+    onLocation(payment, status, !payment && rawProof === "missing", {
+      queue,
+      batchId: rawBatch ?? undefined,
+      membershipBatchId: rawMembershipBatch ?? undefined,
+      returnTo: safeFinanceReturn(rawReturn) ?? undefined,
+      q: rawQuery,
+      dateFrom: rawFrom,
+      dateTo: rawTo,
+      page,
+      sort: {
+        key: paymentSortFields.includes(rawSort as PaymentSortField)
+          ? (rawSort as PaymentSortField)
+          : "createdAt",
+        direction: rawDirection === "asc" ? "asc" : "desc",
+      },
+    });
+  }, [
+    rawPayment,
+    rawStatus,
+    rawProof,
+    rawQueue,
+    rawQuery,
+    rawFrom,
+    rawTo,
+    rawPage,
+    rawBatch,
+    rawMembershipBatch,
+    rawReturn,
+    rawSort,
+    rawDirection,
+    onLocation,
+  ]);
 
   return null;
 }

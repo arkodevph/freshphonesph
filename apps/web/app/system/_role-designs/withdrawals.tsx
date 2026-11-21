@@ -7,43 +7,61 @@ import RoleDesignLoading from "./RoleDesignLoading";
 
 const views = {
   system_admin: dynamic(
-    () =>
-      import("@/app/system/_role-designs/system_admin/components/withdrawals/WithdrawalStaffWorkspace").then(
-        (module) => module.WithdrawalStaffWorkspace,
-      ),
+    () => {
+      return import("@/app/system/_role-designs/system_admin/components/withdrawals/WithdrawalStaffWorkspace").then(
+        (module) => {
+          return module.WithdrawalStaffWorkspace;
+        },
+      );
+    },
     { loading: RoleDesignLoading },
   ),
   coo: dynamic(
-    () =>
-      import("@/app/system/_role-designs/coo/components/withdrawals/WithdrawalStaffWorkspace").then(
-        (module) => module.WithdrawalStaffWorkspace,
-      ),
+    () => {
+      return import("@/app/system/_role-designs/coo/components/withdrawals/WithdrawalStaffWorkspace").then(
+        (module) => {
+          return module.WithdrawalStaffWorkspace;
+        },
+      );
+    },
     { loading: RoleDesignLoading },
   ),
   batch_manager: dynamic(
-    () =>
-      import("@/app/system/_role-designs/batch_manager/components/withdrawals/WithdrawalStaffWorkspace").then(
-        (module) => module.WithdrawalStaffWorkspace,
-      ),
+    () => {
+      return import("@/app/system/_role-designs/batch_manager/components/withdrawals/WithdrawalStaffWorkspace").then(
+        (module) => {
+          return module.WithdrawalStaffWorkspace;
+        },
+      );
+    },
     { loading: RoleDesignLoading },
   ),
   finance_officer: dynamic(
-    () =>
-      import("@/app/system/_role-designs/finance_officer/components/withdrawals/WithdrawalStaffWorkspace").then(
-        (module) => module.WithdrawalStaffWorkspace,
-      ),
+    () => {
+      return import("@/app/system/_role-designs/finance_officer/components/withdrawals/WithdrawalStaffWorkspace").then(
+        (module) => {
+          return module.WithdrawalStaffWorkspace;
+        },
+      );
+    },
     { loading: RoleDesignLoading },
   ),
   agent: dynamic(
-    () =>
-      import("@/app/system/_role-designs/agent/components/withdrawals/WithdrawalStaffWorkspace").then(
-        (module) => module.WithdrawalStaffWorkspace,
-      ),
+    () => {
+      return import("@/app/system/_role-designs/agent/components/withdrawals/WithdrawalStaffWorkspace").then(
+        (module) => {
+          return module.WithdrawalStaffWorkspace;
+        },
+      );
+    },
     { loading: RoleDesignLoading },
   ),
 };
 
-export default function RolePage(props: { requestId?: string }) {
+export default function RolePage(props: {
+  requestId?: string;
+  refundOnly?: boolean;
+}) {
   const me = useMe();
 
   if (!me) {

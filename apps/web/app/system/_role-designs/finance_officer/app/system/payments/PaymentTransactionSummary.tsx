@@ -40,7 +40,7 @@ export default function PaymentTransactionSummary({
       </div>
       <dl className="payment-details-grid payment-transaction-facts">
         <div>
-          <dt>Batch</dt>
+          <dt>Member batch</dt>
           <dd>{payment.batch_code ?? String(payment.batch)}</dd>
         </div>
         <div>

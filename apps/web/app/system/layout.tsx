@@ -3,7 +3,10 @@
 import HandlerSystemLayout from "./_role-designs/batch_handler/app/system/handler/HandlerSystemLayout";
 import { isBatchHandler } from "@/lib/handler-workspace";
 import SystemSidebar from "./SystemSidebar";
-import { systemNavigation } from "./system-navigation";
+import {
+  systemNavigation,
+  type SystemNavigationItem,
+} from "./system-navigation";
 import CeoDashboardSkeleton from "./ceo-dashboard/CeoDashboardSkeleton";
 import CooDashboardSkeleton from "./coo-dashboard/CooDashboardSkeleton";
 import WorkspacePageSearch from "@/components/WorkspacePageSearch";
@@ -279,7 +282,7 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
     return <WorkspaceSessionPending />;
   }
 
-  const visibleNav = systemNavigation.filter((item) => {
+  const visibleNav: SystemNavigationItem[] = systemNavigation.filter((item) => {
     return (
       item.href &&
       canOpenWorkspace(me.role, item.href, me.permissions) &&
@@ -291,6 +294,40 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
       (item.perms.length === 0 || can(me, ...item.perms))
     );
   });
+
+  if (me.role === "finance_officer") {
+    const order = [
+      "/system",
+      "/system/payments",
+      "/system/reports",
+      "/system/gcash-history",
+      "/system/withdrawals",
+      "/system/tasks",
+      "/system/customer-work",
+    ];
+
+    for (const item of visibleNav) {
+      if (order.includes(item.href)) {
+        // Clone entries so Finance ordering never mutates shared navigation.
+        const index = visibleNav.indexOf(item);
+
+        visibleNav[index] = {
+          ...item,
+          group: "Workspace",
+          ...(item.href === "/system/customer-work"
+            ? { label: "Ready for Finance" }
+            : {}),
+        };
+      }
+    }
+
+    visibleNav.sort((a, b) => {
+      return (
+        (order.indexOf(a.href) < 0 ? 100 : order.indexOf(a.href)) -
+        (order.indexOf(b.href) < 0 ? 100 : order.indexOf(b.href))
+      );
+    });
+  }
 
   const ownerNav = [
     { href: "/system", icon: SquaresFour },

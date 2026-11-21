@@ -1,6 +1,11 @@
 /* Independent finance_officer design. Edit this role only; this is not regenerated at build time. */
 /* Nami: extend the COO dashboard's Ember study to operational workspaces.
    Role scope keeps the customer portal and other executive workspaces independent. */
+.system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
+  .system-eyebrow {
+  display: none;
+}
+
 .system-shell[data-workspace-role="finance_officer"][data-workspace-theme] {
   --system-bg: #f5f6f5;
   --system-surface: #fff;
@@ -265,7 +270,7 @@ html[data-system-theme="dark"]
 
 /* Quiet rows, readable labels, and one boundary per record. */
 .system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
-  table:not([data-calendar] table) {
+  table:not([data-calendar] table):not([data-handler-table] table) {
   width: 100%;
   border-collapse: collapse;
   color: var(--system-text);
@@ -275,14 +280,14 @@ html[data-system-theme="dark"]
 }
 
 .system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table] table)
   thead {
   background: var(--workspace-inset);
   color: var(--system-muted);
 }
 
 .system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table] table)
   th {
   padding: 12px 16px;
   border-bottom: 1px solid var(--system-border);
@@ -294,7 +299,7 @@ html[data-system-theme="dark"]
 }
 
 .system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table] table)
   td {
   padding: 13px 16px;
   border-bottom: 1px solid var(--system-border);
@@ -302,14 +307,14 @@ html[data-system-theme="dark"]
 }
 
 .system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table] table)
   tbody
   tr:hover {
   background: var(--workspace-inset);
 }
 
 .system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table] table)
   button {
   min-height: 36px;
   font-size: 13px;
@@ -319,7 +324,7 @@ html[data-system-theme="dark"]
   .system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
     :is(.system-content, dialog)
     :is(
-      button:not([data-chart-month]),
+      button:not([data-chart-month]):not([data-handler-table] button),
       [role="combobox"],
       select,
       input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])
@@ -348,7 +353,7 @@ html[data-system-theme="dark"]
 }
 
 .system-shell[data-workspace-role="finance_officer"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table] table)
   thead
   th {
   position: sticky;

@@ -5,8 +5,10 @@ import { WithdrawalWorkspace } from "@/app/system/_role-designs/finance_officer/
 
 export function WithdrawalStaffWorkspace({
   requestId,
+  refundOnly = false,
 }: {
   requestId?: string;
+  refundOnly?: boolean;
 }) {
   const me = useMe();
 
@@ -16,8 +18,9 @@ export function WithdrawalStaffWorkspace({
 
   return (
     <WithdrawalWorkspace
-      key={`${me.id}:${requestId ?? "all"}`}
+      key={`${me.id}:${requestId ?? "all"}:${refundOnly}`}
       requestId={requestId}
+      refundOnly={refundOnly}
       enabled={can(me, "WITHDRAWAL_READ")}
     />
   );

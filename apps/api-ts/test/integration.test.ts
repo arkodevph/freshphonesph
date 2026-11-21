@@ -3430,6 +3430,19 @@ test("staff work queues show only authorized, actionable records and open exact 
     documentBefore.count,
   );
 
+  const readyFixture = await db.payment.create({
+    data: {
+      clientId: firstClient,
+      batchId,
+      amount: "1.00",
+      paymentDate: new Date("2026-09-27"),
+      method: "GCash",
+      recordedById: accounts.get("RECORDS")!,
+    },
+  });
+
+  await prepareFinanceReview(db, readyFixture.id);
+
   const paymentQueue = await (
     await finance.request("/operations/customer-work?kind=payments")
   ).json();
@@ -3461,6 +3474,17 @@ test("staff work queues show only authorized, actionable records and open exact 
       recordedById: accounts.get("RECORDS")!,
     },
   });
+
+  assert.equal(
+    (
+      await (
+        await finance.request("/operations/customer-work?kind=payments")
+      ).json()
+    ).count,
+    paymentQueue.count,
+  );
+
+  await prepareFinanceReview(db, newPayment.id);
 
   assert.equal(
     (

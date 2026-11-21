@@ -1,9 +1,9 @@
 .dialog {
   --document-surface: #fff;
-  --document-text: #192c42;
-  --document-muted: #4e6278;
+  --document-text: #25312c;
+  --document-muted: #66716b;
   --document-border: #dce2ea;
-  --document-accent: #205da9;
+  --document-accent: #28634a;
   width: min(980px, calc(100vw - 32px));
   max-width: none;
   max-height: calc(100dvh - 32px);
@@ -17,11 +17,11 @@
   overscroll-behavior: contain;
 }
 :global(html[data-system-theme="dark"]) .dialog {
-  --document-surface: #1c1d22;
+  --document-surface: #181b19;
   --document-text: #f3f3f5;
   --document-muted: #c0c2ca;
   --document-border: #303138;
-  --document-accent: #a8c8f6;
+  --document-accent: #a8cfb7;
   color-scheme: dark;
 }
 .dialog::backdrop {
@@ -91,8 +91,8 @@
   color: #fff;
 }
 :global(html[data-system-theme="dark"]) .actions button:first-child {
-  background: #205da9;
-  border-color: #205da9;
+  background: #28634a;
+  border-color: #28634a;
 }
 .actions svg {
   width: 18px;
@@ -193,5 +193,14 @@
   }
   .message {
     display: none;
+  }
+}
+
+.dialog button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialog button:active:not(:disabled) {
+    transform: none;
   }
 }

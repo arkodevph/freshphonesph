@@ -73,7 +73,6 @@ export default function PaymentDetailsDialog({
         <div className="payment-details-shell">
           <header data-modal-header className="finance-review-heading">
             <div>
-              <p>Payment record</p>
               <h2 id="payment-details-title">Transaction details</h2>
             </div>
             <ModalCloseButton

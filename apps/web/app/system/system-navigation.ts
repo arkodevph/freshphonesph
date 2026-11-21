@@ -197,4 +197,10 @@ export const systemNavigation = [
   },
 ] as const;
 
-export type SystemNavigationItem = (typeof systemNavigation)[number];
+export type SystemNavigationItem = {
+  icon: (typeof systemNavigation)[number]["icon"];
+  label: string;
+  href: (typeof systemNavigation)[number]["href"];
+  group: (typeof navigationGroups)[number];
+  perms: readonly string[];
+};

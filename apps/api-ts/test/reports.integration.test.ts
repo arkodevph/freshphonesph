@@ -906,7 +906,7 @@ test("collection scopes follow current client membership even for payments recor
     },
   });
 
-  await db.payment.create({
+  const movedPayment = await db.payment.create({
     data: {
       clientId: person.id,
       batchId,
@@ -951,6 +951,43 @@ test("collection scopes follow current client membership even for payments recor
   assert.equal(moved.totals.remainingBalance, "30.00");
 
   assert.equal(moved.totals.collectedInPeriod, "10.00");
+
+  const drilldown = await request(
+    "FINANCE_OFFICER",
+    `/payments?membershipBatchId=${destination.id}&status=VERIFIED&dateFrom=2046-02-01&dateTo=2046-02-01`,
+  );
+
+  assert.equal(drilldown.status, 200);
+
+  const filtered = await drilldown.json();
+
+  assert.equal(filtered.total, 1);
+
+  assert.equal(filtered.items[0].id, movedPayment.id);
+
+  const recorded = await (
+    await request(
+      "FINANCE_OFFICER",
+      `/payments?batchId=${destination.id}&status=VERIFIED`,
+    )
+  ).json();
+
+  assert.equal(recorded.total, 0);
+
+  const intersection = await (
+    await request(
+      "FINANCE_OFFICER",
+      `/payments?membershipBatchId=${destination.id}&batchId=${destination.id}`,
+    )
+  ).json();
+
+  assert.equal(intersection.total, 0);
+
+  assert.equal(
+    (await request("FINANCE_OFFICER", "/payments?membershipBatchId=invalid"))
+      .status,
+    400,
+  );
 
   const original = await (
     await request(

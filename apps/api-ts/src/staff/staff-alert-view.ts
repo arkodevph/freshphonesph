@@ -143,7 +143,7 @@ export function staffAlertView(row: AlertRow, user?: User): StaffAlert {
       entity: "payment",
       kind: "FINANCE_PENDING",
       version: row.version,
-      title: "Payment awaiting verification",
+      title: "Payment ready for Finance",
       message: `PHP ${row.amount} · ${row.clientName} · ${row.batchCode}`,
       targetPath: `/system/payments?payment=${row.id}`,
     };

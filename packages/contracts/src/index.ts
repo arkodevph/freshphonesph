@@ -2,6 +2,9 @@ export * from "./personnel";
 
 import { z } from "zod";
 import { previewInstallments } from "./installment-schedule";
+import { financePaymentQueues } from "./finance-workspace";
+
+export * from "./finance-workspace";
 
 export * from "./installment-schedule";
 
@@ -820,6 +823,7 @@ export type PaymentOperationalReviewInput = z.infer<
 >;
 
 export interface PaymentWorkflow {
+  membershipOpen?: boolean;
   submissionComplete?: boolean;
   evidenceVersion: number;
   recordsApproved: boolean;
@@ -881,6 +885,8 @@ export type PaymentSortField = (typeof paymentSortFields)[number];
 
 export const paymentListQuerySchema = listQuerySchema
   .extend({
+    financeQueue: z.enum(financePaymentQueues).optional(),
+    membershipBatchId: z.string().uuid().optional(),
     id: z.string().uuid().optional(),
     clientId: z.string().uuid().optional(),
     proof: z.enum(["missing"]).optional(),

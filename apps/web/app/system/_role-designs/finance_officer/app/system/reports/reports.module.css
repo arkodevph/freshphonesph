@@ -1658,3 +1658,15 @@
   .tabIndicator {
   background: var(--system-surface);
 }
+
+.recordLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  color: var(--system-accent);
+  text-decoration: underline;
+}

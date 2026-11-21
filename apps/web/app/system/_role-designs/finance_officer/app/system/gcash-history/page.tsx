@@ -3,6 +3,13 @@
 import WorkspaceProgress from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/finance_officer/components/WorkspaceNativeSelect";
 import DateInput from "@/app/system/_role-designs/finance_officer/components/DateInput";
+import { useFinanceGcashLocation } from "./useFinanceGcashLocation";
+import {
+  financeGcashHref,
+  financePage,
+  isFinanceId,
+} from "@/lib/finance-navigation";
+import { getGcashSubmissions } from "@/lib/api";
 import { getGcashHistory } from "@/lib/gcash-history";
 import { useEffect, useState } from "react";
 import type {
@@ -32,6 +39,8 @@ const button =
 export default function GcashHistoryPage() {
   const work = useGcashHistory();
 
+  useFinanceGcashLocation(work);
+
   const [history, setHistory] = useState<GcashHistory | null>(null);
 
   const [archiving, setArchiving] = useState<GcashHistory | null>(null);
@@ -39,6 +48,7 @@ export default function GcashHistoryPage() {
   const [reading, setReading] = useState<{
     row: GcashHistory;
     submission: GcashSubmission;
+    sourcePage?: number;
   } | null>(null);
 
   useEffect(() => {
@@ -82,9 +92,37 @@ export default function GcashHistoryPage() {
       }
 
       void getGcashHistory(id)
-        .then((row) => {
+        .then(async (row) => {
+          const query = new URLSearchParams(window.location.search);
+
+          const submissionId = query.get("submission");
+
+          const sourcePage = financePage(query.get("submissionPage"));
+
+          let submission = row.current;
+
+          if (submissionId && submissionId !== row.current.id) {
+            if (!isFinanceId(submissionId)) {
+              throw new Error("Invalid PDF revision link.");
+            }
+
+            const versions = await getGcashSubmissions(row.id, sourcePage);
+
+            const found = versions.items.find((item) => {
+              return item.id === submissionId;
+            });
+
+            if (!found) {
+              throw new Error(
+                "The linked PDF revision is no longer available on this history page. Open revision history to find it again.",
+              );
+            }
+
+            submission = found;
+          }
+
           if (token === generation) {
-            setReading({ row, submission: row.current });
+            setReading({ row, submission, sourcePage });
           }
         })
         .catch((reason) => {
@@ -384,6 +422,16 @@ export default function GcashHistoryPage() {
                   canUpload={work.canUpload}
                   busy={work.saving}
                   open={() => {
+                    window.history.replaceState(
+                      null,
+                      "",
+                      financeGcashHref(
+                        window.location.search,
+                        row.id,
+                        row.current.id,
+                      ),
+                    );
+
                     setReading({ row, submission: row.current });
                   }}
                   history={() => {
@@ -465,6 +513,7 @@ export default function GcashHistoryPage() {
           key={`${work.me?.id}-${reading.submission.id}`}
           row={reading.row}
           submission={reading.submission}
+          sourcePage={reading.sourcePage}
           canReview={work.canReview}
           viewerId={work.me ? String(work.me.id) : undefined}
           changed={() => {
@@ -473,6 +522,14 @@ export default function GcashHistoryPage() {
           download={work.download}
           close={() => {
             setReading(null);
+
+            const url = new URL(window.location.href);
+
+            for (const key of ["history", "submission", "submissionPage"]) {
+              url.searchParams.delete(key);
+            }
+
+            window.history.replaceState(null, "", url);
 
             requestAnimationFrame(() => {
               document

@@ -13,22 +13,38 @@ export default function WithdrawalFinancials({ row }: { row: WithdrawalCase }) {
         <p className={styles.ledgerStatus}>{withdrawalRefundLabel(row)}</p>
         <dl className={styles.ledgerAmount}>
           <dt>Approved refund</dt>
-          <dd>{withdrawalMoney(row.refundAmount)}</dd>
+          <dd>
+            {row.refundStatus === "DECLINED"
+              ? "Not approved"
+              : row.refundStatus === "PENDING"
+                ? "Not decided"
+                : withdrawalMoney(row.refundAmount)}
+          </dd>
         </dl>
         <dl className={styles.ledgerRows}>
           <div>
-            <dt>Recorded as paid</dt>
+            <dt>Recorded external payouts</dt>
             <dd>{withdrawalMoney(row.refundPaid)}</dd>
           </div>
           <div>
-            <dt>Still unpaid</dt>
-            <dd>{withdrawalMoney(row.refundRemaining)}</dd>
+            <dt>Remaining approved refund</dt>
+            <dd>
+              {row.refundStatus === "APPROVED"
+                ? withdrawalMoney(row.refundRemaining)
+                : row.refundStatus === "DECLINED"
+                  ? "Not approved"
+                  : "Awaiting approval"}
+            </dd>
           </div>
           <div>
             <dt>Target payment date</dt>
-            <dd>{row.refundTargetDate ?? "Not scheduled"}</dd>
+            <dd>{row.refundTargetDate ?? "Date pending"}</dd>
           </div>
         </dl>
+        <p className={styles.help}>
+          These amounts track refunds paid outside the system. Verified
+          installment credit remains separate.
+        </p>
         {row.refundNote && (
           <div className={styles.ledgerNote}>
             <h4>Refund decision note</h4>

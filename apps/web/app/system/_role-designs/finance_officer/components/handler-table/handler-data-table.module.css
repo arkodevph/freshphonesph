@@ -2,10 +2,10 @@
   --table-surface: #fff;
   --table-header: #f5f7fa;
   --table-hover: #edf3fa;
-  --table-text: var(--portal-text, #192c42);
-  --table-muted: var(--portal-muted, #4e6278);
-  --table-border: var(--portal-border, #dce2ea);
-  --table-accent: var(--portal-accent, #205da9);
+  --table-text: var(--system-text, #192c42);
+  --table-muted: var(--system-muted, #4e6278);
+  --table-border: var(--system-border, #dce2ea);
+  --table-accent: var(--system-accent, #205da9);
   --handler-pinned-width: 240px;
   position: relative;
   min-width: 0;
@@ -353,10 +353,10 @@
 .details {
   margin-top: 16px;
   padding: 18px;
-  border: 1px solid var(--table-border, var(--portal-border, #dce2ea));
+  border: 1px solid var(--table-border, var(--system-border, #dce2ea));
   border-radius: 20px;
   background: var(--table-surface, var(--portal-surface, #fff));
-  color: var(--portal-text, #192c42);
+  color: var(--system-text, #192c42);
 }
 .details header {
   display: flex;
@@ -373,7 +373,7 @@
 .details button {
   min-height: 44px;
   padding: 8px 14px;
-  border: 1px solid var(--portal-border, #dce2ea);
+  border: 1px solid var(--system-border, #dce2ea);
   border-radius: 999px;
   cursor: pointer;
 }
@@ -388,7 +388,7 @@
 }
 .details :is(th, td) {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--portal-border, #dce2ea);
+  border-bottom: 1px solid var(--system-border, #dce2ea);
   text-align: left;
 }
 .details :is(th, td)[data-numeric] {
@@ -453,4 +453,24 @@
 }
 :global(html[data-system-theme="dark"]) .details {
   background: #1c1d22;
+}
+
+/* Finance uses this role-owned table inside the staff shell. */
+.table .rowAction {
+  min-height: 32px;
+  padding: 0;
+}
+@media (hover: none), (pointer: coarse) {
+  .table .rowAction {
+    min-height: 36px;
+  }
+}
+.actionsPopover {
+  --table-surface: var(--system-surface, #fff);
+  --table-text: var(--system-text);
+  --table-border: var(--system-border);
+  --table-hover: var(--system-accent-soft);
+}
+:global(html[data-system-theme="dark"]) .actionsPopover {
+  --table-surface: #1c1d22;
 }

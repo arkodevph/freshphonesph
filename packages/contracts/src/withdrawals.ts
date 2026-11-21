@@ -171,6 +171,7 @@ export const withdrawalPayoutSchema = z
 
 export const withdrawalQuerySchema = z
   .object({
+    refund: z.enum(["outstanding"]).optional(),
     page: z.coerce.number().int().min(1).max(100000).default(1),
     status: z.enum(withdrawalStatuses).optional(),
     clientId: z.string().uuid().optional(),

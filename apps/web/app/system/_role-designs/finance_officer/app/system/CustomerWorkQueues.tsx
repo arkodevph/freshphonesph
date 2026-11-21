@@ -17,6 +17,7 @@ import {
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import styles from "./customer-work-queues.module.css";
 
 const sections = {
   support: {
@@ -30,8 +31,8 @@ const sections = {
     Icon: FileText,
   },
   payments: {
-    title: "Finance checks",
-    description: "Payments awaiting verification",
+    title: "Ready for Finance",
+    description: "Current approvals and required evidence are complete",
     Icon: Receipt,
   },
 } as const;
@@ -107,12 +108,14 @@ function WorkSection({
   return (
     <section
       id={kind}
-      className="glass rounded-3xl p-4 sm:p-5"
+      className={`${styles.section} glass rounded-3xl p-4 sm:p-5`}
       aria-label={title}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700">
+          <span
+            className={`${styles.accent} grid h-10 w-10 shrink-0 place-items-center rounded-2xl`}
+          >
             <Icon weight="duotone" className="h-5 w-5" />
           </span>
           <div>
@@ -123,7 +126,7 @@ function WorkSection({
           </div>
         </div>
         <span
-          className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-700 text-violet-700"
+          className={`${styles.accent} rounded-full px-2.5 py-1 text-xs font-700`}
           aria-label={`${data?.count ?? 0} ${title.toLowerCase()} waiting`}
         >
           {data?.count ?? "—"}
@@ -131,7 +134,7 @@ function WorkSection({
       </div>
       {error && (
         <p
-          className="mt-4 rounded-xl bg-rose-100 p-3 text-sm text-rose-700"
+          className={`${styles.error} mt-4 rounded-xl p-3 text-sm`}
           role="alert"
         >
           {error}
@@ -143,7 +146,7 @@ function WorkSection({
           label="Loading queue…"
         />
       ) : !items?.length && !error ? (
-        <p className="mt-4 rounded-xl bg-white/60 p-3 text-sm text-ink-soft">
+        <p className={`${styles.empty} mt-4 rounded-xl p-3 text-sm`}>
           Nothing waiting here.
         </p>
       ) : (
@@ -153,18 +156,20 @@ function WorkSection({
               <li key={item.id}>
                 <Link
                   href={item.href}
-                  className="group flex items-center justify-between gap-3 rounded-xl border border-violet-100 bg-white/75 p-3 transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+                  className={`${styles.row} group flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors`}
                 >
                   <span className="min-w-0">
-                    <strong className="block truncate text-sm text-blue-ink">
+                    <strong className={`${styles.name} block truncate text-sm`}>
                       {item.clientName}
                     </strong>
-                    <span className="block truncate text-xs text-ink-soft">
+                    <span className={`${styles.detail} block truncate text-xs`}>
                       {item.label}
                       {item.customerReplied ? " · Customer replied" : ""}
                     </span>
                   </span>
-                  <span className="flex shrink-0 items-center gap-2 text-xs font-700 text-violet-700">
+                  <span
+                    className={`${styles.action} flex shrink-0 items-center gap-2 text-xs font-700`}
+                  >
                     <span>{waitingFor(item.waitingSince)}</span>
                     <ArrowUpRight weight="bold" aria-hidden="true" />
                   </span>
@@ -177,7 +182,7 @@ function WorkSection({
       {compact && (data?.count ?? 0) > 3 && (
         <Link
           href={`/system/customer-work#${kind}`}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-700 text-violet-700 hover:underline"
+          className={`${styles.action} mt-3 inline-flex items-center gap-1 text-xs font-700 hover:underline`}
         >
           View all {data?.count} <ArrowRight weight="bold" aria-hidden="true" />
         </Link>
@@ -195,7 +200,7 @@ function WorkSection({
                 return current - 1;
               });
             }}
-            className="rounded-lg bg-white px-3 py-1.5 font-700 text-blue-ink disabled:opacity-40"
+            className={`${styles.pageButton} rounded-lg px-3 py-1.5 font-700 disabled:opacity-40`}
           >
             Previous
           </button>
@@ -210,7 +215,7 @@ function WorkSection({
                 return current + 1;
               });
             }}
-            className="rounded-lg bg-white px-3 py-1.5 font-700 text-blue-ink disabled:opacity-40"
+            className={`${styles.pageButton} rounded-lg px-3 py-1.5 font-700 disabled:opacity-40`}
           >
             Next
           </button>

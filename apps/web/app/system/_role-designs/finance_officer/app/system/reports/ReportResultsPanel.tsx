@@ -1,5 +1,10 @@
 "use client";
 
+import Link from "next/link";
+import {
+  financePaymentHref,
+  financeReportHref,
+} from "@/lib/finance-navigation";
 import WorkspaceProgress from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
 import WorkspaceDetails from "@/app/system/_role-designs/finance_officer/components/WorkspaceDetails";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -76,6 +81,29 @@ export default function ReportResultsPanel({
       aria-labelledby="report-results-title"
       aria-busy={loading}
     >
+      {canReviewPayments && report && !loading && !error && !dirty && (
+        <nav
+          className={styles.actions}
+          aria-label="Underlying financial records"
+        >
+          <Link
+            className={styles.recordLink}
+            href={financePaymentHref({
+              kind,
+              filters: applied,
+              returnTo: financeReportHref(
+                kind,
+                applied,
+                "page" in report.data ? report.data.page : 1,
+              ),
+            })}
+          >
+            {kind === "collections"
+              ? "Open verified payment records"
+              : "Open matching payment records"}
+          </Link>
+        </nav>
+      )}
       <div className={styles.sectionHeading}>
         <div>
           <h2 id="report-results-title">{names[kind]} report</h2>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { financeGcashHref, financePaymentHref } from "@/lib/finance-navigation";
 import type { GcashPaymentMatch } from "@freshphones/contracts";
 
 const labels: Record<GcashPaymentMatch["status"], string> = {
@@ -10,13 +11,33 @@ const labels: Record<GcashPaymentMatch["status"], string> = {
   NOT_INCOMING: "Not an incoming credit",
 };
 
-export function PaymentMatch({ match }: { match: GcashPaymentMatch }) {
+export function PaymentMatch({
+  match,
+  historyId,
+  submissionId,
+  sourcePage = 1,
+}: {
+  match: GcashPaymentMatch;
+  historyId: string;
+  submissionId: string;
+  sourcePage?: number;
+}) {
   return (
     <>
       <span>{labels[match.status]}</span>
       {match.status === "SUGGESTED" && match.paymentId && (
         <small>
-          <Link href={`/system/payments?payment=${match.paymentId}`}>
+          <Link
+            href={financePaymentHref({
+              id: match.paymentId,
+              returnTo: financeGcashHref(
+                typeof window === "undefined" ? "" : window.location.search,
+                historyId,
+                submissionId,
+                sourcePage,
+              ),
+            })}
+          >
             Open payment
           </Link>
         </small>

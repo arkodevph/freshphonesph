@@ -24,6 +24,7 @@ import type {
   Permission,
   User,
   PaymentSortField,
+  FinancePaymentQueue,
 } from "@freshphones/contracts";
 import { allowed } from "../auth/access";
 import { Database } from "../database";
@@ -37,6 +38,11 @@ import { notifyPaymentResult } from "../staff/payment-results";
 import { queuePendingEmails } from "../staff/email-queue";
 import { adjustmentInclude, effectiveAmount, verifiedTotals } from "./ledger";
 import { paymentListOrder } from "./payment-list-order";
+import {
+  financePaymentFrom,
+  financePaymentWhere,
+  financePaymentOrder,
+} from "./finance-workspace-query";
 
 const pageSize = 20;
 
@@ -52,6 +58,7 @@ const paymentInclude = {
     select: {
       id: true,
       name: true,
+      replacementCompletedAt: true,
       batch: { select: { id: true, code: true } },
     },
   },
@@ -62,6 +69,8 @@ const paymentInclude = {
 } as const;
 
 type Query = {
+  financeQueue?: FinancePaymentQueue;
+  membershipBatchId?: string;
   page: number;
   q: string;
   id?: string;
@@ -110,7 +119,11 @@ function workflow(payment: PaymentRow) {
     manager.reviewerId !== records?.reviewerId,
   );
 
-  return { recordsApproved, managerApproved };
+  return {
+    recordsApproved,
+    managerApproved,
+    membershipOpen: !payment.client.replacementCompletedAt,
+  };
 }
 
 const json = (value: unknown): Prisma.InputJsonValue => {
@@ -229,6 +242,11 @@ export class FinanceService {
 
     return {
       ...record,
+      client: {
+        id: payment.client.id,
+        name: payment.client.name,
+        batch: payment.client.batch,
+      },
       ...(!customer
         ? {
             workflow: {
@@ -329,6 +347,9 @@ export class FinanceService {
     const where: Prisma.PaymentWhereInput = {
       ...this.scope(user),
       ...(query.id ? { id: query.id } : {}),
+      ...(query.membershipBatchId
+        ? { client: { batchId: query.membershipBatchId } }
+        : {}),
       ...(query.proof === "missing" ? { proofFileId: null } : {}),
       OR: query.q
         ? [
@@ -370,6 +391,61 @@ export class FinanceService {
         ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
         ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
       };
+    }
+
+    if (query.financeQueue) {
+      if (
+        businessRole(user.role) !== "FINANCE_OFFICER" ||
+        !allowed(user, "PAYMENT_VERIFY")
+      ) {
+        throw new ForbiddenException("Finance queue access required.");
+      }
+
+      const financeQuery = { ...query, financeQueue: query.financeQueue };
+
+      const predicate = financePaymentWhere(financeQuery);
+
+      return this.db.$transaction(
+        async (tx) => {
+          const ids = await tx.$queryRaw<
+            { id: string }[]
+          >`SELECT p.id ${financePaymentFrom} ${predicate}
+          ${financePaymentOrder(financeQuery)} LIMIT ${pageSize} OFFSET ${(query.page - 1) * pageSize}`;
+
+          const [count] = await tx.$queryRaw<
+            { total: bigint }[]
+          >`SELECT COUNT(*) AS total ${financePaymentFrom} ${predicate}`;
+
+          const rows = await tx.payment.findMany({
+            where: {
+              AND: [
+                where,
+                {
+                  id: {
+                    in: ids.map((row) => {
+                      return row.id;
+                    }),
+                  },
+                },
+              ],
+            },
+            include: paymentInclude,
+            orderBy: paymentListOrder(query),
+          });
+
+          return {
+            items: await Promise.all(
+              rows.map((payment) => {
+                return this.view(tx, payment);
+              }),
+            ),
+            total: Number(count.total),
+            page: query.page,
+            pageSize,
+          };
+        },
+        { isolationLevel: "RepeatableRead" },
+      );
     }
 
     const [items, total] = await this.db.$transaction([

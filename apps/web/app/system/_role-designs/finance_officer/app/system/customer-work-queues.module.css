@@ -1,0 +1,63 @@
+.section {
+  --queue-error: #9f1239;
+}
+
+:global(html[data-system-theme="dark"]) .section {
+  --queue-error: #fda4af;
+}
+
+.row {
+  min-width: 0;
+  border-color: var(--system-border);
+  background: var(--workspace-inset);
+  color: var(--system-text);
+}
+
+.row:hover {
+  background: var(--workspace-control-hover);
+}
+
+.row:focus-visible,
+.pageButton:focus-visible,
+.action:focus-visible {
+  outline: 2px solid var(--workspace-focus);
+  outline-offset: 3px;
+}
+
+.name {
+  color: var(--system-text);
+}
+
+.detail,
+.empty {
+  color: var(--system-muted);
+}
+
+.accent {
+  background: var(--system-accent-soft);
+  color: var(--system-accent);
+}
+
+.action {
+  color: var(--system-accent);
+}
+
+.empty,
+.error {
+  border: 1px solid var(--system-border);
+  background: var(--workspace-inset);
+}
+
+.error {
+  color: var(--queue-error);
+}
+
+.pageButton {
+  border: 1px solid var(--system-border);
+  background: var(--workspace-control);
+  color: var(--system-text);
+}
+
+.pageButton:hover:not(:disabled) {
+  background: var(--workspace-control-hover);
+}

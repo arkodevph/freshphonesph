@@ -1,15 +1,25 @@
 "use client";
 
-import ModalCloseButton from "@/app/system/_role-designs/finance_officer/components/ModalCloseButton";
-import { type Payment } from "@/lib/api";
-import { X } from "@phosphor-icons/react";
-import type { Dispatch, RefObject, SetStateAction } from "react";
 import {
-  REVIEW_ACTIONS,
-  ReviewDecision,
-} from "@/app/system/_role-designs/finance_officer/app/system/payments/payment-view";
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type RefObject,
+  type SetStateAction,
+} from "react";
+import ModalCloseButton from "@/app/system/_role-designs/finance_officer/components/ModalCloseButton";
+import type { Payment } from "@/lib/api";
+import { canDecideFinance, financeDecisionEffects } from "@/lib/finance-review";
+import { financePaymentStage } from "@/lib/finance-workspace";
+import { REVIEW_ACTIONS, type ReviewDecision } from "./payment-view";
+import { useFinanceReviewEvidence } from "./useFinanceReviewEvidence";
+import ReviewEvidence from "./FinanceReviewEvidence";
+import styles from "./finance-review.module.css";
 
 type Props = {
+  reviewAllowed: boolean;
   closeReview: () => void;
   finishReview: () => void;
   reviewStage: "RECORDS" | "MANAGER" | "FINANCE";
@@ -25,204 +35,335 @@ type Props = {
   setReviewNotes: Dispatch<SetStateAction<Record<string, string>>>;
   reviewDecision: ReviewDecision | null;
   reviewError: string | null;
+  denyReview: () => void;
+  reviewConflict: boolean;
+  reloadReview: (payment: Payment) => void;
 };
 
-export default function FinanceReviewDialog({
-  closeReview,
-  finishReview,
-  reviewStage,
-  financeDialog,
-  setReviewPayment,
-  setReviewDecision,
-  setReviewError,
-  reviewSaving,
-  reviewPayment,
-  decide,
-  financeNoteInput,
-  reviewNotes,
-  setReviewNotes,
-  reviewDecision,
-  reviewError,
-}: Props) {
-  const title =
-    reviewStage === "RECORDS"
-      ? "Records completeness review"
-      : reviewStage === "MANAGER"
-        ? "Manager cross-check"
-        : "Finance review";
+export default function FinanceReviewDialog(props: Props) {
+  const {
+    reviewPayment,
+    reviewSaving,
+    reviewDecision,
+    reviewError,
+    reviewNotes,
+    financeDialog,
+    reviewConflict,
+  } = props;
 
-  const actions =
-    reviewStage === "FINANCE"
-      ? REVIEW_ACTIONS
-      : REVIEW_ACTIONS.filter((action) => {
-          return action.value !== "rejected";
-        }).map((action) => {
-          return {
-            ...action,
-            label:
-              action.value === "verified" ? "Approve" : "Return for correction",
-          };
-        });
+  const evidence = useFinanceReviewEvidence(
+    reviewPayment?.id,
+    reviewPayment?.version,
+  );
+
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  const returnFocus = useRef<{
+    label: string;
+    element: HTMLElement | null;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    if (reviewPayment) {
+      const label = `Actions for payment ${String(reviewPayment.id).slice(0, 8)}`;
+
+      returnFocus.current = {
+        label,
+        element: document.querySelector<HTMLElement>(
+          `button[aria-label=${JSON.stringify(label)}]`,
+        ),
+      };
+    } else if (returnFocus.current) {
+      const saved = returnFocus.current;
+
+      returnFocus.current = null;
+
+      const target = saved.element?.isConnected
+        ? saved.element
+        : document.querySelector<HTMLElement>(
+            `button[aria-label=${JSON.stringify(saved.label)}]`,
+          );
+
+      (
+        target ??
+        document.querySelector<HTMLElement>(
+          '[aria-label="Finance payments, scroll for more columns"]',
+        )
+      )?.focus();
+    }
+  }, [reviewPayment?.id]);
+
+  const [confirmed, setConfirmed] = useState(false);
+
+  useEffect(() => {
+    setConfirmed(false);
+  }, [
+    reviewPayment?.id,
+    reviewPayment?.version,
+    reviewDecision,
+    reviewNotes,
+    evidence.data,
+    reviewError,
+  ]);
+
+  useEffect(() => {
+    if (reviewPayment) {
+      heading.current?.focus();
+    }
+  }, [reviewPayment?.id]);
+
+  useEffect(() => {
+    if (evidence.denied) {
+      props.denyReview();
+    }
+  }, [evidence.denied]);
+
+  const current = evidence.data?.payment;
+
+  const changed = Boolean(
+    current &&
+    (current.version !== reviewPayment?.version ||
+      current.workflow?.evidenceVersion !==
+        reviewPayment?.workflow?.evidenceVersion),
+  );
+
+  const blocked =
+    !props.reviewAllowed ||
+    evidence.loading ||
+    !current ||
+    changed ||
+    reviewConflict ||
+    reviewSaving;
+
+  const canConfirm = Boolean(
+    current &&
+    reviewDecision &&
+    canDecideFinance(current, reviewDecision) &&
+    !blocked,
+  );
+
+  const note = reviewPayment
+    ? (reviewNotes[String(reviewPayment.id)] ?? "")
+    : "";
 
   return (
     <dialog
       data-workspace-modal
       data-modal-framed
-      data-modal-size="standard"
+      data-modal-size="media"
       ref={financeDialog}
-      className="finance-review-dialog"
+      className={styles.dialog}
       aria-labelledby="finance-review-title"
-      onClose={finishReview}
+      onClose={props.finishReview}
       onCancel={(event) => {
         event.preventDefault();
 
-        closeReview();
+        props.closeReview();
       }}
       onClick={(event) => {
         if (event.target === event.currentTarget && !reviewSaving) {
-          closeReview();
+          props.closeReview();
         }
       }}
     >
       {reviewPayment && (
         <form
+          className={styles.form}
           onSubmit={(event) => {
             event.preventDefault();
 
-            void decide();
+            if (canConfirm && confirmed) {
+              void props.decide();
+            }
           }}
         >
-          <header data-modal-header className="finance-review-heading">
+          <header
+            data-modal-header
+            className={`finance-review-heading ${styles.heading}`}
+          >
             <div>
-              <p>Payment decision</p>
-              <h2 id="finance-review-title">{title}</h2>
+              <h2 id="finance-review-title" ref={heading} tabIndex={-1}>
+                Finance payment review
+              </h2>
+              <p>Inspect the evidence before recording a financial decision.</p>
             </div>
             <ModalCloseButton
-              onClick={() => {
-                return closeReview();
-              }}
+              onClick={props.closeReview}
               disabled={reviewSaving}
             />
           </header>
-          <div className="finance-review-body">
-            <dl className="finance-review-payment">
-              <div>
-                <dt>Client</dt>
-                <dd>
-                  {reviewPayment.client_name ?? String(reviewPayment.client)}
-                </dd>
-              </div>
-              <div>
-                <dt>Amount</dt>
-                <dd>₱{reviewPayment.amount}</dd>
-              </div>
-              <div>
-                <dt>Reference</dt>
-                <dd>{reviewPayment.reference_no || "—"}</dd>
-              </div>
-              <div>
-                <dt>Payment date</dt>
-                <dd>{reviewPayment.payment_date}</dd>
-              </div>
-            </dl>
-            <label
-              className="finance-review-note"
-              htmlFor="finance-review-note"
-            >
-              <span>{title} note</span>
-              <textarea
-                ref={financeNoteInput}
-                id="finance-review-note"
-                rows={6}
-                maxLength={1000}
-                disabled={reviewSaving}
-                value={reviewNotes[String(reviewPayment.id)] ?? ""}
-                onChange={(event) => {
-                  setReviewError(null);
-
-                  setReviewNotes((current) => {
-                    return {
-                      ...current,
-                      [String(reviewPayment.id)]: event.target.value,
-                    };
-                  });
-                }}
-                placeholder="Describe how you checked the payment and why you chose this decision."
-              />
-              <small>
-                Saved when you confirm ·{" "}
-                {(reviewNotes[String(reviewPayment.id)] ?? "").length}/1000
-                characters
-              </small>
-            </label>
-            {reviewStage !== "RECORDS" &&
-              reviewPayment.workflow?.submissionComplete === false && (
-                <p className="finance-review-error" role="status">
-                  Submission incomplete. Open the submission checklist to
-                  resolve missing receipts or required statements before
-                  approval or verification.
+          <div className={styles.body}>
+            {evidence.loading && (
+              <p role="status">Loading current payment and review evidence…</p>
+            )}
+            {evidence.error && (
+              <div role="alert" className={styles.error}>
+                <p>{evidence.error}</p>
+                <p>
+                  Review evidence is unavailable. Decisions are blocked until it
+                  loads.
                 </p>
-              )}
-            <fieldset className="finance-review-choices">
-              <legend>Decision</legend>
-              <div>
-                {actions.map(({ value, label, Icon }) => {
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      className="finance-review-choice"
-                      data-selected={reviewDecision === value}
-                      onClick={() => {
-                        return setReviewDecision(value);
-                      }}
-                      aria-pressed={reviewDecision === value}
-                      disabled={
-                        reviewSaving ||
-                        (value === "verified" &&
-                          reviewStage !== "RECORDS" &&
-                          reviewPayment.workflow?.submissionComplete ===
-                            false) ||
-                        (value === "verified" &&
-                          (reviewStage === "RECORDS"
-                            ? reviewPayment.workflow?.recordsApproved
-                            : reviewStage === "MANAGER"
-                              ? reviewPayment.workflow?.managerApproved
-                              : false))
-                      }
-                    >
-                      <Icon weight="fill" aria-hidden="true" /> {label}
-                    </button>
-                  );
-                })}
+                <button type="button" onClick={evidence.refresh}>
+                  Retry review evidence
+                </button>
               </div>
-            </fieldset>
-            {reviewError && (
-              <p className="finance-review-error" role="alert">
-                {reviewError}
-              </p>
+            )}
+            {evidence.data && (
+              <>
+                <ReviewEvidence
+                  data={evidence.data}
+                  proofUrl={evidence.proofUrl}
+                />
+                <aside
+                  className={styles.decision}
+                  aria-label="Finance decision"
+                >
+                  <h3>Record your decision</h3>
+                  <p>{financePaymentStage(current!)}</p>
+                  {(changed || reviewConflict) && (
+                    <div className={styles.error} role="alert">
+                      <p>
+                        This payment or its review conditions changed. Your note
+                        is retained. Reload and inspect the evidence before
+                        choosing a new decision.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={reviewSaving || evidence.loading}
+                        onClick={() => {
+                          evidence.reload((fresh) => {
+                            props.reloadReview(fresh.payment);
+                          });
+                        }}
+                      >
+                        Reload for review
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.refresh}
+                    disabled={reviewSaving || evidence.loading}
+                    onClick={evidence.refresh}
+                  >
+                    Refresh evidence
+                  </button>
+                  <div className={styles.note}>
+                    <label htmlFor="finance-review-note">
+                      Finance review note
+                    </label>
+                    <textarea
+                      id="finance-review-note"
+                      aria-describedby="finance-review-note-help"
+                      ref={props.financeNoteInput}
+                      rows={5}
+                      minLength={2}
+                      maxLength={1000}
+                      required
+                      disabled={reviewSaving}
+                      value={note}
+                      onChange={(event) => {
+                        props.setReviewError(null);
+
+                        props.setReviewNotes((previous) => {
+                          return {
+                            ...previous,
+                            [String(reviewPayment.id)]: event.target.value,
+                          };
+                        });
+                      }}
+                      placeholder="Explain what you checked and why you chose this decision."
+                    />
+                    <span
+                      id="finance-review-note-help"
+                      className={styles.muted}
+                    >
+                      {note.length}/1000 characters · draft retained in this
+                      session
+                    </span>
+                  </div>
+                  <fieldset disabled={blocked} className={styles.choices}>
+                    <legend>Decision</legend>
+                    {REVIEW_ACTIONS.map(({ value, label, Icon }) => {
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={reviewDecision === value}
+                          disabled={
+                            blocked || !canDecideFinance(current!, value)
+                          }
+                          onClick={() => {
+                            return props.setReviewDecision(value);
+                          }}
+                        >
+                          <Icon aria-hidden="true" />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </fieldset>
+                  {reviewDecision && (
+                    <div className={styles.effect}>
+                      <p>{financeDecisionEffects[reviewDecision]}</p>
+                      <label className={styles.confirmation}>
+                        <input
+                          type="checkbox"
+                          checked={confirmed}
+                          disabled={!canConfirm}
+                          onChange={(event) => {
+                            return setConfirmed(event.target.checked);
+                          }}
+                        />
+                        I have checked the evidence and confirm this decision.
+                      </label>
+                    </div>
+                  )}
+                  {!canDecideFinance(current!, "verified") &&
+                    current?.status === "pending" && (
+                      <p className={styles.muted}>
+                        Verification requires an open membership, receipt proof,
+                        current Records and assigned Manager approvals, and
+                        complete required submission evidence.
+                      </p>
+                    )}
+                  {reviewError && (
+                    <p key={reviewError} role="alert" className={styles.error}>
+                      {reviewError}
+                    </p>
+                  )}
+                  <button
+                    className={styles.submit}
+                    type="submit"
+                    disabled={
+                      !canConfirm || !confirmed || note.trim().length < 2
+                    }
+                  >
+                    {reviewSaving
+                      ? "Saving decision…"
+                      : reviewDecision
+                        ? `Confirm ${
+                            REVIEW_ACTIONS.find((action) => {
+                              return action.value === reviewDecision;
+                            })?.label
+                          }`
+                        : "Choose a decision"}
+                  </button>
+                </aside>
+              </>
             )}
           </div>
-          <footer className="finance-review-actions">
+          <footer className={styles.footer}>
+            <span>
+              Payments are checked and paid externally. Only verified credit
+              changes the balance.
+            </span>
             <button
-              type="submit"
-              disabled={
-                !reviewDecision ||
-                reviewSaving ||
-                (reviewDecision === "verified" &&
-                  reviewStage !== "RECORDS" &&
-                  reviewPayment.workflow?.submissionComplete === false)
-              }
+              type="button"
+              disabled={reviewSaving}
+              onClick={props.closeReview}
             >
-              {reviewSaving
-                ? "Saving…"
-                : reviewDecision
-                  ? `Confirm ${
-                      actions.find(({ value }) => {
-                        return value === reviewDecision;
-                      })?.label
-                    }`
-                  : "Choose a decision"}
+              Close review
             </button>
           </footer>
         </form>

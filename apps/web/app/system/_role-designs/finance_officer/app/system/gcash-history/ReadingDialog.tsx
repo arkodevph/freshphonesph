@@ -37,12 +37,14 @@ const money = (value: string | null) => {
 export function ReadingDialog({
   row,
   submission,
+  sourcePage = 1,
   canReview = false,
   viewerId,
   changed,
   download,
   close,
 }: {
+  sourcePage?: number;
   row: GcashHistory;
   submission: GcashSubmission;
   canReview?: boolean;
@@ -103,7 +105,6 @@ export function ReadingDialog({
     >
       <header data-modal-header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>GCash statement review</span>
           <h2 id="gcash-workspace-title">{record.batch.code}</h2>
           <p>
             {record.periodStart} — {record.periodEnd}{" "}
@@ -463,6 +464,9 @@ export function ReadingDialog({
                                   {result.paymentMatches[index] && (
                                     <PaymentMatch
                                       match={result.paymentMatches[index]}
+                                      historyId={row.id}
+                                      submissionId={submission.id}
+                                      sourcePage={sourcePage}
                                     />
                                   )}
                                 </td>

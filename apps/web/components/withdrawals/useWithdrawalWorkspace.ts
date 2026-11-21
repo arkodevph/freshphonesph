@@ -21,11 +21,13 @@ export function useWithdrawalWorkspace({
   customer,
   clientId,
   requestId,
+  refundOnly = false,
 }: {
   enabled: boolean;
   customer: boolean;
   clientId?: string;
   requestId?: string;
+  refundOnly?: boolean;
 }) {
   const [page, setPage] = useState(1);
 
@@ -80,6 +82,7 @@ export function useWithdrawalWorkspace({
       const [items, choices] = await Promise.all([
         listWithdrawals({
           page,
+          ...(refundOnly ? { refund: "outstanding" as const } : {}),
           ...(status ? { status } : {}),
           ...(query.trim() ? { q: query.trim() } : {}),
           ...(customer && clientId ? { clientId } : {}),
@@ -124,7 +127,7 @@ export function useWithdrawalWorkspace({
         setLoading(false);
       }
     }
-  }, [enabled, customer, clientId, page, status, query]);
+  }, [enabled, customer, clientId, page, status, query, refundOnly]);
 
   const loadDetail = useCallback(async (id: string, replace = false) => {
     const version = ++detailSequence.current;

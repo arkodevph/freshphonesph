@@ -1,0 +1,238 @@
+.dialog {
+  overflow: hidden;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  max-height: min(92dvh, 960px);
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.heading p {
+  margin-top: 8px;
+  color: var(--system-muted);
+}
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(270px, 1fr);
+  gap: 28px;
+  overflow: auto;
+  min-height: 0;
+  padding: 24px 28px;
+  overscroll-behavior: contain;
+  scroll-padding-block: 24px;
+}
+.body > :is([role="status"], [role="alert"]) {
+  grid-column: 1 / -1;
+}
+.evidence {
+  min-width: 0;
+  display: grid;
+  gap: 24px;
+}
+.evidence section + section {
+  border-top: 1px solid var(--system-border);
+  padding-top: 20px;
+}
+.evidence h3,
+.decision h3 {
+  margin: 0 0 10px;
+}
+.evidence p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.evidence a {
+  color: var(--system-accent);
+  text-decoration: underline;
+}
+.receipt {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+  background: var(--system-surface);
+  border: 1px solid var(--system-border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.history {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+.history li {
+  padding: 12px;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.history p {
+  margin: 4px 0;
+}
+.decision {
+  min-width: 0;
+  align-self: start;
+  padding: 20px;
+  border: 1px solid var(--system-border);
+  border-radius: 16px;
+  background: var(--system-surface);
+}
+.note {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.note textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  background: var(--system-surface);
+  color: var(--system-text);
+}
+.choices {
+  display: grid;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  margin: 20px 0;
+}
+.choices legend {
+  margin-bottom: 8px;
+}
+.choices button,
+.refresh,
+.error button,
+.footer button {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  text-align: left;
+}
+.choices button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+}
+.choices svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.choices button[aria-pressed="true"] {
+  border-color: var(--system-accent);
+  background: var(--system-accent-soft);
+  color: var(--system-accent);
+}
+.confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+}
+.confirmation input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 3px;
+}
+.effect {
+  border-top: 1px solid var(--system-border);
+  padding-top: 12px;
+  margin-bottom: 18px;
+}
+.submit {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--system-accent);
+  color: #fff;
+}
+.muted {
+  color: var(--system-muted);
+  font-size: 13px;
+}
+.error {
+  padding: 12px;
+  margin-block: 12px;
+  border: 1px solid var(--system-danger, #a63c4b);
+  border-radius: 10px;
+  animation: shake 180ms ease-out;
+}
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--system-border);
+  padding: 16px 28px;
+  font-size: 12px;
+  color: var(--system-muted);
+}
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dialog :is(a, button, textarea, input):focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 3px;
+}
+.dialog button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+@keyframes shake {
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+@media (max-width: 760px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+    gap: 24px;
+  }
+  .decision {
+    padding: 16px;
+  }
+  .footer {
+    padding: 16px 18px;
+  }
+  .footer button {
+    width: 100%;
+    text-align: center;
+  }
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .error {
+    animation: none;
+  }
+  .dialog button:active:not(:disabled) {
+    transform: none;
+  }
+}

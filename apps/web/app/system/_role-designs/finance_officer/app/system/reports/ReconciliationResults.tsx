@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  financePaymentHref,
+  financeReportHref,
+} from "@/lib/finance-navigation";
 import WorkspaceProgress from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
 import { formatPeso as money } from "@/lib/currency";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -130,7 +134,11 @@ export default function ReconciliationResults({
                 : "Review payment exceptions"}
             </button>
             {showExceptions && (
-              <PaymentExceptions scope={scope} disabled={disabled} />
+              <PaymentExceptions
+                scope={scope}
+                returnPage={page}
+                disabled={disabled}
+              />
             )}
           </>
         ) : (
@@ -145,9 +153,11 @@ export default function ReconciliationResults({
 
 function PaymentExceptions({
   scope,
+  returnPage,
   disabled,
 }: {
   scope: Record<string, string>;
+  returnPage: number;
   disabled: boolean;
 }) {
   const [page, setPage] = useState(1);
@@ -289,7 +299,19 @@ function PaymentExceptions({
                     </td>
                     <td>
                       <a
-                        href={`/system/payments?payment=${encodeURIComponent(item.id)}`}
+                        href={financePaymentHref({
+                          id: item.id,
+                          returnTo: financeReportHref(
+                            "reconciliation",
+                            {
+                              dateFrom: scope.dateFrom ?? "",
+                              dateTo: scope.dateTo ?? "",
+                              batchId: scope.batchId ?? "",
+                              status: "",
+                            },
+                            returnPage,
+                          ),
+                        })}
                       >
                         Open payment
                       </a>
