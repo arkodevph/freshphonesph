@@ -1,7 +1,7 @@
 .panel {
-  --table-surface: #fff;
-  --table-header: #f5f7fa;
-  --table-hover: #edf3fa;
+  --table-surface: var(--system-surface, #fff);
+  --table-header: var(--system-surface-inset, #f5f7fa);
+  --table-hover: var(--workspace-inset, #edf3fa);
   --table-text: var(--portal-text, #192c42);
   --table-muted: var(--portal-muted, #4e6278);
   --table-border: var(--portal-border, #dce2ea);
@@ -10,15 +10,15 @@
   position: relative;
   min-width: 0;
   border: 1px solid var(--table-border);
-  border-radius: 20px;
+  border-radius: 12px;
   background: var(--table-surface);
   color: var(--table-text);
   font-size: 14px;
 }
 :global(html[data-system-theme="dark"]) .panel {
-  --table-surface: #1c1d22;
-  --table-header: #22242a;
-  --table-hover: #28313e;
+  --table-surface: var(--system-surface, #0d0d0d);
+  --table-header: var(--system-surface-inset, #131313);
+  --table-hover: var(--workspace-inset, #20242c);
 }
 .panel :is(button, a, [tabindex]):focus-visible {
   outline: 2px solid var(--table-accent);
@@ -85,6 +85,7 @@
 }
 .scroll {
   container-type: inline-size;
+  isolation: isolate;
   overflow: auto;
   max-height: min(62dvh, 34rem);
   border-block: 1px solid var(--table-border);
@@ -274,8 +275,8 @@
   background: var(--table-surface);
   color: var(--table-muted);
   cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 .rowAction svg {
   width: 20px;
@@ -354,7 +355,7 @@
   margin-top: 16px;
   padding: 18px;
   border: 1px solid var(--table-border, var(--portal-border, #dce2ea));
-  border-radius: 20px;
+  border-radius: 12px;
   background: var(--table-surface, var(--portal-surface, #fff));
   color: var(--portal-text, #192c42);
 }
@@ -453,4 +454,135 @@
 }
 :global(html[data-system-theme="dark"]) .details {
   background: #1c1d22;
+}
+
+.panel[data-handler-table="payments"] .scroll {
+  overflow: visible;
+  max-height: none;
+}
+.panel[data-handler-table="payments"] .table {
+  table-layout: fixed;
+}
+.panel[data-handler-table="payments"] .table :is(td, th) {
+  padding: 12px;
+  white-space: normal;
+}
+.panel[data-handler-table="payments"] .table [data-pin] {
+  position: static;
+  box-shadow: none;
+}
+.panel[data-handler-table="payments"] .cell {
+  width: 100%;
+}
+.panel[data-handler-table="payments"] .text {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.panel[data-handler-table="payments"] .badge {
+  white-space: normal;
+}
+.panel[data-handler-table="payments"] .rowAction {
+  opacity: 1;
+  pointer-events: auto;
+}
+.panel[data-handler-table="payments"] .density button[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--workspace-raised);
+  color: var(--table-text);
+  box-shadow: none;
+}
+.identity {
+  display: grid;
+  gap: 4px;
+}
+.identity small,
+.secondaryText {
+  display: block;
+  color: var(--table-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.identity .identifier {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.secondaryText {
+  margin-top: 5px;
+}
+@container (max-width: 760px) {
+  .panel[data-handler-table="payments"] .table,
+  .panel[data-handler-table="payments"] .table tbody {
+    display: block;
+  }
+  .panel[data-handler-table="payments"] .table colgroup,
+  .panel[data-handler-table="payments"] .table thead {
+    display: none;
+  }
+  .panel[data-handler-table="payments"] .table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 16px;
+    border-bottom: 1px solid var(--table-border);
+  }
+  .panel[data-handler-table="payments"] .table tbody :is(th, td) {
+    display: block;
+    height: auto;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+  .panel[data-handler-table="payments"] .table tbody :is(th, td)::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    color: var(--table-muted);
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+  .panel[data-handler-table="payments"] .table tbody [data-column="client"],
+  .panel[data-handler-table="payments"] .table tbody [data-column="reference"] {
+    grid-column: 1 / -1;
+  }
+  .panel[data-handler-table="payments"] .table tbody [data-actions] {
+    grid-column: 2;
+    justify-self: end;
+  }
+  .panel[data-handler-table="payments"] .table tbody [data-actions]::before {
+    display: none;
+  }
+}
+
+.panel[data-handler-table="payments"] .table thead th {
+  padding-block: 0;
+}
+.panel[data-handler-table="payments"] .receipt {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+}
+.panel[data-handler-table="payments"] .table tbody :is(td, th) {
+  padding-block: 8px;
+}
+.panel[data-handler-table="payments"][data-density="compact"]
+  .table
+  tbody
+  :is(td, th) {
+  padding-block: 5px;
+}
+.panel[data-handler-table="payments"][data-density="comfortable"]
+  .table
+  tbody
+  :is(td, th) {
+  padding-block: 12px;
+}
+@container (max-width: 760px) {
+  .panel[data-handler-table="payments"] .table tbody :is(td, th),
+  .panel[data-handler-table="payments"][data-density] .table tbody :is(td, th) {
+    padding: 0;
+  }
 }

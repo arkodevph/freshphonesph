@@ -619,7 +619,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
                 >
                   <option value="">All statuses</option>
                   {(
-                    ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"] as Status[]
+                    ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE", "CANCELLED"] as Status[]
                   ).map((item) => {
                     return (
                       <option key={item} value={item}>

@@ -3,6 +3,8 @@
 import WorkspaceProgress, {
   TableSkeletonRows,
 } from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
+import AnimatedDisclosure from "@/app/system/_role-designs/finance_officer/components/AnimatedDisclosure";
+import styles from "./records.module.css";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/finance_officer/components/WorkspaceNativeSelect";
 import DateInput from "@/app/system/_role-designs/finance_officer/components/DateInput";
 import CooActionDisclosure from "@/app/system/_role-designs/finance_officer/app/system/CooActionDisclosure";
@@ -510,8 +512,20 @@ export default function RecordsPage() {
           }}
         />
       ) : (
-        <div className="glass overflow-x-auto rounded-3xl p-5">
-          <table className="w-full min-w-[640px] text-left text-sm">
+        <div
+          className={styles.tableScroll}
+          role="region"
+          aria-label="Paluwagan batch records"
+          tabIndex={0}
+        >
+          <table className={styles.table}>
+            <colgroup>
+              {[13, 12, 7, 8, 9, 12, 10, 9, 9, ...(canManage ? [11] : [])].map(
+                (width, index) => {
+                  return <col key={index} style={{ width: `${width}%` }} />;
+                },
+              )}
+            </colgroup>
             <thead className="text-xs uppercase tracking-wide text-ink-soft">
               <tr className="border-b border-white/60">
                 <th className="px-2 py-2">Batch</th>
@@ -525,7 +539,7 @@ export default function RecordsPage() {
                   <th className="px-2 py-2">Agent</th>
                 </>
                 <th className="px-2 py-2">Status</th>
-                {canManage && <th className="px-2 py-2">Actions</th>}
+                {canManage && <th className="px-2 py-2 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -582,7 +596,7 @@ export default function RecordsPage() {
                       <td className="px-2 py-2.5">
                         <Link
                           href={`/system/clients?batch=${b.id}`}
-                          className="text-blue underline"
+                          className={styles.memberLink}
                           aria-label={`View ${b.member_count} real members of ${b.batch_number}`}
                         >
                           {b.member_count} / {BATCH_REAL_MEMBER_CAPACITY} real
@@ -617,49 +631,60 @@ export default function RecordsPage() {
                         </td>
                       </>
                       <td className="px-2 py-2.5 capitalize">
-                        <span className="rounded-full bg-sky-2/70 px-2.5 py-1 text-xs font-700 text-blue-ink">
+                        <span className="whitespace-nowrap rounded-full bg-sky-2/70 px-2.5 py-1 text-xs font-700 text-blue-ink">
                           {b.status}
                         </span>
                       </td>
                       {canManage && (
                         <td className="px-2 py-2.5">
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              className="rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
-                              aria-label={`Assign handler and agent for ${b.batch_number}`}
-                              onClick={() => {
-                                return setAssignmentId(b.id);
-                              }}
-                            >
-                              Assign
-                            </button>
-                            {can(me, "BATCH_ASSIGN") && (
+                          <AnimatedDisclosure
+                            title="Records"
+                            className={styles.records}
+                            summaryProps={{
+                              "aria-label": `Records for batch ${b.batch_number}`,
+                            }}
+                          >
+                            <div className={styles.recordActions}>
                               <button
                                 type="button"
                                 className="rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
-                                aria-label={`Edit batch ${b.batch_number}`}
+                                aria-label={`Assign handler and agent for ${b.batch_number}`}
                                 onClick={() => {
-                                  return setDetails({ id: b.id, mode: "edit" });
+                                  return setAssignmentId(b.id);
                                 }}
                               >
-                                Edit
+                                Assign
                               </button>
-                            )}
-                            <button
-                              type="button"
-                              className="rounded-lg bg-white/70 px-2 py-1 text-xs font-700 text-blue"
-                              aria-label={`Change history for batch ${b.batch_number}`}
-                              onClick={() => {
-                                return setDetails({
-                                  id: b.id,
-                                  mode: "history",
-                                });
-                              }}
-                            >
-                              History
-                            </button>
-                          </div>
+                              {can(me, "BATCH_ASSIGN") && (
+                                <button
+                                  type="button"
+                                  className="rounded-lg bg-violet-100 px-2 py-1 text-xs font-700 text-violet-700"
+                                  aria-label={`Edit batch ${b.batch_number}`}
+                                  onClick={() => {
+                                    return setDetails({
+                                      id: b.id,
+                                      mode: "edit",
+                                    });
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="rounded-lg bg-white/70 px-2 py-1 text-xs font-700 text-blue"
+                                aria-label={`Change history for batch ${b.batch_number}`}
+                                onClick={() => {
+                                  return setDetails({
+                                    id: b.id,
+                                    mode: "history",
+                                  });
+                                }}
+                              >
+                                History
+                              </button>
+                            </div>
+                          </AnimatedDisclosure>
                         </td>
                       )}
                     </tr>

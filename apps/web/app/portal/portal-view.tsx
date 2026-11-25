@@ -4,16 +4,16 @@ import { pesoFormat as currency } from "@/lib/currency";
 import {
   Bell,
   Calendar as CalendarBlank,
-  ChatRoundDots as ChatCircleText,
-  FileText,
+  Support as ChatCircleText,
+  Records as FileText,
   Settings as GearSix,
-  HomeAngle as House,
-  Box as Package,
-  Smartphone as DeviceMobile,
-  Delivery as Truck,
-  Wallet,
-} from "@/components/SolarIcons";
-import { ArrowBendUpLeft } from "@phosphor-icons/react";
+  Home as House,
+  Package,
+  Phone as DeviceMobile,
+  Package as Truck,
+  Money as Wallet,
+} from "@/components/JiggIcons";
+import { Download as ArrowBendUpLeft } from "@/components/JiggIcons";
 import Image from "next/image";
 import { useState } from "react";
 import styles from "./portal.module.css";

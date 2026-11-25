@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import type { User } from "@freshphones/contracts";
 import { allowed, requireCurrentUser } from "../auth/access";
+import { replayCooWrite } from "../coo-security/request-replay";
 import { Database } from "../database";
 import { Prisma, type HrActionStatus } from "../generated/prisma/client";
 
@@ -174,56 +175,58 @@ export class HrActionsService {
         );
       }
 
-      const review = await tx.kpiReview.findUnique({
-        where: { id: input.reviewId },
-      });
+      return replayCooWrite(tx, user.id, async () => {
+        const review = await tx.kpiReview.findUnique({
+          where: { id: input.reviewId },
+        });
 
-      if (!review) {
-        throw new NotFoundException("KPI review not found.");
-      }
+        if (!review) {
+          throw new NotFoundException("KPI review not found.");
+        }
 
-      if (review.decision !== "ACTION_RECOMMENDED") {
-        throw new ConflictException("This review has no recommended action.");
-      }
+        if (review.decision !== "ACTION_RECOMMENDED") {
+          throw new ConflictException("This review has no recommended action.");
+        }
 
-      if (
-        await tx.hrActionRequest.findFirst({
-          where: {
+        if (
+          await tx.hrActionRequest.findFirst({
+            where: {
+              reviewId: review.id,
+              status: { in: ["PENDING", "APPROVED"] },
+            },
+          })
+        ) {
+          throw new ConflictException(
+            "This review already has a pending or approved request.",
+          );
+        }
+
+        const row = await tx.hrActionRequest.create({
+          data: {
             reviewId: review.id,
-            status: { in: ["PENDING", "APPROVED"] },
+            proposedById: current.id,
+            proposedAction: input.proposedAction,
+            rationale: input.rationale,
           },
-        })
-      ) {
-        throw new ConflictException(
-          "This review already has a pending or approved request.",
-        );
-      }
+          include,
+        });
 
-      const row = await tx.hrActionRequest.create({
-        data: {
-          reviewId: review.id,
-          proposedById: current.id,
-          proposedAction: input.proposedAction,
-          rationale: input.rationale,
-        },
-        include,
+        await tx.auditEntry.create({
+          data: {
+            actorId: current.id,
+            entity: "hr_action_request",
+            recordId: row.id,
+            action: "hr_action.requested",
+            after: json(view(row)),
+          },
+        });
+
+        await tx.changeEvent.create({
+          data: { entity: "hr_action_request", recordId: row.id },
+        });
+
+        return view(row);
       });
-
-      await tx.auditEntry.create({
-        data: {
-          actorId: current.id,
-          entity: "hr_action_request",
-          recordId: row.id,
-          action: "hr_action.requested",
-          after: json(view(row)),
-        },
-      });
-
-      await tx.changeEvent.create({
-        data: { entity: "hr_action_request", recordId: row.id },
-      });
-
-      return view(row);
     });
   }
 

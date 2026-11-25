@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { tsRequest } from "@/lib/ts-api";
+import styles from "@/app/system/_role-designs/csr/app/system/support/support-workspace.module.css";
 
 type Match = {
   id: string;
@@ -56,15 +57,11 @@ export default function CustomerLookup() {
   }
 
   return (
-    <section className="system-panel mb-4 p-5">
+    <section className={styles.panel}>
       <h2 className="mb-2 text-lg font-bold">Customer lookup</h2>
-      <p className="mb-3 text-sm">
-        Find the customer and check their latest recorded payment status for a
-        concern.
-      </p>
-      <form onSubmit={search} className="flex flex-wrap gap-3">
+      <form onSubmit={search} className={styles.lookupForm}>
         <label className="min-w-0 flex-1">
-          <span className="sr-only">Customer name, phone or batch</span>
+          <span className={styles.muted}>Customer name, phone or batch</span>
           <input
             className="w-full rounded-xl border p-2"
             required
@@ -77,11 +74,7 @@ export default function CustomerLookup() {
             placeholder="Name, phone or batch"
           />
         </label>
-        <button
-          className="rounded-xl border px-4 py-2"
-          disabled={loading}
-          type="submit"
-        >
+        <button className={styles.button} disabled={loading} type="submit">
           {loading ? "Searching…" : "Find customer"}
         </button>
       </form>

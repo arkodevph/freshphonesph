@@ -300,9 +300,8 @@ export default function PaymentListPanel({
         {loading
           ? "Loading matching payments…"
           : `${paymentCount} matching payment${paymentCount === 1 ? "" : "s"}.`}
-        {
-          " CSV and XLSX exports use the same search, status, and date filters and omit client identity and payment references."
-        }
+        {!isBatchHandler(me?.role) &&
+          " CSV and XLSX exports use the same search, status, and date filters and omit client identity and payment references."}
       </p>
 
       {isBatchHandler(me?.role) && me ? (

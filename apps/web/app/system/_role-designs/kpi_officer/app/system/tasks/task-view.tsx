@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import styles from "@/app/system/_role-designs/kpi_officer/app/system/tasks/staff-tasks.module.css";
 
-export type Status = "TODO" | "IN_PROGRESS" | "SUBMITTED" | "DONE";
+export type Status = "TODO" | "IN_PROGRESS" | "SUBMITTED" | "DONE" | "CANCELLED";
 
 export type Priority = "LOW" | "MEDIUM" | "HIGH";
 
@@ -18,6 +18,8 @@ export type Task = {
   priority: Priority;
   deadline: string;
   status: Status;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
   report: string;
   submittedAt: string | null;
   lateFlag: boolean | null;

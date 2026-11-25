@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonLine } from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/coo/components/WorkspaceNativeSelect";
 import type { Paginated } from "@/lib/api";
 import { getApplicantAttachmentUrl, type Applicant } from "@/lib/api";
@@ -160,6 +161,32 @@ export default function ApplicantReviewPanel({
       <DirectoryPages directory={applicants} name="Applicant pages" />
       <div className={styles.reviewWorkspace}>
         <div className={styles.applicantList} aria-label="Applicants">
+          {applicants.loading &&
+            !applicants.data &&
+            Array.from({ length: 5 }, (_, index) => {
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  disabled
+                  aria-label="Loading applicant"
+                  aria-busy="true"
+                >
+                  <span className={styles.avatar} aria-hidden="true" />
+                  <span>
+                    <strong>
+                      <SkeletonLine width="18ch" />
+                    </strong>
+                    <small>
+                      <SkeletonLine width="24ch" />
+                    </small>
+                  </span>
+                  <span className={styles.compactStatus}>
+                    <SkeletonLine width="7ch" />
+                  </span>
+                </button>
+              );
+            })}
           {applicants.data?.results.map((row) => {
             return (
               <button

@@ -8,13 +8,7 @@ import {
 } from "@/lib/customer-work";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 import { can, useMe } from "@/lib/useMe";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  FileText,
-  Headset,
-  Receipt,
-} from "@phosphor-icons/react";
+import { FileText, Headset, Receipt } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -166,7 +160,6 @@ function WorkSection({
                   </span>
                   <span className="flex shrink-0 items-center gap-2 text-xs font-700 text-violet-700">
                     <span>{waitingFor(item.waitingSince)}</span>
-                    <ArrowUpRight weight="bold" aria-hidden="true" />
                   </span>
                 </Link>
               </li>
@@ -179,7 +172,7 @@ function WorkSection({
           href={`/system/customer-work#${kind}`}
           className="mt-3 inline-flex items-center gap-1 text-xs font-700 text-violet-700 hover:underline"
         >
-          View all {data?.count} <ArrowRight weight="bold" aria-hidden="true" />
+          View all {data?.count}
         </Link>
       )}
       {!compact && data && data.count > 20 && (
@@ -248,7 +241,7 @@ export default function CustomerWorkQueues({
   }
 
   return (
-    <div className="coo-customer-work-grid grid gap-4 lg:grid-cols-3">
+    <div className="grid gap-4">
       {kinds.map((kind) => {
         return <WorkSection key={kind} kind={kind} compact={compact} />;
       })}

@@ -1,7 +1,7 @@
 .panel {
-  --table-surface: #fff;
-  --table-header: #f5f7fa;
-  --table-hover: #edf3fa;
+  --table-surface: var(--system-surface, #fff);
+  --table-header: var(--system-surface-inset, #f5f7fa);
+  --table-hover: var(--workspace-inset, #edf3fa);
   --table-text: var(--portal-text, #192c42);
   --table-muted: var(--portal-muted, #4e6278);
   --table-border: var(--portal-border, #dce2ea);
@@ -10,15 +10,15 @@
   position: relative;
   min-width: 0;
   border: 1px solid var(--table-border);
-  border-radius: 20px;
+  border-radius: 12px;
   background: var(--table-surface);
   color: var(--table-text);
   font-size: 14px;
 }
 :global(html[data-system-theme="dark"]) .panel {
-  --table-surface: #1c1d22;
-  --table-header: #22242a;
-  --table-hover: #28313e;
+  --table-surface: var(--system-surface, #0d0d0d);
+  --table-header: var(--system-surface-inset, #131313);
+  --table-hover: var(--workspace-inset, #20242c);
 }
 .panel :is(button, a, [tabindex]):focus-visible {
   outline: 2px solid var(--table-accent);
@@ -71,9 +71,9 @@
   cursor: pointer;
 }
 .density button[aria-pressed="true"] {
-  border-color: var(--table-border);
-  background: var(--table-surface);
-  color: var(--table-accent);
+  border-color: transparent;
+  background: var(--workspace-raised);
+  color: var(--table-text);
   box-shadow: 0 1px 4px rgb(0 0 0 / 6%);
 }
 .density span {
@@ -93,8 +93,7 @@
 }
 .scroll {
   container-type: inline-size;
-  overflow: auto;
-  max-height: min(62dvh, 34rem);
+  overflow: visible;
   border-top: 1px solid var(--table-border);
   border-bottom: 1px solid var(--table-border);
   scrollbar-width: thin;
@@ -102,18 +101,18 @@
 }
 .table {
   width: 100%;
-  min-width: 1570px;
+  min-width: 0;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: auto;
+  table-layout: fixed;
   text-align: left;
   line-height: 1.35;
 }
 .table :is(th, td) {
-  padding: 0 12px;
+  padding: 8px 12px;
   text-align: left;
   vertical-align: middle;
-  white-space: nowrap;
+  white-space: normal;
   border: 0;
   border-bottom: 1px solid var(--table-border);
 }
@@ -148,17 +147,15 @@
 .table :is(th, td).numeric {
   text-align: right;
   font-variant-numeric: tabular-nums lining-nums;
-  white-space: nowrap;
+  white-space: normal;
   overflow: visible;
 }
 .table tbody .numeric {
   font-weight: 550;
 }
 .table .batch {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  min-width: 176px;
+  position: static;
+  min-width: 0;
 }
 .table tbody .batch {
   font-weight: 650;
@@ -207,14 +204,13 @@
 }
 .text {
   display: block;
-  width: 176px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
   scroll-margin-inline: calc(var(--batch-pinned-width) + 280px) 20px;
 }
 .batch .text {
-  width: 152px;
+  width: 100%;
 }
 .unit .text {
   width: 236px;
@@ -236,7 +232,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: capitalize;
-  white-space: nowrap;
+  white-space: normal;
 }
 .status[data-status="forming"] {
   color: var(--table-muted);
@@ -261,8 +257,8 @@
   background: var(--table-surface);
   color: var(--table-muted);
   cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1;
+  pointer-events: auto;
   scroll-margin-inline: calc(var(--batch-pinned-width) + 280px) 20px;
 }
 .rowAction svg {
@@ -342,33 +338,8 @@
   margin: -1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
+  white-space: normal;
   border: 0;
-}
-@container (max-width: 720px) {
-  .table .unit {
-    position: static;
-    box-shadow: none;
-  }
-  .table thead .unit {
-    position: sticky;
-    left: auto;
-    z-index: 3;
-  }
-  .table .batch {
-    min-width: 152px;
-    box-shadow: 5px 0 7px -7px rgb(0 0 0 / 55%);
-  }
-  .batch .text {
-    width: 128px;
-  }
-  .text {
-    scroll-margin-inline-start: calc(var(--batch-pinned-width) + 16px);
-  }
-  .sortButton,
-  .rowAction {
-    scroll-margin-inline-start: calc(var(--batch-pinned-width) + 16px);
-  }
 }
 @media (hover: none), (pointer: coarse) {
   .rowAction {
@@ -390,5 +361,77 @@
     flex: 1;
     min-width: 0;
     padding-inline: 7px;
+  }
+}
+
+.secondaryText {
+  display: block;
+  margin-top: 3px;
+  color: var(--table-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.teamLabel {
+  color: var(--table-muted);
+  font-size: 11px;
+  margin-right: 6px;
+}
+@container (max-width: 760px) {
+  .table,
+  .table tbody {
+    display: block;
+  }
+  .table colgroup,
+  .table thead {
+    display: none;
+  }
+  .table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 16px;
+    gap: 14px;
+    border-bottom: 1px solid var(--table-border);
+  }
+  .table tbody :is(th, td) {
+    display: block;
+    height: auto;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+  .table tbody :is(th, td)::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    color: var(--table-muted);
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+  .table tbody .batch,
+  .table tbody td[data-label="Assigned team"] {
+    grid-column: 1 / -1;
+  }
+  .table .actionsColumn {
+    width: auto;
+    text-align: right;
+    align-self: end;
+  }
+}
+
+.table thead th {
+  padding-block: 0;
+}
+.panel[data-density="compact"] .table tbody :is(th, td) {
+  padding-block: 6px;
+}
+.panel[data-density="comfortable"] .table tbody :is(th, td) {
+  padding-block: 12px;
+}
+@container (max-width: 760px) {
+  .panel .table tbody :is(th, td),
+  .panel[data-density] .table tbody :is(th, td) {
+    padding: 0;
   }
 }

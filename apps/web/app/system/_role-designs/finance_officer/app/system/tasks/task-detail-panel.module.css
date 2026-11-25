@@ -1,0 +1,335 @@
+.detailDialog {
+  padding: 0;
+  overflow-y: auto;
+  background: var(--system-surface);
+  color: var(--system-text);
+}
+.detailHeader {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 22px 24px 18px;
+  background: var(--system-surface);
+  border-bottom: 1px solid var(--system-border);
+}
+.detailTitle {
+  align-self: center;
+}
+.detailLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.detailProperties {
+  padding: 22px 24px 0;
+}
+.detailProperties dl {
+  display: grid;
+  gap: 14px;
+}
+.detailProperties dl > div {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.detailProperties dt {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-top: 2px;
+}
+.detailProperties dt svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.detailDialog .detailProperties dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.detailMain {
+  min-width: 0;
+  padding: 20px 24px 24px;
+}
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+.tabs button {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--system-muted);
+  background: transparent;
+}
+.tabs button[aria-pressed="true"] {
+  color: var(--system-text);
+  background: var(--workspace-control-hover);
+  font-weight: 600;
+}
+.tabs button:hover {
+  background: var(--workspace-control-hover);
+}
+.work {
+  display: grid;
+  gap: 24px;
+}
+.work[hidden],
+.detailMain > div[hidden] {
+  display: none;
+}
+.instructionBlock {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--workspace-inset, var(--system-surface-inset));
+}
+.detailDialog h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.instructionBlock p,
+.submissionBlock > p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+.submissionBlock,
+.reportForm {
+  display: grid;
+  gap: 16px;
+}
+.submissionBlock header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.submissionBlock header svg {
+  width: 18px;
+  height: 18px;
+  color: var(--system-accent);
+}
+.submissionBlock header h3 {
+  margin: 0;
+}
+.submissionTime,
+.formIntro {
+  color: var(--system-muted);
+  font-size: 12px;
+}
+.field {
+  display: grid;
+  gap: 8px;
+}
+.field > span > small {
+  color: var(--system-muted);
+  font-weight: 400;
+}
+.reportForm :is(input:not([type="file"]), textarea) {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  background: var(--workspace-control);
+  color: var(--system-text);
+}
+.reportForm textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+.fileUpload {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--system-border);
+  border-radius: 12px;
+  background: var(--workspace-inset);
+  cursor: pointer;
+}
+.fileUpload:focus-within {
+  outline: 2px solid var(--workspace-focus, var(--system-accent));
+  outline-offset: 3px;
+}
+.fileUpload > span:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.fileUpload strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.fileUpload small {
+  color: var(--system-muted);
+}
+.fileIcon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--workspace-control-hover);
+  flex: none;
+}
+.fileIcon svg {
+  width: 20px;
+  height: 20px;
+}
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.primary {
+  background: var(--workspace-action, var(--system-accent));
+  color: var(--workspace-on-action, #fff);
+}
+.primary:hover:not(:disabled) {
+  background: var(--workspace-action-hover);
+}
+.secondary {
+  background: var(--workspace-control-hover);
+  color: var(--system-text);
+}
+.secondary svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.removeAttachment {
+  justify-self: start;
+  color: var(--system-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.reportFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+.reportFooter > span {
+  margin-right: auto;
+  color: var(--system-muted);
+  font-size: 12px;
+}
+.status,
+.priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+}
+.status {
+  color: var(--system-text);
+}
+.priority i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--system-muted);
+}
+.priority[data-priority="HIGH"] i {
+  background: #ed878f;
+}
+.priority[data-priority="MEDIUM"] i {
+  background: #c7a54c;
+}
+.priority[data-priority="LOW"] i {
+  background: var(--system-accent);
+}
+.detailNotice {
+  margin: 16px 24px 0;
+  color: var(--system-text);
+}
+.detailNotice button {
+  margin-top: 10px;
+}
+.empty,
+.activityState {
+  padding: 20px 0;
+  color: var(--system-muted);
+}
+.empty {
+  padding: 24px;
+}
+.activityState button {
+  margin-top: 12px;
+}
+.activity {
+  display: grid;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.activity li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.actor {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--workspace-raised);
+  color: var(--system-text);
+  font-size: 10px;
+}
+.activity p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.activity strong {
+  font-weight: 500;
+}
+.activity time {
+  color: var(--system-muted);
+  font-size: 11px;
+}
+.detailDialog :is(button, a, input, textarea):focus-visible {
+  outline: 2px solid var(--workspace-focus, var(--system-accent));
+  outline-offset: 3px;
+}
+.detailDialog button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  .detailHeader {
+    padding: 18px 18px 16px;
+  }
+  .detailProperties {
+    padding: 20px 18px 0;
+  }
+  .detailMain {
+    padding: 20px 18px;
+  }
+  .detailProperties dl > div {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .detailNotice {
+    margin-inline: 18px;
+  }
+  .reportFooter .primary {
+    width: 100%;
+  }
+}

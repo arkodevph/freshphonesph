@@ -228,6 +228,9 @@
 .network .views {
   margin: 0;
 }
+.directory .table tbody tr[aria-busy="true"] :is(th, td) > span {
+  min-height: 1lh;
+}
 .directory[hidden] {
   display: none;
 }

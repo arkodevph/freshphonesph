@@ -1,5 +1,8 @@
 import Link from "next/link";
-import type { FinanceOverview } from "@freshphones/contracts";
+import type {
+  FinanceOverview,
+  FinanceOverviewPeriod,
+} from "@freshphones/contracts";
 import { formatPeso } from "@/lib/currency";
 import {
   CheckCircle,
@@ -7,6 +10,7 @@ import {
   FileText,
 } from "@/app/system/_role-designs/finance_officer/components/SolarIcons";
 import { SkeletonLine } from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
+import Select from "@/app/system/_role-designs/finance_officer/components/Select";
 import styles from "./finance-dashboard.module.css";
 
 export function FinanceValue({
@@ -28,9 +32,13 @@ export function FinanceValue({
 export default function FinanceSummary({
   data,
   error,
+  period,
+  selectPeriod,
 }: {
   data: FinanceOverview | null;
   error: string | null;
+  period: FinanceOverviewPeriod;
+  selectPeriod: (period: FinanceOverviewPeriod) => void;
 }) {
   const collectionLink = data
     ? `/system/payments?queue=all&status=verified&dateFrom=${data.collections.from}&dateTo=${data.collections.to}`
@@ -64,28 +72,50 @@ export default function FinanceSummary({
           </dl>
           <div className={styles.cardScope}>
             <span>
-              {data
-                ? `${data.collections.from} – ${data.collections.to}`
-                : "Selected payment dates"}
+              {data ? (
+                `${new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", timeZone: "Asia/Manila" }).format(new Date(`${data.collections.from}T00:00:00+08:00`))} – ${new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" }).format(new Date(`${data.collections.to}T00:00:00+08:00`))}`
+              ) : (
+                <SkeletonLine width="18ch" />
+              )}
             </span>
+          </div>
+          <div className={styles.periodControl}>
+            <span id="finance-period-label" className="sr-only">
+              Collections period
+            </span>
+            <Select
+              id="finance-period"
+              labelId="finance-period-label"
+              value={period}
+              options={[
+                { value: "this_month", label: "This month to date" },
+                { value: "last_month", label: "Last month" },
+                { value: "year_to_date", label: "Year to date" },
+              ]}
+              onValueChange={(value) => {
+                selectPeriod(value as FinanceOverviewPeriod);
+              }}
+            />
           </div>
         </div>
         <div className={styles.smallMetric}>
           <dl className={styles.metricDefinition}>
             <dt>
               <CheckCircle />
-              Ready for Finance
+              Verified payments
             </dt>
             <dd>
               <Link
-                href="/system/payments?queue=ready"
-                aria-label="Open payments ready for Finance"
+                href={collectionLink}
+                aria-label="Open verified payments for the displayed period"
               >
-                <FinanceValue value={data?.queues.ready} error={error} />
+                <FinanceValue
+                  value={data?.collections.payments}
+                  error={error}
+                />
               </Link>
             </dd>
           </dl>
-          <span>Current approvals and evidence</span>
         </div>
         <div className={styles.smallMetric}>
           <dl className={styles.metricDefinition}>
@@ -105,7 +135,6 @@ export default function FinanceSummary({
               </Link>
             </dd>
           </dl>
-          <span>Returned for correction</span>
         </div>
         <dl className={styles.pendingMetric}>
           <dt>
@@ -126,7 +155,7 @@ export default function FinanceSummary({
       </div>
       <Link href={collectionLink} className={styles.reportLink}>
         <FileText />
-        View payments for this period
+        View verified payments
       </Link>
     </section>
   );

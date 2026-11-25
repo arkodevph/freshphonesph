@@ -148,7 +148,7 @@ test("saved reconciliation charts omit missing adjustment fields instead of assu
         rejectedPayments: 0,
         auditedVerifiedPayments: 2,
         paymentsWithFlags: 1,
-        verifiedWithoutSchedulePayments: 0,
+        verifiedWithoutSchedulePayments: 1,
         recordedAmount: "125.00",
         verifiedAmount: "100.00",
         pendingAmount: "25.00",
@@ -176,9 +176,35 @@ test("saved reconciliation charts omit missing adjustment fields instead of assu
   ]);
 
   assert.equal(
+    models[1].rows.find((row) => row.label === "Verified without schedule")
+      ?.value,
+    1,
+  );
+
+  assert.equal(
     models[1].rows.some((row) => {
       return row.label === "Adjustment audit gaps";
     }),
     false,
   );
+});
+
+test("cancelled tasks remain accounted for without inventing submissions", () => {
+  const models = reportChartModels({
+    kind: "tasks",
+    data: {
+      total: 4,
+      byStatus: { TODO: 1, IN_PROGRESS: 0, SUBMITTED: 0, DONE: 1, CANCELLED: 2 },
+      submitted: 1,
+      late: 0,
+      reviewed: 0,
+      disclaimer: "Factual timing only",
+    },
+  });
+
+  assert.equal(models[0].rows.find((row) => row.label === "Cancelled")?.value, 2);
+
+  assert.equal(models[0].rows.reduce((sum, row) => sum + Number(row.value), 0), 4);
+
+  assert.deepEqual(models[1].rows.map((row) => row.value), [1, 0, 3]);
 });

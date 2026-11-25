@@ -395,7 +395,7 @@ export class ReportsService {
     });
 
     const byStatus = Object.fromEntries(
-      ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"].map((status) => {
+      ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE", "CANCELLED"].map((status) => {
         return [
           status,
           tasks.filter((task) => {

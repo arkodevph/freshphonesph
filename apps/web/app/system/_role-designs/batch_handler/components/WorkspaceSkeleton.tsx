@@ -10,6 +10,7 @@ import {
 import { CurrentUserContext, can } from "@/lib/useMe";
 import ReportsDashboard from "@/app/system/_role-designs/batch_handler/app/system/reports/ReportsDashboard";
 import { SkeletonLine } from "@/app/system/_role-designs/batch_handler/components/WorkspaceProgress";
+import { HandlerDashboardLoading } from "@/app/system/_role-designs/batch_handler/app/system/handler/HandlerDashboardLayout";
 
 /** Reuse the finished page composition whenever identity and route are known. */
 export function WorkspaceContentSkeleton({
@@ -20,6 +21,13 @@ export function WorkspaceContentSkeleton({
   const pathname = usePathname();
 
   const me = useContext(CurrentUserContext);
+
+  if (
+    ["batch_handler", "core_handler"].includes(me?.role ?? "") &&
+    pathname === "/system"
+  ) {
+    return <HandlerDashboardLoading />;
+  }
 
   if (pathname === "/system/reports" && me && can(me, "REPORT_VIEW")) {
     return (

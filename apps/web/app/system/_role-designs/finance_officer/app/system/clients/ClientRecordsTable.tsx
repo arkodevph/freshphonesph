@@ -4,9 +4,7 @@ import HandlerClientTable from "@/app/system/_role-designs/finance_officer/app/s
 import { isBatchHandler } from "@/lib/handler-workspace";
 import type { ClientSortField } from "@freshphones/contracts";
 import type { HandlerTableSort } from "@/lib/handler-table";
-import WorkspaceProgress, {
-  TableSkeletonRows,
-} from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
+import { TableSkeletonRows } from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
 import FormSelect from "@/app/system/_role-designs/finance_officer/components/FormSelect";
 import AnimatedDisclosure from "@/app/system/_role-designs/finance_officer/components/AnimatedDisclosure";
 import DateInput from "@/app/system/_role-designs/finance_officer/components/DateInput";
@@ -109,7 +107,15 @@ export default function ClientRecordsTable({
       aria-label="Client records"
       tabIndex={0}
     >
-      <table className={styles.table}>
+      <table
+        className={styles.table}
+        style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}
+      >
+        <colgroup>
+          {[34, 20, 14, 16, 16].map((width, index) => {
+            return <col key={index} style={{ width: `${width}%` }} />;
+          })}
+        </colgroup>
         <caption className="sr-only">
           Clients, batch membership, status, release and records
         </caption>
@@ -426,19 +432,30 @@ export default function ClientRecordsTable({
                               </tr>
                             </thead>
                             <tbody>
-                              {schedule.items.map((s) => {
-                                return (
-                                  <tr key={s.id}>
-                                    <td className="px-2 py-1">
-                                      {s.sequence_no}
-                                    </td>
-                                    <td className="px-2 py-1">{s.due_date}</td>
-                                    <td className="px-2 py-1 font-600 text-blue-ink">
-                                      ₱{s.expected_amount}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
+                              {scheduleLoading && !schedule.items.length ? (
+                                <TableSkeletonRows
+                                  columns={3}
+                                  rows={5}
+                                  cellClassName="px-2 py-1"
+                                  label="Loading installment schedule"
+                                />
+                              ) : (
+                                schedule.items.map((s) => {
+                                  return (
+                                    <tr key={s.id}>
+                                      <td className="px-2 py-1">
+                                        {s.sequence_no}
+                                      </td>
+                                      <td className="px-2 py-1">
+                                        {s.due_date}
+                                      </td>
+                                      <td className="px-2 py-1 font-600 text-blue-ink">
+                                        ₱{s.expected_amount}
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
                             </tbody>
                           </table>
                         </div>

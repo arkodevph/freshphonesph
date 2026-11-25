@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import {
+  SkeletonLine,
+  SkeletonText,
+  TableSkeletonRows,
+} from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
 import { RecordPagination } from "@/app/system/_role-designs/coo/components/RecordPagination";
 import styles from "@/app/system/_role-designs/coo/app/system/people/people.module.css";
 
@@ -22,9 +27,11 @@ export type Network = {
 };
 
 export default function AgentNetworkDirectory({
-  network,
+  network = null,
+  loading = false,
 }: {
-  network: Network;
+  network?: Network | null;
+  loading?: boolean;
 }) {
   const [query, setQuery] = useState("");
 
@@ -34,13 +41,13 @@ export default function AgentNetworkDirectory({
 
   const search = query.trim().toLowerCase();
 
-  const agents = network.agents.filter((agent) => {
+  const agents = (network?.agents ?? []).filter((agent) => {
     return `${agent.name} ${agent.agentProfile?.code ?? ""} ${agent.supervisor?.name ?? ""}`
       .toLowerCase()
       .includes(search);
   });
 
-  const batches = network.batches.filter((batch) => {
+  const batches = (network?.batches ?? []).filter((batch) => {
     return `${batch.code} ${batch.model} ${batch.status}`
       .toLowerCase()
       .includes(search);
@@ -55,7 +62,7 @@ export default function AgentNetworkDirectory({
   const start = (currentPage - 1) * pageSize;
 
   return (
-    <div className={styles.network}>
+    <div className={styles.network} aria-busy={loading}>
       <section aria-label="Enrollment progress">
         <dl className={styles.progress}>
           {["PENDING", "APPROVED", "REJECTED"].map((status) => {
@@ -63,9 +70,13 @@ export default function AgentNetworkDirectory({
               <div key={status}>
                 <dt>{status.charAt(0) + status.slice(1).toLowerCase()}</dt>
                 <dd>
-                  {network.enrollmentCounts.find((row) => {
-                    return row.status === status;
-                  })?.count ?? 0}
+                  {loading ? (
+                    <SkeletonText>0</SkeletonText>
+                  ) : (
+                    (network?.enrollmentCounts.find((row) => {
+                      return row.status === status;
+                    })?.count ?? 0)
+                  )}
                 </dd>
               </div>
             );
@@ -92,9 +103,13 @@ export default function AgentNetworkDirectory({
             >
               {label}{" "}
               <span>
-                {value === "agents"
-                  ? network.agents.length
-                  : network.batches.length}
+                {loading ? (
+                  <SkeletonLine width="2ch" />
+                ) : value === "agents" ? (
+                  (network?.agents.length ?? 0)
+                ) : (
+                  (network?.batches.length ?? 0)
+                )}
               </span>
             </button>
           );
@@ -132,7 +147,11 @@ export default function AgentNetworkDirectory({
         <header className={styles.sectionHeading}>
           <h2 id="network-agents-title">Agents</h2>
           <span role="status">
-            {agents.length} of {network.agents.length}
+            {loading ? (
+              <SkeletonLine width="8ch" />
+            ) : (
+              `${agents.length} of ${network?.agents.length ?? 0}`
+            )}
           </span>
         </header>
         <div
@@ -141,7 +160,15 @@ export default function AgentNetworkDirectory({
           aria-label="Agents in your network"
           tabIndex={0}
         >
-          <table className={styles.table}>
+          <table
+            className={styles.table}
+            style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}
+          >
+            <colgroup>
+              {[40, 25, 35].map((width, index) => {
+                return <col key={index} style={{ width: `${width}%` }} />;
+              })}
+            </colgroup>
             <caption className={styles.srOnly}>
               Agent and pioneer assignments
             </caption>
@@ -153,6 +180,15 @@ export default function AgentNetworkDirectory({
               </tr>
             </thead>
             <tbody>
+              {loading && (
+                <TableSkeletonRows
+                  columns={3}
+                  firstColumnHeader
+                  rows={10}
+                  label="Loading network agents"
+                  labels={["Agent", "Agent code", "Pioneer"]}
+                />
+              )}
               {agents.slice(start, start + pageSize).map((agent) => {
                 return (
                   <tr key={agent.id}>
@@ -169,7 +205,7 @@ export default function AgentNetworkDirectory({
             </tbody>
           </table>
         </div>
-        {!agents.length && (
+        {!loading && !agents.length && (
           <p className={styles.empty}>
             {search
               ? "No agents match this search."
@@ -185,7 +221,11 @@ export default function AgentNetworkDirectory({
         <header className={styles.sectionHeading}>
           <h2 id="network-batches-title">Assigned batches</h2>
           <span role="status">
-            {batches.length} of {network.batches.length}
+            {loading ? (
+              <SkeletonLine width="8ch" />
+            ) : (
+              `${batches.length} of ${network?.batches.length ?? 0}`
+            )}
           </span>
         </header>
         <div
@@ -194,7 +234,15 @@ export default function AgentNetworkDirectory({
           aria-label="Assigned batches"
           tabIndex={0}
         >
-          <table className={styles.table}>
+          <table
+            className={styles.table}
+            style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}
+          >
+            <colgroup>
+              {[20, 35, 25, 20].map((width, index) => {
+                return <col key={index} style={{ width: `${width}%` }} />;
+              })}
+            </colgroup>
             <caption className={styles.srOnly}>
               Batch membership and status
             </caption>
@@ -209,6 +257,15 @@ export default function AgentNetworkDirectory({
               </tr>
             </thead>
             <tbody>
+              {loading && (
+                <TableSkeletonRows
+                  columns={4}
+                  firstColumnHeader
+                  rows={10}
+                  label="Loading assigned batches"
+                  labels={["Batch", "Model", "Status", "Members"]}
+                />
+              )}
               {batches.slice(start, start + pageSize).map((batch) => {
                 return (
                   <tr key={batch.id}>
@@ -226,7 +283,7 @@ export default function AgentNetworkDirectory({
             </tbody>
           </table>
         </div>
-        {!batches.length && (
+        {!loading && !batches.length && (
           <p className={styles.empty}>
             {search
               ? "No batches match this search."
@@ -237,9 +294,9 @@ export default function AgentNetworkDirectory({
       <RecordPagination
         page={currentPage}
         pageSize={pageSize}
-        total={total}
+        total={loading ? undefined : total}
         hasNext={currentPage * pageSize < total}
-        loading={false}
+        loading={loading}
         onPage={setPage}
       />
     </div>

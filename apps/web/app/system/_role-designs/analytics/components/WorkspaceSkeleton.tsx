@@ -11,6 +11,8 @@ import { CurrentUserContext, can } from "@/lib/useMe";
 import ReportsDashboard from "@/app/system/_role-designs/analytics/app/system/reports/ReportsDashboard";
 import { SkeletonLine } from "@/app/system/_role-designs/analytics/components/WorkspaceProgress";
 
+import { AnalyticsDashboardLoading } from "@/app/system/_role-designs/analytics/app/system/AnalyticsDashboardLayout";
+
 /** Reuse the finished page composition whenever identity and route are known. */
 export function WorkspaceContentSkeleton({
   label = "Loading page…",
@@ -20,6 +22,10 @@ export function WorkspaceContentSkeleton({
   const pathname = usePathname();
 
   const me = useContext(CurrentUserContext);
+
+  if (me?.role === "analytics" && pathname === "/system") {
+    return <AnalyticsDashboardLoading />;
+  }
 
   if (pathname === "/system/reports" && me && can(me, "REPORT_VIEW")) {
     return (

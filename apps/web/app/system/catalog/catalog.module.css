@@ -345,3 +345,187 @@
   max-height: 300px;
   object-fit: contain;
 }
+.planToggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--workspace-control-hover, var(--system-accent-soft));
+  cursor: pointer;
+}
+.toggleCopy {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 550;
+}
+.toggleCopy small {
+  color: var(--system-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.switchControl {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 46px;
+  height: 44px;
+}
+.switchControl input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+.switchTrack {
+  --switch-position: 0;
+  display: block;
+  width: 46px;
+  height: 28px;
+  border-radius: 99px;
+  background: var(--system-muted);
+  pointer-events: none;
+}
+.switchTrack > span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 3px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px #0003;
+  transform: translateX(calc(var(--switch-position) * 18px));
+}
+.switchControl input:checked + .switchTrack {
+  background: #1764ec;
+}
+.switchControl input:focus-visible + .switchTrack {
+  outline: 3px solid var(--system-accent);
+  outline-offset: 4px;
+}
+.planToggle:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.photoField {
+  display: grid;
+  gap: 16px;
+}
+.photoCanvas {
+  display: grid;
+  place-items: center;
+  position: relative;
+  min-height: 260px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f2f2f6;
+  color: #656573;
+}
+.photoCanvas img {
+  width: 100%;
+  height: 280px;
+  padding: 28px 24px 44px;
+  object-fit: contain;
+}
+.photoCaption {
+  position: absolute;
+  bottom: 14px;
+  font-size: 12px;
+  color: #60606c;
+}
+.photoChooser {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 90px;
+  padding: 18px;
+  border: 1px dashed var(--system-border);
+  border-radius: 14px;
+  cursor: pointer;
+  color: var(--system-text);
+}
+.photoChooser:hover {
+  background: var(--workspace-control-hover);
+}
+.photoChooser input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.photoChooser:focus-within {
+  outline: 3px solid var(--system-accent);
+  outline-offset: 3px;
+}
+.photoChooser:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.photoChooser > span {
+  display: grid;
+  gap: 5px;
+}
+.photoChooser strong {
+  font-size: 14px;
+  font-weight: 550;
+}
+.photoChooser small {
+  color: var(--system-muted);
+  font-size: 12px;
+}
+.selectedFile {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--system-text);
+}
+.selectedFile span {
+  display: block;
+  margin-top: 4px;
+  color: var(--system-muted);
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .planToggle {
+    padding: 14px;
+    gap: 14px;
+  }
+  .photoCanvas {
+    min-height: 200px;
+  }
+  .photoCanvas img {
+    height: 220px;
+  }
+}
+
+.planFields label {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+.planFields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  background: var(--system-surface);
+  color: var(--system-text);
+  font-size: 14px;
+}
+.planFields small {
+  color: var(--system-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}

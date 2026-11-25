@@ -9,6 +9,7 @@ export const taskStatuses: Status[] = [
   "IN_PROGRESS",
   "SUBMITTED",
   "DONE",
+  "CANCELLED",
 ];
 
 export function useCooTaskCounts(snapshot: Page<Task> | null) {
@@ -34,6 +35,7 @@ export function useCooTaskCounts(snapshot: Page<Task> | null) {
           IN_PROGRESS: pages[1].count,
           SUBMITTED: pages[2].count,
           DONE: pages[3].count,
+          CANCELLED: pages[4].count,
         });
 
         setError(false);

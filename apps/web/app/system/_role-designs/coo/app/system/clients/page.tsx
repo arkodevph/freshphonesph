@@ -1,17 +1,10 @@
-import WorkspaceProgress from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
+import ClientsLoading from "@/app/system/_role-designs/coo/app/system/clients/ClientsLoading";
 import { Suspense } from "react";
 import ClientsDashboard from "@/app/system/_role-designs/coo/app/system/clients/ClientsDashboard";
 
 export default function ClientsPage() {
   return (
-    <Suspense
-      fallback={
-        <WorkspaceProgress
-          className="p-5 text-sm text-ink-soft"
-          label="Loading clients…"
-        />
-      }
-    >
+    <Suspense fallback={<ClientsLoading />}>
       <ClientsDashboard />
     </Suspense>
   );

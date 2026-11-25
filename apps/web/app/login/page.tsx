@@ -314,10 +314,7 @@ export default function LoginPage() {
               process.env.NODE_ENV === "development" ||
               process.env.NEXT_PUBLIC_LOCAL_PREVIEW === "true") &&
               !challenge && (
-                <details
-                  className={styles.demo}
-                  open={PRESENTATION_MODE || undefined}
-                >
+                <details className={styles.demo} open>
                   <summary>Preview a workspace</summary>
                   <p>One-click preview. No password needed.</p>
                   <div className={styles.demoRoles}>

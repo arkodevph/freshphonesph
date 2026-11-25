@@ -36,7 +36,7 @@
   color: var(--system-text, #17181c);
   font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.4;
   text-align: center;
   text-decoration: none;
@@ -48,8 +48,8 @@
   color: var(--system-text);
 }
 .workspace .primary {
-  border-color: #5548ff;
-  background: #5548ff;
+  border-color: transparent;
+  background: var(--workspace-action);
   color: #fff;
 }
 .workspace button:disabled {
@@ -71,13 +71,13 @@
 .panel h2 {
   margin: 0 0 12px;
   font-size: 23px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1.3;
 }
 .panel h3 {
   margin: 0 0 10px;
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1.4;
 }
 .panel p,
@@ -105,7 +105,7 @@
   gap: 7px;
   margin-bottom: 16px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.5;
 }
 .field input,
@@ -231,3 +231,18 @@
     flex: 1 1 auto;
   }
 }
+
+.heading h2 { font-size: 17px; font-weight: 500; }
+.tabs { border: 0; padding: 5px; border-radius: 12px; background: var(--workspace-raised); justify-self: start; }
+.tabs a { border: 0; background: transparent; font-size: 13px; min-height: 38px; }
+.tabs a[aria-current="page"] { background: var(--system-surface); }
+.workspace .primary { display: inline-flex; justify-content: center; align-items: center; min-height: 42px; padding: 10px 14px; border: 0; border-radius: 10px; font: inherit; font-size: 13px; font-weight: 500; }
+.submissionDialog { padding: 0; overflow-y: auto; }
+.submissionDialog > header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--system-border); }
+.submissionDialog > form { padding: 24px; }
+.submissionDialog fieldset { margin: 0; padding: 0; min-width: 0; border: 0; }
+.submissionFields { margin-top: 24px; }
+.submissionDialog .field { margin-bottom: 18px; }
+.submissionDialog .actions { margin-top: 24px; justify-content: flex-end; }
+.submissionDialog :is(input, button):focus-visible { outline: 2px solid var(--workspace-focus); outline-offset: 3px; }
+@media (max-width: 600px) { .submissionDialog > header, .submissionDialog > form { padding: 18px; } .submissionDialog .actions button { flex: 1; } }

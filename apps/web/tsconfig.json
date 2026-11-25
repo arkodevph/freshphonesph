@@ -44,7 +44,13 @@
     ".next-ceo-skeleton-build/types/**/*.ts",
     ".next-ceo-skeleton-build/dev/types/**/*.ts",
     ".next-ceo-nami-dev/types/**/*.ts",
-    ".next-ceo-nami-dev/dev/types/**/*.ts"
+    ".next-ceo-nami-dev/dev/types/**/*.ts",
+    ".next-csr-dev/types/**/*.ts",
+    ".next-csr-dev/dev/types/**/*.ts",
+    ".next-kpi-management-dev/types/**/*.ts",
+    ".next-kpi-management-dev/dev/types/**/*.ts",
+    ".next-agent-dev/types/**/*.ts",
+    ".next-agent-dev/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

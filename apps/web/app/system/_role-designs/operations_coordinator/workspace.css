@@ -1,23 +1,22 @@
 /* Independent operations_coordinator design. Edit this role only; this is not regenerated at build time. */
-/* Nami: extend the COO dashboard's Ember study to operational workspaces.
-   Role scope keeps the customer portal and other executive workspaces independent. */
+/* Baker: Operations coordination theme. Cool ink, cobalt actions and neutral selection. */
 .system-shell[data-workspace-role="operations_coordinator"][data-workspace-theme] {
-  --system-bg: #f5f6f5;
+  --system-bg: #f3f6fc;
   --system-surface: #fff;
-  --system-surface-inset: #f4f6f4;
-  --system-text: #202622;
-  --system-muted: #606963;
-  --system-border: #dce2dd;
-  --system-accent: #286247;
-  --system-accent-soft: #e9f2ec;
-  --workspace-raised: #edf0ed;
-  --workspace-inset: #f6f8f6;
-  --workspace-action: #286247;
-  --workspace-action-hover: #204f39;
+  --system-surface-inset: #f0f4fb;
+  --system-text: #202a3e;
+  --system-muted: #626e84;
+  --system-border: #dce3ee;
+  --system-accent: #2857d7;
+  --system-accent-soft: #e9efff;
+  --workspace-raised: #edf2fb;
+  --workspace-inset: #f6f8fd;
+  --workspace-action: #2857d7;
+  --workspace-action-hover: #2048b4;
   --workspace-on-action: #fff;
-  --workspace-focus: #397c59;
+  --workspace-focus: #365fd4;
   --workspace-control: #fff;
-  --workspace-control-hover: #f0f3f0;
+  --workspace-control-hover: #edf2fc;
   --workspace-panel-shadow: none;
   --workspace-control-radius: 9px;
   --workspace-panel-radius: 16px;
@@ -32,26 +31,36 @@
   --color-ink-soft: var(--system-muted);
   --color-blue: var(--system-accent);
   --color-blue-600: var(--workspace-action-hover);
+  --operations_coordinator-hero: #2857d7;
+  --operations_coordinator-hero-text: #fff;
+  --operations_coordinator-hero-muted: #e1eaff;
+  --operations_coordinator-chart: #4269d8;
+  --operations_coordinator-chart-alt: #8da5e8;
   color-scheme: light;
 }
 
 html[data-system-theme="dark"]
   .system-shell[data-workspace-role="operations_coordinator"][data-workspace-theme] {
   --system-bg: #000;
-  --system-surface: #0d0d0d;
-  --system-surface-inset: #131313;
-  --system-text: #f0f2f0;
-  --system-muted: #a5ada7;
-  --system-border: #2b2f2c;
-  --system-accent: #a0d9ba;
-  --system-accent-soft: #19281f;
-  --workspace-raised: #202321;
-  --workspace-inset: #111312;
-  --workspace-action: #28553e;
-  --workspace-action-hover: #346d50;
-  --workspace-focus: #a0d9ba;
-  --workspace-control: #151716;
-  --workspace-control-hover: #202622;
+  --system-surface: #0e1118;
+  --system-surface-inset: #121722;
+  --system-text: #eef3ff;
+  --system-muted: #a7b3c9;
+  --system-border: #293244;
+  --system-accent: #9bbaff;
+  --system-accent-soft: #192840;
+  --workspace-raised: #1a2232;
+  --workspace-inset: #10151e;
+  --workspace-action: #2857d7;
+  --workspace-action-hover: #3a6be7;
+  --workspace-focus: #9bbaff;
+  --workspace-control: #151c28;
+  --workspace-control-hover: #202a3e;
+  --operations_coordinator-hero: #214ab9;
+  --operations_coordinator-hero-text: #fff;
+  --operations_coordinator-hero-muted: #e1eaff;
+  --operations_coordinator-chart: #91b2ff;
+  --operations_coordinator-chart-alt: #5779bd;
   color-scheme: dark;
 }
 
@@ -104,7 +113,9 @@ html[data-system-theme="dark"]
 .system-shell[data-workspace-role="operations_coordinator"][data-workspace-theme]
   :is(.system-content, dialog)
   :where(
-    button:not([data-chart-month]):not([data-report-tab]):not([role="switch"])
+    button:not([data-chart-month]):not([data-report-tab]):not(
+        [data-coordinator-record]
+      ):not([role="switch"])
   ) {
   border-radius: var(--workspace-control-radius);
   font-weight: 500;
@@ -1044,6 +1055,6 @@ dialog[data-handler-modal][data-modal-spring][open]::backdrop {
 }
 .system-shell[data-workspace-role="operations_coordinator"][data-workspace-theme]
   dialog[data-workspace-modal][data-modal-spring][data-modal-size="drawer"][open] {
-  opacity: calc(0.72 + var(--dialog-progress, 1) * 0.28);
+  opacity: var(--dialog-progress, 1);
   transform: translateX(calc((1 - var(--dialog-progress, 1)) * 100%));
 }

@@ -299,7 +299,15 @@ export default function AgentsPage() {
         </label>
       </div>
       <div className="glass overflow-x-auto rounded-3xl p-5">
-        <table className="w-full min-w-[440px] text-left text-sm">
+        <table
+          className="w-full min-w-[440px] text-left text-sm"
+          style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}
+        >
+          <colgroup>
+            {[36, 24, 14, 26].map((width, index) => {
+              return <col key={index} style={{ width: `${width}%` }} />;
+            })}
+          </colgroup>
           <thead className="text-xs uppercase text-ink-soft">
             <tr>
               <th className="p-2">Name</th>

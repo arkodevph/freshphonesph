@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useWorkspaceMotion } from "@/lib/useWorkspaceMotion";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Logout } from "@/components/SolarIcons";
+import ProgressiveBlur from "@/components/ProgressiveBlur";
+import { Logout } from "@/components/JiggIcons";
 import {
   navigationGroups,
   type SystemNavigationItem,
@@ -127,6 +128,7 @@ export default function SystemSidebar({
           );
         })}
       </nav>
+      <ProgressiveBlur desktopOnly />
       {showAccount && (
         <div className={`system-sidebar-footer ${styles.footer}`}>
           <div className="system-profile">

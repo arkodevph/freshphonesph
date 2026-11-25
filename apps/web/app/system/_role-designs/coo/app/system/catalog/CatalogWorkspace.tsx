@@ -194,7 +194,12 @@ export function CatalogWorkspace() {
         aria-label="Catalog listings"
       >
         <div className={styles.tableWrap}>
-          <table>
+          <table style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}>
+            <colgroup>
+              {[30, 14, 19, 13, 9, 15].map((width, index) => {
+                return <col key={index} style={{ width: `${width}%` }} />;
+              })}
+            </colgroup>
             <thead>
               <tr>
                 <th>Unit</th>

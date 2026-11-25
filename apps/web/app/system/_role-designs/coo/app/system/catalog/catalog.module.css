@@ -345,3 +345,27 @@
   max-height: 300px;
   object-fit: contain;
 }
+
+.planFields label {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+.planFields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  background: var(--system-surface);
+  color: var(--system-text);
+  font-size: 14px;
+}
+.planFields small {
+  color: var(--system-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}

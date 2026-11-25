@@ -3,6 +3,7 @@
 import { type PortalNotification } from "@/lib/api";
 import { Compass, Close as X } from "@/components/SolarIcons";
 import Link from "next/link";
+import ProgressiveBlur from "@/components/ProgressiveBlur";
 import type { Dispatch, SetStateAction } from "react";
 import { type MouseEvent } from "react";
 import styles from "./portal.module.css";
@@ -99,6 +100,7 @@ export default function PortalSidebar({
           );
         })}
       </nav>
+      <ProgressiveBlur />
       <div className={styles.sidebarFooter}>
         <button
           type="button"

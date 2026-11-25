@@ -1,5 +1,6 @@
 "use client";
 
+import CooPage from "@/app/system/_role-designs/coo/app/system/operations-monitor/page";
 import dynamic from "next/dynamic";
 import { useMe } from "@/lib/useMe";
 import { workspaceDesignRole } from "@/lib/workspace-design-role";
@@ -7,18 +8,16 @@ import RoleDesignLoading from "./RoleDesignLoading";
 
 const views = {
   system_admin: dynamic(
-    () =>
-      import("@/app/system/_role-designs/system_admin/app/system/operations-monitor/page"),
+    () => {
+      return import("@/app/system/_role-designs/system_admin/app/system/operations-monitor/page");
+    },
     { loading: RoleDesignLoading },
   ),
-  coo: dynamic(
-    () =>
-      import("@/app/system/_role-designs/coo/app/system/operations-monitor/page"),
-    { loading: RoleDesignLoading },
-  ),
+  coo: CooPage,
   operations_coordinator: dynamic(
-    () =>
-      import("@/app/system/_role-designs/operations_coordinator/app/system/operations-monitor/page"),
+    () => {
+      return import("@/app/system/_role-designs/operations_coordinator/app/system/operations-monitor/page");
+    },
     { loading: RoleDesignLoading },
   ),
 };

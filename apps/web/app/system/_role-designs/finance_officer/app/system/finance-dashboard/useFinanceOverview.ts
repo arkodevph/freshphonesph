@@ -69,8 +69,6 @@ export function useFinanceOverview() {
 
     sequence.current++;
 
-    setData(null);
-
     setError(null);
 
     setPending(true);

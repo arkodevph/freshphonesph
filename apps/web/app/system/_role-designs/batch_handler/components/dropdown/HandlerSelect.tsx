@@ -21,6 +21,7 @@ export type HandlerSelectProps = {
   name?: string;
   form?: string;
   className?: string;
+  searchable?: boolean;
   renderLabel?: (option: DropdownOption) => ReactNode;
 };
 
@@ -36,6 +37,7 @@ export function HandlerSelect({
   name,
   form,
   className,
+  searchable = true,
   renderLabel,
 }: HandlerSelectProps) {
   const generated = useId();
@@ -133,6 +135,32 @@ export function HandlerSelect({
           }
         }}
         onKeyDown={(event) => {
+          if (!searchable && work.expanded) {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+
+              work.move(event.key === "ArrowDown" ? 1 : -1);
+            } else if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+
+              work.choose(work.active);
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+
+              event.stopPropagation();
+
+              work.close(true);
+            } else if (event.key === "Tab") {
+              work.close();
+            } else if (event.key === "Home" || event.key === "End") {
+              event.preventDefault();
+
+              work.begin("", event.key === "End", true);
+            }
+
+            return;
+          }
+
           if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
             event.preventDefault();
 
@@ -140,6 +168,7 @@ export function HandlerSelect({
           } else if (event.key === "Escape") {
             dismiss();
           } else if (
+            searchable &&
             event.key.length === 1 &&
             event.key !== " " &&
             !event.ctrlKey &&
@@ -193,54 +222,56 @@ export function HandlerSelect({
       )}
       {work.expanded && (
         <div ref={work.popup} popover="manual" className={styles.menu}>
-          <div className={styles.search}>
-            <MagnifyingGlass aria-hidden="true" />
-            <input
-              ref={work.search}
-              type="search"
-              role="combobox"
-              aria-label={`Search ${nameText}`}
-              aria-autocomplete="list"
-              aria-expanded="true"
-              aria-controls={listId}
-              aria-activedescendant={
-                work.filtered[work.active]
-                  ? `${listId}-${work.active}`
-                  : undefined
-              }
-              aria-describedby={tooltip ? tooltipId : undefined}
-              autoComplete="off"
-              maxLength={100}
-              placeholder="Search options…"
-              value={work.query}
-              onChange={(event) => {
-                dismiss();
-
-                work.keyboard.current = false;
-
-                work.setActive(0);
-
-                work.setQuery(event.target.value);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                  event.preventDefault();
-
-                  work.move(event.key === "ArrowDown" ? 1 : -1);
-                } else if (event.key === "Enter") {
-                  event.preventDefault();
-
-                  work.choose(work.active);
-                } else if (event.key === "Escape") {
-                  event.preventDefault();
-
-                  event.stopPropagation();
-
-                  work.close(true);
+          {searchable && (
+            <div className={styles.search}>
+              <MagnifyingGlass aria-hidden="true" />
+              <input
+                ref={work.search}
+                type="search"
+                role="combobox"
+                aria-label={`Search ${nameText}`}
+                aria-autocomplete="list"
+                aria-expanded="true"
+                aria-controls={listId}
+                aria-activedescendant={
+                  work.filtered[work.active]
+                    ? `${listId}-${work.active}`
+                    : undefined
                 }
-              }}
-            />
-          </div>
+                aria-describedby={tooltip ? tooltipId : undefined}
+                autoComplete="off"
+                maxLength={100}
+                placeholder="Search options…"
+                value={work.query}
+                onChange={(event) => {
+                  dismiss();
+
+                  work.keyboard.current = false;
+
+                  work.setActive(0);
+
+                  work.setQuery(event.target.value);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                    event.preventDefault();
+
+                    work.move(event.key === "ArrowDown" ? 1 : -1);
+                  } else if (event.key === "Enter") {
+                    event.preventDefault();
+
+                    work.choose(work.active);
+                  } else if (event.key === "Escape") {
+                    event.preventDefault();
+
+                    event.stopPropagation();
+
+                    work.close(true);
+                  }
+                }}
+              />
+            </div>
+          )}
           <div id={listId} role="listbox" aria-label={nameText}>
             {work.filtered.map((option, index) => {
               return (

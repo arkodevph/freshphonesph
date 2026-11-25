@@ -1,5 +1,5 @@
-import RoleWorkspace from "@/app/system/_role-designs/hr_payroll/app/system/RoleWorkspace";
+import PersonnelWorkspace from "@/app/system/_role-designs/hr_payroll/app/system/personnel/PersonnelWorkspace";
 
 export default function Page() {
-  return <RoleWorkspace section="personnel" />;
+  return <PersonnelWorkspace />;
 }

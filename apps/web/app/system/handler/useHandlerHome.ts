@@ -29,11 +29,14 @@ type Snapshot = {
 
 const empty = { data: null, error: null };
 
-function result<T>(value: PromiseSettledResult<T>): Resource<T> {
+function result<T>(
+  value: PromiseSettledResult<T>,
+  previous: Resource<T>,
+): Resource<T> {
   return value.status === "fulfilled"
     ? { data: value.value, error: null }
     : {
-        data: null,
+        data: previous.data,
         error:
           value.reason instanceof Error
             ? value.reason.message
@@ -73,13 +76,15 @@ export function useHandlerHome() {
       return;
     }
 
-    setSnapshot({
-      assignments: result(values[0]),
-      returned: result(values[1]),
-      missing: result(values[2]),
-      pending: result(values[3]),
-      todo: result(values[4]),
-      inProgress: result(values[5]),
+    setSnapshot((previous) => {
+      return {
+        assignments: result(values[0], previous.assignments),
+        returned: result(values[1], previous.returned),
+        missing: result(values[2], previous.missing),
+        pending: result(values[3], previous.pending),
+        todo: result(values[4], previous.todo),
+        inProgress: result(values[5], previous.inProgress),
+      };
     });
 
     setLoading(false);

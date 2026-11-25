@@ -52,6 +52,8 @@ function view(row: TaskRow, showReview: boolean) {
     priority: row.priority,
     deadline: row.deadline.toISOString(),
     status: row.status,
+    cancelledAt: row.cancelledAt?.toISOString() ?? null,
+    cancellationReason: row.cancellationReason,
     report: row.report,
     submittedAt: row.submittedAt?.toISOString() ?? null,
     lateFlag: row.lateFlag,
@@ -191,7 +193,7 @@ export class TasksService {
     user: User,
     query: {
       page: number;
-      status?: "TODO" | "IN_PROGRESS" | "SUBMITTED" | "DONE";
+      status?: "TODO" | "IN_PROGRESS" | "SUBMITTED" | "DONE" | "CANCELLED";
     },
   ) {
     user = await requireCurrentUser(this.db, user, "TASK_READ");
@@ -238,6 +240,31 @@ export class TasksService {
     this.visible(user, row);
 
     return this.taskView(user, row);
+  }
+  async activity(user: User, id: string) {
+    // Reuse current permissions and task scope before exposing any event metadata.
+    await this.detail(user, id);
+
+    const rows = await this.db.auditEntry.findMany({
+      where: { entity: "task", recordId: id },
+      select: {
+        id: true,
+        action: true,
+        createdAt: true,
+        actor: { select: { name: true } },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 100,
+    });
+
+    return rows.map((row) => {
+      return {
+        id: row.id,
+        action: row.action,
+        actorName: row.actor.name,
+        createdAt: row.createdAt.toISOString(),
+      };
+    });
   }
   async create(
     user: User,
@@ -300,6 +327,214 @@ export class TasksService {
       return view(row, allowed(current, "KPI_REVIEW"));
     });
   }
+  async edit(
+    user: User,
+    id: string,
+    input: {
+      version: number;
+      title?: string;
+      instructions?: string;
+      assigneeId?: string;
+      priority?: TaskPriority;
+      deadline?: string;
+    },
+  ) {
+    return this.write(user, async (tx, current) => {
+      if (!allowed(current, "TASK_ASSIGN")) {
+        throw new ForbiddenException("Your task access has changed.");
+      }
+
+      const actor = { ...user, ...current };
+
+      const before = await tx.task.findFirst({
+        where: { id, ...taskScope(actor) },
+      });
+
+      if (!before) {
+        throw new NotFoundException("Task not found.");
+      }
+
+      if (before.version !== input.version) {
+        throw new ConflictException(
+          "Task changed. Load the latest task before editing.",
+        );
+      }
+
+      if (!["TODO", "IN_PROGRESS"].includes(before.status)) {
+        throw new ConflictException(
+          "Only tasks awaiting submission can be edited.",
+        );
+      }
+
+      // KPI's summary-only access must not overwrite hidden task instructions.
+      if (
+        businessRole(current.role) === "KPI_OFFICER" &&
+        before.assigneeId !== user.id &&
+        input.instructions !== undefined
+      ) {
+        throw new ForbiddenException(
+          "Task instructions are private to the assignee.",
+        );
+      }
+
+      const deadline =
+        input.deadline === undefined
+          ? before.deadline
+          : new Date(input.deadline);
+
+      const reassigned =
+        input.assigneeId !== undefined &&
+        input.assigneeId !== before.assigneeId;
+
+      if (
+        (deadline.getTime() !== before.deadline.getTime() || reassigned) &&
+        deadline.getTime() <= Date.now()
+      ) {
+        throw new BadRequestException(
+          "Choose a future deadline when rescheduling or reassigning a task.",
+        );
+      }
+
+      if (input.assigneeId !== undefined) {
+        const assignee = await tx.user.findFirst({
+          where: { id: input.assigneeId, ...staffScope(actor) },
+        });
+
+        if (!assignee?.active || assignee.role === "CUSTOMER") {
+          throw new BadRequestException(
+            "Choose an active staff assignee in your workspace.",
+          );
+        }
+      }
+
+      const { version: _version, ...fields } = input;
+
+      const changed = await tx.task.updateMany({
+        where: { id, version: input.version, status: before.status },
+        data: {
+          ...fields,
+          deadline,
+          ...(reassigned ? { status: "TODO" as const } : {}),
+          ...(reassigned || deadline.getTime() !== before.deadline.getTime()
+            ? { assignmentRevision: { increment: 1 } }
+            : {}),
+          version: { increment: 1 },
+        },
+      });
+
+      if (!changed.count) {
+        throw new ConflictException(
+          "Task changed. Load the latest task before editing.",
+        );
+      }
+
+      const row = await tx.task.findUniqueOrThrow({
+        where: { id },
+        include: taskInclude,
+      });
+
+      await this.record(
+        tx,
+        user.id,
+        id,
+        reassigned ? "task.reassigned" : "task.updated",
+        {
+          title: before.title,
+          instructions: before.instructions,
+          assigneeId: before.assigneeId,
+          deadline: before.deadline,
+          priority: before.priority,
+          status: before.status,
+          version: before.version,
+        },
+        {
+          title: row.title,
+          instructions: row.instructions,
+          assigneeId: row.assigneeId,
+          deadline: row.deadline,
+          priority: row.priority,
+          status: row.status,
+          version: row.version,
+        },
+      );
+
+      if (reassigned || deadline.getTime() !== before.deadline.getTime()) {
+        await tx.taskAlertRead.deleteMany({ where: { taskId: id } });
+
+        await queueTaskEmail(tx, row, "TASK_ASSIGNED");
+      }
+
+      return this.taskView(actor, row);
+    });
+  }
+
+  async cancel(user: User, id: string, version: number, reason: string) {
+    return this.write(user, async (tx, current) => {
+      if (!allowed(current, "TASK_ASSIGN")) {
+        throw new ForbiddenException("Your task access has changed.");
+      }
+
+      const actor = { ...user, ...current };
+
+      const before = await tx.task.findFirst({
+        where: { id, ...taskScope(actor) },
+      });
+
+      if (!before) {
+        throw new NotFoundException("Task not found.");
+      }
+
+      if (before.version !== version) {
+        throw new ConflictException(
+          "Task changed. Load the latest task before cancelling.",
+        );
+      }
+
+      if (!["TODO", "IN_PROGRESS"].includes(before.status)) {
+        throw new ConflictException(
+          "Only tasks awaiting submission can be cancelled.",
+        );
+      }
+
+      const changed = await tx.task.updateMany({
+        where: { id, version, status: before.status },
+        data: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+          version: { increment: 1 },
+        },
+      });
+
+      if (!changed.count) {
+        throw new ConflictException(
+          "Task changed. Load the latest task before cancelling.",
+        );
+      }
+
+      const row = await tx.task.findUniqueOrThrow({
+        where: { id },
+        include: taskInclude,
+      });
+
+      await this.record(
+        tx,
+        user.id,
+        id,
+        "task.cancelled",
+        { status: before.status, version: before.version },
+        {
+          status: row.status,
+          reason,
+          cancelledAt: row.cancelledAt,
+          version: row.version,
+        },
+      );
+
+      return this.taskView(actor, row);
+    });
+  }
+
   async start(user: User, id: string, version: number) {
     return this.write(user, async (tx, current) => {
       const before = await tx.task.findUnique({ where: { id } });

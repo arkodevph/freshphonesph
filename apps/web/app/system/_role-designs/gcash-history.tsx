@@ -1,5 +1,6 @@
 "use client";
 
+import CooPage from "@/app/system/_role-designs/coo/app/system/gcash-history/page";
 import dynamic from "next/dynamic";
 import { useMe } from "@/lib/useMe";
 import { workspaceDesignRole } from "@/lib/workspace-design-role";
@@ -7,28 +8,28 @@ import RoleDesignLoading from "./RoleDesignLoading";
 
 const views = {
   system_admin: dynamic(
-    () =>
-      import("@/app/system/_role-designs/system_admin/app/system/gcash-history/page"),
+    () => {
+      return import("@/app/system/_role-designs/system_admin/app/system/gcash-history/page");
+    },
     { loading: RoleDesignLoading },
   ),
-  coo: dynamic(
-    () =>
-      import("@/app/system/_role-designs/coo/app/system/gcash-history/page"),
-    { loading: RoleDesignLoading },
-  ),
+  coo: CooPage,
   finance_officer: dynamic(
-    () =>
-      import("@/app/system/_role-designs/finance_officer/app/system/gcash-history/page"),
+    () => {
+      return import("@/app/system/_role-designs/finance_officer/app/system/gcash-history/page");
+    },
     { loading: RoleDesignLoading },
   ),
   records: dynamic(
-    () =>
-      import("@/app/system/_role-designs/records/app/system/gcash-history/page"),
+    () => {
+      return import("@/app/system/_role-designs/records/app/system/gcash-history/page");
+    },
     { loading: RoleDesignLoading },
   ),
   batch_handler: dynamic(
-    () =>
-      import("@/app/system/_role-designs/batch_handler/app/system/gcash-history/page"),
+    () => {
+      return import("@/app/system/_role-designs/batch_handler/app/system/gcash-history/page");
+    },
     { loading: RoleDesignLoading },
   ),
 };

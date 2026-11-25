@@ -28,7 +28,9 @@ const pageSchema = z
   .strict();
 
 const taskListSchema = pageSchema.extend({
-  status: z.enum(["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"]).optional(),
+  status: z
+    .enum(["TODO", "IN_PROGRESS", "SUBMITTED", "DONE", "CANCELLED"])
+    .optional(),
 });
 
 const createSchema = z
@@ -44,6 +46,27 @@ const createSchema = z
 const versionSchema = z
   .object({ version: z.number().int().positive() })
   .strict();
+
+const editSchema = createSchema
+  .partial()
+  .extend({
+    version: z.number().int().positive(),
+  })
+  .strict()
+  .refine(
+    (input) => {
+      return Object.keys(input).some((key) => {
+        return key !== "version";
+      });
+    },
+    {
+      message: "Choose at least one task field to update.",
+    },
+  );
+
+const cancelSchema = versionSchema.extend({
+  reason: z.string().trim().min(3).max(1000),
+});
 
 const submitSchema = z
   .object({
@@ -83,6 +106,12 @@ export class TasksController {
   ) {
     return this.tasks.detail(user, id);
   }
+  @Get("tasks/:id/activity") @Requires("TASK_READ") activity(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.tasks.activity(user, id);
+  }
   @Post("tasks") @Requires("TASK_ASSIGN") create(
     @CurrentUser() user: User,
     @Body(new Validate(createSchema)) body: z.infer<typeof createSchema>,
@@ -95,6 +124,20 @@ export class TasksController {
     @Body(new Validate(versionSchema)) body: z.infer<typeof versionSchema>,
   ) {
     return this.tasks.start(user, id, body.version);
+  }
+  @Patch("tasks/:id") @Requires("TASK_ASSIGN") edit(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new Validate(editSchema)) body: z.infer<typeof editSchema>,
+  ) {
+    return this.tasks.edit(user, id, body);
+  }
+  @Post("tasks/:id/cancel") @HttpCode(200) @Requires("TASK_ASSIGN") cancel(
+    @CurrentUser() user: User,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new Validate(cancelSchema)) body: z.infer<typeof cancelSchema>,
+  ) {
+    return this.tasks.cancel(user, id, body.version, body.reason);
   }
   @Post("tasks/:id/submit")
   @HttpCode(200)

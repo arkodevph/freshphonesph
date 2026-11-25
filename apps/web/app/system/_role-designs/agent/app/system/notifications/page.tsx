@@ -87,7 +87,6 @@ export default function NotificationsPage() {
           <h1 id="notifications-page-title" tabIndex={-1}>
             Notifications
           </h1>
-          <p>Your tasks, payment decisions and updates.</p>
         </div>
         <button
           className={styles.refresh}

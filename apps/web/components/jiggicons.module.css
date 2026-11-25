@@ -1,0 +1,10 @@
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Keep the translucent glass layers visible on the dark workspace canvas. */
+:global(html[data-system-theme="dark"]) .icon {
+  filter: invert(1);
+}

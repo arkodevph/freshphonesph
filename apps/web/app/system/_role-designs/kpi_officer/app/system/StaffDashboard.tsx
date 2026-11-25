@@ -1,264 +1,314 @@
 "use client";
 
-import { availableRoute } from "@/lib/backend";
-import { can, useMe } from "@/lib/useMe";
-import { PRESENTATION_MODE } from "@/lib/presentation";
-import { WorkspaceContentSkeleton } from "@/app/system/_role-designs/kpi_officer/components/WorkspaceSkeleton";
-import {
-  ArrowUpRight,
-  Briefcase,
-  CheckCircle,
-  Headset,
-  ListChecks,
-  Receipt,
-  ShieldCheck,
-  Stack,
-  Users,
-} from "@phosphor-icons/react";
 import Link from "next/link";
-import CustomerWorkQueues from "@/app/system/_role-designs/kpi_officer/app/system/CustomerWorkQueues";
-import DashboardCards from "@/app/system/_role-designs/kpi_officer/app/system/DashboardCards";
-import PaymentsCta from "@/app/system/_role-designs/kpi_officer/app/system/PaymentsCta";
+import { ArrowClockwise, Check, ClipboardText } from "@phosphor-icons/react";
+import { can, useMe } from "@/lib/useMe";
+import Select from "@/app/system/_role-designs/kpi_officer/components/Select";
+import WorkspaceProgress from "@/app/system/_role-designs/kpi_officer/components/WorkspaceProgress";
+import { formatDate, label } from "./tasks/task-view";
+import { kpiPeriod, useKpiOverview } from "./useKpiOverview";
+import styles from "./kpi-dashboard.module.css";
 
-const SHORTCUTS = [
-  {
-    icon: Stack,
-    label: "Open batches",
-    detail: "Paluwagan records",
-    href: "/system/records",
-    perms: ["BATCH_READ", "BATCH_MANAGE"],
-  },
-  {
-    icon: Users,
-    label: "Open clients",
-    detail: "Members and schedules",
-    href: "/system/clients",
-    perms: ["CLIENT_READ", "CLIENT_MANAGE"],
-  },
-  {
-    icon: Receipt,
-    label: "Review payments",
-    detail: "Record and verify",
-    href: "/system/payments",
-    perms: ["PAYMENT_READ", "PAYMENT_RECORD"],
-  },
-  {
-    icon: Headset,
-    label: "Support cases",
-    detail: "Customer concerns",
-    href: "/system/support",
-    perms: ["SUPPORT_MANAGE"],
-  },
+const statuses = [
+  ["TODO", "To do"],
+  ["IN_PROGRESS", "In progress"],
+  ["SUBMITTED", "Submitted"],
+  ["DONE", "Completed"],
+  ["CANCELLED", "Cancelled"],
 ] as const;
+
+function Overview({ name }: { name: string }) {
+  const state = useKpiOverview();
+
+  const report = state.report.data;
+
+  const queue = state.queue.data;
+
+  const history = state.history.data;
+
+  const onTime = report ? Math.max(0, report.submitted - report.late) : 0;
+
+  const rate = report?.submitted
+    ? Math.round((onTime / report.submitted) * 100)
+    : null;
+
+  const dates = kpiPeriod(state.period);
+
+  return (
+    <div className={styles.workspace} data-kpi-dashboard>
+      <header className={styles.heading}>
+        <h1>Hello, {name}.</h1>
+        <button
+          type="button"
+          className={styles.button}
+          disabled={state.loading}
+          onClick={() => {
+            void state.load();
+          }}
+        >
+          <ArrowClockwise aria-hidden="true" size={17} />
+          Refresh
+        </button>
+      </header>
+      <div className={styles.layout}>
+        <section
+          className={styles.queue}
+          aria-labelledby="kpi-queue-heading"
+          aria-busy={state.loading}
+        >
+          <div className={styles.sectionHeading}>
+            <div>
+              <h2 id="kpi-queue-heading">
+                Awaiting your review{" "}
+                <span className={styles.count}>{queue?.count ?? "—"}</span>
+              </h2>
+              <p>Late submissions · all task dates</p>
+            </div>
+            <Link href="/system/tasks" className={styles.textLink}>
+              View all tasks
+            </Link>
+          </div>
+          {state.queue.error ? (
+            <Failure error={state.queue.error} retry={state.load} />
+          ) : !queue ? (
+            <WorkspaceProgress
+              className={styles.empty}
+              label="Loading review queue…"
+            />
+          ) : queue.results.length === 0 ? (
+            <div className={styles.empty}>
+              <Check aria-hidden="true" size={26} />
+              <strong>No submissions awaiting review</strong>
+              <p>Late task submissions will appear here.</p>
+            </div>
+          ) : (
+            <div className={styles.reviewList}>
+              {queue.results.slice(0, 6).map((task) => (
+                <Link
+                  className={styles.reviewRow}
+                  href={`/system/tasks?task=${task.id}`}
+                  key={task.id}
+                >
+                  <span className={styles.avatar} aria-hidden="true">
+                    {task.assigneeName
+                      .split(" ")
+                      .slice(0, 2)
+                      .map((part) => part[0])
+                      .join("")}
+                  </span>
+                  <span className={styles.identity}>
+                    <strong>{task.title}</strong>
+                    <span>{task.assigneeName}</span>
+                    <small>Due {formatDate(task.deadline)}</small>
+                  </span>
+                  <span className={styles.reviewMeta}>
+                    <span className={styles.late}>Late</span>
+                    <small>
+                      {task.submittedAt
+                        ? `Submitted ${formatDate(task.submittedAt)}`
+                        : "Submission time unavailable"}
+                    </small>
+                    <span className={styles.textLink}>Review task</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+          <footer className={styles.queueFooter}>
+            <ClipboardText aria-hidden="true" size={17} />
+            <p>
+              Timing is a fact. Evaluations and recommendations are recorded by
+              you.
+            </p>
+          </footer>
+        </section>
+        <section
+          className={styles.performance}
+          aria-labelledby="kpi-performance-heading"
+          aria-busy={state.loading}
+        >
+          <div className={styles.sectionHeading}>
+            <h2 id="kpi-performance-heading">Task performance</h2>
+          </div>
+          <label className={styles.period}>
+            <span id="kpi-period-label">Tasks created</span>
+            <Select
+              labelId="kpi-period-label"
+              id="kpi-period"
+              value={state.period}
+              options={[
+                { value: "month", label: "This month" },
+                { value: "previous", label: "Last month" },
+                { value: "all", label: "All time" },
+              ]}
+              onValueChange={state.setPeriod}
+            />
+          </label>
+          <p className={styles.scope}>
+            {dates.dateFrom
+              ? `${dates.dateFrom} – ${dates.dateTo} · PHT`
+              : "All task creation dates"}
+          </p>
+          {state.report.error ? (
+            <Failure error={state.report.error} retry={state.load} />
+          ) : !report ? (
+            <WorkspaceProgress
+              className={styles.empty}
+              label="Loading performance…"
+            />
+          ) : (
+            <>
+              <div className={styles.rate}>
+                <span>On-time submissions</span>
+                <strong>{rate === null ? "—" : `${rate}%`}</strong>
+                <p>
+                  {report.submitted
+                    ? `${onTime} of ${report.submitted} submitted tasks`
+                    : "No submitted tasks in this period"}
+                </p>
+              </div>
+              <div className={styles.timingTrack} aria-hidden="true">
+                {report.submitted > 0 && (
+                  <>
+                    <span
+                      style={{ width: `${(onTime / report.submitted) * 100}%` }}
+                    />
+                    <span
+                      style={{
+                        width: `${(report.late / report.submitted) * 100}%`,
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+              <dl className={styles.timing}>
+                <div>
+                  <dt>On time</dt>
+                  <dd>{onTime}</dd>
+                </div>
+                <div>
+                  <dt>Late</dt>
+                  <dd>{report.late}</dd>
+                </div>
+                <div>
+                  <dt>Reviewed</dt>
+                  <dd>{report.reviewed}</dd>
+                </div>
+              </dl>
+              <div className={styles.statusHeading}>
+                <h3>Task breakdown</h3>
+                <span>{report.total} total</span>
+              </div>
+              <dl className={styles.breakdown}>
+                {statuses.map(([status, title]) => (
+                  <div key={status}>
+                    <dt>{title}</dt>
+                    <dd>
+                      <span className={styles.statusTrack} aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${report.total ? ((report.byStatus[status] ?? 0) / report.total) * 100 : 0}%`,
+                          }}
+                        />
+                      </span>
+                      <strong>{report.byStatus[status] ?? 0}</strong>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <Link href="/system/reports" className={styles.reportLink}>
+                Open task report
+              </Link>
+            </>
+          )}
+        </section>
+        <section
+          className={styles.history}
+          aria-labelledby="kpi-history-heading"
+          aria-busy={state.loading}
+        >
+          <div className={styles.sectionHeading}>
+            <h2 id="kpi-history-heading">Recent decisions</h2>
+            <Link
+              href="/system/tasks#review-history"
+              className={styles.textLink}
+            >
+              Review history
+            </Link>
+          </div>
+          {state.history.error ? (
+            <Failure error={state.history.error} retry={state.load} />
+          ) : !history ? (
+            <WorkspaceProgress
+              className={styles.empty}
+              label="Loading recent decisions…"
+            />
+          ) : history.results.length === 0 ? (
+            <p className={styles.historyEmpty}>No reviews recorded yet.</p>
+          ) : (
+            <div className={styles.historyList}>
+              {history.results.slice(0, 3).map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/system/tasks?task=${item.taskId}`}
+                  className={styles.historyRow}
+                >
+                  <span className={styles.identity}>
+                    <strong>{item.taskTitle}</strong>
+                    <span>
+                      {item.assigneeName} · {item.reviewerName}
+                    </span>
+                  </span>
+                  <span className={styles.reviewMeta}>
+                    <strong>{label(item.decision)}</strong>
+                    <small>{formatDate(item.createdAt)}</small>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+      {state.loading && report && (
+        <WorkspaceProgress label="Refreshing KPI workspace…" />
+      )}
+    </div>
+  );
+}
+
+function Failure({
+  error,
+  retry,
+}: {
+  error: string;
+  retry: () => Promise<void>;
+}) {
+  return (
+    <div className={styles.failure} role="alert">
+      <p>{error}</p>
+      <button
+        className={styles.button}
+        type="button"
+        onClick={() => {
+          void retry();
+        }}
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
 
 export default function StaffDashboard() {
   const me = useMe();
 
-  const hasCustomerWork =
-    can(me, "SUPPORT_MANAGE", "PAYMENT_VERIFY") ||
-    me?.role === "system_admin" ||
-    me?.role === "records";
-
-  const displayName = me?.full_name?.split(" ")[0] ?? "there";
-
-  const date = new Intl.DateTimeFormat("en-PH", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  }).format(new Date());
-
   if (!me) {
-    return <WorkspaceContentSkeleton />;
+    return <WorkspaceProgress label="Loading KPI workspace…" />;
   }
 
-  return (
-    <div className="system-dashboard">
-      <div className="system-dashboard-intro">
-        <div>
-          <p>{date}</p>
-          <h2>Good day, {displayName}</h2>
-          <span>Here&apos;s the latest view of your operations.</span>
-        </div>
-        <div className="system-live-status">
-          <span /> {PRESENTATION_MODE ? "Sample data" : "Live data"}
-        </div>
-      </div>
+  if (!can(me, "KPI_REVIEW", "REPORT_VIEW")) {
+    return <p role="alert">No access to the KPI workspace.</p>;
+  }
 
-      <div className="system-hero-grid">
-        <section className="system-welcome-card">
-          <div className="system-welcome-copy">
-            <span className="system-card-kicker">Operations workspace</span>
-            <h3>Everything your team needs, in one clear view.</h3>
-            <p>
-              Track batches, customer schedules, payment verification, and
-              support work without leaving the dashboard.
-            </p>
-            <PaymentsCta />
-          </div>
-          <div className="system-hero-visual" aria-hidden="true">
-            <div className="system-hero-orbit orbit-one" />
-            <div className="system-hero-orbit orbit-two" />
-            <div className="system-hero-phone">
-              <span className="system-hero-camera" />
-              <span className="system-hero-camera camera-two" />
-              <span className="system-hero-logo">FP</span>
-            </div>
-            <div className="system-hero-check">
-              <CheckCircle weight="fill" />
-            </div>
-          </div>
-        </section>
-
-        <aside className="system-policy-card">
-          <div className="system-panel-heading">
-            <div>
-              <span className="system-card-kicker">System status</span>
-              <h3>Operations safeguards</h3>
-            </div>
-            <ShieldCheck weight="fill" className="h-6 w-6 text-[#5548ff]" />
-          </div>
-          <ul className="system-status-list">
-            <li>
-              <span className="status-dot is-green" />
-              <div>
-                <strong>
-                  {PRESENTATION_MODE
-                    ? "Presentation workspace"
-                    : "Database connected"}
-                </strong>
-                <small>
-                  {PRESENTATION_MODE
-                    ? "Fictional records · no database"
-                    : "Local development environment"}
-                </small>
-              </div>
-            </li>
-            <li>
-              <span className="status-dot is-violet" />
-              <div>
-                <strong>{"Installment schedules enabled"}</strong>
-                <small>{"Agreed totals preserved for enrolled clients"}</small>
-              </div>
-            </li>
-            <li>
-              <span className="status-dot is-blue" />
-              <div>
-                <strong>Role access enabled</strong>
-                <small>
-                  {PRESENTATION_MODE
-                    ? "Explore each role from the demo selector"
-                    : "Module permissions enforced by API"}
-                </small>
-              </div>
-            </li>
-          </ul>
-        </aside>
-      </div>
-
-      <DashboardCards />
-
-      {hasCustomerWork && (
-        <section className="mb-6" aria-label="Customer work waiting for staff">
-          <div className="mb-3 flex items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-700 uppercase tracking-widest text-violet-700">
-                Customer follow-up
-              </p>
-              <h3 className="font-display text-lg font-700 text-blue-ink">
-                Waiting for your team
-              </h3>
-            </div>
-            <Link
-              href="/system/customer-work"
-              className="text-xs font-700 text-violet-700 hover:underline"
-            >
-              Open work queue
-            </Link>
-          </div>
-          <CustomerWorkQueues compact />
-        </section>
-      )}
-
-      <div className="system-dashboard-grid">
-        <section className="system-panel system-shortcuts-panel">
-          <div className="system-panel-heading">
-            <div>
-              <span className="system-card-kicker">Daily tools</span>
-              <h3>Quick access</h3>
-            </div>
-            <span className="system-panel-note">Core modules</span>
-          </div>
-          <div className="system-shortcuts">
-            {can(me, "RECRUITMENT_MANAGE") &&
-              availableRoute("/system/recruitment") && (
-                <Link href="/system/recruitment" className="system-shortcut">
-                  <span className="system-shortcut-icon">
-                    <Briefcase weight="fill" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <strong>Manage job board</strong>
-                    <small>Openings and applications</small>
-                  </span>
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              )}
-            {SHORTCUTS.filter(({ href, perms }) => {
-              return availableRoute(href) && can(me, ...perms);
-            }).map(({ icon: Icon, label, detail, href }) => {
-              return (
-                <Link key={href} href={href} className="system-shortcut">
-                  <span className="system-shortcut-icon">
-                    <Icon weight="fill" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <strong>{label}</strong>
-                    <small>{detail}</small>
-                  </span>
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="system-panel system-workflow-panel">
-          <div className="system-panel-heading">
-            <div>
-              <span className="system-card-kicker">Required process</span>
-              <h3>Payment workflow</h3>
-            </div>
-            <Receipt className="h-6 w-6 text-[#5548ff]" weight="fill" />
-          </div>
-          <ol className="system-workflow">
-            <li>
-              <span>1</span>
-              <div>
-                <strong>Record</strong>
-                <small>Staff enters external payment details.</small>
-              </div>
-            </li>
-            <li>
-              <span>2</span>
-              <div>
-                <strong>Verify</strong>
-                <small>Finance checks proof and reference.</small>
-              </div>
-            </li>
-            <li>
-              <span>3</span>
-              <div>
-                <strong>Update</strong>
-                <small>Verified amount changes the balance.</small>
-              </div>
-            </li>
-          </ol>
-          {availableRoute("/system/tasks") && (
-            <Link href="/system/tasks" className="system-text-link">
-              <ListChecks weight="bold" /> View assigned tasks <ArrowUpRight />
-            </Link>
-          )}
-        </section>
-      </div>
-    </div>
-  );
+  return <Overview key={me.id} name={me.full_name?.split(" ")[0] ?? "there"} />;
 }

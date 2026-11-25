@@ -106,7 +106,9 @@ export class WorkService {
 
     if (
       query.status &&
-      !["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"].includes(query.status)
+      !["TODO", "IN_PROGRESS", "SUBMITTED", "DONE", "CANCELLED"].includes(
+        query.status,
+      )
     ) {
       throw new ConflictException("Invalid task status.");
     }
@@ -224,9 +226,9 @@ export class WorkService {
         throw new NotFoundException("Task not found.");
       }
 
-      if (["SUBMITTED", "DONE"].includes(before.status)) {
+      if (!["TODO", "IN_PROGRESS"].includes(before.status)) {
         throw new ConflictException(
-          "Submitted tasks cannot return to progress.",
+          "Only tasks awaiting submission can change progress.",
         );
       }
 
@@ -271,8 +273,8 @@ export class WorkService {
         throw new NotFoundException("Task not found.");
       }
 
-      if (["SUBMITTED", "DONE"].includes(before.status)) {
-        throw new ConflictException("This task was already submitted.");
+      if (!["TODO", "IN_PROGRESS"].includes(before.status)) {
+        throw new ConflictException("Only active tasks can be submitted.");
       }
 
       const submittedAt = new Date();
@@ -351,9 +353,9 @@ export class WorkService {
           throw new NotFoundException("Task not found.");
         }
 
-        if (task.status === "DONE") {
+        if (!["TODO", "IN_PROGRESS"].includes(task.status)) {
           throw new ConflictException(
-            "Completed tasks cannot receive attachments.",
+            "Only tasks awaiting submission can receive attachments.",
           );
         }
 

@@ -38,6 +38,7 @@ export class RoleWorkspaceService {
       select: {
         id: true,
         name: true,
+        image: true,
         role: true,
         active: true,
         supervisor: { select: { name: true } },

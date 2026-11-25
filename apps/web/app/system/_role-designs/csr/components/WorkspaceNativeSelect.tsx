@@ -58,8 +58,10 @@ export default function WorkspaceNativeSelect({
 
     const active =
       (handler ||
-        element.closest<HTMLElement>("[data-workspace-role]")?.dataset
-          .workspaceRole === "coo") &&
+        ["coo", "csr"].includes(
+          element.closest<HTMLElement>("[data-workspace-role]")?.dataset
+            .workspaceRole ?? "",
+        )) &&
       !element.multiple &&
       element.size <= 1;
 

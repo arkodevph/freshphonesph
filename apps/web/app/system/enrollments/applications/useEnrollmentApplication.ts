@@ -16,7 +16,7 @@ import {
 import { ApiError } from "@/lib/ts-api";
 import { useLiveRecords } from "@/lib/useLiveRecords";
 
-export function useEnrollmentApplication(id: string, me: Me) {
+export function useEnrollmentApplication(id: string, me: Me, preserveDraft = false) {
   const alive = useRef(false);
 
   const generation = useRef(0);
@@ -35,6 +35,8 @@ export function useEnrollmentApplication(id: string, me: Me) {
   const [loading, setLoading] = useState(true);
 
   const [pending, setPending] = useState(false);
+
+  const [stale, setStale] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -56,6 +58,8 @@ export function useEnrollmentApplication(id: string, me: Me) {
     clear();
 
     setLoading(true);
+
+    setStale(false);
 
     setError("");
 
@@ -116,6 +120,11 @@ export function useEnrollmentApplication(id: string, me: Me) {
           JSON.stringify(latest.enrollmentRequest) !==
             JSON.stringify(detailRef.current?.enrollmentRequest))
       ) {
+        if (preserveDraft) {
+          setStale(true);
+          return;
+        }
+
         await load();
 
         if (alive.current) {
@@ -136,7 +145,7 @@ export function useEnrollmentApplication(id: string, me: Me) {
         setError(failure.message);
       }
     }
-  }, [id, load, clear]);
+  }, [id, load, clear, preserveDraft]);
 
   useEffect(() => {
     alive.current = true;
@@ -157,7 +166,7 @@ export function useEnrollmentApplication(id: string, me: Me) {
   useLiveRecords(check);
 
   async function run(work: () => Promise<unknown>, message: string) {
-    if (!application || busy.current) {
+    if (!application || busy.current || stale) {
       return;
     }
 
@@ -190,7 +199,9 @@ export function useEnrollmentApplication(id: string, me: Me) {
           clear();
         }
 
-        if (failure instanceof ApiError && failure.status === 409) {
+        if (failure instanceof ApiError && failure.status === 409 && preserveDraft) {
+          setStale(true);
+        } else if (failure instanceof ApiError && failure.status === 409) {
           await load();
 
           if (alive.current) {
@@ -223,6 +234,7 @@ export function useEnrollmentApplication(id: string, me: Me) {
     agents,
     loading,
     pending,
+    stale,
     error,
     notice,
     load,

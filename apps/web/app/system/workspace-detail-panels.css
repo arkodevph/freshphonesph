@@ -1,0 +1,329 @@
+/* Baker: reference-led panel composition, using each role's existing tokens. */
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal] {
+  --modal-inset: 24px;
+  width: min(600px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  margin: auto 12px auto auto;
+  border: 1px solid var(--system-border);
+  border-radius: 18px;
+  background: var(--system-surface);
+  color: var(--system-text);
+  font-family: var(--font-workspace, ui-sans-serif, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  scrollbar-gutter: auto;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-size="wide"] {
+  width: min(720px, calc(100vw - 24px));
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-size="drawer"] {
+  width: min(580px, calc(100vw - 24px));
+  height: calc(100dvh - 24px);
+  max-height: calc(100dvh - 24px);
+  margin: 12px 12px 12px auto;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-size="small"] {
+  width: min(440px, calc(100vw - 32px));
+  margin: auto;
+  height: auto;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-size="media"] {
+  width: min(1120px, calc(100vw - 32px));
+  margin: auto;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-size="review"] {
+  width: min(1440px, calc(100vw - 32px));
+  margin: auto;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]::backdrop {
+  background: rgb(0 0 0 / 42%);
+  backdrop-filter: blur(2px);
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]
+  :is(h2, .team-dialog-heading h3) {
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]
+  :is(h3, h4) {
+  font-size: 14px;
+  font-weight: 500;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]
+  :is(dt, dd) {
+  font-size: 13px;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]
+  :is(.finance-review-heading, .team-dialog-heading, .receipt-viewer-heading) {
+  padding: 20px var(--modal-inset);
+  background: var(--system-surface);
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]
+  :is(.finance-review-actions, .team-dialog-actions) {
+  padding: 16px var(--modal-inset);
+  background: var(--system-surface);
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]
+  [data-modal-header] {
+  gap: 16px;
+  margin-bottom: 0;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]:not([data-modal-framed]):not(
+    [data-modal-sections]
+  )
+  > [data-modal-header] {
+  margin-bottom: 20px;
+  padding-block: 20px;
+  background: var(--system-surface);
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-sections]
+  > [data-modal-header] {
+  padding: 20px 24px;
+  background: var(--system-surface);
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal]
+  :is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--workspace-focus, var(--system-accent));
+  outline-offset: 3px;
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-spring][open] {
+  animation: none;
+  opacity: var(--dialog-progress, 1);
+  transform: translateX(calc((1 - var(--dialog-progress, 1)) * 60px));
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-spring][open]::backdrop {
+  opacity: var(--dialog-progress, 1);
+}
+.system-shell[data-workspace-role]:is(
+    [data-workspace-theme],
+    [data-handler-shell]
+  )
+  dialog[data-workspace-modal][data-modal-spring]:is(
+    [data-modal-size="media"],
+    [data-modal-size="review"],
+    [data-modal-size="small"]
+  )[open] {
+  transform: translateY(calc((1 - var(--dialog-progress, 1)) * 12px))
+    scale(calc(0.98 + var(--dialog-progress, 1) * 0.02));
+}
+@media (max-width: 600px) {
+  .system-shell[data-workspace-role]:is(
+      [data-workspace-theme],
+      [data-handler-shell]
+    )
+    dialog[data-workspace-modal] {
+    --modal-inset: 18px;
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    margin: auto 8px;
+    border-radius: 16px;
+  }
+  .system-shell[data-workspace-role]:is(
+      [data-workspace-theme],
+      [data-handler-shell]
+    )
+    dialog[data-workspace-modal][data-modal-size="drawer"] {
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    margin: 8px;
+  }
+  .system-shell[data-workspace-role]:is(
+      [data-workspace-theme],
+      [data-handler-shell]
+    )
+    dialog[data-workspace-modal]
+    :is(
+      .payment-details-shell,
+      .receipt-viewer-shell,
+      form:has(> .finance-review-heading),
+      form:has(> .team-dialog-heading)
+    ) {
+    max-height: calc(100dvh - 16px);
+  }
+  .system-shell[data-workspace-role]:is(
+      [data-workspace-theme],
+      [data-handler-shell]
+    )
+    dialog[data-workspace-modal][data-modal-sections]
+    > [data-modal-header] {
+    padding-inline: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .system-shell[data-workspace-role]:is(
+      [data-workspace-theme],
+      [data-handler-shell]
+    )
+    dialog[data-workspace-modal][data-modal-spring][open] {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Handler document portals keep their reading canvas and inherited product type. */
+dialog[data-handler-modal] {
+  border-radius: 18px;
+  font-family: var(
+    --font-workspace,
+    "Fresh Workspace",
+    ui-sans-serif,
+    system-ui,
+    sans-serif
+  );
+}
+dialog[data-handler-modal]::backdrop {
+  background: rgb(0 0 0 / 42%);
+  backdrop-filter: blur(2px);
+}
+dialog[data-handler-modal] h2 {
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+dialog[data-handler-modal]:not([data-account-document]):not(
+    [data-handler-schedule]
+  ) {
+  width: min(600px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  margin: auto 12px auto auto;
+}
+@media (max-width: 600px) {
+  dialog[data-handler-modal] {
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px;
+  }
+  dialog[data-handler-modal]:not([data-account-document]):not(
+      [data-handler-schedule]
+    ) {
+    width: calc(100vw - 16px);
+    margin: auto 8px;
+  }
+}
+
+/* Shared field resets must not enlarge the accessible file input. */
+.system-shell[data-workspace-role]
+  dialog[data-task-detail-panel]
+  input[type="file"] {
+  position: absolute;
+  width: 1px !important;
+  max-width: 1px !important;
+  height: 1px !important;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.system-shell[data-workspace-role]
+  dialog[data-task-detail-panel]
+  label:has(> input[type="file"]) {
+  display: flex;
+}
+.system-shell[data-workspace-role]
+  dialog[data-task-detail-panel]
+  button[data-variant="primary"] {
+  color: var(--workspace-on-action, #fff);
+  background: var(--workspace-action, var(--system-accent));
+}
+@media (max-width: 600px) {
+  .system-shell[data-workspace-role]:is(
+      [data-workspace-theme],
+      [data-handler-shell]
+    )
+    dialog[data-workspace-modal]:is(
+      [data-modal-size="wide"],
+      [data-modal-size="drawer"]
+    ) {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+  }
+  .system-shell[data-workspace-role]:is(
+      [data-workspace-theme],
+      [data-handler-shell]
+    )
+    dialog[data-workspace-modal]:is(
+      [data-modal-size="small"],
+      [data-modal-size="media"],
+      [data-modal-size="review"]
+    ) {
+    margin: auto;
+  }
+}

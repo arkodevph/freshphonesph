@@ -161,7 +161,12 @@ export default function EnrollmentRequests(props: Props) {
           aria-label="Enrollment request list"
           tabIndex={0}
         >
-          <table>
+          <table style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}>
+            <colgroup>
+              {[29, 22, 15, 22, 12].map((width, index) => {
+                return <col key={index} style={{ width: `${width}%` }} />;
+              })}
+            </colgroup>
             <thead>
               <tr>
                 <th scope="col">Member</th>

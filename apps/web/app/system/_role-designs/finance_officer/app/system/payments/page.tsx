@@ -7,13 +7,9 @@ import {
 } from "@/app/system/_role-designs/finance_officer/app/system/payments/HandlerReceiptDialogs";
 import { usePaymentsWorkspace } from "@/app/system/payments/usePaymentsWorkspace";
 import SubmissionChecklist from "@/app/system/_role-designs/finance_officer/app/system/payments/SubmissionChecklist";
-import {
-  CheckCircle,
-  Receipt,
-  Wallet,
-  WarningCircle,
-  X,
-} from "@phosphor-icons/react";
+import { CheckCircle, Wallet, WarningCircle, X } from "@phosphor-icons/react";
+import styles from "./finance-payments.module.css";
+import WorkspaceDetails from "@/app/system/_role-designs/finance_officer/components/WorkspaceDetails";
 import { Suspense, useState } from "react";
 import type { AccountDocumentTarget } from "@/lib/account-documents";
 import { HandlerAccountDocument as FinanceAccountDocument } from "@/app/system/_role-designs/finance_officer/components/HandlerAccountDocument";
@@ -130,21 +126,6 @@ export default function PaymentsPage() {
           }}
         />
       )}
-      <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
-        <span className="grid h-10 w-10 place-items-center rounded-2xl chrome">
-          <Receipt weight="fill" className="h-5 w-5 text-blue" />
-        </span>
-        <div>
-          <h1 className="font-display text-lg font-700 tracking-tight text-blue-ink">
-            Payments &amp; Finance
-          </h1>
-          <p className="text-xs text-ink-soft">
-            Review eligible payment claims · only verified credit updates the
-            balance
-          </p>
-        </div>
-      </header>
-
       <HandlerReceiptDialogs flow={receiptFlow} />
       {isBatchHandler(me?.role) && <PaymentReceiptNotice flow={receiptFlow} />}
       <PaymentListPanel
@@ -152,67 +133,77 @@ export default function PaymentsPage() {
         onDocument={setDocumentTarget}
       />
 
-      <div className="mt-6">
-        <SubmissionChecklist enabled={Boolean(me && canRead)} />
-      </div>
-      <div className="mb-4 grid gap-4 lg:grid-cols-3">
-        {/* Record form */}
-        {canRecord && <RecordPaymentForm {...recordPaymentFormProps} />}
+      <div className={styles.supportTools}>
+        <div>
+          <SubmissionChecklist enabled={Boolean(me && canRead)} />
+        </div>
+        <div className={canRecord ? "grid gap-4" : undefined}>
+          {/* Record form */}
+          {canRecord && <RecordPaymentForm {...recordPaymentFormProps} />}
 
-        {/* Balance lookup */}
-        <div className="glass rounded-3xl p-5">
-          <h2 className="mb-3 flex items-center gap-2 font-display font-700 text-blue-ink">
-            <Wallet weight="fill" className="h-4 w-4" /> Balance lookup
-          </h2>
-          <div className="flex gap-2">
-            <ClientPicker
-              label="Balance client"
-              selected={balanceClientChoice}
-              onSelect={(client) => {
-                setBalanceClientChoice(client);
+          {/* Balance lookup */}
+          <WorkspaceDetails className="glass rounded-3xl p-5">
+            <summary>Balance lookup</summary>
+            <div className="mt-4">
+              <div className="flex gap-2">
+                <ClientPicker
+                  label="Balance client"
+                  selected={balanceClientChoice}
+                  onSelect={(client) => {
+                    setBalanceClientChoice(client);
 
-                setBalanceClient(client ? String(client.id) : "");
+                    setBalanceClient(client ? String(client.id) : "");
 
-                setBalance(null);
-              }}
-            />
-            <button
-              onClick={lookupBalance}
-              disabled={!balanceClient}
-              className="balance-check-button shrink-0 rounded-2xl px-4 py-2 text-sm font-700 disabled:opacity-50"
-            >
-              Check
-            </button>
-          </div>
-          <button
-            type="button"
-            className="mt-3 min-h-11 underline"
-            disabled={!balanceClient}
-            onClick={() => {
-              return setDocumentTarget({
-                kind: "statement",
-                id: balanceClient,
-              });
-            }}
-          >
-            Statement of Account for selected member
-          </button>
-          {balance && (
-            <dl className="mt-4 space-y-1.5 text-sm">
-              <Row k="Total due" v={`₱${balance.total_due}`} />
-              <Row k="Verified paid" v={`₱${balance.verified_paid}`} strong />
-              <Row k="Remaining" v={`₱${balance.remaining_balance}`} strong />
-              {balance.pending_amount && (
-                <Row
-                  k="Awaiting verification"
-                  v={`₱${balance.pending_amount}`}
+                    setBalance(null);
+                  }}
                 />
+                <button
+                  onClick={lookupBalance}
+                  disabled={!balanceClient}
+                  className="balance-check-button shrink-0 rounded-2xl px-4 py-2 text-sm font-700 disabled:opacity-50"
+                >
+                  Check
+                </button>
+              </div>
+              <button
+                type="button"
+                className="mt-3 min-h-11 underline"
+                disabled={!balanceClient}
+                onClick={() => {
+                  return setDocumentTarget({
+                    kind: "statement",
+                    id: balanceClient,
+                  });
+                }}
+              >
+                Statement of Account for selected member
+              </button>
+              {balance && (
+                <dl className="mt-4 space-y-1.5 text-sm">
+                  <Row k="Total due" v={`₱${balance.total_due}`} />
+                  <Row
+                    k="Verified paid"
+                    v={`₱${balance.verified_paid}`}
+                    strong
+                  />
+                  <Row
+                    k="Remaining"
+                    v={`₱${balance.remaining_balance}`}
+                    strong
+                  />
+                  {balance.pending_amount && (
+                    <Row
+                      k="Awaiting verification"
+                      v={`₱${balance.pending_amount}`}
+                    />
+                  )}
+                  {balance.overpaid && balance.overpaid !== "0.00" && (
+                    <Row k="Overpayment" v={`₱${balance.overpaid}`} strong />
+                  )}
+                </dl>
               )}
-              {balance.overpaid && balance.overpaid !== "0.00" && (
-                <Row k="Overpayment" v={`₱${balance.overpaid}`} strong />
-              )}
-            </dl>
-          )}
+            </div>
+          </WorkspaceDetails>
         </div>
       </div>
 

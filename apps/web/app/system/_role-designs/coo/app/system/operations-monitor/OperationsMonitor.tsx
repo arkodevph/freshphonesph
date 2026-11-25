@@ -286,7 +286,12 @@ export default function OperationsMonitor() {
             aria-label="Monitoring items"
             tabIndex={0}
           >
-            <table>
+            <table style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}>
+              <colgroup>
+                {[26, 16, 17, 10, 17, 14].map((width, index) => {
+                  return <col key={index} style={{ width: `${width}%` }} />;
+                })}
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col">Item / batch</th>

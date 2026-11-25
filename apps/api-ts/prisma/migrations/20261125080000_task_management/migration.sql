@@ -1,0 +1,2 @@
+ALTER TYPE "TaskStatus" ADD VALUE 'CANCELLED';
+ALTER TABLE "Task" ADD COLUMN "cancelledAt" TIMESTAMP(3), ADD COLUMN "cancellationReason" TEXT;

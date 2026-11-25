@@ -52,6 +52,7 @@ const statusInfo = {
   IN_PROGRESS: { label: "In progress", icon: Calendar },
   SUBMITTED: { label: "Submitted", icon: FileSend },
   DONE: { label: "Completed", icon: CheckCircle },
+  CANCELLED: { label: "Cancelled", icon: ClockCircle },
 };
 
 export default function CooTasksView({

@@ -47,9 +47,11 @@ const message = (error: unknown) => {
 export default function RoleWorkspace({
   section,
   requestId,
+  skeletonOnly = false,
 }: {
   section: "personnel" | "network" | "enrollments";
   requestId?: string;
+  skeletonOnly?: boolean;
 }) {
   const me = useMe();
 
@@ -142,7 +144,7 @@ export default function RoleWorkspace({
   const sequence = useRef(0);
 
   const load = useCallback(async () => {
-    if (!permitted) {
+    if (!permitted || skeletonOnly) {
       return;
     }
 
@@ -196,6 +198,7 @@ export default function RoleWorkspace({
     }
   }, [
     permitted,
+    skeletonOnly,
     section,
     page,
     status,
@@ -371,8 +374,11 @@ export default function RoleWorkspace({
       {section === "personnel" && (
         <PersonnelDirectory staff={staff} loading={loading} />
       )}
-      {section === "network" && network && (
-        <AgentNetworkDirectory network={network} />
+      {section === "network" && (loading || network) && (
+        <AgentNetworkDirectory
+          network={network}
+          loading={loading && !network}
+        />
       )}
       {section === "enrollments" && (
         <>
@@ -585,9 +591,6 @@ export default function RoleWorkspace({
             onReview={review}
           />
         </>
-      )}
-      {loading && section !== "personnel" && section !== "enrollments" && (
-        <WorkspaceProgress label="Loading…" />
       )}
     </div>
   );

@@ -38,6 +38,13 @@ export function WithdrawalWorkspace({
     requestId,
   });
 
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get("status");
+    if (withdrawalStatuses.includes(status as WithdrawalStatus)) {
+      state.setStatus(status as WithdrawalStatus);
+    }
+  }, []);
+
   const [reason, setReason] = useState("");
 
   const [acknowledged, setAcknowledged] = useState(false);
@@ -112,9 +119,7 @@ export function WithdrawalWorkspace({
         <header className={styles.header}>
           <h1>Member withdrawals</h1>
           <p>
-            Review requests, record decisions and track replacements and
-            external refunds. Withdrawal approval does not stop installments
-            until a replacement joins.
+            Review member requests and forward them to the COO. Installments continue until a replacement joins.
           </p>
         </header>
       )}

@@ -22,9 +22,7 @@ export default function ClientsDashboard() {
     clientRecordsTableProps,
     me,
     canRead,
-    error,
     listError,
-    notice,
     filters,
     changeFilter,
     focusedClient,
@@ -64,19 +62,6 @@ export default function ClientsDashboard() {
       <header className={styles.heading}>
         <h1>Clients</h1>
       </header>
-
-      {(error || notice) && (
-        <div
-          role={error ? "alert" : "status"}
-          className={`mb-4 rounded-2xl px-4 py-2.5 text-sm font-600 ${
-            error
-              ? "bg-rose-100 text-rose-700"
-              : "bg-emerald-100 text-emerald-700"
-          }`}
-        >
-          {error ?? notice}
-        </div>
-      )}
 
       <div className={styles.tools}>
         {can(me, "ENROLLMENT_REVIEW") && (

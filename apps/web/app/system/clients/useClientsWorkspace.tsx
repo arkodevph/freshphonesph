@@ -98,7 +98,7 @@ export function useClientsWorkspace() {
 
   const [loading, setLoading] = useState(true);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useToastNotice(null, "error");
 
   const [listError, setListError] = useState<string | null>(null);
 

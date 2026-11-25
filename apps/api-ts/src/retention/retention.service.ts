@@ -860,6 +860,7 @@ export class RetentionService {
           title: "Erased task details",
           instructions: "",
           report: "",
+          cancellationReason: null,
           version: { increment: 1 },
         },
       });

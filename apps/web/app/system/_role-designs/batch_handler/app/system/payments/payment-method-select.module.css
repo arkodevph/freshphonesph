@@ -45,7 +45,8 @@
 .picker :global([role="option"] > span:first-child) {
   flex: 1;
 }
-.picker :global([role="listbox"]) {
+.picker :global([role="listbox"][popover]),
+.picker :global([data-handler-select] > [popover]) {
   right: 0;
   left: auto;
   width: max(100%, 15rem);

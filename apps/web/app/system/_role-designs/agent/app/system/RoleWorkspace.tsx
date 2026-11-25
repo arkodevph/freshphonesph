@@ -363,6 +363,9 @@ export default function RoleWorkspace({
           {error}
         </p>
       )}
+      {error && (
+        <button type="button" className="rounded-lg border px-4 py-2" onClick={() => { void load(); }}>Try again</button>
+      )}
       {notice && (
         <p role="status" className="system-alert">
           {notice}

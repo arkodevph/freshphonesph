@@ -76,7 +76,7 @@ export async function replayCooWrite<T>(
 
   if (
     !context ||
-    context.request.user?.role !== "COO" ||
+    !["COO", "HR_PAYROLL"].includes(context.request.user?.role) ||
     ["GET", "HEAD", "OPTIONS"].includes(context.request.method) ||
     (context.request.headers["content-type"] !== undefined &&
       !context.request.is("application/json"))
@@ -117,8 +117,8 @@ export async function replayCooWrite<T>(
 
   const current = await tx.user.findUnique({ where: { id: actorId } });
 
-  if (!current?.active || current.role !== "COO") {
-    throw new ForbiddenException("Your COO access has changed.");
+  if (!current?.active || current.role !== context.request.user.role) {
+    throw new ForbiddenException("Your staff access has changed.");
   }
 
   const digest = (value: string) => {

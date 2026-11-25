@@ -806,9 +806,9 @@
   }
 }
 
-/* Dedicated COO details: clear properties rail and a focused submission surface. */
+/* Task context precedes the full-width submission form. */
 .detailDialog {
-  width: min(940px, calc(100vw - 40px));
+  width: min(680px, calc(100vw - 32px));
   max-width: calc(100vw - 40px);
   max-height: calc(100dvh - 48px);
   margin: auto;
@@ -822,15 +822,17 @@
   justify-content: space-between;
   gap: 24px;
   border-bottom: 1px solid var(--task-control-edge);
-  padding: 26px 28px;
+  padding: 22px 28px;
 }
-.detailHeader p {
-  margin-bottom: 8px;
-  color: var(--system-muted);
-  font-size: 11px;
+.detailTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  min-width: 0;
 }
 .detailHeader h2 {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 27px;
   font-weight: 500;
   line-height: 1.3;
@@ -851,30 +853,31 @@
 }
 .detailLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-columns: minmax(0, 1fr);
 }
-.detailSidebar {
-  border-left: 1px solid var(--task-control-edge);
-  padding: 26px 24px;
-  background: var(--task-inset);
+.detailProperties {
+  margin: 0 28px;
+  border-bottom: 1px solid var(--task-control-edge);
+  padding: 18px 0;
 }
-.detailSidebar dl {
+.detailProperties dl {
   display: grid;
-  gap: 26px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.65fr) minmax(0, 1.2fr);
+  gap: 20px;
 }
-.detailSidebar dt {
+.detailProperties dt {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   color: var(--system-muted);
   font-size: 11px;
 }
-.detailSidebar dt svg {
+.detailProperties dt svg {
   width: 15px;
   height: 15px;
 }
-.detailSidebar dd {
+.detailProperties dd {
   font-size: 13px;
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -883,8 +886,8 @@
   display: grid;
   min-width: 0;
   align-content: start;
-  gap: 28px;
-  padding: 28px;
+  gap: 22px;
+  padding: 22px 28px 24px;
 }
 .detailMain h3 {
   margin-bottom: 12px;
@@ -905,7 +908,7 @@
   display: grid;
   gap: 16px;
   border-top: 1px solid var(--task-control-edge);
-  padding-top: 26px;
+  padding-top: 22px;
 }
 .submissionBlock header {
   display: flex;
@@ -1017,10 +1020,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 4px;
+  margin-top: 4px;
+  border-top: 1px solid var(--task-control-edge);
+  padding-top: 18px;
 }
 .reportFooter > span {
-  max-width: 21ch;
+  max-width: none;
   color: var(--system-muted);
   font-size: 10px;
   line-height: 1.6;
@@ -1067,16 +1072,18 @@
   .detailLayout {
     grid-template-columns: minmax(0, 1fr);
   }
-  .detailSidebar {
-    border-left: 0;
-    border-top: 1px solid var(--task-control-edge);
-    padding: 20px;
+  .detailProperties {
+    margin-inline: 20px;
+    padding: 16px 0;
   }
-  .detailSidebar dl {
+  .detailProperties dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    gap: 16px;
   }
-  .detailSidebar dd {
+  .detailProperties dl > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .detailProperties dd {
     font-size: 12px;
   }
   .reportFooter {

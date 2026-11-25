@@ -52,31 +52,29 @@ export default function HandlerPaymentTable({
     {
       id: "client",
       label: "Client",
-      width: 240,
+      width: 24,
       pin: "primary",
       sortKey: "clientName",
       render: (p) => {
-        return <HandlerTableText value={p.client_name || String(p.client)} />;
-      },
-    },
-    {
-      id: "id",
-      label: "Payment",
-      width: 136,
-      pin: "secondary",
-      render: (p) => {
-        return <HandlerTableText value={String(p.id)} />;
+        return (
+          <div className={styles.identity}>
+            <HandlerTableText value={p.client_name || String(p.client)} />
+            <small>{p.batch_code || "Batch not set"}</small>
+            <small className={styles.identifier}>ID · {String(p.id)}</small>
+          </div>
+        );
       },
     },
     {
       id: "amount",
-      label: "Credit / claim",
-      width: 176,
+      label: "Amount / method",
+      width: 12,
       numeric: true,
       render: (p) => {
         return (
           <>
             {formatPeso(p.amount)}
+            <small className={styles.secondaryText}>{p.method}</small>
             {Boolean(p.adjustments?.length) && (
               <span className={styles.original}>
                 Adjusted · original{" "}
@@ -90,35 +88,18 @@ export default function HandlerPaymentTable({
       },
     },
     {
-      id: "method",
-      label: "Method",
-      width: 112,
-      render: (p) => {
-        return <HandlerTableText value={p.method} />;
-      },
-    },
-    {
-      id: "proof",
-      label: "Proof",
-      width: 120,
-      render: (p) => {
-        return (
-          <span
-            className={proofStyles.badge}
-            data-proof={p.proof_file ? "attached" : "missing"}
-          >
-            {p.proof_file ? "With proof" : "No proof"}
-          </span>
-        );
-      },
-    },
-    {
       id: "reference",
-      label: "Reference / receipt",
-      width: 344,
+      label: "Receipt / reference",
+      width: 23,
       render: (p) => {
         return (
           <div className={styles.receipt}>
+            <span
+              className={proofStyles.badge}
+              data-proof={p.proof_file ? "attached" : "missing"}
+            >
+              {p.proof_file ? "With proof" : "No proof"}
+            </span>
             {p.duplicate_reference && (
               <span className={styles.warning}>Duplicate?</span>
             )}
@@ -139,7 +120,7 @@ export default function HandlerPaymentTable({
     {
       id: "date",
       label: "Date",
-      width: 128,
+      width: 11,
       sortKey: "paymentDate",
       render: (p) => {
         return <HandlerTableText value={p.payment_date} />;
@@ -148,7 +129,7 @@ export default function HandlerPaymentTable({
     {
       id: "status",
       label: "Status",
-      width: 248,
+      width: 23,
       render: (p) => {
         const stage =
           p.status !== "pending"
@@ -180,7 +161,7 @@ export default function HandlerPaymentTable({
     {
       id: "actions",
       label: "Actions",
-      width: 56,
+      width: 7,
       actions: true,
       render: (p) => {
         return (
@@ -260,7 +241,7 @@ export default function HandlerPaymentTable({
         id="payments"
         userId={String(me.id)}
         label="Payment records"
-        caption="Assigned payment claims and credits. Client and Date sort all matching records. Proof shows whether a receipt is attached. Adjusted amounts retain their original values. Row actions open details, receipt proof or an eligible claim for editing."
+        caption="Assigned payment claims and credits. Client and Date sort all matching records. Amounts include payment methods; receipt references include proof status. Row actions open details, proof or an eligible claim for editing."
         rows={payments}
         rowId={(p) => {
           return p.id;

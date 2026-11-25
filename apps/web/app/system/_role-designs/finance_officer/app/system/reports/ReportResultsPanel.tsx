@@ -81,29 +81,6 @@ export default function ReportResultsPanel({
       aria-labelledby="report-results-title"
       aria-busy={loading}
     >
-      {canReviewPayments && report && !loading && !error && !dirty && (
-        <nav
-          className={styles.actions}
-          aria-label="Underlying financial records"
-        >
-          <Link
-            className={styles.recordLink}
-            href={financePaymentHref({
-              kind,
-              filters: applied,
-              returnTo: financeReportHref(
-                kind,
-                applied,
-                "page" in report.data ? report.data.page : 1,
-              ),
-            })}
-          >
-            {kind === "collections"
-              ? "Open verified payment records"
-              : "Open matching payment records"}
-          </Link>
-        </nav>
-      )}
       <div className={styles.sectionHeading}>
         <div>
           <h2 id="report-results-title">{names[kind]} report</h2>
@@ -119,6 +96,34 @@ export default function ReportResultsPanel({
           </p>
         </div>
         <div className={styles.actions}>
+          {canReviewPayments && (
+            <Link
+              className={styles.recordLink}
+              aria-label={
+                kind === "collections"
+                  ? "Open verified payment records"
+                  : "Open matching payment records"
+              }
+              aria-disabled={!report || loading || Boolean(error) || dirty}
+              tabIndex={!report || loading || error || dirty ? -1 : undefined}
+              onClick={(event) => {
+                if (!report || loading || error || dirty) {
+                  event.preventDefault();
+                }
+              }}
+              href={financePaymentHref({
+                kind,
+                filters: applied,
+                returnTo: financeReportHref(
+                  kind,
+                  applied,
+                  report && "page" in report.data ? report.data.page : 1,
+                ),
+              })}
+            >
+              Payment records
+            </Link>
+          )}
           <button
             type="button"
             disabled={loading || Boolean(busy)}

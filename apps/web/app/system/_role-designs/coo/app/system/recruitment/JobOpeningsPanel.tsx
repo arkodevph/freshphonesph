@@ -1,5 +1,6 @@
 "use client";
 
+import { TableSkeletonRows } from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/coo/components/WorkspaceNativeSelect";
 import type { Paginated } from "@/lib/api";
 import { type Applicant, type JobOpening } from "@/lib/api";
@@ -139,16 +140,22 @@ export default function JobOpeningsPanel({
       ) : (
         <DirectoryState directory={jobs} name="jobs" />
       )}
-      {jobs.data && (!isCoo || jobs.data.results.length > 0) && (
+      {((jobs.loading && !jobs.data) ||
+        (jobs.data && (!isCoo || jobs.data.results.length > 0))) && (
         <div
           className={styles.tableWrap}
           tabIndex={0}
           role="region"
           aria-label="Job openings table"
         >
-          <table>
+          <table style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}>
+            <colgroup>
+              {[30, 22, 12, 14, 22].map((width, index) => {
+                return <col key={index} style={{ width: `${width}%` }} />;
+              })}
+            </colgroup>
             <caption>
-              {jobs.data.count} matching openings · All pages searched
+              {jobs.data?.count ?? "…"} matching openings · All pages searched
             </caption>
             <thead>
               <tr>
@@ -160,7 +167,10 @@ export default function JobOpeningsPanel({
               </tr>
             </thead>
             <tbody>
-              {jobs.data.results.map((row) => {
+              {jobs.loading && !jobs.data && (
+                <TableSkeletonRows columns={5} label="Loading job openings" />
+              )}
+              {jobs.data?.results.map((row) => {
                 return (
                   <tr key={row.id}>
                     <td>

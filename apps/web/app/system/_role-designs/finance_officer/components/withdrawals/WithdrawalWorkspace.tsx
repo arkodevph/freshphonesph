@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import WorkspaceProgress from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
+import WorkspaceProgress, {
+  SkeletonLine,
+} from "@/app/system/_role-designs/finance_officer/components/WorkspaceProgress";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/finance_officer/components/WorkspaceNativeSelect";
 import { useEffect, useRef, useState } from "react";
 import {
   withdrawalStatuses,
   type WithdrawalStatus,
+  type WithdrawalCase,
 } from "@freshphones/contracts";
 import {
   submitWithdrawal,
@@ -273,85 +276,73 @@ export function WithdrawalWorkspace({
               </label>
             )}
           </div>
-          {state.loading ? (
-            <WorkspaceProgress label="Loading withdrawal requests…" />
-          ) : (
-            <>
-              <div className={styles.list}>
-                {state.result?.items.map((row) => {
-                  return (
-                    <article
-                      key={row.id}
-                      className={`${styles.card} ${row.id === state.selected ? styles.cardSelected : ""}`}
-                    >
-                      <p className={styles.reference}>{row.batch.code}</p>
-                      <h3>{row.memberName}</h3>
-                      <div className={styles.badges}>
-                        <span className={styles.badge}>
-                          {withdrawalStatusLabels[row.status]}
-                        </span>
-                        <span className={styles.badge}>
-                          {withdrawalRefundLabel(row)}
-                        </span>
-                      </div>
-                      <footer>
-                        <time dateTime={row.submittedAt}>
-                          {new Date(row.submittedAt).toLocaleDateString(
-                            "en-PH",
-                          )}
-                        </time>
-                        <button
-                          type="button"
-                          disabled={state.busy}
-                          onClick={() => {
-                            select(row.id);
-                          }}
-                        >
-                          Open request
-                        </button>
-                      </footer>
-                    </article>
-                  );
-                })}
+          <>
+            <div
+              className={styles.list}
+              aria-busy={state.loading && !state.result}
+            >
+              {state.loading && !state.result
+                ? Array.from({ length: 5 }, (_, index) => {
+                    return (
+                      <WithdrawalRequestCard
+                        key={index}
+                        busy
+                        onOpen={() => {}}
+                      />
+                    );
+                  })
+                : state.result?.items.map((row) => {
+                    return (
+                      <WithdrawalRequestCard
+                        key={row.id}
+                        row={row}
+                        selected={row.id === state.selected}
+                        busy={state.busy}
+                        onOpen={() => {
+                          return select(row.id);
+                        }}
+                      />
+                    );
+                  })}
+            </div>
+            {!state.loading && !state.result?.items.length && (
+              <div className={styles.empty}>
+                <p>No withdrawal requests match this view.</p>
               </div>
-              {!state.result?.items.length && (
-                <div className={styles.empty}>
-                  <p>No withdrawal requests match this view.</p>
-                </div>
-              )}
-              <div className={styles.pagination}>
-                <button
-                  type="button"
-                  disabled={state.busy || state.page <= 1}
-                  onClick={() => {
-                    state.setPage((page) => {
-                      return page - 1;
-                    });
-                  }}
-                >
-                  Previous
-                </button>
-                <span>
-                  Page {state.page} · {state.result?.total ?? 0} requests
-                </span>
-                <button
-                  type="button"
-                  disabled={
-                    state.busy ||
-                    !state.result ||
-                    state.page * state.result.pageSize >= state.result.total
-                  }
-                  onClick={() => {
-                    state.setPage((page) => {
-                      return page + 1;
-                    });
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            </>
-          )}
+            )}
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                disabled={state.busy || state.page <= 1}
+                onClick={() => {
+                  state.setPage((page) => {
+                    return page - 1;
+                  });
+                }}
+              >
+                Previous
+              </button>
+              <span>
+                Page {state.page} · {state.result?.total ?? 0} requests
+              </span>
+              <button
+                type="button"
+                disabled={
+                  state.busy ||
+                  !state.result ||
+                  state.page * state.result.pageSize >= state.result.total
+                }
+                onClick={() => {
+                  state.setPage((page) => {
+                    return page + 1;
+                  });
+                }}
+              >
+                Next
+              </button>
+            </div>
+          </>
+
           <div className={styles.actions}>
             <button
               type="button"
@@ -427,5 +418,53 @@ export function WithdrawalWorkspace({
         </div>
       </div>
     </div>
+  );
+}
+
+function WithdrawalRequestCard({
+  row,
+  selected = false,
+  busy,
+  onOpen,
+}: {
+  row?: WithdrawalCase;
+  selected?: boolean;
+  busy: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <article
+      className={`${styles.card} ${selected ? styles.cardSelected : ""}`}
+      aria-busy={!row}
+    >
+      <p className={styles.reference}>
+        {row?.batch.code ?? <SkeletonLine width="12ch" />}
+      </p>
+      <h3>{row?.memberName ?? <SkeletonLine width="20ch" />}</h3>
+      <div className={styles.badges}>
+        <span className={styles.badge}>
+          {row ? (
+            withdrawalStatusLabels[row.status]
+          ) : (
+            <SkeletonLine width="14ch" />
+          )}
+        </span>
+        <span className={styles.badge}>
+          {row ? withdrawalRefundLabel(row) : <SkeletonLine width="12ch" />}
+        </span>
+      </div>
+      <footer>
+        {row ? (
+          <time dateTime={row.submittedAt}>
+            {new Date(row.submittedAt).toLocaleDateString("en-PH")}
+          </time>
+        ) : (
+          <SkeletonLine width="12ch" />
+        )}
+        <button type="button" disabled={busy || !row} onClick={onOpen}>
+          Open request
+        </button>
+      </footer>
+    </article>
   );
 }

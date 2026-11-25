@@ -34,8 +34,8 @@ export default function ReportsPage() {
       }).map((kind) => {
         return kind.toLowerCase() as ReportKind;
       })}
-      showVisuals={me.role === "ceo" || me.role === "coo"}
-      minimalHeading={me.role === "coo"}
+      showVisuals
+      minimalHeading
     />
   );
 }

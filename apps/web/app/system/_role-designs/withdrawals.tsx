@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { WithdrawalStaffWorkspace as CooWithdrawalWorkspace } from "@/app/system/_role-designs/coo/components/withdrawals/WithdrawalStaffWorkspace";
 import { useMe } from "@/lib/useMe";
 import { workspaceDesignRole } from "@/lib/workspace-design-role";
 import RoleDesignLoading from "./RoleDesignLoading";
@@ -16,16 +17,7 @@ const views = {
     },
     { loading: RoleDesignLoading },
   ),
-  coo: dynamic(
-    () => {
-      return import("@/app/system/_role-designs/coo/components/withdrawals/WithdrawalStaffWorkspace").then(
-        (module) => {
-          return module.WithdrawalStaffWorkspace;
-        },
-      );
-    },
-    { loading: RoleDesignLoading },
-  ),
+  coo: CooWithdrawalWorkspace,
   batch_manager: dynamic(
     () => {
       return import("@/app/system/_role-designs/batch_manager/components/withdrawals/WithdrawalStaffWorkspace").then(
