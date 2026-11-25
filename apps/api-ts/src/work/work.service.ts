@@ -83,6 +83,17 @@ export class WorkService {
         throw new ForbiddenException("Your access has changed.");
       }
 
+      // Agent's new capability uses the report/evidence workflow, not the legacy
+      // status-only submission path. These legacy writes were previously denied.
+      if (
+        businessRole(current.role) === "AGENT" &&
+        permission === "TASK_SUBMIT"
+      ) {
+        throw new ForbiddenException(
+          "Use your task details to start work and submit a report or evidence.",
+        );
+      }
+
       return replayCooWrite(tx, user.id, () => {
         return run(tx, current);
       });

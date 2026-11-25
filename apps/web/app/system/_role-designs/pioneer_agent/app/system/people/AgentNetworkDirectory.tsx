@@ -9,7 +9,7 @@ export type Network = {
     id: string;
     name: string;
     supervisor: { name: string } | null;
-    agentProfile: { code: string } | null;
+    agentProfile: { code: string; active?: boolean } | null;
   }[];
   batches: {
     id: string;

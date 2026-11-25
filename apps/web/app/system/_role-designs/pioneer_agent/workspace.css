@@ -21,6 +21,13 @@
   --workspace-panel-shadow: none;
   --workspace-control-radius: 9px;
   --workspace-panel-radius: 16px;
+  --pioneer-danger: #a42525;
+  --pioneer-danger-bg: #fcebea;
+  --pioneer-danger-edge: #e7b7b4;
+  --pioneer-warning: #82520b;
+  --pioneer-warning-bg: #fff1d7;
+  --pioneer-success: #19633c;
+  --pioneer-success-bg: #e2f3e8;
   --portal-text: var(--system-text);
   --portal-muted: var(--system-muted);
   --portal-border: var(--system-border);
@@ -52,6 +59,13 @@ html[data-system-theme="dark"]
   --workspace-focus: #a0d9ba;
   --workspace-control: #151716;
   --workspace-control-hover: #202622;
+  --pioneer-danger: #ffb4ad;
+  --pioneer-danger-bg: #301b1b;
+  --pioneer-danger-edge: #68403d;
+  --pioneer-warning: #efca83;
+  --pioneer-warning-bg: #30271a;
+  --pioneer-success: #a0d9ba;
+  --pioneer-success-bg: #19281f;
   color-scheme: dark;
 }
 
@@ -171,6 +185,41 @@ html[data-system-theme="dark"]
 }
 
 /* Shared dropdowns, including searchable options and keyboard selection. */
+.system-shell[data-workspace-role="pioneer_agent"][data-workspace-theme]
+  .system-eyebrow {
+  display: none;
+}
+
+.system-shell[data-workspace-role="pioneer_agent"][data-workspace-theme]
+  :is(.system-content, dialog)
+  :is(button, a):active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .system-shell[data-workspace-role="pioneer_agent"][data-workspace-theme]
+    :is(.system-content, dialog)
+    :is(button, a):active:not(:disabled) {
+    transform: none;
+  }
+}
+
+.system-shell[data-workspace-role="pioneer_agent"][data-workspace-theme]
+  .system-alert {
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  background: var(--workspace-raised);
+  color: var(--system-text);
+  padding: 14px;
+}
+
+.system-shell[data-workspace-role="pioneer_agent"][data-workspace-theme]
+  .system-alert.is-error {
+  border-color: var(--pioneer-danger-edge);
+  background: var(--pioneer-danger-bg);
+  color: var(--pioneer-danger);
+}
+
 .system-shell[data-workspace-role="pioneer_agent"][data-workspace-theme]
   [data-workspace-select] {
   color: var(--system-text);

@@ -22,6 +22,7 @@ import {
   type PrivateUpload,
 } from "../storage/private-storage.service";
 import { queueTaskEmail } from "../staff/email-queue";
+import { assignmentId } from "./assignment-key";
 
 const taskInclude = {
   assignee: { select: { id: true, name: true, role: true } },
@@ -192,15 +193,36 @@ export class TasksService {
     query: {
       page: number;
       status?: "TODO" | "IN_PROGRESS" | "SUBMITTED" | "DONE";
+      view?: "own" | "team";
     },
   ) {
     user = await requireCurrentUser(this.db, user, "TASK_READ");
 
     this.staff(user);
 
+    if (query.view && businessRole(user.role) !== "PIONEER_AGENT") {
+      throw new ForbiddenException(
+        "Pioneer task views are unavailable for this role.",
+      );
+    }
+
     const where: Prisma.TaskWhereInput = {
       ...taskScope(user),
       ...(query.status ? { status: query.status } : {}),
+      ...(query.view === "own" ? { assigneeId: user.id } : {}),
+      ...(query.view === "team"
+        ? {
+            AND: [
+              {
+                assignee: {
+                  active: true,
+                  role: "AGENT",
+                  supervisorId: user.id,
+                },
+              },
+            ],
+          }
+        : {}),
     };
 
     const [rows, count] = await this.db.$transaction([
@@ -248,16 +270,13 @@ export class TasksService {
       priority: TaskPriority;
       deadline: string;
     },
+    key?: string,
   ) {
     if (!allowed(user, "TASK_ASSIGN")) {
       throw new ForbiddenException("Task assignment access required.");
     }
 
     const deadline = new Date(input.deadline);
-
-    if (deadline.getTime() <= Date.now()) {
-      throw new BadRequestException("Choose a future deadline.");
-    }
 
     return this.write(user, async (tx, current) => {
       if (!allowed(current, "TASK_ASSIGN")) {
@@ -276,8 +295,46 @@ export class TasksService {
         throw new BadRequestException("Choose an active staff assignee.");
       }
 
+      const id =
+        businessRole(current.role) === "PIONEER_AGENT" && key !== undefined
+          ? assignmentId(user.id, key)
+          : undefined;
+
+      if (id) {
+        const existing = await tx.task.findUnique({
+          where: { id },
+          include: taskInclude,
+        });
+
+        if (existing) {
+          if (
+            existing.creatorId !== user.id ||
+            existing.assigneeId.toLowerCase() !==
+              input.assigneeId.toLowerCase() ||
+            existing.title !== input.title ||
+            existing.instructions !== input.instructions ||
+            existing.priority !== input.priority ||
+            existing.deadline.getTime() !== deadline.getTime()
+          ) {
+            throw new ConflictException(
+              "This assignment key was already used for different task details.",
+            );
+          }
+
+          return this.taskView({ ...user, role: current.role }, existing);
+        }
+      }
+
+      if (
+        !Number.isFinite(deadline.getTime()) ||
+        deadline.getTime() <= Date.now()
+      ) {
+        throw new BadRequestException("Choose a future deadline.");
+      }
+
       const row = await tx.task.create({
         data: {
+          ...(id ? { id } : {}),
           title: input.title,
           instructions: input.instructions,
           assigneeId: input.assigneeId,
@@ -302,6 +359,12 @@ export class TasksService {
   }
   async start(user: User, id: string, version: number) {
     return this.write(user, async (tx, current) => {
+      if (!allowed(current, "TASK_SUBMIT")) {
+        throw new ForbiddenException(
+          "Your task submission access has changed.",
+        );
+      }
+
       const before = await tx.task.findUnique({ where: { id } });
 
       if (!before || before.assigneeId !== user.id) {
@@ -355,6 +418,12 @@ export class TasksService {
 
     try {
       return await this.write(user, async (tx, current) => {
+        if (!allowed(current, "TASK_SUBMIT")) {
+          throw new ForbiddenException(
+            "Your task submission access has changed.",
+          );
+        }
+
         const before = await tx.task.findUnique({ where: { id } });
 
         if (!before || before.assigneeId !== user.id) {

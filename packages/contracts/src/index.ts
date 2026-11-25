@@ -6,6 +6,8 @@ import { financePaymentQueues } from "./finance-workspace";
 
 export * from "./finance-workspace";
 
+export * from "./pioneer-overview";
+
 export * from "./installment-schedule";
 
 export * from "./batch-capacity";
@@ -305,6 +307,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     "AGENT_NETWORK_READ",
     "ENROLLMENT_SUBMIT",
     "TASK_READ",
+    "TASK_SUBMIT",
     "NOTIFICATION_READ",
   ],
   CSR: csr,
@@ -2116,3 +2119,5 @@ export * from "./event-stream";
 export * from "./operations-monitor";
 
 export * from "./submission-checklists";
+
+export * from "./agent-network";

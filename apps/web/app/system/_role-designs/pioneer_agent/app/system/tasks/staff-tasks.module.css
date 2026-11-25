@@ -5,14 +5,19 @@
 }
 .header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 15px;
   padding: 4px 0 8px;
 }
+.header > div:nth-child(2) {
+  flex: 1 1 180px;
+  min-width: 0;
+}
 .header h1 {
   margin: 2px 0 3px;
   font-size: 27px;
-  font-weight: 800;
+  font-weight: 500;
   letter-spacing: -0.03em;
 }
 .header p,
@@ -59,7 +64,19 @@
 .sectionHead h2 {
   margin-top: 2px;
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 500;
+}
+.assignment {
+  padding: 0;
+}
+.assignment > summary {
+  min-height: 52px;
+  padding: 16px 22px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.assignment form {
+  padding: 4px 22px 22px;
 }
 .assignForm {
   display: grid;
@@ -142,8 +159,8 @@
   outline-offset: 2px;
 }
 .primary {
-  background: var(--system-accent);
-  color: #fff;
+  background: var(--workspace-action);
+  color: var(--workspace-on-action);
 }
 .primary svg {
   width: 15px;
@@ -200,20 +217,20 @@
   color: var(--system-muted);
 }
 .priority[data-priority="HIGH"] {
-  background: #ffe7e7;
-  color: #ad3434;
+  background: var(--pioneer-danger-bg);
+  color: var(--pioneer-danger);
 }
 .priority[data-priority="MEDIUM"] {
-  background: #fff1d7;
-  color: #9a6200;
+  background: var(--pioneer-warning-bg);
+  color: var(--pioneer-warning);
 }
 .badge {
   background: var(--system-accent-soft);
   color: var(--system-accent);
 }
 .badge[data-status="DONE"] {
-  background: #e2f6eb;
-  color: #16824a;
+  background: var(--pioneer-success-bg);
+  color: var(--pioneer-success);
 }
 .timing {
   color: var(--system-muted);
@@ -376,12 +393,12 @@
   font-weight: 700;
 }
 .error {
-  background: #ffe7e7;
-  color: #a42525;
+  background: var(--pioneer-danger-bg);
+  color: var(--pioneer-danger);
 }
 .success {
-  background: #dff5e9;
-  color: #136e42;
+  background: var(--pioneer-success-bg);
+  color: var(--pioneer-success);
 }
 .dialogAlert,
 .dialogNotice {
@@ -391,13 +408,74 @@
   font-size: 12px;
   font-weight: 700;
 }
+.header > button {
+  margin-left: auto;
+}
+.taskToolbar,
+.views,
+.rowFacts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.taskToolbar {
+  justify-content: space-between;
+  margin-block: 16px;
+}
+.views [aria-pressed="true"] {
+  background: var(--system-accent-soft);
+  border-color: var(--system-accent);
+}
+.pioneerList .list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pioneerList .taskRow {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+}
+.pioneerList .taskMain strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.pioneerList .taskRow :is(.badge, .priority, .timing) {
+  display: inline-block;
+}
+.facts :is(dt, dd) {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.facts dt {
+  color: var(--system-muted);
+  font-size: 0.6875rem;
+}
+.facts dd {
+  font-size: 0.8125rem;
+}
+.dialogHead h2 {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.dialogBody button {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 850px) {
+  .pioneerList .taskRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .rowFacts {
+    grid-column: 1/-1;
+    grid-row: 2;
+  }
+}
 .dialogAlert {
-  background: #ffe7e7;
-  color: #a42525;
+  background: var(--pioneer-danger-bg);
+  color: var(--pioneer-danger);
 }
 .dialogNotice {
-  background: #dff5e9;
-  color: #136e42;
+  background: var(--pioneer-success-bg);
+  color: var(--pioneer-success);
 }
 @media (max-width: 850px) {
   .reviewGrid {
@@ -412,6 +490,10 @@
   }
 }
 @media (max-width: 620px) {
+  .header > div:nth-child(2) {
+    flex-basis: calc(100% - 61px);
+  }
+
   .assignForm {
     grid-template-columns: 1fr;
   }

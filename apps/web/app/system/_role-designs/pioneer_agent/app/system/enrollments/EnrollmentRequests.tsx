@@ -45,7 +45,9 @@ function requestKind(item: Enrollment) {
     ? item.replacementMode === "RESTART"
       ? "Replacement · New plan"
       : "Replacement · Continue installments"
-    : "New member";
+    : item.kind === "REPLACEMENT"
+      ? "Replacement"
+      : "New member";
 }
 
 function Status({ value }: { value: string }) {
@@ -253,23 +255,26 @@ export default function EnrollmentRequests(props: Props) {
                       </tr>
                     );
                   })}
-              {!loading && !items.length && (
-                <tr>
-                  <td colSpan={5} className={styles.empty}>
-                    No enrollment requests match this view.
-                    {props.status && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          props.onStatus("");
-                        }}
-                      >
-                        Show all statuses
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )}
+              {!loading &&
+                !props.error &&
+                props.total !== null &&
+                !items.length && (
+                  <tr>
+                    <td colSpan={5} className={styles.empty}>
+                      No enrollment requests match this view.
+                      {props.status && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            props.onStatus("");
+                          }}
+                        >
+                          Show all statuses
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )}
             </tbody>
           </table>
         </div>
@@ -319,7 +324,6 @@ export default function EnrollmentRequests(props: Props) {
       >
         <header data-modal-header>
           <div>
-            <p className={styles.caption}>Enrollment request</p>
             <h2 id="enrollment-request-title">
               {selected?.name ?? "Enrollment request"}
             </h2>
@@ -346,7 +350,7 @@ export default function EnrollmentRequests(props: Props) {
               setPane("review");
             }}
           >
-            Review
+            {canReview ? "Review" : "Outcome"}
           </button>
         </nav>
         <div data-modal-body className={styles.detailBody}>
@@ -389,6 +393,42 @@ export default function EnrollmentRequests(props: Props) {
                     <dt>Request type</dt>
                     <dd>{requestKind(selected)}</dd>
                   </div>
+                  {selected.createdAt && (
+                    <div>
+                      <dt>Submitted</dt>
+                      <dd>
+                        <time dateTime={selected.createdAt}>
+                          {new Date(selected.createdAt).toLocaleString(
+                            "en-PH",
+                            {
+                              timeZone: "Asia/Manila",
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            },
+                          )}{" "}
+                          Manila
+                        </time>
+                      </dd>
+                    </div>
+                  )}
+                  {selected.reviewedAt && (
+                    <div>
+                      <dt>Reviewed</dt>
+                      <dd>
+                        <time dateTime={selected.reviewedAt}>
+                          {new Date(selected.reviewedAt).toLocaleString(
+                            "en-PH",
+                            {
+                              timeZone: "Asia/Manila",
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            },
+                          )}{" "}
+                          Manila
+                        </time>
+                      </dd>
+                    </div>
+                  )}
                 </dl>
                 {selected.withdrawalId && (
                   <section className={styles.terms}>

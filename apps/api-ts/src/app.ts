@@ -1,3 +1,5 @@
+import { AgentNetworkController } from "./records/agent-network.controller";
+import { AgentNetworkService } from "./records/agent-network.service";
 import { PersonnelController } from "./personnel/personnel.controller";
 import { PersonnelService } from "./personnel/personnel.service";
 import { SubmissionChecklistsController } from "./submission-checklists/checklists.controller";
@@ -16,6 +18,8 @@ import { AssistantController } from "./assistant/assistant.controller";
 import { WithdrawalsService } from "./withdrawals/withdrawals.service";
 import { RoleWorkspaceController } from "./records/role-workspace.controller";
 import { RoleWorkspaceService } from "./records/role-workspace.service";
+import { PioneerOverviewController } from "./records/pioneer-overview.controller";
+import { PioneerOverviewService } from "./records/pioneer-overview.service";
 import "reflect-metadata";
 import {
   Controller,
@@ -157,7 +161,9 @@ export async function createApp(config: Config = readConfig()) {
         DashController,
         LegalController,
         RecordsController,
+        AgentNetworkController,
         RoleWorkspaceController,
+        PioneerOverviewController,
         WithdrawalsController,
         GcashHistoryController,
         AgentsController,
@@ -197,7 +203,9 @@ export async function createApp(config: Config = readConfig()) {
         AuthService,
         LegalService,
         RecordsService,
+        AgentNetworkService,
         RoleWorkspaceService,
+        PioneerOverviewService,
         WithdrawalsService,
         GcashHistoryService,
         GcashPdfService,

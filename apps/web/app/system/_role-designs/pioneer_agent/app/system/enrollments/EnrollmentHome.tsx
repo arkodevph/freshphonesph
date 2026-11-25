@@ -3,7 +3,8 @@
 import WorkspaceProgress from "@/app/system/_role-designs/pioneer_agent/components/WorkspaceProgress";
 import Link from "next/link";
 import { can, useMe } from "@/lib/useMe";
-import RoleWorkspace from "@/app/system/_role-designs/pioneer_agent/app/system/RoleWorkspace";
+import { Suspense } from "react";
+import PioneerEnrollmentWorkspace from "@/app/system/_role-designs/pioneer_agent/app/system/enrollments/PioneerEnrollmentWorkspace";
 import EnrollmentFormWorkspace from "@/app/system/_role-designs/pioneer_agent/app/system/enrollments/forms/EnrollmentFormWorkspace";
 import EnrollmentApplications from "@/app/system/_role-designs/pioneer_agent/app/system/enrollments/applications/EnrollmentApplications";
 import styles from "@/app/system/_role-designs/pioneer_agent/app/system/enrollments/enrollment-workspace.module.css";
@@ -82,11 +83,14 @@ export default function EnrollmentHome({
           Your account does not have access to this enrollment workspace.
         </p>
       ) : selected === "requests" ? (
-        <RoleWorkspace
-          key={`${me.id}-${requestId ?? "all"}`}
-          section="enrollments"
-          requestId={requestId}
-        />
+        <Suspense
+          fallback={<WorkspaceProgress label="Loading enrollment requests…" />}
+        >
+          <PioneerEnrollmentWorkspace
+            key={`${me.id}-${requestId ?? "all"}`}
+            requestId={requestId}
+          />
+        </Suspense>
       ) : selected === "applications" ? (
         <EnrollmentApplications
           key={`${me.id}-${applicationId ?? "all"}`}

@@ -3,6 +3,7 @@
 import WorkspaceNativeSelect from "@/app/system/_role-designs/pioneer_agent/components/WorkspaceNativeSelect";
 import DateInput from "@/app/system/_role-designs/pioneer_agent/components/DateInput";
 import { Plus } from "@phosphor-icons/react";
+import AnimatedDisclosure from "@/app/system/_role-designs/pioneer_agent/components/AnimatedDisclosure";
 import type { Dispatch, SetStateAction } from "react";
 import { type FormEvent } from "react";
 import styles from "@/app/system/_role-designs/pioneer_agent/app/system/tasks/staff-tasks.module.css";
@@ -32,6 +33,8 @@ type Props = {
   >;
   assignees: Assignee[];
   busy: boolean;
+  open?: boolean;
+  onExpandedChange?: (open: boolean) => void;
 };
 
 export default function TaskFiltersPanel({
@@ -40,19 +43,22 @@ export default function TaskFiltersPanel({
   setForm,
   assignees,
   busy,
+  open,
+  onExpandedChange,
 }: Props) {
   return (
-    <section className={styles.card}>
-      <div className={styles.sectionHead}>
-        <div>
-          <span className={styles.eyebrow}>New assignment</span>
-          <h2>Assign a task</h2>
-        </div>
-      </div>
+    <AnimatedDisclosure
+      title="Assign a task"
+      className={`${styles.card} ${styles.assignment}`}
+      open={open}
+      onExpandedChange={onExpandedChange}
+      detailsProps={{ id: "pioneer-task-assignment" }}
+    >
       <form onSubmit={assign} className={styles.assignForm}>
         <label className={styles.wide}>
           Title
           <input
+            disabled={busy}
             required
             minLength={2}
             maxLength={200}
@@ -60,12 +66,13 @@ export default function TaskFiltersPanel({
             onChange={(event) => {
               return setForm({ ...form, title: event.target.value });
             }}
-            placeholder="e.g. Verify batch records"
+            placeholder="e.g. Follow up on enrollment requirements"
           />
         </label>
         <label>
           Assignee
           <WorkspaceNativeSelect
+            disabled={busy}
             required
             value={form.assigneeId}
             onChange={(event) => {
@@ -85,6 +92,7 @@ export default function TaskFiltersPanel({
         <label>
           Priority
           <WorkspaceNativeSelect
+            disabled={busy}
             value={form.priority}
             onChange={(event) => {
               return setForm({
@@ -99,8 +107,9 @@ export default function TaskFiltersPanel({
           </WorkspaceNativeSelect>
         </label>
         <label>
-          Deadline
+          Deadline (your local time)
           <DateInput
+            disabled={busy}
             required
             type="datetime-local"
             value={form.deadline}
@@ -112,6 +121,7 @@ export default function TaskFiltersPanel({
         <label className={styles.full}>
           Instructions
           <textarea
+            disabled={busy}
             maxLength={5000}
             rows={3}
             value={form.instructions}
@@ -132,6 +142,6 @@ export default function TaskFiltersPanel({
           </button>
         </div>
       </form>
-    </section>
+    </AnimatedDisclosure>
   );
 }

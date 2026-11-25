@@ -45,6 +45,20 @@ it, Finance **verifies** it, and only then does it affect a customer's balance. 
 
 For a quick summary and full current scope of the Batch Handler role, use
 [Batch Handler — role and portal access](batch-handler-role-and-access.md).
+
+For Pioneer Agent, use [role and portal access](pioneer-agent-role-and-access.md)
+and the [phased plan and design notebook](pioneer-agent-remaining-work-plan.md).
+All four implementation phases are integrated: daily totals, Agent/enrollment
+follow-up, own and Agent-team tasks, and submission/recovery verification.
+The [quality test manual](pioneer-agent-quality-test-manual.md),
+[results template](pioneer-agent-test-results-template.csv) and
+[combined walkthrough](pioneer-agent-phase4-manual-test.md) retain the exact
+local synthetic preview instructions. Human business and screen-reader review
+remain pending until actual results are recorded.
+
+The [login design notebook](login-design-notebook.md) records the split layout,
+pastel navigation and nine original animated pets gripping the sign-in card.
+
 For the audited gaps, proposed home priorities and pending implementation phases,
 use [Batch Handler — findings and remaining-work plan](batch-handler-remaining-work-plan.md).
 

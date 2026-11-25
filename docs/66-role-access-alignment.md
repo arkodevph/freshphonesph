@@ -7,21 +7,21 @@ prohibition on Agent enrollment. The October 26 CEO report-only decision remains
 
 ## Implemented access
 
-| Role | Available responsibilities in the existing system |
-|---|---|
-| Owner / CEO | Read/export all report families and saved analysis. No operational work or report authoring. |
-| COO | Business account/role administration, operational records, batch/team assignments, enrollment review, tasks, support, recruitment job management and all report families. No final financial verification. |
-| Batch Manager | Assigned batches/members/documents, enrollment approval, Handler assignment within their team, team tasks and scoped payment monitoring. No Batch ID creation or payment recording. |
-| HR & Payroll | Minimal personnel directory, recruitment job management, personal tasks. Private applicant files, HR actions and private HR access require an explicit confidential grant. Payroll stays external. |
-| Records & Monitoring | Batch ID creation and record maintenance, client documents/reviews, Agent directory and payment monitoring. No payment claim recording, direct enrollment, Handler assignment or final financial verification. |
-| Finance | Payment/receipt review and final financial verification/correction/reversal, collection/reconciliation reports and department tasks. No claim recording or personnel account administration. |
-| KPI Officer | Minimal personnel directory, task facts/targets/deadlines, human KPI evaluation, task assignment and task reports. Cross-person task bodies/files and private HR/applicant/payroll records are excluded. |
-| Operations Coordinator | Assigned Pioneer/Agent hierarchy, recruitment progress, minimal personnel directory and scoped tasks. No member/payment editing. |
-| CSR | Support/inquiries, minimal customer lookup with payment status, personal tasks and support reports. No payment amounts, receipt files or financial editing through lookup. |
-| Pioneer Agent | Own assigned Agents, recruitment progress, minimal team directory and scoped coaching tasks. No enrollment approval or payment editing. |
-| Agent | Own linked Agent profile/network, assigned open batches, enrollment submission/status and read-only assigned tasks. Enrollment takes effect only after review. |
-| Batch Handler | Current assigned batches/members/schedules/balances, pending payment claim recording, receipt upload/correction, saved Finance results and personal tasks. No enrollment or final verification. |
-| Customer | Existing own-client portal, schedule/payments/documents/support/notifications. Other clients remain inaccessible. |
+| Role                   | Available responsibilities in the existing system                                                                                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Owner / CEO            | Read/export all report families and saved analysis. No operational work or report authoring.                                                                                                                   |
+| COO                    | Business account/role administration, operational records, batch/team assignments, enrollment review, tasks, support, recruitment job management and all report families. No final financial verification.     |
+| Batch Manager          | Assigned batches/members/documents, enrollment approval, Handler assignment within their team, team tasks and scoped payment monitoring. No Batch ID creation or payment recording.                            |
+| HR & Payroll           | Minimal personnel directory, recruitment job management, personal tasks. Private applicant files, HR actions and private HR access require an explicit confidential grant. Payroll stays external.             |
+| Records & Monitoring   | Batch ID creation and record maintenance, client documents/reviews, Agent directory and payment monitoring. No payment claim recording, direct enrollment, Handler assignment or final financial verification. |
+| Finance                | Payment/receipt review and final financial verification/correction/reversal, collection/reconciliation reports and department tasks. No claim recording or personnel account administration.                   |
+| KPI Officer            | Minimal personnel directory, task facts/targets/deadlines, human KPI evaluation, task assignment and task reports. Cross-person task bodies/files and private HR/applicant/payroll records are excluded.       |
+| Operations Coordinator | Assigned Pioneer/Agent hierarchy, recruitment progress, minimal personnel directory and scoped tasks. No member/payment editing.                                                                               |
+| CSR                    | Support/inquiries, minimal customer lookup with payment status, personal tasks and support reports. No payment amounts, receipt files or financial editing through lookup.                                     |
+| Pioneer Agent          | Own assigned Agents, recruitment progress, minimal team directory and scoped coaching tasks. No enrollment approval or payment editing.                                                                        |
+| Agent                  | Own linked Agent profile/network, assigned open batches, enrollment submission/status and own assigned-task start/report/evidence submission. Enrollment takes effect only after review.                       |
+| Batch Handler          | Current assigned batches/members/schedules/balances, pending payment claim recording, receipt upload/correction, saved Finance results and personal tasks. No enrollment or final verification.                |
+| Customer               | Existing own-client portal, schedule/payments/documents/support/notifications. Other clients remain inaccessible.                                                                                              |
 
 Owner and CEO are one report-only business role (`CEO`), displayed as **Owner / CEO**.
 Technical maintenance uses internal `SYSTEM_ADMIN`, never financial verification;
@@ -101,3 +101,9 @@ is under `~/.local/state/codex/freshphones-backups/20261028-role-access-preview/
 The web, API and existing worker are running on the local preview configuration.
 
 No production deployment, third-party integration, remote push or commit is part of this change.
+
+**Agent task policy update —2026-11-25:** Jaycee approved the Phase3B coaching
+workflow. AGENT gains TASK_SUBMIT for its own assignments only. Assignment,
+another assignee’s submission and formal KPI review remain unavailable; Pioneer
+completion retains current team scope, version and late-review prerequisites.
+Earlier read-only task descriptions are superseded by this narrow decision.

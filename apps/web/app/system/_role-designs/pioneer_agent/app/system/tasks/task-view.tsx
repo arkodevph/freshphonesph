@@ -67,6 +67,10 @@ export const formatDate = (date: string) => {
 };
 
 export const label = (value: string) => {
+  if (value === "TODO") {
+    return "To do";
+  }
+
   return value
     .replaceAll("_", " ")
     .toLowerCase()

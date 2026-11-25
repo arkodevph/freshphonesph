@@ -368,7 +368,7 @@ export default function RoleWorkspace({
           {notice}
         </p>
       )}
-      {section === "personnel" && (
+      {section === "personnel" && (!error || staff.length > 0) && (
         <PersonnelDirectory staff={staff} loading={loading} />
       )}
       {section === "network" && network && (

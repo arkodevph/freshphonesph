@@ -77,7 +77,8 @@
 .table tbody tr:last-child > * {
   border-bottom: 0;
 }
-.table tbody tr:hover {
+.table tbody tr:hover,
+.table tbody tr:focus-within {
   background: var(--workspace-control-hover, var(--system-surface));
 }
 .table [data-numeric] {

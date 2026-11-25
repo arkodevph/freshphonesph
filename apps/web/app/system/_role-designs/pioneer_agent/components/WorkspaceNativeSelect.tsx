@@ -19,7 +19,7 @@ type Snapshot = {
   options: { value: string; label: string; disabled: boolean }[];
 };
 
-/** Adapts existing COO form selectors while preserving their native event/validation contract. */
+/** Pioneer selectors retain the native event and form-validation contract. */
 export default function WorkspaceNativeSelect({
   ref,
   onChange,
@@ -59,7 +59,7 @@ export default function WorkspaceNativeSelect({
     const active =
       (handler ||
         element.closest<HTMLElement>("[data-workspace-role]")?.dataset
-          .workspaceRole === "coo") &&
+          .workspaceRole === "pioneer_agent") &&
       !element.multiple &&
       element.size <= 1;
 
@@ -134,7 +134,7 @@ export default function WorkspaceNativeSelect({
   }
 
   return (
-    <>
+    <span className={styles.field}>
       <select
         {...props}
         ref={(element) => {
@@ -261,6 +261,6 @@ export default function WorkspaceNativeSelect({
           )}
         </span>
       )}
-    </>
+    </span>
   );
 }

@@ -1,5 +1,8 @@
 export type Enrollment = {
   id: string;
+  kind?: "REPLACEMENT" | "NEW_MEMBER";
+  createdAt?: string;
+  reviewedAt?: string | null;
   name: string;
   batchCode: string;
   status: string;

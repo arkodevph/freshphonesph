@@ -6391,7 +6391,8 @@ test("task alert backlog pages safely and reminder SQL matches exact time bounda
 test("task alerts retain reads on start, advance once at deadlines, and stop on submission without automatic KPI actions", async () => {
   await resetAlertLoginLimit();
 
-  const assignee = await alertAccount("task-lifecycle", "CORE_HANDLER");
+  // This exercises transient task alerts. Handler inbox persistence has its own suite.
+  const assignee = await alertAccount("task-lifecycle", "AGENT");
 
   const owner = await new Session().login("SYSTEM_ADMIN");
 
@@ -6786,7 +6787,8 @@ test("combined staff alerts share existing Finance receipts and mark-all respect
 test("task assignment events and reads stay scoped across instances and serialize with submission", async () => {
   await resetAlertLoginLimit();
 
-  const first = await alertAccount("task-stream-one", "CORE_HANDLER");
+  // Keep the transient task stream contract separate from the saved Handler inbox.
+  const first = await alertAccount("task-stream-one", "AGENT");
 
   const other = await alertAccount("task-stream-other", "CS_TEAM");
 
@@ -8591,9 +8593,11 @@ test("staff task emails follow configured timing, dedupe deadlines, pause safely
     where: { taskId: task.id, kind: "TASK_DUE_SOON" },
   });
 
-  await db.staffNotificationConfig.update({
+  // This test also runs independently of the settings test that normally creates the row.
+  await db.staffNotificationConfig.upsert({
     where: { key: "staff" },
-    data: { dueSoonHours: 6, overdueHours: 2 },
+    create: { key: "staff", dueSoonHours: 6, overdueHours: 2 },
+    update: { dueSoonHours: 6, overdueHours: 2 },
   });
 
   let sent = 0;

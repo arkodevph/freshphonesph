@@ -23,6 +23,7 @@ import { Prisma } from "../generated/prisma/client";
 import { allowed } from "../auth/access";
 import { safeUser } from "../auth/auth.service";
 import { batchScope, staffScope } from "./scope";
+import { enrollmentScope } from "./enrollment-scope";
 import { RecordsService } from "./records.service";
 
 @Injectable()
@@ -82,24 +83,6 @@ export class RoleWorkspaceService {
     return { staff, profiles };
   }
 
-  private enrollmentScope(user: User): Prisma.EnrollmentRequestWhereInput {
-    const role = businessRole(user.role);
-
-    if (role === "SYSTEM_ADMIN" || role === "COO") {
-      return {};
-    }
-
-    if (role === "BATCH_MANAGER") {
-      return { batch: batchScope(user) };
-    }
-
-    if (role === "PIONEER_AGENT" || role === "OPERATIONS_COORDINATOR") {
-      return { submittedBy: { ...staffScope(user), role: "AGENT" } };
-    }
-
-    return { submittedById: user.id };
-  }
-
   async network(user: User) {
     const agents = await this.db.user.findMany({
       where: { ...staffScope(user), role: "AGENT", active: true },
@@ -128,7 +111,7 @@ export class RoleWorkspaceService {
 
     const counts = await this.db.enrollmentRequest.groupBy({
       by: ["status"],
-      where: this.enrollmentScope(user),
+      where: enrollmentScope(user),
       _count: true,
     });
 
@@ -186,7 +169,7 @@ export class RoleWorkspaceService {
   ) {
     const where: Prisma.EnrollmentRequestWhereInput = {
       AND: [
-        this.enrollmentScope(user),
+        enrollmentScope(user),
         status ? { status } : {},
         requestId ? { id: requestId } : {},
       ],
@@ -565,7 +548,7 @@ export class RoleWorkspaceService {
   ) {
     return this.write(user, "ENROLLMENT_REVIEW", async (tx, current) => {
       const request = await tx.enrollmentRequest.findFirst({
-        where: { id, ...this.enrollmentScope(current) },
+        where: { id, ...enrollmentScope(current) },
       });
 
       if (!request) {

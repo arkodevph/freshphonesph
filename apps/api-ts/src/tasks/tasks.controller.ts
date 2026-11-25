@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Inject,
   Param,
@@ -29,6 +30,7 @@ const pageSchema = z
 
 const taskListSchema = pageSchema.extend({
   status: z.enum(["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"]).optional(),
+  view: z.enum(["own", "team"]).optional(),
 });
 
 const createSchema = z
@@ -86,8 +88,9 @@ export class TasksController {
   @Post("tasks") @Requires("TASK_ASSIGN") create(
     @CurrentUser() user: User,
     @Body(new Validate(createSchema)) body: z.infer<typeof createSchema>,
+    @Headers("Idempotency-Key") key?: string,
   ) {
-    return this.tasks.create(user, body);
+    return this.tasks.create(user, body, key);
   }
   @Patch("tasks/:id/start") @HttpCode(200) @Requires("TASK_SUBMIT") start(
     @CurrentUser() user: User,

@@ -10,16 +10,15 @@ import {
   type Role,
 } from "@freshphones/contracts";
 import {
-  ArrowLeft,
   ArrowRight,
   Eye,
   EyeSlash,
   ShieldCheck,
-  Sparkle,
   SpinnerGap,
   WarningCircle,
 } from "@phosphor-icons/react";
 import Image from "next/image";
+import DoodleIcon from "@/components/DoodleIcon";
 import Link from "@/components/PublicNavigationLink";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -282,7 +281,20 @@ export default function LoginPage() {
               Fresh Phones <span>PH</span>
             </strong>
           </Link>
-          <LoginCharacters mood={mood} />
+          <div className={styles.storyContent}>
+            <div className={styles.storyCopy}>
+              <h2>
+                Good things.
+                <br />
+                Fresh beginnings.
+              </h2>
+              <p>
+                Your plans, your progress, your people.
+                <br />
+                All together in your Fresh Phones workspace.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section className={styles.panel} aria-labelledby="login-title">
@@ -291,10 +303,11 @@ export default function LoginPage() {
             className={styles.backLink}
             aria-label="Back to website"
           >
-            <ArrowLeft aria-hidden="true" /> Back
+            <DoodleIcon name="phone-heart" size={28} />
+            <span>Back to website</span>
           </Link>
-          <Sparkle weight="fill" className={styles.symbol} aria-hidden="true" />
           <div className={styles.formWrap}>
+            <LoginCharacters mood={mood} />
             <h1 id="login-title">
               {challenge
                 ? "Verify your sign-in"
@@ -309,41 +322,6 @@ export default function LoginPage() {
                   ? "Choose a role to explore the system with fictional sample records. No account or password needed."
                   : "Your Fresh Phones workspace is waiting."}
             </p>
-
-            {(PRESENTATION_MODE ||
-              process.env.NODE_ENV === "development" ||
-              process.env.NEXT_PUBLIC_LOCAL_PREVIEW === "true") &&
-              !challenge && (
-                <details
-                  className={styles.demo}
-                  open={PRESENTATION_MODE || undefined}
-                >
-                  <summary>Preview a workspace</summary>
-                  <p>One-click preview. No password needed.</p>
-                  <div className={styles.demoRoles}>
-                    {roles
-                      .filter((role) => {
-                        return (
-                          businessRoles.includes(role) || role === "ANALYTICS"
-                        );
-                      })
-                      .map((role) => {
-                        return (
-                          <button
-                            key={role}
-                            type="button"
-                            disabled={loading}
-                            onClick={() => {
-                              return openDemo(role);
-                            }}
-                          >
-                            {roleLabels[role]} <ArrowRight aria-hidden="true" />
-                          </button>
-                        );
-                      })}
-                  </div>
-                </details>
-              )}
 
             {challenge ? (
               <form
@@ -542,7 +520,6 @@ export default function LoginPage() {
                     className="login-demo"
                     aria-labelledby="login-demo-title"
                   >
-                    <p className="login-eyebrow">Local development</p>
                     <h2 id="login-demo-title">Choose a demo account</h2>
                     <p>
                       Sign in to a seeded local role. These accounts are
@@ -578,6 +555,41 @@ export default function LoginPage() {
                 )}
               </>
             )}
+
+            {(PRESENTATION_MODE ||
+              process.env.NODE_ENV === "development" ||
+              process.env.NEXT_PUBLIC_LOCAL_PREVIEW === "true") &&
+              !challenge && (
+                <details
+                  className={styles.demo}
+                  open={PRESENTATION_MODE || undefined}
+                >
+                  <summary>Preview a workspace</summary>
+                  <p>One-click preview. No password needed.</p>
+                  <div className={styles.demoRoles}>
+                    {roles
+                      .filter((role) => {
+                        return (
+                          businessRoles.includes(role) || role === "ANALYTICS"
+                        );
+                      })
+                      .map((role) => {
+                        return (
+                          <button
+                            key={role}
+                            type="button"
+                            disabled={loading}
+                            onClick={() => {
+                              return openDemo(role);
+                            }}
+                          >
+                            {roleLabels[role]} <ArrowRight aria-hidden="true" />
+                          </button>
+                        );
+                      })}
+                  </div>
+                </details>
+              )}
 
             <p className={styles.helpLinks}>
               <Link href={publicSiteHref("/support#contact", websiteBase)}>

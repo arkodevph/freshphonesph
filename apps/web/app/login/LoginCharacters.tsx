@@ -19,8 +19,6 @@ type CharacterName =
 type Pet = {
   name: CharacterName;
   kind: "cat" | "dog";
-  x: number;
-  y: number;
   angle: number;
   fur: string;
   patch: string;
@@ -30,8 +28,6 @@ const pets: Pet[] = [
   {
     name: "cream",
     kind: "cat",
-    x: 131,
-    y: 130,
     angle: -12,
     fur: "#f9fbff",
     patch: "#b5c9ee",
@@ -39,8 +35,6 @@ const pets: Pet[] = [
   {
     name: "blue",
     kind: "dog",
-    x: 255,
-    y: 126,
     angle: 5,
     fur: "#89aaf0",
     patch: "#557ac4",
@@ -48,8 +42,6 @@ const pets: Pet[] = [
   {
     name: "pink",
     kind: "cat",
-    x: 373,
-    y: 149,
     angle: 10,
     fur: "#f3b4d2",
     patch: "#dc87b3",
@@ -57,8 +49,6 @@ const pets: Pet[] = [
   {
     name: "lilac",
     kind: "dog",
-    x: 102,
-    y: 237,
     angle: -9,
     fur: "#c4b4ed",
     patch: "#9b84cc",
@@ -66,8 +56,6 @@ const pets: Pet[] = [
   {
     name: "navy",
     kind: "cat",
-    x: 234,
-    y: 245,
     angle: 2,
     fur: "#303b52",
     patch: "#52617f",
@@ -75,8 +63,6 @@ const pets: Pet[] = [
   {
     name: "sky",
     kind: "dog",
-    x: 365,
-    y: 253,
     angle: 10,
     fur: "#b9def4",
     patch: "#7db1d8",
@@ -84,8 +70,6 @@ const pets: Pet[] = [
   {
     name: "blush",
     kind: "cat",
-    x: 126,
-    y: 356,
     angle: -10,
     fur: "#f7d7e6",
     patch: "#dca2be",
@@ -93,8 +77,6 @@ const pets: Pet[] = [
   {
     name: "slate",
     kind: "dog",
-    x: 252,
-    y: 353,
     angle: -4,
     fur: "#91a2c6",
     patch: "#627596",
@@ -102,8 +84,6 @@ const pets: Pet[] = [
   {
     name: "lavender",
     kind: "cat",
-    x: 371,
-    y: 362,
     angle: 9,
     fur: "#ddd3f5",
     patch: "#aa98d3",
@@ -247,6 +227,54 @@ function PetFace({ pet, mood }: { pet: Pet; mood: CharacterMood }) {
   );
 }
 
+const petSpacing = 240;
+
+const petRowWidth = pets.length * petSpacing;
+
+function petCenter(index: number) {
+  return petSpacing / 2 + index * petSpacing;
+}
+
+function CardPaws() {
+  return (
+    <svg
+      className={styles.characterPaws}
+      viewBox={`0 0 ${petRowWidth} 60`}
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+      data-card-paws="true"
+    >
+      {pets.map((pet, index) => {
+        return (
+          <g
+            key={pet.name}
+            fill={pet.fur}
+            stroke="#283650"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            data-pet-paws={pet.name}
+          >
+            {[-22, 22].map((offset) => {
+              return (
+                <g
+                  key={offset}
+                  transform={`translate(${petCenter(index) + offset} 30)`}
+                  data-contact-paw="true"
+                >
+                  <path d="M -18 8 V -4 C -18 -20 18 -20 18 -4 V 8 C 18 18 -18 18 -18 8 Z" />
+                  <path d="M -6 6 V 12 M 6 6 V 12" fill="none" />
+                </g>
+              );
+            })}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function LoginCharacters({ mood }: { mood: CharacterMood }) {
   const stage = useRef<HTMLDivElement>(null);
 
@@ -372,35 +400,48 @@ export default function LoginCharacters({ mood }: { mood: CharacterMood }) {
   }, []);
 
   return (
-    <div ref={stage} className={styles.characters} data-mood={mood}>
-      <svg
-        viewBox="0 0 480 455"
-        fill="none"
-        focusable="false"
-        role="group"
-        aria-label="Interactive Fresh Phones cats and dogs"
-      >
-        {pets.map((pet, index) => {
-          return (
-            <g
-              key={pet.name}
-              transform={`translate(${pet.x} ${pet.y}) rotate(${pet.angle}) scale(0.8)`}
-            >
+    <>
+      <div ref={stage} className={styles.characters} data-mood={mood}>
+        <svg
+          viewBox={`0 0 ${petRowWidth} 200`}
+          fill="none"
+          focusable="false"
+          role="group"
+          aria-label="Interactive Fresh Phones cats and dogs"
+        >
+          {pets.map((pet, index) => {
+            return (
               <g
-                className={styles.arrival}
-                style={{ animationDelay: `${index * 0.04}s` }}
+                key={pet.name}
+                transform={`translate(${petCenter(index)} 140)`}
+                data-pet={pet.name}
               >
                 <g
-                  className={`${styles.character} ${pet.name === "navy" ? styles.navyCharacter : ""}`}
-                  {...characterControls(pet.name)}
+                  className={styles.arrival}
+                  style={{ animationDelay: `${index * 0.04}s` }}
                 >
-                  <PetFace pet={pet} mood={mood} />
+                  <g
+                    className={`${styles.character} ${pet.name === "navy" ? styles.navyCharacter : ""}`}
+                    {...characterControls(pet.name)}
+                  >
+                    <rect
+                      x="-108"
+                      y="-140"
+                      width="216"
+                      height="200"
+                      fill="transparent"
+                    />
+                    <g transform={`rotate(${pet.angle})`}>
+                      <PetFace pet={pet} mood={mood} />
+                    </g>
+                  </g>
                 </g>
               </g>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
+            );
+          })}
+        </svg>
+      </div>
+      <CardPaws />
+    </>
   );
 }
