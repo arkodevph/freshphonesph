@@ -1,0 +1,919 @@
+{
+  "home": {
+    "idea": "A grounded house welcomes you: its tiny door opens on the left hinge, pauses, and closes.",
+    "ms": 1450,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        9,
+        17.6,
+        {
+          "r": {
+            "hold": [[-76, 0.04, 0.86, 0.2]],
+            "spring": [6, 0.82]
+          }
+        }
+      ]
+    ]
+  },
+  "calendar": {
+    "idea": "Turn a calendar page from its top binding; the date marks follow in a cascading reveal.",
+    "ms": 1400,
+    "layers": [
+      [
+        -1,
+        12,
+        6,
+        {
+          "r": {
+            "hold": [[-48, 0.04, 0.62, 0.18]],
+            "spring": [7, 0.8]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        12,
+        {
+          "y": {
+            "push": [[-0.65, 0.1, 0.38]],
+            "spring": [7, 0.65]
+          }
+        }
+      ],
+      [
+        -1,
+        7.75,
+        13.5,
+        {
+          "o": {
+            "push": [[-0.9, 0.15, 0.46]],
+            "spring": [9, 0.85]
+          },
+          "y": {
+            "push": [[0.9, 0.15, 0.46]],
+            "spring": [9, 0.85]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        13.5,
+        {
+          "o": {
+            "push": [[-0.9, 0.19, 0.5]],
+            "spring": [9, 0.85]
+          },
+          "y": {
+            "push": [[0.9, 0.19, 0.5]],
+            "spring": [9, 0.85]
+          }
+        }
+      ],
+      [
+        -1,
+        16.25,
+        13.5,
+        {
+          "o": {
+            "push": [[-0.9, 0.22999999999999998, 0.54]],
+            "spring": [9, 0.85]
+          },
+          "y": {
+            "push": [[0.9, 0.22999999999999998, 0.54]],
+            "spring": [9, 0.85]
+          }
+        }
+      ],
+      [
+        -1,
+        7.75,
+        17.25,
+        {
+          "o": {
+            "push": [[-0.9, 0.27, 0.5800000000000001]],
+            "spring": [9, 0.85]
+          },
+          "y": {
+            "push": [[0.9, 0.27, 0.5800000000000001]],
+            "spring": [9, 0.85]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        17.25,
+        {
+          "o": {
+            "push": [[-0.9, 0.31, 0.62]],
+            "spring": [9, 0.85]
+          },
+          "y": {
+            "push": [[0.9, 0.31, 0.62]],
+            "spring": [9, 0.85]
+          }
+        }
+      ]
+    ]
+  },
+  "receipt": {
+    "idea": "A receipt feeds out of the printer and its three lines print in reading order.",
+    "ms": 1300,
+    "layers": [
+      [
+        -1,
+        12,
+        12,
+        {
+          "y": {
+            "push": [[-1.5, 0, 0.32]],
+            "spring": [7, 0.8]
+          }
+        }
+      ],
+      [
+        -1,
+        8.5,
+        7.25,
+        {
+          "x": {
+            "push": [[-1.8, 0.16, 0.44]],
+            "spring": [9, 0.85]
+          },
+          "o": {
+            "push": [[-0.92, 0.16, 0.44]],
+            "spring": [9, 0.85]
+          }
+        }
+      ],
+      [
+        -1,
+        8.5,
+        10.75,
+        {
+          "x": {
+            "push": [[-1.8, 0.27, 0.55]],
+            "spring": [9, 0.85]
+          },
+          "o": {
+            "push": [[-0.92, 0.27, 0.55]],
+            "spring": [9, 0.85]
+          }
+        }
+      ],
+      [
+        -1,
+        8.5,
+        14.25,
+        {
+          "x": {
+            "push": [[-1.8, 0.38, 0.66]],
+            "spring": [9, 0.85]
+          },
+          "o": {
+            "push": [[-0.92, 0.38, 0.66]],
+            "spring": [9, 0.85]
+          }
+        }
+      ]
+    ]
+  },
+  "bot": {
+    "idea": "The assistant looks toward you, its antenna follows, then it gives one playful wink.",
+    "ms": 1400,
+    "layers": [
+      [
+        -1,
+        12,
+        17,
+        {
+          "r": {
+            "hold": [[-8, 0.04, 0.65, 0.16]],
+            "spring": [5, 0.7]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        12,
+        {
+          "r": {
+            "follow": [0, "r"],
+            "gain": -1.5,
+            "spring": [4, 0.45]
+          }
+        }
+      ],
+      [
+        -1,
+        9.25,
+        13.5,
+        {
+          "sq": {
+            "push": [[0.78, 0.38, 0.52]],
+            "spring": [12, 0.85]
+          },
+          "s": {
+            "push": [[-0.42, 0.38, 0.52]],
+            "spring": [12, 0.85]
+          }
+        }
+      ],
+      [
+        -1,
+        14.75,
+        13.5,
+        {
+          "y": {
+            "push": [[-0.3, 0.4, 0.6]],
+            "spring": [7, 0.65]
+          }
+        }
+      ]
+    ]
+  },
+  "briefcase": {
+    "idea": "The briefcase handle lifts and its lid unlatches, opens from the back hinge, then closes.",
+    "ms": 1450,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        12,
+        7.5,
+        {
+          "y": {
+            "hold": [[-0.8, 0.04, 0.76, 0.12]],
+            "spring": [7, 0.7]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        6.75,
+        {
+          "r": {
+            "hold": [[58, 0.12, 0.84, 0.2]],
+            "spring": [6, 0.8]
+          }
+        }
+      ]
+    ]
+  },
+  "emoji": {
+    "idea": "A friendly face leans in, winks one eye, and stretches its smile.",
+    "ms": 1300,
+    "layers": [
+      [
+        -1,
+        12,
+        15,
+        {
+          "r": {
+            "hold": [[7, 0.04, 0.65, 0.14]],
+            "spring": [5, 0.7]
+          }
+        }
+      ],
+      [
+        -1,
+        9,
+        10,
+        {
+          "sq": {
+            "push": [[0.78, 0.22, 0.36]],
+            "spring": [12, 0.85]
+          },
+          "s": {
+            "push": [[-0.42, 0.22, 0.36]],
+            "spring": [12, 0.85]
+          }
+        }
+      ],
+      [
+        -1,
+        15,
+        10,
+        {
+          "y": {
+            "push": [[-0.35, 0.3, 0.52]],
+            "spring": [7, 0.65]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        15,
+        {
+          "s": {
+            "hold": [[0.18, 0.25, 0.76, 0.18]],
+            "spring": [7, 0.7]
+          }
+        }
+      ]
+    ]
+  },
+  "handshake": {
+    "idea": "A firm handshake: squeeze, two small deliberate pumps, and release.",
+    "ms": 1200,
+    "layers": [
+      [
+        -1,
+        12,
+        14.6,
+        {
+          "y": {
+            "push": [
+              [1.3, 0.02, 0.2],
+              [-1.1, 0.18, 0.38],
+              [0.75, 0.36, 0.56]
+            ],
+            "spring": [7, 0.7]
+          },
+          "r": {
+            "push": [
+              [-5, 0.04, 0.22],
+              [4, 0.22, 0.42]
+            ],
+            "spring": [6, 0.65]
+          },
+          "s": {
+            "push": [[-0.06, 0.03, 0.2]],
+            "spring": [8, 0.7]
+          }
+        }
+      ]
+    ]
+  },
+  "globe": {
+    "idea": "The globe stays on its axis while its meridians turn all the way around.",
+    "ms": 1400,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        12,
+        12,
+        {
+          "r": {
+            "turn": [[360, 0.02, 0.78]],
+            "spring": [5, 0.85]
+          }
+        }
+      ]
+    ]
+  },
+  "megaphone": {
+    "idea": "The megaphone tips toward its audience, then its cone speaks in three short pulses.",
+    "ms": 1300,
+    "layers": [
+      [
+        -1,
+        11.5,
+        20,
+        {
+          "r": {
+            "hold": [[-10, 0.04, 0.72, 0.15]],
+            "spring": [6, 0.75]
+          }
+        }
+      ],
+      [
+        -1,
+        6.6,
+        13.1,
+        {
+          "s": {
+            "push": [
+              [0.16, 0.2, 0.32],
+              [0.13, 0.36, 0.48],
+              [0.1, 0.52, 0.64]
+            ],
+            "spring": [11, 0.65]
+          }
+        }
+      ]
+    ]
+  },
+  "lock": {
+    "idea": "The shackle clicks up, turns aside to unlock, then returns and clicks closed.",
+    "ms": 1450,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        9,
+        10.25,
+        {
+          "y": {
+            "hold": [[-2.7, 0.04, 0.8, 0.14]],
+            "spring": [8, 0.8]
+          },
+          "r": {
+            "hold": [[-22, 0.15, 0.7, 0.16]],
+            "spring": [7, 0.8]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        16,
+        {
+          "r": {
+            "push": [[14, 0.12, 0.42]],
+            "spring": [7, 0.7]
+          }
+        }
+      ]
+    ]
+  },
+  "eye": {
+    "idea": "One quick blink, then the pupil scans left to right before looking forward.",
+    "ms": 1450,
+    "layers": [
+      [
+        -1,
+        12,
+        12,
+        {
+          "sq": {
+            "push": [[0.78, 0.01, 0.17]],
+            "spring": [13, 0.9]
+          },
+          "s": {
+            "push": [[-0.43, 0.01, 0.17]],
+            "spring": [13, 0.9]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        12,
+        {
+          "x": {
+            "hold": [
+              [-1.9, 0.22, 0.53, 0.1],
+              [1.9, 0.55, 0.92, 0.12]
+            ],
+            "spring": [9, 0.8]
+          }
+        }
+      ]
+    ]
+  },
+  "phone": {
+    "idea": "An incoming call: the handset vibrates twice, then the home indicator answers with a small pulse.",
+    "ms": 1300,
+    "layers": [
+      [
+        -1,
+        12,
+        12,
+        {
+          "r": {
+            "push": [
+              [-8, 0.01, 0.13],
+              [7, 0.13, 0.25],
+              [-5, 0.25, 0.37],
+              [4, 0.37, 0.49]
+            ],
+            "spring": [12, 0.65]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        18,
+        {
+          "s": {
+            "hold": [[0.35, 0.5, 0.9, 0.13]],
+            "spring": [7, 0.7]
+          }
+        }
+      ]
+    ]
+  },
+  "send": {
+    "idea": "A paper plane winds back, banks upward into flight, then glides home.",
+    "ms": 1400,
+    "layers": [
+      [
+        -1,
+        12,
+        12,
+        {
+          "x": {
+            "push": [[-1.4, 0, 0.16]],
+            "hold": [[3.2, 0.16, 0.78, 0.18]],
+            "spring": [7, 0.8]
+          },
+          "y": {
+            "push": [[1, 0, 0.16]],
+            "hold": [[-3.2, 0.16, 0.78, 0.18]],
+            "spring": [7, 0.8]
+          },
+          "r": {
+            "hold": [[-15, 0.1, 0.65, 0.14]],
+            "spring": [6, 0.75]
+          }
+        }
+      ]
+    ]
+  },
+  "folder": {
+    "idea": "The front of the folder hinges toward you, exposing the filed contents, then gently closes.",
+    "ms": 1450,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        12,
+        20,
+        {
+          "r": {
+            "hold": [[-48, 0.04, 0.84, 0.2]],
+            "spring": [6, 0.8]
+          }
+        }
+      ]
+    ]
+  },
+  "money": {
+    "idea": "Two banknotes fan apart for counting and slide neatly back into their stack.",
+    "ms": 1450,
+    "layers": [
+      [
+        -1,
+        13.5,
+        15.75,
+        {
+          "x": {
+            "hold": [[1.2, 0.04, 0.7, 0.18]],
+            "spring": [7, 0.7]
+          },
+          "r": {
+            "hold": [[9, 0.04, 0.7, 0.18]],
+            "spring": [7, 0.7]
+          }
+        }
+      ],
+      [
+        -1,
+        2.75,
+        13.5,
+        {
+          "x": {
+            "hold": [[-0.5, 0.1, 0.85, 0.18]],
+            "spring": [7, 0.7]
+          },
+          "r": {
+            "hold": [[-15, 0.1, 0.85, 0.18]],
+            "spring": [7, 0.7]
+          }
+        }
+      ]
+    ]
+  },
+  "clock": {
+    "idea": "The minute hand winds back, sweeps through a full revolution, and catches precisely on time.",
+    "ms": 1400,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        12,
+        12,
+        {
+          "r": {
+            "push": [[-18, 0, 0.12]],
+            "turn": [[360, 0.1, 0.75]],
+            "spring": [5, 0.8]
+          }
+        }
+      ]
+    ]
+  },
+  "download": {
+    "idea": "The download arrow drops into its tray; the tray absorbs the landing after the arrow arrives.",
+    "ms": 1100,
+    "layers": [
+      [
+        -1,
+        12,
+        9,
+        {
+          "y": {
+            "push": [
+              [-1.2, 0, 0.15],
+              [2.4, 0.16, 0.46]
+            ],
+            "spring": [8, 0.7]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        21.5,
+        {
+          "y": {
+            "push": [[0.8, 0.36, 0.58]],
+            "spring": [8, 0.6]
+          },
+          "sq": {
+            "push": [[0.08, 0.36, 0.58]],
+            "spring": [8, 0.6]
+          }
+        }
+      ]
+    ]
+  },
+  "message": {
+    "idea": "A typing reply: three dots rise one after another, then the reply bubble nudges forward.",
+    "ms": 1300,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        8,
+        10.75,
+        {
+          "y": {
+            "push": [[-1.9, 0.06, 0.31]],
+            "spring": [9, 0.65]
+          },
+          "s": {
+            "push": [[0.2, 0.06, 0.31]],
+            "spring": [9, 0.65]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        10.75,
+        {
+          "y": {
+            "push": [[-1.9, 0.19, 0.44]],
+            "spring": [9, 0.65]
+          },
+          "s": {
+            "push": [[0.2, 0.19, 0.44]],
+            "spring": [9, 0.65]
+          }
+        }
+      ],
+      [
+        -1,
+        16,
+        10.75,
+        {
+          "y": {
+            "push": [[-1.9, 0.32, 0.5700000000000001]],
+            "spring": [9, 0.65]
+          },
+          "s": {
+            "push": [[0.2, 0.32, 0.5700000000000001]],
+            "spring": [9, 0.65]
+          }
+        }
+      ],
+      [
+        -1,
+        10.8,
+        19,
+        {
+          "x": {
+            "hold": [[0.65, 0.43, 0.83, 0.15]],
+            "spring": [7, 0.7]
+          },
+          "y": {
+            "hold": [[-0.65, 0.43, 0.83, 0.15]],
+            "spring": [7, 0.7]
+          }
+        }
+      ]
+    ]
+  },
+  "headset": {
+    "idea": "The support headset tips to listen; its microphone swings into speaking position and responds twice.",
+    "ms": 1450,
+    "layers": [
+      [
+        -1,
+        12,
+        12,
+        {
+          "r": {
+            "hold": [[-7, 0.04, 0.7, 0.18]],
+            "spring": [5, 0.75]
+          }
+        }
+      ],
+      [
+        -1,
+        14.5,
+        20,
+        {
+          "r": {
+            "hold": [[-28, 0.12, 0.82, 0.17]],
+            "spring": [7, 0.7]
+          },
+          "s": {
+            "push": [
+              [0.23, 0.4, 0.52],
+              [0.16, 0.59, 0.71]
+            ],
+            "spring": [10, 0.65]
+          }
+        }
+      ]
+    ]
+  },
+  "key": {
+    "idea": "A key slides into the lock, turns a quarter turn, and slides back out.",
+    "ms": 1500,
+    "layers": [
+      [
+        -1,
+        12,
+        12,
+        {
+          "x": {
+            "hold": [[-0.7, 0.04, 0.92, 0.15]],
+            "spring": [7, 0.7]
+          },
+          "y": {
+            "hold": [[0.7, 0.04, 0.92, 0.15]],
+            "spring": [7, 0.7]
+          },
+          "r": {
+            "hold": [[78, 0.22, 0.75, 0.17]],
+            "spring": [7, 0.8]
+          }
+        }
+      ]
+    ]
+  },
+  "bell": {
+    "idea": "The bell rings twice from its crown; the clapper trails and taps the opposite rim.",
+    "ms": 1450,
+    "layers": [
+      [
+        -1,
+        12,
+        3.2,
+        {
+          "r": {
+            "push": [
+              [-26, 0.01, 0.18],
+              [15, 0.22, 0.4]
+            ],
+            "spring": [4, 0.4]
+          }
+        }
+      ],
+      [
+        -1,
+        12,
+        10,
+        {
+          "r": {
+            "follow": [0, "r"],
+            "spring": [3.5, 0.4],
+            "relative": true,
+            "gain": 1.35
+          }
+        }
+      ]
+    ]
+  },
+  "broom": {
+    "idea": "The broom sweeps left, gathers on the return stroke, and the bristles flex behind the handle.",
+    "ms": 1400,
+    "layers": [
+      [
+        -1,
+        21.2,
+        2.8,
+        {
+          "x": {
+            "push": [
+              [-1.3, 0.02, 0.28],
+              [0.8, 0.3, 0.6]
+            ],
+            "spring": [6, 0.75]
+          },
+          "r": {
+            "push": [
+              [14, 0.02, 0.28],
+              [-11, 0.3, 0.6]
+            ],
+            "spring": [5, 0.7]
+          }
+        }
+      ],
+      [
+        -1,
+        10.6,
+        13.4,
+        {
+          "r": {
+            "follow": [0, "r"],
+            "relative": true,
+            "gain": 1.4,
+            "spring": [5, 0.45]
+          }
+        }
+      ]
+    ]
+  },
+  "cube": {
+    "idea": "The parcel lid lifts away to reveal the opening, then seats back onto the grounded box.",
+    "ms": 1450,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        12,
+        7.25,
+        {
+          "y": {
+            "hold": [[-2, 0.04, 0.78, 0.2]],
+            "spring": [7, 0.8]
+          },
+          "r": {
+            "hold": [[-32, 0.04, 0.78, 0.2]],
+            "spring": [7, 0.8]
+          }
+        }
+      ]
+    ]
+  },
+  "toggle-left": {
+    "idea": "The switch thumb clicks across its full track, holds, and clicks back; the housing reacts at contact.",
+    "ms": 1450,
+    "layers": [
+      [
+        -1,
+        12,
+        12,
+        {
+          "x": {
+            "push": [
+              [0.3, 0.19, 0.29],
+              [-0.25, 0.78, 0.9]
+            ],
+            "spring": [10, 0.65]
+          }
+        }
+      ],
+      [
+        -1,
+        8.5,
+        12,
+        {
+          "x": {
+            "hold": [[7, 0.04, 0.86, 0.15]],
+            "spring": [9, 0.8]
+          },
+          "sq": {
+            "push": [
+              [0.13, 0.15, 0.27],
+              [0.1, 0.79, 0.91]
+            ],
+            "spring": [10, 0.7]
+          }
+        }
+      ]
+    ]
+  },
+  "door": {
+    "idea": "The exit door swings open on its left hinge, holds an invitation, and softly closes.",
+    "ms": 1500,
+    "layers": [
+      [-1, 12, 12, {}],
+      [
+        -1,
+        6.25,
+        12,
+        {
+          "r": {
+            "hold": [[-74, 0.04, 0.9, 0.22]],
+            "spring": [6, 0.85]
+          }
+        }
+      ]
+    ]
+  }
+}

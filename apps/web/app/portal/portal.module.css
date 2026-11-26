@@ -68,6 +68,8 @@
   font-weight: 700;
 }
 .sidebarNav {
+  scroll-padding-bottom: 64px;
+  padding-bottom: 64px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -103,9 +105,9 @@
     color 0.18s;
 }
 .navLink svg {
-  flex: 0 0 18px;
-  width: 18px;
-  height: 18px;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
 }
 .navLink span {
   flex: 1;
@@ -5669,4 +5671,8 @@
 .membershipSelector p {
   margin: 0;
   font-size: 14px;
+}
+
+.sidebarNav:focus-within + :global([data-progressive-blur]) {
+  visibility: hidden;
 }

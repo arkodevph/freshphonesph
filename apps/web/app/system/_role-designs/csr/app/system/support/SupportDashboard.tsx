@@ -1,10 +1,11 @@
 "use client";
 
-import viewStyles from "@/app/system/_role-designs/csr/app/system/people/people.module.css";
+import styles from "@/app/system/_role-designs/csr/app/system/support/support-workspace.module.css";
+import SupportCaseResolution from "@/app/system/_role-designs/csr/app/system/support/SupportCaseResolution";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/csr/components/WorkspaceNativeSelect";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Headset } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react";
 import {
   STAFF_SUPPORT_SOURCES,
   SUPPORT_SOURCES,
@@ -40,6 +41,20 @@ export default function SupportDashboard() {
   const canManage = can(me, "SUPPORT_MANAGE");
 
   const search = useSearchParams();
+
+  const requestedView = search.get("view");
+
+  const canCreate = can(me, "SUPPORT_CREATE");
+
+  useEffect(() => {
+    setView(
+      requestedView === "lookup" || (requestedView === "create" && canCreate)
+        ? requestedView
+        : "cases",
+    );
+  }, [requestedView, canCreate]);
+
+  const trigger = useRef<HTMLElement | null>(null);
 
   const queryCase = search.get("case");
 
@@ -294,6 +309,17 @@ export default function SupportDashboard() {
   }, canManage);
 
   function closeThread() {
+    const returnTo = trigger.current;
+
+    if (
+      document.activeElement?.closest('[aria-label="Support conversation"]') ||
+      document.activeElement?.matches("[data-support-row]")
+    ) {
+      requestAnimationFrame(() => {
+        returnTo?.focus({ preventScroll: true });
+      });
+    }
+
     ++detailVersion.current;
 
     activeCase.current = null;
@@ -312,6 +338,10 @@ export default function SupportDashboard() {
   }
 
   function openCase(id: string) {
+    if (document.activeElement instanceof HTMLElement) {
+      trigger.current = document.activeElement;
+    }
+
     if (activeCase.current === id) {
       closeThread();
 
@@ -585,61 +615,69 @@ export default function SupportDashboard() {
     : emptyReply;
 
   return (
-    <>
-      <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
-        <span className="chrome grid h-10 w-10 place-items-center rounded-2xl">
-          <Headset weight="fill" className="h-5 w-5 text-blue" />
-        </span>
-        <div>
-          <h1 className="font-display text-lg font-700 tracking-tight text-blue-ink">
-            Customer Service
-          </h1>
-          <p className="text-xs text-ink-soft">
-            Track concerns, assignments and customer conversations
-          </p>
+    <div className={styles.workspace} data-csr-support>
+      <header className={styles.toolbar}>
+        <div
+          className={styles.views}
+          role="group"
+          aria-label="Customer service view"
+        >
+          {[
+            ["cases", "Cases"],
+            ["lookup", "Customer lookup"],
+            ...(can(me, "SUPPORT_CREATE") ? [["create", "Log concern"]] : []),
+          ].map(([key, label]) => {
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={view === key}
+                onClick={() => {
+                  const nextView =
+                    key === "lookup" || key === "create" ? key : "cases";
+
+                  setView(nextView);
+
+                  const nextUrl = new URL(window.location.href);
+
+                  if (nextView === "cases") {
+                    nextUrl.searchParams.delete("view");
+                  } else {
+                    nextUrl.searchParams.set("view", nextView);
+                  }
+
+                  window.history.replaceState(
+                    null,
+                    "",
+                    nextUrl.pathname + nextUrl.search,
+                  );
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
+        <button
+          type="button"
+          className={styles.button}
+          aria-label="Refresh support cases"
+          disabled={loading}
+          onClick={() => {
+            void load();
+
+            if (activeCaseId) {
+              void loadDetail(activeCaseId);
+            }
+          }}
+        >
+          <ArrowClockwise aria-hidden="true" />
+          Refresh
+        </button>
       </header>
-      <div
-        className={viewStyles.views}
-        role="group"
-        aria-label="Customer service view"
-      >
-        <button
-          type="button"
-          aria-pressed={view === "cases"}
-          onClick={() => {
-            return setView("cases");
-          }}
-        >
-          Cases
-        </button>
-        {can(me, "SUPPORT_CREATE") && (
-          <button
-            type="button"
-            aria-pressed={view === "create"}
-            onClick={() => {
-              return setView("create");
-            }}
-          >
-            Log concern
-          </button>
-        )}
-        <button
-          type="button"
-          aria-pressed={view === "lookup"}
-          onClick={() => {
-            return setView("lookup");
-          }}
-        >
-          Customer lookup
-        </button>
-      </div>
       <div hidden={view !== "lookup"}>{canManage && <CustomerLookup />}</div>
       {error && (
-        <div
-          role="alert"
-          className="mb-4 rounded-2xl bg-rose-100 px-4 py-2.5 text-sm font-600 text-rose-700"
-        >
+        <div role="alert" className={styles.alert}>
           <p>{error}</p>
           <button
             type="button"
@@ -680,84 +718,121 @@ export default function SupportDashboard() {
         )}
       </div>
       <div hidden={view !== "cases"}>
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          {focusedCase && (
-            <button
-              type="button"
-              onClick={() => {
-                closeThread();
-
-                setFilter("");
-
-                setPage(1);
-              }}
-              className="rounded-full bg-violet-100 px-3.5 py-1.5 text-sm font-700 text-violet-700"
-            >
-              Show all cases
-            </button>
-          )}
-          {[["", "All"], ...SUPPORT_STATUSES].map(([value, label]) => {
-            return (
+        <section className={styles.queue}>
+          <header className={styles.heading}>
+            <div>
+              <h2>Cases</h2>
+              <span className={styles.count}>
+                {error || (loading && !cases.length) ? "—" : count}
+              </span>
+            </div>
+            <span className={styles.muted}>
+              {focusedCase ? "Linked case" : "Customer concerns"}
+            </span>
+          </header>
+          <div
+            className={styles.filters}
+            role="group"
+            aria-label="Filter support cases"
+          >
+            {focusedCase && (
               <button
                 type="button"
-                key={value}
-                aria-pressed={!focusedCase && filter === value}
                 onClick={() => {
                   closeThread();
 
-                  setFilter(value);
+                  setFilter("");
 
                   setPage(1);
                 }}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-700 ${!focusedCase && filter === value ? "bg-blue text-white" : "bg-white/60 text-ink-soft hover:bg-white"}`}
+                className="rounded-full bg-violet-100 px-3.5 py-1.5 text-sm font-700 text-violet-700"
               >
-                {label}
+                Show all cases
               </button>
-            );
-          })}
-        </div>
-        {!focusedCase && (
-          <label className="mb-3 flex items-center gap-2 text-sm font-700 text-blue-ink">
-            Source
-            <WorkspaceNativeSelect
-              value={sourceFilter}
-              onChange={(event) => {
-                setSourceFilter(event.target.value);
+            )}
+            {[["", "All"], ...SUPPORT_STATUSES].map(([value, label]) => {
+              return (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={!focusedCase && filter === value}
+                  onClick={() => {
+                    closeThread();
 
-                setPage(1);
-              }}
-              className="rounded-xl border border-violet-200 bg-white/70 px-3 py-2 font-normal"
-            >
-              <option value="">All sources</option>
-              {SUPPORT_SOURCES.map(([value, label]) => {
-                return (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                );
-              })}
-            </WorkspaceNativeSelect>
-          </label>
-        )}
-        {activeCaseId && (
-          <SupportConversationPanel
-            activeCaseId={activeCaseId}
-            closeThread={closeThread}
-            caseLoading={caseLoading}
-            detailError={detailError}
-            loadDetail={loadDetail}
-            caseDetail={caseDetail}
-            sendReply={sendReply}
-            reply={reply}
-            setReplies={setReplies}
-            pending={pending}
-          />
-        )}
+                    setFilter(value);
+
+                    setPage(1);
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+            {!focusedCase && (
+              <label>
+                Source
+                <WorkspaceNativeSelect
+                  value={sourceFilter}
+                  onChange={(event) => {
+                    setSourceFilter(event.target.value);
+
+                    setPage(1);
+                  }}
+                  className="rounded-xl border border-violet-200 bg-white/70 px-3 py-2 font-normal"
+                >
+                  <option value="">All sources</option>
+                  {SUPPORT_SOURCES.map(([value, label]) => {
+                    return (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </WorkspaceNativeSelect>
+              </label>
+            )}
+          </div>
+          <div className={styles.split} data-open={Boolean(activeCaseId)}>
+            <SupportCasesTable
+              loading={loading}
+              error={error}
+              cases={cases}
+              focusedCase={focusedCase}
+              activeCaseId={activeCaseId}
+              openCase={openCase}
+            />
+            {activeCaseId && (
+              <div id="support-case-detail" className={styles.detail}>
+                <SupportConversationPanel
+                  activeCaseId={activeCaseId}
+                  closeThread={closeThread}
+                  caseLoading={caseLoading}
+                  detailError={detailError}
+                  loadDetail={loadDetail}
+                  caseDetail={caseDetail}
+                  sendReply={sendReply}
+                  reply={reply}
+                  setReplies={setReplies}
+                  pending={pending}
+                />
+                {caseDetail && String(caseDetail.id) === activeCaseId && (
+                  <SupportCaseResolution
+                    supportCase={caseDetail}
+                    draft={drafts[activeCaseId]}
+                    pending={pending}
+                    me={me}
+                    editCase={editCase}
+                    assignToMe={assignToMe}
+                    saveCase={saveCase}
+                    discardDraft={discardDraft}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </section>
         {!focusedCase && count > 20 && (
-          <nav
-            className="my-3 flex items-center justify-between text-xs text-ink-soft"
-            aria-label="Support case pages"
-          >
+          <nav className={styles.pagination} aria-label="Support case pages">
             <button
               type="button"
               disabled={page === 1 || loading}
@@ -787,21 +862,7 @@ export default function SupportDashboard() {
             </button>
           </nav>
         )}
-        <SupportCasesTable
-          loading={loading}
-          cases={cases}
-          focusedCase={focusedCase}
-          drafts={drafts}
-          pending={pending}
-          editCase={editCase}
-          me={me}
-          assignToMe={assignToMe}
-          saveCase={saveCase}
-          discardDraft={discardDraft}
-          activeCaseId={activeCaseId}
-          openCase={openCase}
-        />
       </div>
-    </>
+    </div>
   );
 }

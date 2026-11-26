@@ -3934,6 +3934,39 @@ test("staff tasks enforce ownership, private evidence, objective lateness and hu
 
   assert.equal(firstTask.status, "TODO");
 
+  const activityResponse = await handler.request(
+    `/tasks/${firstTask.id}/activity`,
+  );
+
+  assert.equal(activityResponse.status, 200);
+
+  const activity = await activityResponse.json();
+
+  assert.equal(activity.length, 1);
+
+  assert.equal(activity[0].action, "task.assigned");
+
+  assert.equal(typeof activity[0].actorName, "string");
+
+  assert.equal(typeof activity[0].createdAt, "string");
+
+  assert.deepEqual(Object.keys(activity[0]).sort(), [
+    "action",
+    "actorName",
+    "createdAt",
+    "id",
+  ]);
+
+  assert.equal(
+    (await otherStaff.request(`/tasks/${firstTask.id}/activity`)).status,
+    404,
+  );
+
+  assert.equal(
+    (await customer.request(`/tasks/${firstTask.id}/activity`)).status,
+    403,
+  );
+
   assert.equal(
     (await otherStaff.request(`/tasks/${firstTask.id}`)).status,
     404,
@@ -12873,4 +12906,242 @@ test("merged operations reports count existing task submissions/reviews and supp
       return item.id === stored.id;
     }),
   );
+});
+
+test("task management preserves private instructions, versions, reassignment and terminal cancellation", async () => {
+  const owner = await new Session().login("SYSTEM_ADMIN");
+
+  const kpi = await new Session().login("KPI_OFFICER");
+
+  const handler = await new Session().login("CORE_HANDLER");
+
+  const support = await new Session().login("CS_TEAM");
+
+  const created = await owner.request(
+    "/tasks",
+    post({
+      title: "Management regression",
+      instructions: "Private original instructions",
+      assigneeId: accounts.get("CORE_HANDLER"),
+      priority: "MEDIUM",
+      deadline: new Date(Date.now() + 86400000).toISOString(),
+    }),
+  );
+
+  assert.equal(created.status, 201);
+
+  let task = await created.json();
+
+  const id = task.id;
+
+  assert.equal(
+    (
+      await kpi.request(
+        `/tasks/${id}`,
+        patch({ version: task.version, instructions: "Forbidden overwrite" }),
+      )
+    ).status,
+    403,
+  );
+
+  const edited = await kpi.request(
+    `/tasks/${id}`,
+    patch({
+      version: task.version,
+      title: "Updated management regression",
+      priority: "HIGH",
+    }),
+  );
+
+  assert.equal(edited.status, 200);
+
+  task = await edited.json();
+
+  assert.equal(
+    (await db.task.findUniqueOrThrow({ where: { id } })).instructions,
+    "Private original instructions",
+  );
+
+  assert.equal(
+    (
+      await kpi.request(
+        `/tasks/${id}`,
+        patch({ version: 1, title: "Stale overwrite" }),
+      )
+    ).status,
+    409,
+  );
+
+  const started = await handler.request(
+    `/work/tasks/${id}/progress`,
+    patch({ version: task.version, status: "IN_PROGRESS" }),
+  );
+
+  assert.equal(started.status, 200);
+
+  task = await db.task.findUniqueOrThrow({ where: { id } });
+
+  const reassigned = await kpi.request(
+    `/tasks/${id}`,
+    patch({ version: task.version, assigneeId: accounts.get("CS_TEAM") }),
+  );
+
+  assert.equal(reassigned.status, 200);
+
+  task = await reassigned.json();
+
+  assert.equal(task.status, "TODO");
+
+  assert.equal(task.assigneeId, accounts.get("CS_TEAM"));
+
+  assert.equal(
+    (
+      await handler.request(
+        `/tasks/${id}/start`,
+        patch({ version: task.version }),
+      )
+    ).status,
+    404,
+  );
+
+  assert.equal(
+    (
+      await support.request(
+        `/tasks/${id}/cancel`,
+        post({ version: task.version, reason: "Unauthorized cancellation" }),
+      )
+    ).status,
+    403,
+  );
+
+  assert.equal(
+    (
+      await kpi.request(
+        `/tasks/${id}/cancel`,
+        post({ version: task.version, reason: " " }),
+      )
+    ).status,
+    400,
+  );
+
+  const cancelled = await kpi.request(
+    `/tasks/${id}/cancel`,
+    post({ version: task.version, reason: "Work no longer required" }),
+  );
+
+  assert.equal(cancelled.status, 200);
+
+  task = await cancelled.json();
+
+  assert.equal(task.status, "CANCELLED");
+
+  assert.equal(task.cancellationReason, "Work no longer required");
+
+  assert.ok(task.cancelledAt);
+
+  assert.equal(
+    (
+      await support.request(
+        `/work/tasks/${id}/progress`,
+        patch({ version: task.version, status: "IN_PROGRESS" }),
+      )
+    ).status,
+    409,
+  );
+
+  assert.equal(
+    (
+      await support.request(
+        `/tasks/${id}/start`,
+        patch({ version: task.version }),
+      )
+    ).status,
+    409,
+  );
+
+  assert.equal(
+    (
+      await kpi.request(
+        `/tasks/${id}`,
+        patch({ version: task.version, title: "Cannot revive" }),
+      )
+    ).status,
+    409,
+  );
+
+  assert.equal(
+    (
+      await kpi.request(
+        `/tasks/${id}/cancel`,
+        post({ version: task.version, reason: "Cancel twice" }),
+      )
+    ).status,
+    409,
+  );
+
+  const listed = await kpi.request("/tasks?status=CANCELLED");
+
+  assert.equal(listed.status, 200);
+
+  assert.ok(
+    (await listed.json()).results.some((row: { id: string }) => {
+      return row.id === id;
+    }),
+  );
+
+  assert.ok(
+    await db.auditEntry.findFirst({
+      where: { recordId: id, action: "task.cancelled" },
+    }),
+  );
+
+  assert.equal(
+    (await db.task.findUniqueOrThrow({ where: { id } })).status,
+    "CANCELLED",
+  );
+
+  for (const status of ["SUBMITTED", "DONE"] as const) {
+    const row = await db.task.update({
+      where: { id },
+      data: { status, cancelledAt: null, cancellationReason: null },
+    });
+
+    assert.equal(
+      (
+        await kpi.request(
+          `/tasks/${id}`,
+          patch({ version: row.version, title: "Locked task" }),
+        )
+      ).status,
+      409,
+    );
+
+    assert.equal(
+      (
+        await kpi.request(
+          `/tasks/${id}/cancel`,
+          post({ version: row.version, reason: "Locked task" }),
+        )
+      ).status,
+      409,
+    );
+  }
+
+  const kpiId = accounts.get("KPI_OFFICER")!;
+
+  await db.user.update({ where: { id: kpiId }, data: { role: "CS_TEAM" } });
+
+  try {
+    const denied = await kpi.request(
+      `/tasks/${id}`,
+      patch({ version: task.version, title: "Lost permission" }),
+    );
+
+    assert.ok([401, 403].includes(denied.status));
+  } finally {
+    await db.user.update({
+      where: { id: kpiId },
+      data: { role: "KPI_OFFICER" },
+    });
+  }
 });

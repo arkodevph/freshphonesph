@@ -60,7 +60,7 @@ export default function StaffTasksDashboard() {
 }
 
 function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
-  const coo = me.role === "coo";
+  const coo = me.role === "coo" || me.role === "finance_officer";
 
   const [assignmentOpen, setAssignmentOpen] = useState(false);
 
@@ -619,7 +619,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
                 >
                   <option value="">All statuses</option>
                   {(
-                    ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"] as Status[]
+                    ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE", "CANCELLED"] as Status[]
                   ).map((item) => {
                     return (
                       <option key={item} value={item}>

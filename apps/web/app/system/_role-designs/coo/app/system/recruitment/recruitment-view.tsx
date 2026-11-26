@@ -1,6 +1,5 @@
 "use client";
 
-import WorkspaceProgress from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
 import styles from "@/app/system/_role-designs/coo/app/system/recruitment/recruitment.module.css";
 import { useRecruitmentDirectory } from "@/app/system/recruitment/useRecruitmentDirectory";
 
@@ -43,12 +42,7 @@ export function DirectoryState<T>({
   name: string;
 }) {
   if (directory.loading) {
-    return (
-      <WorkspaceProgress
-        className={styles.scopeNote}
-        label={`Loading ${name}…`}
-      />
-    );
+    return null;
   }
 
   if (directory.error) {

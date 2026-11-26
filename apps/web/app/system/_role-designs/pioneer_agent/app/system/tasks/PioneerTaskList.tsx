@@ -66,13 +66,15 @@ export default function PioneerTaskList({
             }}
           >
             <option value="">All statuses</option>
-            {["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"].map((status) => {
-              return (
-                <option value={status} key={status}>
-                  {label(status)}
-                </option>
-              );
-            })}
+            {["TODO", "IN_PROGRESS", "SUBMITTED", "DONE", "CANCELLED"].map(
+              (status) => {
+                return (
+                  <option value={status} key={status}>
+                    {label(status)}
+                  </option>
+                );
+              },
+            )}
           </WorkspaceNativeSelect>
         </label>
       </div>

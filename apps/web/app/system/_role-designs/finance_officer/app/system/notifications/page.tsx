@@ -87,7 +87,7 @@ export default function NotificationsPage() {
           <h1 id="notifications-page-title" tabIndex={-1}>
             Notifications
           </h1>
-          <p>Payments ready for Finance, your tasks and personal updates.</p>
+          <p>Payments ready for Finance, your tasks and updates.</p>
         </div>
         <button
           className={styles.refresh}
@@ -177,10 +177,8 @@ export default function NotificationsPage() {
               Try again
             </button>
           </div>
-        ) : loading ? (
-          <p className={styles.state} role="status">
-            Loading notifications…
-          </p>
+        ) : loading && !snapshot ? (
+          <StaffNotificationList items={[]} loading onOpen={() => {}} />
         ) : !snapshot?.items.length ? (
           <div className={styles.state}>
             <strong>

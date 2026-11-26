@@ -3,7 +3,7 @@
 import WorkspaceProgress from "@/app/system/_role-designs/agent/components/WorkspaceProgress";
 import Link from "next/link";
 import { can, useMe } from "@/lib/useMe";
-import RoleWorkspace from "@/app/system/_role-designs/agent/app/system/RoleWorkspace";
+import AgentEnrollmentRequests from "./AgentEnrollmentRequests";
 import EnrollmentFormWorkspace from "@/app/system/_role-designs/agent/app/system/enrollments/forms/EnrollmentFormWorkspace";
 import EnrollmentApplications from "@/app/system/_role-designs/agent/app/system/enrollments/applications/EnrollmentApplications";
 import styles from "@/app/system/_role-designs/agent/app/system/enrollments/enrollment-workspace.module.css";
@@ -82,9 +82,8 @@ export default function EnrollmentHome({
           Your account does not have access to this enrollment workspace.
         </p>
       ) : selected === "requests" ? (
-        <RoleWorkspace
+        <AgentEnrollmentRequests
           key={`${me.id}-${requestId ?? "all"}`}
-          section="enrollments"
           requestId={requestId}
         />
       ) : selected === "applications" ? (

@@ -65,13 +65,22 @@ export default function FinanceReviewDialog(props: Props) {
 
   useLayoutEffect(() => {
     if (reviewPayment) {
-      const label = `Actions for payment ${String(reviewPayment.id).slice(0, 8)}`;
+      const direct =
+        document.activeElement instanceof HTMLElement &&
+        document.activeElement.hasAttribute("data-finance-review-trigger")
+          ? document.activeElement
+          : null;
+      const label =
+        direct?.getAttribute("aria-label") ??
+        `Actions for payment ${String(reviewPayment.id).slice(0, 8)}`;
 
       returnFocus.current = {
         label,
-        element: document.querySelector<HTMLElement>(
-          `button[aria-label=${JSON.stringify(label)}]`,
-        ),
+        element:
+          direct ??
+          document.querySelector<HTMLElement>(
+            `button[aria-label=${JSON.stringify(label)}]`,
+          ),
       };
     } else if (returnFocus.current) {
       const saved = returnFocus.current;

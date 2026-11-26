@@ -16,8 +16,10 @@ import type { Me } from "@/lib/api";
 import { downloadPaymentsExport, type Payment } from "@/lib/api";
 import { can } from "@/lib/useMe";
 import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
-import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { inputCls } from "@/app/system/_role-designs/finance_officer/components/FormField";
+import Select from "@/app/system/_role-designs/finance_officer/components/Select";
+import styles from "./finance-payments.module.css";
 import SplitButton from "@/app/system/_role-designs/finance_officer/components/SplitButton";
 import {
   FILTERS,
@@ -130,10 +132,39 @@ export default function PaymentListPanel({
   paymentPageSize,
   paymentHasNext,
 }: Props) {
-  const canReview = canVerify && !listError && !loading;
+  const [composing, setComposing] = useState(false);
+
+  const searchPending = paymentQuery.trim() !== appliedPaymentQuery;
+
+  const canReview = canVerify && !listError && !loading && !searchPending;
+
+  useEffect(() => {
+    if (composing || !searchPending) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setFocusedPayment(null);
+
+      resetPaymentPage();
+
+      setAppliedPaymentQuery(paymentQuery.trim());
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    composing,
+    searchPending,
+    paymentQuery,
+    resetPaymentPage,
+    setFocusedPayment,
+    setAppliedPaymentQuery,
+  ]);
 
   return (
-    <div className="glass min-w-0 rounded-3xl p-5">
+    <div className={styles.listPanel}>
       {financeReturnTo && (
         <p className="mb-4">
           <Link className="underline" href={financeReturnTo}>
@@ -162,31 +193,25 @@ export default function PaymentListPanel({
           </button>
         </div>
       )}
-      <label className="mb-4 grid max-w-md gap-1 text-sm">
-        Payment queue
-        <select
+      <div className={styles.queueFilter}>
+        <span id="finance-queue-label">Payment queue</span>
+        <Select
+          id="finance-payment-queue"
+          labelId="finance-queue-label"
           value={financeQueue}
-          onChange={(event) => {
-            setFinanceQueue(event.target.value as FinancePaymentQueue | "all");
-
+          options={Object.entries(financeQueueLabels).map(([value, label]) => ({
+            value,
+            label,
+          }))}
+          onValueChange={(value) => {
+            setFinanceQueue(value as FinancePaymentQueue | "all");
             setFocusedPayment(null);
-
             setFilter("");
-
             setProofFilter(false);
-
             resetPaymentPage();
           }}
-        >
-          {Object.entries(financeQueueLabels).map(([value, label]) => {
-            return (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            );
-          })}
-        </select>
-      </label>
+        />
+      </div>
       {proofFilter && (
         <div
           className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-violet-100 px-4 py-2 text-sm text-violet-700"
@@ -227,9 +252,13 @@ export default function PaymentListPanel({
         </div>
       )}
       <form
-        className="payment-list-search mb-3 grid gap-2 xl:grid-cols-[minmax(0,1fr)_9rem_9rem_auto]"
+        className={`${styles.searchForm} payment-list-search grid gap-2`}
         onSubmit={(event) => {
           event.preventDefault();
+
+          if (composing) {
+            return;
+          }
 
           const term = paymentQuery.trim();
 
@@ -253,11 +282,15 @@ export default function PaymentListPanel({
           <span className="client-picker-control block">
             <MagnifyingGlass weight="bold" aria-hidden="true" />
             <input
+              type="search"
+              autoComplete="off"
               value={paymentQuery}
               maxLength={100}
               onChange={(event) => {
                 return setPaymentQuery(event.target.value);
               }}
+              onCompositionStart={() => setComposing(true)}
+              onCompositionEnd={() => setComposing(false)}
               className={`${inputCls} client-picker-input`}
               placeholder="Client, batch, or reference…"
             />
@@ -300,33 +333,41 @@ export default function PaymentListPanel({
           Search
         </button>
       </form>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {FILTERS.map((f) => {
-            return (
-              <button
-                key={f.value}
-                aria-pressed={financeQueue === "all" && filter === f.value}
-                onClick={() => {
-                  setFocusedPayment(null);
-
-                  setFinanceQueue("all");
-
-                  setFilter(f.value);
-
-                  resetPaymentPage();
-                }}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-700 transition-colors ${
-                  financeQueue === "all" && filter === f.value
-                    ? "bg-blue text-white"
-                    : "bg-white/60 text-ink-soft hover:bg-white"
-                }`}
-              >
-                {f.label}
-              </button>
-            );
-          })}
+      <div className={styles.statusRow}>
+        <div className={styles.statusFilter}>
+          <span id="finance-list-status-label">Payment status</span>
+          <Select
+            id="finance-list-status"
+            labelId="finance-list-status-label"
+            value={financeQueue === "all" ? filter : ""}
+            options={FILTERS.map((f) => ({
+              value: f.value,
+              label: f.value ? f.label : "All statuses",
+            }))}
+            onValueChange={(value) => {
+              setFocusedPayment(null);
+              setFinanceQueue("all");
+              setFilter(value);
+              resetPaymentPage();
+            }}
+          />
         </div>
+      </div>
+      <div className={styles.resultsBar}>
+        <p className={styles.count} role="status">
+          {searchPending
+            ? "Updating matching payments…"
+            : loading
+              ? "Loading matching payments…"
+              : listError && !hasListSnapshot
+                ? "Payment count unavailable."
+                : `${listError ? "Last loaded: " : ""}${paymentCount} matching payment${paymentCount === 1 ? "" : "s"}.`}
+          {financeQueue === "all" &&
+          !focusedPayment &&
+          !financeBatchScope.membershipBatchId
+            ? " Exports omit client identity and payment references."
+            : null}
+        </p>{" "}
         {can(me, "REPORT_VIEW") &&
           !proofFilter &&
           financeQueue === "all" &&
@@ -335,7 +376,12 @@ export default function PaymentListPanel({
             <SplitButton
               label="Export CSV"
               icon={<DownloadSimple aria-hidden="true" />}
-              disabled={loading || Boolean(listError) || !hasListSnapshot}
+              disabled={
+                searchPending ||
+                loading ||
+                Boolean(listError) ||
+                !hasListSnapshot
+              }
               onAction={() => {
                 void downloadPaymentsExport(paymentExportFilters, "csv").catch(
                   (e) => {
@@ -363,22 +409,6 @@ export default function PaymentListPanel({
             />
           )}
       </div>
-      <p className="mb-3 text-xs text-ink-soft" role="status">
-        {loading
-          ? "Loading matching payments…"
-          : listError && !hasListSnapshot
-            ? "Payment count unavailable."
-            : `${listError ? "Last loaded: " : ""}${paymentCount} matching payment${paymentCount === 1 ? "" : "s"}.`}
-        {financeQueue === "all" &&
-        !focusedPayment &&
-        !financeBatchScope.membershipBatchId
-          ? " CSV and XLSX exports use the same search, status and payment-date filters and omit client identity and payment references."
-          : financeBatchScope.membershipBatchId
-            ? " Export this membership scope from the Collections report."
-            : focusedPayment
-              ? " Open a document from this row, or use Reports for period exports."
-              : " Choose All payments for history and report exports."}
-      </p>
       {listError && (
         <div
           className="mb-4 rounded-xl border border-rose-300 p-4 text-sm"

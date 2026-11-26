@@ -28,19 +28,30 @@ export function TableSkeletonRows({
   cellClassName,
   label = "Loading records",
   identity = false,
+  labels,
+  firstColumnHeader = false,
 }: {
   columns: number;
   rows?: number;
   cellClassName?: string;
   label?: string;
   identity?: boolean;
+  labels?: string[];
+  firstColumnHeader?: boolean;
 }) {
   return Array.from({ length: rows }, (_, row) => {
     return (
       <tr key={row} aria-busy="true" aria-label={row === 0 ? label : undefined}>
         {Array.from({ length: columns }, (_, column) => {
+          const Cell = firstColumnHeader && column === 0 ? "th" : "td";
+
           return (
-            <td key={column} className={cellClassName}>
+            <Cell
+              key={column}
+              scope={Cell === "th" ? "row" : undefined}
+              className={cellClassName}
+              data-label={labels?.[column]}
+            >
               <span className={styles.cell}>
                 {identity && column === 0 ? (
                   <>
@@ -55,7 +66,7 @@ export function TableSkeletonRows({
                   <SkeletonLine width={column === 0 ? "76%" : "64%"} />
                 )}
               </span>
-            </td>
+            </Cell>
           );
         })}
       </tr>

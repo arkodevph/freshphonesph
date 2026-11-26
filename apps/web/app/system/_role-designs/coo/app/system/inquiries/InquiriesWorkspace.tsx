@@ -1,6 +1,6 @@
 "use client";
 
-import WorkspaceProgress from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
+import InquiryCard from "@/app/system/_role-designs/coo/app/system/inquiries/InquiryCard";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/coo/components/WorkspaceNativeSelect";
 import { inquiryStatuses, type InquiryStatus } from "@freshphones/contracts";
 import { useInquiries } from "@/lib/useInquiries";
@@ -84,84 +84,29 @@ export function InquiriesWorkspace() {
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
-      {loading ? (
-        <WorkspaceProgress label="Loading inquiries…" />
-      ) : result?.items.length === 0 ? (
+      {!loading && result?.items.length === 0 ? (
         <p className={styles.empty}>
           No inquiries {query.q || query.status ? "match these filters" : "yet"}
           . New website inquiries will appear here.
         </p>
       ) : (
         <div className={styles.list}>
-          {result?.items.map((item) => {
-            return (
-              <article key={item.id} className={styles.card}>
-                <div className={styles.cardHeading}>
-                  <div>
-                    <h2>{item.name}</h2>
-                    <p>{item.deviceName}</p>
-                  </div>
-                  <span className={styles.badge}>{labels[item.status]}</span>
-                </div>
-                <dl>
-                  <div>
-                    <dt>Phone</dt>
-                    <dd>
-                      <a href={`tel:${item.phone.replace(/[^+\d]/g, "")}`}>
-                        {item.phone}
-                      </a>
-                    </dd>
-                  </div>
-                  {item.email && (
-                    <div>
-                      <dt>Email</dt>
-                      <dd>
-                        <a href={`mailto:${item.email}`}>{item.email}</a>
-                      </dd>
-                    </div>
-                  )}
-                  <div>
-                    <dt>Received</dt>
-                    <dd>
-                      <time dateTime={item.createdAt}>
-                        {new Date(item.createdAt).toLocaleString("en-PH")}
-                      </time>
-                    </dd>
-                  </div>
-                </dl>
-                {item.message && (
-                  <div className={styles.message}>
-                    <h3>Customer’s question</h3>
-                    <p>{item.message}</p>
-                  </div>
-                )}
-                <div className={styles.cardFooter}>
-                  <small>Reference: {item.id}</small>
-                  <label>
-                    Update status
-                    <WorkspaceNativeSelect
-                      value={item.status}
-                      disabled={!!pending}
-                      onChange={(e) => {
-                        return void changeStatus(
-                          item,
-                          e.target.value as InquiryStatus,
-                        );
-                      }}
-                    >
-                      {inquiryStatuses.map((s) => {
-                        return (
-                          <option key={s} value={s}>
-                            {labels[s]}
-                          </option>
-                        );
-                      })}
-                    </WorkspaceNativeSelect>
-                  </label>
-                </div>
-              </article>
-            );
-          })}
+          {loading && !result
+            ? Array.from({ length: 3 }, (_, index) => {
+                return <InquiryCard key={index} busy onStatus={() => {}} />;
+              })
+            : result?.items.map((item) => {
+                return (
+                  <InquiryCard
+                    key={item.id}
+                    item={item}
+                    busy={Boolean(pending)}
+                    onStatus={(item, status) => {
+                      void changeStatus(item, status);
+                    }}
+                  />
+                );
+              })}
         </div>
       )}
       {result && (

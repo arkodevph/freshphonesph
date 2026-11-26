@@ -144,9 +144,70 @@ export default function RecordPaymentForm({
             approval requires proof.
           </p>
         )}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Field label="Client">
+            <ClientPicker
+              label="Client"
+              selected={recordClient}
+              required
+              onSelect={(client) => {
+                setRecordClient(client);
+
+                setForm((current) => {
+                  return {
+                    ...current,
+                    client: client ? String(client.id) : "",
+                  };
+                });
+              }}
+            />
+          </Field>
+          <Field label="Amount (₱)">
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              value={form.amount}
+              onChange={(e) => {
+                return setForm({ ...form, amount: e.target.value });
+              }}
+              className={inputCls}
+              placeholder="2000.00"
+            />
+          </Field>
+          <Field label="Payment date">
+            <DateInput
+              type="date"
+              required
+              value={form.payment_date}
+              onChange={(e) => {
+                return setForm({ ...form, payment_date: e.target.value });
+              }}
+              className={inputCls}
+            />
+          </Field>
+          <PaymentMethodSelect
+            value={form.method}
+            onValueChange={(method) => {
+              setForm({ ...form, method });
+            }}
+          />
+          <Field label="Reference #">
+            <input
+              type="text"
+              value={form.reference_no}
+              onChange={(e) => {
+                return setForm({ ...form, reference_no: e.target.value });
+              }}
+              className={inputCls}
+              placeholder="GC123"
+            />
+          </Field>
+        </div>
         {
           <div
-            className="receipt-scan-panel mb-4 rounded-2xl p-4"
+            className="receipt-scan-panel my-4 rounded-2xl p-4"
             aria-busy={scanning}
           >
             <div className="mb-2 flex items-center gap-2 text-sm font-700 text-blue-ink">
@@ -376,67 +437,7 @@ export default function RecordPaymentForm({
             )}
           </div>
         }
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Field label="Client">
-            <ClientPicker
-              label="Client"
-              selected={recordClient}
-              required
-              onSelect={(client) => {
-                setRecordClient(client);
 
-                setForm((current) => {
-                  return {
-                    ...current,
-                    client: client ? String(client.id) : "",
-                  };
-                });
-              }}
-            />
-          </Field>
-          <Field label="Amount (₱)">
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              value={form.amount}
-              onChange={(e) => {
-                return setForm({ ...form, amount: e.target.value });
-              }}
-              className={inputCls}
-              placeholder="2000.00"
-            />
-          </Field>
-          <Field label="Payment date">
-            <DateInput
-              type="date"
-              required
-              value={form.payment_date}
-              onChange={(e) => {
-                return setForm({ ...form, payment_date: e.target.value });
-              }}
-              className={inputCls}
-            />
-          </Field>
-          <PaymentMethodSelect
-            value={form.method}
-            onValueChange={(method) => {
-              setForm({ ...form, method });
-            }}
-          />
-          <Field label="Reference #">
-            <input
-              type="text"
-              value={form.reference_no}
-              onChange={(e) => {
-                return setForm({ ...form, reference_no: e.target.value });
-              }}
-              className={inputCls}
-              placeholder="GC123"
-            />
-          </Field>
-        </div>
         {form.reference_no.trim() && (
           <div className="payment-duplicate-area" aria-live="polite">
             {duplicateChecking && (

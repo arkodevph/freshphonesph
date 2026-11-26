@@ -1,26 +1,27 @@
 /* Independent batch_handler design. Edit this role only; this is not regenerated at build time. */
-/* Nami: extend the COO dashboard's Ember study to operational workspaces.
-   Role scope keeps the customer portal and other executive workspaces independent. */
+/* Baker: Handler uses the shared Finance/COO staff shell and palette. */
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme] {
-  --system-bg: #f5f6f5;
+  --system-bg: #f5f6f8;
   --system-surface: #fff;
-  --system-surface-inset: #f4f6f4;
-  --system-text: #202622;
-  --system-muted: #606963;
-  --system-border: #dce2dd;
-  --system-accent: #286247;
-  --system-accent-soft: #e9f2ec;
-  --workspace-raised: #edf0ed;
-  --workspace-inset: #f6f8f6;
-  --workspace-action: #286247;
-  --workspace-action-hover: #204f39;
+  --system-surface-inset: #f3f5f8;
+  --system-text: #20242c;
+  --system-muted: #626b79;
+  --system-border: #dce1e9;
+  --system-accent: #0f62fe;
+  --system-accent-soft: #eaf1ff;
+  --workspace-raised: #edf0f5;
+  --workspace-inset: #f6f8fb;
+  --workspace-action: #0f62fe;
+  --workspace-action-hover: #0043ce;
   --workspace-on-action: #fff;
-  --workspace-focus: #397c59;
+  --workspace-focus: #0f62fe;
   --workspace-control: #fff;
-  --workspace-control-hover: #f0f3f0;
+  --workspace-control-hover: #edf2fb;
   --workspace-panel-shadow: none;
   --workspace-control-radius: 9px;
   --workspace-panel-radius: 16px;
+  --portal-bg: var(--system-bg);
+  --portal-surface-alt: var(--system-surface-inset);
   --portal-text: var(--system-text);
   --portal-muted: var(--system-muted);
   --portal-border: var(--system-border);
@@ -40,18 +41,18 @@ html[data-system-theme="dark"]
   --system-bg: #000;
   --system-surface: #0d0d0d;
   --system-surface-inset: #131313;
-  --system-text: #f0f2f0;
-  --system-muted: #a5ada7;
-  --system-border: #2b2f2c;
-  --system-accent: #a0d9ba;
-  --system-accent-soft: #19281f;
-  --workspace-raised: #202321;
-  --workspace-inset: #111312;
-  --workspace-action: #28553e;
-  --workspace-action-hover: #346d50;
-  --workspace-focus: #a0d9ba;
-  --workspace-control: #151716;
-  --workspace-control-hover: #202622;
+  --system-text: #f2f4f8;
+  --system-muted: #a8afb9;
+  --system-border: #292d34;
+  --system-accent: #78a9ff;
+  --system-accent-soft: #152238;
+  --workspace-raised: #202226;
+  --workspace-inset: #121416;
+  --workspace-action: #0f62fe;
+  --workspace-action-hover: #0353e9;
+  --workspace-focus: #78a9ff;
+  --workspace-control: #15171b;
+  --workspace-control-hover: #20242c;
   color-scheme: dark;
 }
 
@@ -265,7 +266,7 @@ html[data-system-theme="dark"]
 
 /* Quiet rows, readable labels, and one boundary per record. */
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme]
-  table:not([data-calendar] table) {
+  table:not([data-calendar] table):not([data-handler-table]) {
   width: 100%;
   border-collapse: collapse;
   color: var(--system-text);
@@ -275,14 +276,14 @@ html[data-system-theme="dark"]
 }
 
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table])
   thead {
   background: var(--workspace-inset);
   color: var(--system-muted);
 }
 
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table])
   th {
   padding: 12px 16px;
   border-bottom: 1px solid var(--system-border);
@@ -294,7 +295,7 @@ html[data-system-theme="dark"]
 }
 
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table])
   td {
   padding: 13px 16px;
   border-bottom: 1px solid var(--system-border);
@@ -302,14 +303,14 @@ html[data-system-theme="dark"]
 }
 
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table])
   tbody
   tr:hover {
   background: var(--workspace-inset);
 }
 
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table])
   button {
   min-height: 36px;
   font-size: 13px;
@@ -348,7 +349,7 @@ html[data-system-theme="dark"]
 }
 
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme]
-  table:not([data-calendar] table)
+  table:not([data-calendar] table):not([data-handler-table])
   thead
   th {
   position: sticky;
@@ -1042,6 +1043,6 @@ dialog[data-handler-modal][data-modal-spring][open]::backdrop {
 }
 .system-shell[data-workspace-role="batch_handler"][data-workspace-theme]
   dialog[data-workspace-modal][data-modal-spring][data-modal-size="drawer"][open] {
-  opacity: calc(0.72 + var(--dialog-progress, 1) * 0.28);
+  opacity: var(--dialog-progress, 1);
   transform: translateX(calc((1 - var(--dialog-progress, 1)) * 100%));
 }

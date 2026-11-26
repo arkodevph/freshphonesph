@@ -213,6 +213,11 @@ export function reportChartModels(report: LoadedReport): BarChartModel[] {
             value: data.scheduleMismatchPayments,
             tone: "blue",
           },
+          {
+            label: "Verified without schedule",
+            value: data.verifiedWithoutSchedulePayments,
+            tone: "accent",
+          },
           ...(data.adjustmentAuditGapPayments === undefined
             ? []
             : [
@@ -252,6 +257,15 @@ export function reportChartModels(report: LoadedReport): BarChartModel[] {
             value: data.byStatus.DONE ?? 0,
             tone: "verified",
           },
+          ...(data.byStatus.CANCELLED
+            ? [
+                {
+                  label: "Cancelled",
+                  value: data.byStatus.CANCELLED,
+                  tone: "muted" as const,
+                },
+              ]
+            : []),
         ],
       },
       {

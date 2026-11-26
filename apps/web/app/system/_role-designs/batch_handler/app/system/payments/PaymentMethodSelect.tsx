@@ -77,6 +77,7 @@ export default function PaymentMethodSelect({
         value={value}
         options={options}
         onValueChange={onValueChange}
+        searchable={false}
         fitViewport
         renderLabel={(option) => {
           return (

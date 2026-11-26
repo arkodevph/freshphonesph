@@ -306,6 +306,41 @@
 .templateLayout .note {
   margin-top: 0;
 }
+
+.editor {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.editor > :is(input, textarea),
+.pendingSubject,
+.pendingBody {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--system-border);
+  border-radius: var(--workspace-control-radius);
+  background: var(--workspace-control);
+  color: var(--system-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.editor > textarea,
+.pendingBody {
+  min-height: 160px;
+}
+
+.pendingBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.editor > button {
+  justify-self: start;
+}
 .page [hidden] {
   display: none !important;
 }

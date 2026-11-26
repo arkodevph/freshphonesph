@@ -30,7 +30,7 @@ const maxActivity = (value: unknown, initial: Date): Date => {
 
     for (const [key, child] of Object.entries(item)) {
       if (
-        /^(createdAt|updatedAt|closedAt|reviewedAt|submittedAt|verifiedAt|acknowledgedAt)$/.test(
+        /^(createdAt|updatedAt|closedAt|reviewedAt|submittedAt|cancelledAt|verifiedAt|acknowledgedAt)$/.test(
           key,
         ) &&
         child instanceof Date &&
@@ -379,7 +379,7 @@ export async function describe(
       },
     });
 
-    if (row.status !== "DONE") {
+    if (!["DONE", "CANCELLED"].includes(row.status)) {
       blockers.push("Finish every linked task first.");
     }
 
@@ -512,7 +512,7 @@ export async function describe(
     }
 
     const openCreated = await tx.task.count({
-      where: { creatorId: row.id, status: { not: "DONE" } },
+      where: { creatorId: row.id, status: { notIn: ["DONE", "CANCELLED"] } },
     });
 
     if (openCreated) {
@@ -944,7 +944,7 @@ export async function describe(
 
 // Keep audit timestamps, record identifiers, enums and exact monetary facts; erase descriptive strings and embedded personal fields.
 const safeStringKeys =
-  /^(id|.*Id|status|role|source|method|action|entity|decision|kind|priority|releaseStatus|createdAt|updatedAt|verifiedAt|paymentDate|dueDate|startDate|endDate|periodStart|periodEnd|submittedAt|closedAt|reviewedAt|amount|amountDue|.*Amount|originalVerifiedAmount|adjustmentAmount|effectiveAmount|resultingAmount)$/;
+  /^(id|.*Id|status|role|source|method|action|entity|decision|kind|priority|releaseStatus|createdAt|updatedAt|verifiedAt|paymentDate|dueDate|startDate|endDate|periodStart|periodEnd|submittedAt|cancelledAt|closedAt|reviewedAt|amount|amountDue|.*Amount|originalVerifiedAmount|adjustmentAmount|effectiveAmount|resultingAmount)$/;
 
 export function redactSnapshot(
   value: unknown,

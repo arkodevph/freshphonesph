@@ -478,6 +478,58 @@ test("inactive Agent accounts leave every aggregate while inactive profiles rema
   }
 });
 
+test("cancelled tasks stay in Pioneer totals and scoped lists without becoming outstanding", async () => {
+  const before = await get<PioneerTaskOverview>("/pioneer/overview/tasks");
+
+  const pioneerId = people.get("PIONEER_AGENT")!.id;
+
+  const created = await Promise.all(
+    [pioneerId, leadAgent].map((assigneeId) => {
+      return db.task.create({
+        data: {
+          title: "Synthetic cancelled overview task",
+          creatorId: pioneerId,
+          assigneeId,
+          status: "CANCELLED",
+          deadline: new Date("2001-01-01"),
+          cancelledAt: new Date(),
+          cancellationReason: "Synthetic merge regression",
+        },
+      });
+    }),
+  );
+
+  try {
+    const after = await get<PioneerTaskOverview>("/pioneer/overview/tasks");
+
+    for (const view of ["own", "team"] as const) {
+      assert.equal(after[view].total, before[view].total + 1);
+
+      assert.equal(after[view].outstanding, before[view].outstanding);
+
+      assert.equal(after[view].overdue, before[view].overdue);
+
+      const filtered = await get<{ count: number; results: { id: string }[] }>(
+        `/tasks?view=${view}&status=CANCELLED`,
+      );
+
+      assert.equal(filtered.count, 1);
+
+      assert.equal(filtered.results[0].id, created[view === "own" ? 0 : 1].id);
+    }
+  } finally {
+    await db.task.deleteMany({
+      where: {
+        id: {
+          in: created.map((task) => {
+            return task.id;
+          }),
+        },
+      },
+    });
+  }
+});
+
 test("service rechecks current active role even when called with a stale identity", async () => {
   const response = await get<User>("/auth/me");
 

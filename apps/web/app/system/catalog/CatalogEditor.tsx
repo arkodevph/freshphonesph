@@ -1,5 +1,6 @@
 "use client";
 
+import CatalogPhotoField from "@/app/system/catalog/CatalogPhotoField";
 import { useSpringDialog } from "@/lib/useSpringDialog";
 import ModalCloseButton from "@/components/ModalCloseButton";
 import WorkspaceNativeSelect from "@/components/WorkspaceNativeSelect";
@@ -645,41 +646,22 @@ export function CatalogEditor({
           className={styles.photoSection}
           aria-label="Product photo"
         >
-          <h3>Product photo</h3>
-          <p>
-            Upload a JPG, PNG or WebP up to 5 MB. Use a product photo suitable
-            for public display.
-          </p>
-          {photo && (
-            <img
-              src={photo}
-              crossOrigin={item?.hasImage ? "use-credentials" : undefined}
-              alt={`${item?.name} current product photo`}
-              className={styles.photo}
-            />
-          )}
-          {!item ? (
-            <p>Save the listing first to upload a photo.</p>
-          ) : (
-            <>
-              <label className={styles.file}>
-                Choose product photo
-                <input
-                  key={fileKey}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  disabled={saving || outdated || Boolean(confirm)}
-                  onChange={(event) => {
-                    setFile(event.target.files?.[0] ?? null);
+          <CatalogPhotoField
+            photo={photo}
+            name={item?.name ?? draft.name}
+            hasImage={Boolean(item?.hasImage)}
+            file={file}
+            fileKey={fileKey}
+            disabled={saving || outdated || Boolean(confirm)}
+            canUpload={Boolean(item)}
+            onChange={(selected) => {
+              setFile(selected);
 
-                    setSaved("");
-                  }}
-                />
-              </label>
-              {dirty && (
-                <p>Save your listing changes before changing the photo.</p>
-              )}
-            </>
+              setSaved("");
+            }}
+          />
+          {dirty && item && (
+            <p>Save your listing changes before changing the photo.</p>
           )}
         </section>
       </div>
@@ -698,8 +680,10 @@ export function CatalogEditor({
                   }, true);
                 }
               }}
+              className={styles.primary}
+              data-variant="primary"
             >
-              Upload photo
+              {saving ? "Uploading…" : "Upload photo"}
             </button>
             <button
               type="button"

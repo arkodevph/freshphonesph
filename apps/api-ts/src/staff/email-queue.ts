@@ -123,6 +123,7 @@ export async function queueTaskEmail(
     assigneeId: string;
     deadline: Date;
     priority: string;
+    assignmentRevision?: number;
   },
   kind: TaskAlertKind,
   now = new Date(),
@@ -148,7 +149,7 @@ export async function queueTaskEmail(
       kind,
       taskId: task.id,
       deadline: task.deadline,
-      dedupeKey: `task:${task.id}:${assignee.id}:${kind}:${task.deadline.toISOString()}`,
+      dedupeKey: `task:${task.id}:${assignee.id}:${kind}:${task.deadline.toISOString()}${(task.assignmentRevision ?? 1) > 1 ? `:assignment:${task.assignmentRevision}` : ""}`,
       message: `Task: ${task.title}\nDeadline: ${deadline} (Philippine time). Priority: ${task.priority}. Open the task to review its instructions and submit your work.`,
       targetPath: `/system/tasks?task=${task.id}`,
     },

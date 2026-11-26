@@ -1,0 +1,81 @@
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--system-border);
+  border-radius: 16px;
+  background: var(--system-surface);
+}
+
+.table {
+  width: 100%;
+  min-width: 1320px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
+.tableScroll.tableScroll .table.table tbody > tr > td {
+  vertical-align: top;
+}
+
+.tableScroll .table.table .memberLink.memberLink {
+  display: inline-block;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--system-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.records {
+  min-width: 108px;
+  text-align: left;
+}
+
+.records > summary {
+  padding: 6px 10px;
+  border: 1px solid var(--system-border);
+  border-radius: 8px;
+  color: var(--system-text);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.recordActions {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+}
+
+.tableScroll .table.table .recordActions.recordActions button {
+  width: 100%;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--system-border);
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--system-text);
+  font-size: 12px;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tableScroll .table.table .recordActions.recordActions button:hover {
+  background: color-mix(in srgb, var(--system-text) 5%, transparent);
+}
+
+.tableScroll:focus-visible,
+.records summary:focus-visible,
+.recordActions button:focus-visible,
+.memberLink:focus-visible {
+  outline: 2px solid var(--system-accent);
+  outline-offset: 2px;
+}

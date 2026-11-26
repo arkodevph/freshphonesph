@@ -15,6 +15,7 @@ import { useWorkspaceMotion } from "@/lib/useWorkspaceMotion";
 import WorkspaceDetails from "@/app/system/_role-designs/hr_payroll/components/WorkspaceDetails";
 import { SkeletonLine } from "@/app/system/_role-designs/hr_payroll/components/WorkspaceProgress";
 import CooTasks from "./CooTasks";
+import PersonnelAvatars from "./PersonnelAvatars";
 import { useHrOverview } from "./useHrOverview";
 import styles from "./hr-dashboard.module.css";
 
@@ -77,6 +78,7 @@ export default function HrDashboard({ me }: { me: Me }) {
         .map((role) => ({
           role,
           total: staff.filter((person) => person.role === role).length,
+          members: staff.filter((person) => person.role === role),
         }))
         .sort(
           (a, b) =>
@@ -212,24 +214,20 @@ export default function HrDashboard({ me }: { me: Me }) {
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <div className={styles.roleItem} key={i}>
                     <SkeletonLine width="18ch" />
-                    <SkeletonLine width="100%" />
+                    <PersonnelAvatars loading />
                   </div>
                 ))}
               </div>
             ) : staff && staff.length ? (
               <>
                 <ul className={styles.roleGrid}>
-                  {roleCounts.slice(0, 6).map(({ role, total }) => (
+                  {roleCounts.slice(0, 6).map(({ role, total, members }) => (
                     <li key={role} className={styles.roleItem}>
                       <div>
                         <span>{roleLabels[role]}</span>
                         <strong>{count.format(total)}</strong>
                       </div>
-                      <div className={styles.roleTrack} aria-hidden="true">
-                        <span
-                          style={{ width: `${(total / staff.length) * 100}%` }}
-                        />
-                      </div>
+                      <PersonnelAvatars members={members} />
                     </li>
                   ))}
                 </ul>
@@ -237,19 +235,13 @@ export default function HrDashboard({ me }: { me: Me }) {
                   <WorkspaceDetails className={styles.moreRoles}>
                     <summary>{`View all ${roleCounts.length} roles`}</summary>
                     <ul className={styles.roleGrid}>
-                      {roleCounts.slice(6).map(({ role, total }) => (
+                      {roleCounts.slice(6).map(({ role, total, members }) => (
                         <li key={role} className={styles.roleItem}>
                           <div>
                             <span>{roleLabels[role]}</span>
                             <strong>{count.format(total)}</strong>
                           </div>
-                          <div className={styles.roleTrack} aria-hidden="true">
-                            <span
-                              style={{
-                                width: `${(total / staff.length) * 100}%`,
-                              }}
-                            />
-                          </div>
+                          <PersonnelAvatars members={members} />
                         </li>
                       ))}
                     </ul>

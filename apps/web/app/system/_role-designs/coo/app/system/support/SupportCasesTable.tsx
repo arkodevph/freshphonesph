@@ -46,7 +46,15 @@ export default function SupportCasesTable({
 }: Props) {
   return (
     <div className="glass overflow-x-auto rounded-3xl p-5">
-      <table className="w-full min-w-[1000px] text-left text-sm">
+      <table
+        className="w-full min-w-[1000px] text-left text-sm"
+        style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}
+      >
+        <colgroup>
+          {[5, 13, 10, 9, 18, 11, 10, 10, 9, 5].map((width, index) => {
+            return <col key={index} style={{ width: `${width}%` }} />;
+          })}
+        </colgroup>
         <thead className="text-xs uppercase tracking-wide text-ink-soft">
           <tr className="border-b border-white/60">
             {[

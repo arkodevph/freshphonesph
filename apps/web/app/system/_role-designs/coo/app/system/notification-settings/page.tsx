@@ -1,9 +1,9 @@
 "use client";
 
-import WorkspaceProgress from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
+import EmailTemplates from "@/app/system/_role-designs/coo/app/system/notification-settings/EmailTemplates";
 import { useToastNotice } from "@/lib/useToastNotice";
 import { useEffect, useState } from "react";
-import { Bell, FloppyDisk, Info, PaperPlaneTilt } from "@phosphor-icons/react";
+import { Bell, FloppyDisk, PaperPlaneTilt } from "@phosphor-icons/react";
 import { tsRequest } from "@/lib/ts-api";
 import { can, useMe } from "@/lib/useMe";
 import styles from "@/app/system/_role-designs/coo/app/system/notification-settings/notification-settings.module.css";
@@ -253,34 +253,46 @@ export default function NotificationSettingsPage() {
             {notice}
           </p>
         )}
+        <div
+          className={styles.audience}
+          role="group"
+          aria-label="Customer email settings"
+        >
+          {[
+            ["templates", "Email templates"],
+            ["timing", "Reminder timing"],
+            ["test", "Test email"],
+          ].map(([value, label]) => {
+            return (
+              <button
+                key={value}
+                type="button"
+                disabled={!settings}
+                aria-pressed={section === value}
+                onClick={() => {
+                  return setSection(value);
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
         {!settings ? (
-          <WorkspaceProgress label="Loading settings…" />
+          <div>
+            <EmailTemplates
+              labels={labels}
+              selected={templateKind}
+              onSelect={setTemplateKind}
+              saving={saving}
+              onEdit={editTemplate}
+              onSave={(template) => {
+                void saveTemplate(template);
+              }}
+            />
+          </div>
         ) : (
           <>
-            <div
-              className={styles.audience}
-              role="group"
-              aria-label="Customer email settings"
-            >
-              {[
-                ["templates", "Email templates"],
-                ["timing", "Reminder timing"],
-                ["test", "Test email"],
-              ].map(([value, label]) => {
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={section === value}
-                    onClick={() => {
-                      return setSection(value);
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
             <section hidden={section !== "timing"} className={styles.card}>
               <h2>Installment reminders</h2>
               <p>
@@ -362,95 +374,17 @@ export default function NotificationSettingsPage() {
               </form>
             </section>
             <div hidden={section !== "templates"}>
-              <div className={styles.templateLayout}>
-                <div
-                  className={styles.templateNav}
-                  role="group"
-                  aria-label="Email templates"
-                >
-                  {settings.templates.map((template) => {
-                    return (
-                      <button
-                        key={template.kind}
-                        type="button"
-                        aria-pressed={templateKind === template.kind}
-                        onClick={() => {
-                          return setTemplateKind(template.kind);
-                        }}
-                      >
-                        {labels[template.kind]}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div>
-                  <div className={styles.note}>
-                    <Info aria-hidden="true" />
-                    <span>
-                      Use <code>{"{title}"}</code> in every subject and{" "}
-                      <code>{"{message}"}</code> and <code>{"{url}"}</code> in
-                      each email body. The system fills them from the customer’s
-                      own event.
-                    </span>
-                  </div>
-                  <div className={styles.grid}>
-                    {settings.templates.map((template) => {
-                      return (
-                        <section
-                          hidden={template.kind !== templateKind}
-                          className={styles.card}
-                          key={template.kind}
-                        >
-                          <h2>{labels[template.kind]}</h2>
-                          <label htmlFor={`subject-${template.kind}`}>
-                            Subject
-                          </label>
-                          <input
-                            id={`subject-${template.kind}`}
-                            value={template.subject}
-                            onChange={(event) => {
-                              return editTemplate(
-                                template.kind,
-                                "subject",
-                                event.target.value,
-                              );
-                            }}
-                            maxLength={180}
-                          />
-                          <label htmlFor={`body-${template.kind}`}>
-                            Email body
-                          </label>
-                          <textarea
-                            id={`body-${template.kind}`}
-                            value={template.body}
-                            onChange={(event) => {
-                              return editTemplate(
-                                template.kind,
-                                "body",
-                                event.target.value,
-                              );
-                            }}
-                            maxLength={2500}
-                            rows={7}
-                          />
-                          <button
-                            type="button"
-                            disabled={Boolean(saving)}
-                            onClick={() => {
-                              return saveTemplate(template);
-                            }}
-                          >
-                            <FloppyDisk aria-hidden="true" />{" "}
-                            {saving === template.kind
-                              ? "Saving…"
-                              : "Save email"}
-                          </button>
-                        </section>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+              <EmailTemplates
+                templates={settings.templates}
+                labels={labels}
+                selected={templateKind}
+                onSelect={setTemplateKind}
+                saving={saving}
+                onEdit={editTemplate}
+                onSave={(template) => {
+                  void saveTemplate(template);
+                }}
+              />
             </div>
           </>
         )}

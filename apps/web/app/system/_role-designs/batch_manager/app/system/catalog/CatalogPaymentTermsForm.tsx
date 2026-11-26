@@ -4,6 +4,7 @@ import WorkspaceNativeSelect from "@/app/system/_role-designs/batch_manager/comp
 import { catalogPrice } from "@/lib/catalog";
 import { catalogPlanLabels, type CatalogInput } from "@freshphones/contracts";
 import type { Dispatch, SetStateAction } from "react";
+import CatalogPlanSwitch from "./CatalogPlanSwitch";
 import styles from "@/app/system/_role-designs/batch_manager/app/system/catalog/catalog.module.css";
 
 type Props = {
@@ -76,35 +77,22 @@ export default function CatalogPaymentTermsForm({
       className={`${styles.planSection} ${styles.wide}`}
       aria-label="Sample payment terms"
     >
-      <h3>Sample payment breakdown</h3>
-      <p>
-        Enter the full terms for this offer. Customers can preview payments and
-        example dates before joining.
-      </p>
-      <label className={styles.check}>
-        <input
-          type="checkbox"
-          checked={draft.installmentPlan !== null}
-          onChange={(event) => {
-            return setDraft({
-              ...draft,
-              installmentPlan: event.target.checked
-                ? {
-                    totalAmount: "",
-                    installmentCount: NaN,
-                    cadence: "WEEKLY",
-                  }
-                : null,
-            });
-          }}
-        />
-        Show a sample payment plan
-      </label>
+      <CatalogPlanSwitch
+        checked={draft.installmentPlan !== null}
+        onChange={(checked) => {
+          setDraft({
+            ...draft,
+            installmentPlan: checked
+              ? { totalAmount: "", installmentCount: NaN, cadence: "WEEKLY" }
+              : null,
+          });
+        }}
+      />
       {draft.installmentPlan ? (
         <>
           <div className={styles.planFields}>
             <label>
-              Total payable for this offer (PHP)
+              Total payable (PHP)
               <input
                 required
                 type="number"
@@ -124,8 +112,7 @@ export default function CatalogPaymentTermsForm({
                 }}
               />
               <small>
-                Enter the complete payable total. The daily advertisement does
-                not calculate this amount.
+                Enter the agreed total, independent of the daily rate.
               </small>
             </label>
             <label>
@@ -195,14 +182,14 @@ export default function CatalogPaymentTermsForm({
             </p>
           )}
           <p>
-            Use a separate listing for a different offer. Saving these terms
-            does not issue a customer schedule or change an existing agreement.
+            Saving sample terms does not issue a schedule or change an existing
+            agreement.
           </p>
         </>
       ) : (
         <p>
-          Customers will be invited to contact the team for a breakdown. No term
-          is inferred from the daily rate.
+          Customers will contact the team for a breakdown. Terms are never
+          inferred from the daily rate.
         </p>
       )}
     </section>

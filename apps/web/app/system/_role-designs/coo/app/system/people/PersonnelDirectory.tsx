@@ -1,6 +1,7 @@
 "use client";
 
-import WorkspaceProgress, {
+import {
+  SkeletonText,
   TableSkeletonRows,
 } from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
 import { useState } from "react";
@@ -141,9 +142,9 @@ export default function PersonnelDirectory({
           </button>
         )}
       </div>
-      <p className={styles.count} role="status">
+      <p className={styles.count} role="status" aria-busy={loading}>
         {loading ? (
-          <WorkspaceProgress label="Loading personnel…" />
+          <SkeletonText>0 of 0 staff</SkeletonText>
         ) : (
           `${people.length} of ${staff.length} staff`
         )}
@@ -170,7 +171,9 @@ export default function PersonnelDirectory({
             {loading && !staff.length ? (
               <TableSkeletonRows
                 columns={4}
-                rows={8}
+                rows={10}
+                firstColumnHeader
+                labels={["Name", "Role", "Supervisor", "Status"]}
                 label="Loading personnel"
               />
             ) : (

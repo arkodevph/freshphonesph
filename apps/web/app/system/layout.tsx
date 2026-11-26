@@ -1,7 +1,10 @@
 "use client";
 
-import HandlerSystemLayout from "./_role-designs/batch_handler/app/system/handler/HandlerSystemLayout";
-import { isBatchHandler } from "@/lib/handler-workspace";
+import { HandlerDropdownScope } from "@/components/dropdown/HandlerDropdownScope";
+import {
+  handlerNavigationLabels,
+  isBatchHandler,
+} from "@/lib/handler-workspace";
 import SystemSidebar from "./SystemSidebar";
 import {
   systemNavigation,
@@ -24,16 +27,8 @@ import { logoutSession } from "@/lib/auth";
 import { availableRoute } from "@/lib/backend";
 import { can, useMe, CurrentUserContext } from "@/lib/useMe";
 import { canOpenWorkspace } from "@/lib/workspace-access";
-import {
-  Bell,
-  CaretDown,
-  ChartBar,
-  Moon,
-  SignOut,
-  Sparkle,
-  SquaresFour,
-  Sun,
-} from "@phosphor-icons/react";
+import { CaretDown, Moon, SignOut, Sun } from "@phosphor-icons/react";
+import { Assistant, Bell, Home, Reports } from "@/components/JiggIcons";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -42,6 +37,8 @@ import ceoStyles from "./_role-designs/ceo/app/system/ceo-portal.module.css";
 import { workspaceDesignRole } from "@/lib/workspace-design-role";
 import "./ios-menus.css";
 import "./_role-designs/workspaces.css";
+import "./workspace-detail-panels.css";
+import WorkspaceModalMotion from "@/components/WorkspaceModalMotion";
 
 const formatRole = (role?: string | null) => {
   if (role === "ceo") {
@@ -73,10 +70,11 @@ export default function SystemLayout({
 }) {
   const me = useMe();
 
-  return isBatchHandler(me?.role) ? (
-    <HandlerSystemLayout>{children}</HandlerSystemLayout>
-  ) : (
-    <StandardSystemLayout>{children}</StandardSystemLayout>
+  return (
+    <HandlerDropdownScope enabled={isBatchHandler(me?.role)}>
+      <WorkspaceModalMotion />
+      <StandardSystemLayout>{children}</StandardSystemLayout>
+    </HandlerDropdownScope>
   );
 }
 
@@ -295,6 +293,35 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
     );
   });
 
+  if (isBatchHandler(me.role)) {
+    const order = [
+      "/system",
+      "/system/records",
+      "/system/payments",
+      "/system/gcash-history",
+      "/system/clients",
+      "/system/tasks",
+    ];
+
+    for (const [index, item] of visibleNav.entries()) {
+      visibleNav[index] = {
+        ...item,
+        group: "Workspace",
+        label:
+          item.href === "/system"
+            ? "Dashboard"
+            : (handlerNavigationLabels[item.href] ?? item.label),
+      };
+    }
+
+    visibleNav.sort((a, b) => {
+      return (
+        (order.indexOf(a.href) < 0 ? 100 : order.indexOf(a.href)) -
+        (order.indexOf(b.href) < 0 ? 100 : order.indexOf(b.href))
+      );
+    });
+  }
+
   if (me.role === "finance_officer") {
     const order = [
       "/system",
@@ -330,9 +357,9 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
   }
 
   const ownerNav = [
-    { href: "/system", icon: SquaresFour },
-    { href: "/system/assistant", icon: Sparkle },
-    { href: "/system/reports", icon: ChartBar },
+    { href: "/system", icon: Home },
+    { href: "/system/assistant", icon: Assistant },
+    { href: "/system/reports", icon: Reports },
   ].flatMap(({ href, icon }) => {
     const item = visibleNav.find((candidate) => {
       return candidate.href === href;
@@ -549,7 +576,7 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
                       ) : (
                         <div className="system-notification-empty">
                           <span>
-                            <Bell weight="fill" />
+                            <Bell />
                           </span>
                           <strong>You&apos;re all caught up</strong>
                           <p>No new staff notifications.</p>
@@ -670,10 +697,7 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
                 href={href!}
                 aria-current={pathname === href ? "page" : undefined}
               >
-                <Icon
-                  weight={pathname === href ? "fill" : "regular"}
-                  aria-hidden="true"
-                />
+                <Icon aria-hidden="true" />
                 <span>{label}</span>
               </Link>
             );

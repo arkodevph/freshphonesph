@@ -60,7 +60,7 @@ export default function StaffTasksDashboard() {
 }
 
 function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
-  const coo = me.role === "coo";
+  const coo = me.role === "kpi_officer";
 
   const [assignmentOpen, setAssignmentOpen] = useState(false);
 
@@ -118,6 +118,8 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
 
   const [decision, setDecision] = useState("NOTED");
 
+  const [managementDirty, setManagementDirty] = useState(false);
+
   const dialog = useRef<HTMLDialogElement>(null);
 
   const activeTaskId = useRef<string | null>(null);
@@ -137,6 +139,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
   mutationBusy.current = busy;
 
   draft.current = Boolean(
+    managementDirty ||
     report.trim() ||
     attachment ||
     evaluation.trim() ||
@@ -338,6 +341,8 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
   }, [staff, linkedId, openTask]);
 
   function clearTask() {
+    setManagementDirty(false);
+
     detailSequence.current++;
 
     activeTaskId.current = null;
@@ -396,6 +401,12 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
   }
 
   async function mutate(run: () => Promise<unknown>, success: string) {
+    if (mutationBusy.current) {
+      return false;
+    }
+
+    mutationBusy.current = true;
+
     setBusy(true);
 
     setError("");
@@ -428,8 +439,14 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
     } catch (caught) {
       setError(message(caught));
 
+      if (caught instanceof ApiError && caught.status === 409) {
+        setActiveChanged(true);
+      }
+
       return false;
     } finally {
+      mutationBusy.current = false;
+
       setBusy(false);
     }
   }
@@ -561,6 +578,11 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
           }}
           canAssign={canAssign}
           assignmentOpen={assignmentOpen}
+          openAssignment={() => {
+            setError("");
+
+            setAssignmentOpen(true);
+          }}
           setAssignmentOpen={setAssignmentOpen}
           assignment={{ assign, form, setForm, assignees, busy }}
           error={error}
@@ -619,7 +641,13 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
                 >
                   <option value="">All statuses</option>
                   {(
-                    ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"] as Status[]
+                    [
+                      "TODO",
+                      "IN_PROGRESS",
+                      "SUBMITTED",
+                      "DONE",
+                      "CANCELLED",
+                    ] as Status[]
                   ).map((item) => {
                     return (
                       <option key={item} value={item}>
@@ -691,11 +719,11 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
                 <span className={styles.eyebrow}>Needs context</span>
                 <h2>KPI review queue</h2>
               </div>
-              <strong className={styles.count}>{queue?.count ?? 0}</strong>
+              <strong className={styles.count}>{queue?.count ?? "—"}</strong>
             </div>
             <p className={styles.help}>
-              A late flag compares timestamps. HR/Owner records the evaluation
-              and decision.
+              A late flag compares timestamps. The KPI officer records the
+              evaluation and recommendation.
             </p>
             {!queue ? (
               <WorkspaceProgress
@@ -736,7 +764,7 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
             <div className={styles.sectionHead}>
               <div>
                 <span className={styles.eyebrow}>Recorded decisions</span>
-                <h2>Review history</h2>
+                <h2 id="review-history">Review history</h2>
               </div>
             </div>
             {!history ? (
@@ -805,6 +833,8 @@ function TaskWorkspace({ me }: { me: NonNullable<ReturnType<typeof useMe>> }) {
         decision={decision}
         setDecision={setDecision}
         canAssign={canAssign}
+        assignees={assignees}
+        setManagementDirty={setManagementDirty}
       />
     </main>
   );

@@ -1,9 +1,10 @@
 "use client";
 
-import WorkspaceProgress from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
+import { SkeletonLine } from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
 import {
   getCustomerWork,
   type CustomerWorkKind,
+  type CustomerWorkItem,
   type CustomerWorkPage,
 } from "@/lib/customer-work";
 import { useLiveRecords } from "@/lib/useLiveRecords";
@@ -137,41 +138,27 @@ function WorkSection({
           {error}
         </p>
       )}
-      {loading && !data ? (
-        <WorkspaceProgress
-          className="mt-4 text-sm text-ink-soft"
-          label="Loading queue…"
-        />
-      ) : !items?.length && !error ? (
+      {!loading && !items?.length && !error ? (
         <p className="mt-4 rounded-xl bg-white/60 p-3 text-sm text-ink-soft">
           Nothing waiting here.
         </p>
       ) : (
-        <ol className="mt-4 space-y-2">
-          {items?.map((item) => {
-            return (
-              <li key={item.id}>
-                <Link
-                  href={item.href}
-                  className="group flex items-center justify-between gap-3 rounded-xl border border-violet-100 bg-white/75 p-3 transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
-                >
-                  <span className="min-w-0">
-                    <strong className="block truncate text-sm text-blue-ink">
-                      {item.clientName}
-                    </strong>
-                    <span className="block truncate text-xs text-ink-soft">
-                      {item.label}
-                      {item.customerReplied ? " · Customer replied" : ""}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2 text-xs font-700 text-violet-700">
-                    <span>{waitingFor(item.waitingSince)}</span>
-                    <ArrowUpRight weight="bold" aria-hidden="true" />
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
+        <ol className="mt-4 space-y-2" aria-busy={loading && !data}>
+          {loading && !data
+            ? Array.from({ length: compact ? 3 : 5 }, (_, index) => {
+                return (
+                  <li key={index}>
+                    <QueueRow />
+                  </li>
+                );
+              })
+            : items?.map((item) => {
+                return (
+                  <li key={item.id}>
+                    <QueueRow item={item} />
+                  </li>
+                );
+              })}
         </ol>
       )}
       {compact && (data?.count ?? 0) > 3 && (
@@ -252,6 +239,47 @@ export default function CustomerWorkQueues({
       {kinds.map((kind) => {
         return <WorkSection key={kind} kind={kind} compact={compact} />;
       })}
+    </div>
+  );
+}
+
+function QueueRow({ item }: { item?: CustomerWorkItem }) {
+  const className =
+    "group flex items-center justify-between gap-3 rounded-xl border border-violet-100 bg-white/75 p-3 transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600";
+
+  const content = (
+    <>
+      <span className="min-w-0">
+        <strong className="block truncate text-sm text-blue-ink">
+          {item?.clientName ?? <SkeletonLine width="20ch" />}
+        </strong>
+        <span className="block truncate text-xs text-ink-soft">
+          {item ? (
+            <>
+              {item.label}
+              {item.customerReplied ? " · Customer replied" : ""}
+            </>
+          ) : (
+            <SkeletonLine width="28ch" />
+          )}
+        </span>
+      </span>
+      <span className="flex shrink-0 items-center gap-2 text-xs font-700 text-violet-700">
+        <span>
+          {item ? waitingFor(item.waitingSince) : <SkeletonLine width="6ch" />}
+        </span>
+        {item && <ArrowUpRight weight="bold" aria-hidden="true" />}
+      </span>
+    </>
+  );
+
+  return item ? (
+    <Link href={item.href} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className} aria-busy="true">
+      {content}
     </div>
   );
 }

@@ -285,6 +285,15 @@ export default function HandlerBatchTable({
             {BATCH_REAL_MEMBER_CAPACITY} real members ·{" "}
             {BATCH_INTERNAL_PLACEHOLDER_COUNT} internal positions per batch
           </p>
+          <button
+            type="button"
+            className={styles.reset}
+            onClick={() => {
+              return onSort("model");
+            }}
+          >
+            Sort by unit
+          </button>
           <small>
             {sort.key === newestBatchSort.key
               ? "Newest batches first"
@@ -329,10 +338,10 @@ export default function HandlerBatchTable({
         className={styles.scroll}
         tabIndex={0}
         role="region"
-        aria-label="Assigned batches table, scroll for more columns"
+        aria-label="Assigned batches table"
         onScroll={dismissFloating}
       >
-        <table className={styles.table} aria-busy={loading}>
+        <table data-handler-table className={styles.table} aria-busy={loading}>
           <caption className={styles.srOnly}>
             Your currently assigned batches. Batch, Unit, Price and Installments
             headers sort all matching records. Numbers are right aligned. A dash
@@ -340,11 +349,9 @@ export default function HandlerBatchTable({
             batch&apos;s members.
           </caption>
           <colgroup>
-            {[176, 260, 150, 116, 200, 100, 180, 220, 112, 56].map(
-              (width, index) => {
-                return <col key={index} style={{ width }} />;
-              },
-            )}
+            {[26, 11, 13, 8, 23, 12, 7].map((width, index) => {
+              return <col key={index} style={{ width: `${width}%` }} />;
+            })}
           </colgroup>
           <thead>
             <tr>
@@ -369,7 +376,7 @@ export default function HandlerBatchTable({
                     onSort("code");
                   }}
                 >
-                  Batch
+                  Batch / unit
                   {sort.key === "code" &&
                     (sort.direction === "asc" ? (
                       <ArrowUp data-sort-indicator="" />
@@ -378,15 +385,12 @@ export default function HandlerBatchTable({
                     ))}
                 </button>
               </th>
-              {sortHeader("Unit", "model", styles.unit)}
               {sortHeader("Price", "contractPrice", styles.numeric)}
               {sortHeader("Installments", "installmentCount", styles.numeric)}
-              <th scope="col">Cadence</th>
               <th scope="col" className={styles.numeric}>
                 Members
               </th>
-              <th scope="col">Handler</th>
-              <th scope="col">Agent</th>
+              <th scope="col">Assigned team</th>
               <th scope="col">Status</th>
               <th scope="col" className={styles.actionsColumn}>
                 <span className={styles.srOnly}>Row actions</span>
@@ -407,12 +411,19 @@ export default function HandlerBatchTable({
 
                 return (
                   <tr key={batch.id} data-batch-row={batch.id}>
-                    <th scope="row" className={styles.batch}>
+                    <th
+                      scope="row"
+                      className={styles.batch}
+                      data-label="Batch / unit"
+                    >
                       {text(batch.batch_number)}
+                      <small className={styles.secondaryText}>
+                        {batchText(batch.unit_model)}
+                      </small>
                     </th>
-                    <td className={styles.unit}>{text(batch.unit_model)}</td>
                     <td
                       className={styles.numeric}
+                      data-label="Price"
                       aria-label={
                         batch.contract_price === null
                           ? "Price terms not set"
@@ -423,11 +434,13 @@ export default function HandlerBatchTable({
                         ? "—"
                         : formatPeso(batch.contract_price)}
                     </td>
-                    <td className={styles.numeric}>
+                    <td className={styles.numeric} data-label="Installments">
                       {batch.num_installments ?? "—"}
+                      <small className={styles.secondaryText}>
+                        {batchCadenceLabel(batch)}
+                      </small>
                     </td>
-                    <td>{text(batchCadenceLabel(batch))}</td>
-                    <td className={styles.numeric}>
+                    <td className={styles.numeric} data-label="Members">
                       <span
                         aria-label={`${batch.member_count} of ${BATCH_REAL_MEMBER_CAPACITY} real members${batch.member_count > BATCH_REAL_MEMBER_CAPACITY ? "; existing batch above capacity" : ""}`}
                         className={
@@ -441,9 +454,16 @@ export default function HandlerBatchTable({
                           " !"}
                       </span>
                     </td>
-                    <td>{text(handler)}</td>
-                    <td>{text(agent)}</td>
-                    <td>
+                    <td data-label="Assigned team">
+                      <div>
+                        <span className={styles.teamLabel}>Handler</span>{" "}
+                        {handler}
+                      </div>
+                      <small className={styles.secondaryText}>
+                        <span className={styles.teamLabel}>Agent</span> {agent}
+                      </small>
+                    </td>
+                    <td data-label="Status">
                       <span
                         className={styles.status}
                         data-status={batch.status}
@@ -469,10 +489,7 @@ export default function HandlerBatchTable({
           </div>
         )}
       </div>
-      <footer className={styles.footnote}>
-        Scroll to see all columns. Batch identity and the header stay visible. —
-        means not set.
-      </footer>
+
       <TableTooltip
         tooltip={tooltip}
         id={tooltipId}

@@ -7,7 +7,13 @@ import { useLiveRecords } from "@/lib/useLiveRecords";
 import { message, type Page, type Task, type Status } from "./task-view";
 import { taskApi } from "./pioneer-task-api";
 
-const statuses: Status[] = ["TODO", "IN_PROGRESS", "SUBMITTED", "DONE"];
+const statuses: Status[] = [
+  "TODO",
+  "IN_PROGRESS",
+  "SUBMITTED",
+  "DONE",
+  "CANCELLED",
+];
 
 export function usePioneerTaskList() {
   const params = useSearchParams();

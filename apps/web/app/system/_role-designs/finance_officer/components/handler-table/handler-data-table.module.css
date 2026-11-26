@@ -301,6 +301,20 @@
   background: var(--table-surface);
   color: var(--table-text);
   box-shadow: 0 8px 25px rgb(0 0 0 / 18%);
+  opacity: clamp(0, var(--row-menu-progress, 0), 1);
+  transform: translateY(calc((1 - var(--row-menu-progress, 0)) * -6px))
+    scale(calc(0.97 + var(--row-menu-progress, 0) * 0.03));
+  transition:
+    display 500ms allow-discrete,
+    overlay 500ms allow-discrete;
+}
+.actionsPopover:not(:popover-open) {
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .actionsPopover {
+    transition: none;
+  }
 }
 .actionsPopover :is(button, a) {
   display: flex;

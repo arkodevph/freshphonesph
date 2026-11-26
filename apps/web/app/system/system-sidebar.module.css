@@ -71,7 +71,8 @@
 .sidebar .navigation:global(.system-nav) {
   gap: 22px;
   margin-top: 0;
-  padding: 2px 4px 8px;
+  padding: 2px 4px 64px;
+  scroll-padding-bottom: 64px;
   scrollbar-width: thin;
   scrollbar-color: var(--system-border) transparent;
 }
@@ -119,9 +120,9 @@
 
 .sidebar .navigation .link .icon,
 .sidebar .navigation .link:global(.is-active) .icon {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
   color: currentColor;
 }
 
@@ -249,4 +250,8 @@
 }
 :global(html[data-system-theme="dark"]) .sidebar .navigation .link .updateDot {
   background: #f87171;
+}
+
+.sidebar .navigation:focus-within + :global([data-progressive-blur]) {
+  visibility: hidden;
 }

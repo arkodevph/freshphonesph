@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Trash } from "@phosphor-icons/react";
 import type { StaffAlert } from "@/lib/api";
+import { SkeletonLine } from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
 import styles from "@/app/system/_role-designs/coo/components/staff-alerts.module.css";
 
 function summary(alert: StaffAlert) {
@@ -24,12 +25,14 @@ export function StaffNotificationList({
   onOpen,
   onRequestDelete,
   busy = false,
+  loading = false,
 }: {
   items: StaffAlert[];
   compact?: boolean;
   onOpen: (alert: StaffAlert) => void;
   onRequestDelete?: (alert: StaffAlert) => void;
   busy?: boolean;
+  loading?: boolean;
 }) {
   function content(alert: StaffAlert) {
     return (
@@ -57,7 +60,30 @@ export function StaffNotificationList({
   }
 
   return (
-    <ul className={styles.list} data-compact={compact}>
+    <ul className={styles.list} data-compact={compact} aria-busy={loading}>
+      {loading &&
+        Array.from({ length: compact ? 3 : 5 }, (_, index) => {
+          return (
+            <li key={index}>
+              <div className={styles.notificationRow}>
+                <div className={styles.item}>
+                  <span className={styles.dot} aria-hidden="true" />
+                  <div>
+                    <strong>
+                      <SkeletonLine width="24ch" />
+                    </strong>
+                    <p>
+                      <SkeletonLine width="40ch" />
+                    </p>
+                    <small>
+                      <SkeletonLine width="16ch" />
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </li>
+          );
+        })}
       {items.map((alert) => {
         const id = alert.inboxId;
 

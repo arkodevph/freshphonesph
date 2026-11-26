@@ -1,5 +1,5 @@
 import type { Me } from "@/lib/api";
-import CooDashboardLayout from "./CooDashboardLayout";
+import CooDashboardLayout from "@/app/system/_role-designs/coo/app/system/coo-dashboard/CooDashboardLayout";
 
 export default function CooDashboardSkeleton({ me }: { me: Me }) {
   return (

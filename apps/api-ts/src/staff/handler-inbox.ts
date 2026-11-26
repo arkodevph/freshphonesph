@@ -26,7 +26,9 @@ const source = (id: string, now: Date) => {
 };
 
 const key = Prisma.sql`a.entity || ':' || a.id::text || ':' || a.kind || CASE WHEN a.entity = 'task'
-  THEN ':' || to_char(a.deadline, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') ELSE '' END`;
+  THEN ':' || to_char(a.deadline, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') || COALESCE(
+    (SELECT CASE WHEN t."assignmentRevision" > 1 THEN ':assignment:' || t."assignmentRevision"::text ELSE '' END
+      FROM "Task" t WHERE t.id = a.id), '') ELSE '' END`;
 
 /** Capture received events, including when email delivery is disabled. Never revive a deleted key. */
 export async function captureHandlerInbox(

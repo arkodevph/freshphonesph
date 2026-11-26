@@ -61,10 +61,6 @@ export default function ClientsDashboard() {
 
   return (
     <div className={styles.workspace}>
-      <header className={styles.heading}>
-        <h1>Clients</h1>
-      </header>
-
       {(error || notice) && (
         <div
           role={error ? "alert" : "status"}
@@ -95,7 +91,7 @@ export default function ClientsDashboard() {
       </div>
       {canRead && (
         <RecordFilters
-          compact={me?.role === "coo"}
+          compact
           kind="client"
           value={filters}
           onChange={changeFilter}

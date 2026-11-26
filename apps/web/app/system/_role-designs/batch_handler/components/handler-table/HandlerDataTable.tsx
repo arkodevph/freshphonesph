@@ -412,25 +412,37 @@ export default function HandlerDataTable<Row, Key extends string>({
         <div
           ref={scroll}
           role="region"
-          aria-label={`${label}, scroll for more columns`}
+          aria-label={label}
           tabIndex={0}
           className={styles.scroll}
           onScroll={dismiss}
         >
           <table
+            data-handler-table
             className={styles.table}
             aria-busy={loading}
             style={{
-              minWidth: columns.reduce((total, column) => {
-                return total + columnWidth(column);
-              }, 0),
+              minWidth:
+                id === "payments"
+                  ? undefined
+                  : columns.reduce((total, column) => {
+                      return total + columnWidth(column);
+                    }, 0),
             }}
           >
             <caption className={styles.srOnly}>{caption}</caption>
             <colgroup>
               {columns.map((column) => {
                 return (
-                  <col key={column.id} style={{ width: columnWidth(column) }} />
+                  <col
+                    key={column.id}
+                    style={{
+                      width:
+                        id === "payments"
+                          ? `${column.width}%`
+                          : columnWidth(column),
+                    }}
+                  />
                 );
               })}
             </colgroup>
@@ -498,13 +510,14 @@ export default function HandlerDataTable<Row, Key extends string>({
                             scope={column.pin === "primary" ? "row" : undefined}
                             data-pin={column.pin}
                             data-column={column.id}
+                            data-label={column.label}
                             data-numeric={column.numeric || undefined}
                             data-actions={column.actions || undefined}
                           >
                             <div
                               className={styles.cell}
                               style={
-                                column.numeric
+                                column.numeric || id === "payments"
                                   ? undefined
                                   : { width: columnWidth(column) - 24 }
                               }
@@ -536,10 +549,12 @@ export default function HandlerDataTable<Row, Key extends string>({
             </div>
           )}
         </div>
-        <footer className={styles.footnote}>
-          Scroll to see all columns. Names and headers stay visible. — means not
-          set.
-        </footer>
+        {id !== "payments" && (
+          <footer className={styles.footnote}>
+            Scroll to see all columns. Names and headers stay visible. — means
+            not set.
+          </footer>
+        )}
         <TableTooltip
           tooltip={tooltip}
           id={tooltipId}

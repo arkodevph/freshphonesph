@@ -1041,6 +1041,6 @@ dialog[data-handler-modal][data-modal-spring][open]::backdrop {
 }
 .system-shell[data-workspace-role="records"][data-workspace-theme]
   dialog[data-workspace-modal][data-modal-spring][data-modal-size="drawer"][open] {
-  opacity: calc(0.72 + var(--dialog-progress, 1) * 0.28);
+  opacity: var(--dialog-progress, 1);
   transform: translateX(calc((1 - var(--dialog-progress, 1)) * 100%));
 }

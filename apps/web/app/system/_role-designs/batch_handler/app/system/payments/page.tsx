@@ -116,25 +116,12 @@ export default function PaymentsPage() {
           }}
         />
       )}
-      <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
-        <span className="grid h-10 w-10 place-items-center rounded-2xl chrome">
-          <Receipt weight="fill" className="h-5 w-5 text-blue" />
-        </span>
-        <div>
-          <h1 className="font-display text-lg font-700 tracking-tight text-blue-ink">
-            Payments &amp; Finance
-          </h1>
-          <p className="text-xs text-ink-soft">
-            Record external payments · Finance verifies · only verified moves
-            the balance
-          </p>
-        </div>
-      </header>
-
       <HandlerReceiptDialogs flow={receiptFlow} />
       {isBatchHandler(me?.role) && <PaymentReceiptNotice flow={receiptFlow} />}
-      <SubmissionChecklist enabled={Boolean(me && canRead)} />
-      <div className="mb-4 grid gap-4 lg:grid-cols-3">
+      <div
+        id="payment-tools"
+        className="mb-4 grid scroll-mt-24 items-start gap-4 lg:grid-cols-3"
+      >
         {/* Record form */}
         {canRecord && <RecordPaymentForm {...recordPaymentFormProps} />}
 
@@ -182,14 +169,14 @@ export default function PaymentsPage() {
         </div>
       </div>
 
+      <SubmissionChecklist enabled={Boolean(me && canRead)} />
+      <PaymentListPanel {...paymentListPanelProps} />
+
       <ReceiptViewerDialog {...receiptViewerDialogProps} />
 
       <FinanceReviewDialog {...financeReviewDialogProps} />
 
       <PaymentDetailsDialog {...paymentDetailsDialogProps} />
-
-      {/* List */}
-      <PaymentListPanel {...paymentListPanelProps} />
 
       <p className="mt-3 text-center text-xs text-ink-soft">
         {isBatchHandler(me?.role)

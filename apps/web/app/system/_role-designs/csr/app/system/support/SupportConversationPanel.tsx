@@ -2,6 +2,8 @@
 
 import { supportSourceLabel, type SupportCaseDetail } from "@/lib/api";
 import type * as React from "react";
+import { useEffect, useRef } from "react";
+import styles from "@/app/system/_role-designs/csr/app/system/support/support-workspace.module.css";
 import type { Dispatch, SetStateAction } from "react";
 import { ReplyDraft } from "@/app/system/_role-designs/csr/app/system/support/support-view";
 
@@ -30,20 +32,23 @@ export default function SupportConversationPanel({
   setReplies,
   pending,
 }: Props) {
+  const title = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    title.current?.focus({ preventScroll: true });
+
+    if (window.matchMedia("(max-width: 1100px)").matches) {
+      title.current?.scrollIntoView({ behavior: "instant", block: "center" });
+    }
+  }, [activeCaseId]);
+
   return (
-    <section
-      aria-label="Support conversation"
-      className="glass mb-4 rounded-3xl p-4 sm:p-5"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="font-display text-base font-700 text-blue-ink">
-          Case #{activeCaseId.slice(0, 8)} conversation
+    <section aria-label="Support conversation" className={styles.conversation}>
+      <div className={styles.conversationHeader}>
+        <h2 ref={title} tabIndex={-1}>
+          Case #{activeCaseId.slice(0, 8)}
         </h2>
-        <button
-          type="button"
-          onClick={closeThread}
-          className="shrink-0 rounded-lg bg-white/70 px-3 py-1 text-xs font-700 text-blue-ink"
-        >
+        <button type="button" onClick={closeThread} className={styles.button}>
           Hide thread
         </button>
       </div>
@@ -75,10 +80,10 @@ export default function SupportConversationPanel({
           <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ink-soft">
             {caseDetail.description}
           </p>
-          <ol className="mt-4 grid gap-2">
+          <ol className={styles.messages}>
             {caseDetail.messages.map((message) => {
               return (
-                <li key={message.id} className="rounded-xl bg-white/70 p-3">
+                <li key={message.id} data-author={message.author_type}>
                   <strong className="text-xs text-blue-ink">
                     {message.author_type === "customer"
                       ? "Customer"
@@ -98,7 +103,7 @@ export default function SupportConversationPanel({
             })}
           </ol>
           {!["resolved", "closed"].includes(caseDetail.status) ? (
-            <form onSubmit={sendReply} className="mt-4 grid gap-2">
+            <form onSubmit={sendReply} className={styles.replyForm}>
               <label
                 htmlFor="staff-reply"
                 className="text-sm font-700 text-blue-ink"
@@ -147,7 +152,7 @@ export default function SupportConversationPanel({
               <button
                 type="submit"
                 disabled={!!pending || caseLoading || !reply.text.trim()}
-                className="justify-self-start rounded-xl bg-blue px-4 py-2 text-sm font-700 text-white disabled:opacity-40"
+                className={styles.primary}
               >
                 {pending === "reply" ? "Sending…" : "Send reply"}
               </button>

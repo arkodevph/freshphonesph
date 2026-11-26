@@ -66,7 +66,8 @@ export class AccountAbuseGuard implements CanActivate {
       response,
     );
 
-    if (request.user.role === "COO") {
+    // HR uses the same stricter account budgets as COO, including across replicas.
+    if (["COO", "HR_PAYROLL"].includes(request.user.role)) {
       await this.abuse.consume(
         ["GET", "HEAD"].includes(request.method) ? "cooRead" : "cooWrite",
         `account:${request.user.id}`,

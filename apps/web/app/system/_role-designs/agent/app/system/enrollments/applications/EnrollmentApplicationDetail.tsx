@@ -17,7 +17,7 @@ export default function EnrollmentApplicationDetail({
   id: string;
   me: Me;
 }) {
-  const workspace = useEnrollmentApplication(id, me);
+  const workspace = useEnrollmentApplication(id, me, true);
 
   const application = workspace.application;
 
@@ -46,6 +46,16 @@ export default function EnrollmentApplicationDetail({
 
   return (
     <div className={styles.workspace}>
+      {workspace.stale && (
+        <div className={styles.notice} role="status">
+          This application changed. Your draft is preserved.
+          <button type="button" className={styles.button} onClick={() => {
+            if (window.confirm("Discard your draft and load the latest application?")) {
+              void workspace.load();
+            }
+          }}>Load latest application</button>
+        </div>
+      )}
       {workspace.error && (
         <p className={styles.error} role="alert">
           {workspace.error}
@@ -125,7 +135,7 @@ export default function EnrollmentApplicationDetail({
             key={`${application.id}-${application.version}`}
             application={application}
             batches={workspace.batches}
-            pending={workspace.pending}
+            pending={workspace.pending || workspace.stale}
             run={workspace.run}
             onAccessLost={() => {
               void workspace.load();

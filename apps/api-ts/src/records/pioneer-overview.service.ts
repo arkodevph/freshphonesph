@@ -68,7 +68,9 @@ async function taskCounts(
     inProgress,
     submitted,
     done,
-    total: todo + inProgress + submitted + done,
+    total: rows.reduce((sum, row) => {
+      return sum + row._count;
+    }, 0),
     outstanding: todo + inProgress + submitted,
     overdue,
   };

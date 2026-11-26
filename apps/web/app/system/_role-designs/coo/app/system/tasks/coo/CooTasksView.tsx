@@ -1,6 +1,6 @@
 "use client";
 
-import WorkspaceProgress from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
+import { SkeletonLine } from "@/app/system/_role-designs/coo/components/WorkspaceProgress";
 import type { Dispatch, SetStateAction } from "react";
 import {
   Add,
@@ -24,6 +24,52 @@ import CooTaskAssignment, {
   type AssignmentProps,
 } from "@/app/system/_role-designs/coo/app/system/tasks/coo/CooTaskAssignment";
 import styles from "@/app/system/_role-designs/coo/app/system/tasks/coo/coo-tasks.module.css";
+
+function TaskSkeletonRows() {
+  return Array.from({ length: 5 }, (_, index) => {
+    return (
+      <tr key={index} aria-busy="true" aria-label="Loading task" inert>
+        <td data-label="Task">
+          <button type="button" className={styles.taskTitle} tabIndex={-1}>
+            <SkeletonLine width="18ch" />
+          </button>
+          <p className={styles.instructions}>
+            <SkeletonLine width="24ch" />
+          </p>
+        </td>
+        <td data-label="Assignee">
+          <span className={styles.assignee}>
+            <span className={styles.avatar} />
+            <span>
+              <SkeletonLine width="18ch" />
+            </span>
+          </span>
+        </td>
+        <td data-label="Priority">
+          <span className={styles.priority}>
+            <SkeletonLine width="8ch" />
+          </span>
+        </td>
+        <td data-label="Due date">
+          <SkeletonLine width="12ch" />
+          <small>
+            <SkeletonLine width="8ch" />
+          </small>
+        </td>
+        <td data-label="Status">
+          <span className={styles.status}>
+            <SkeletonLine width="10ch" />
+          </span>
+        </td>
+        <td>
+          <button className={styles.openTask} type="button" tabIndex={-1}>
+            View task
+          </button>
+        </td>
+      </tr>
+    );
+  });
+}
 
 type Props = {
   tasks: Page<Task> | null;
@@ -57,6 +103,7 @@ const statusInfo = {
   IN_PROGRESS: { label: "In progress", icon: Calendar },
   SUBMITTED: { label: "Submitted", icon: FileSend },
   DONE: { label: "Completed", icon: CheckCircle },
+  CANCELLED: { label: "Cancelled", icon: ClockCircle },
 };
 
 export default function CooTasksView({
@@ -191,9 +238,7 @@ export default function CooTasksView({
             </button>
           )}
         </div>
-        {!tasks ? (
-          <WorkspaceProgress className={styles.empty} label="Loading tasks…" />
-        ) : tasks.results.length === 0 ? (
+        {tasks?.results.length === 0 ? (
           <div className={styles.empty}>
             <CheckCircle />
             <h3>
@@ -220,7 +265,15 @@ export default function CooTasksView({
           </div>
         ) : (
           <div className={styles.tableScroll}>
-            <table className={styles.table}>
+            <table
+              className={styles.table}
+              style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}
+            >
+              <colgroup>
+                {[29, 22, 10, 13, 12, 14].map((width, index) => {
+                  return <col key={index} style={{ width: `${width}%` }} />;
+                })}
+              </colgroup>
               <caption className="sr-only">Team task assignments</caption>
               <thead>
                 <tr>
@@ -235,7 +288,8 @@ export default function CooTasksView({
                 </tr>
               </thead>
               <tbody>
-                {tasks.results.map((task) => {
+                {!tasks && <TaskSkeletonRows />}
+                {tasks?.results.map((task) => {
                   return (
                     <tr key={task.id}>
                       <td data-label="Task">

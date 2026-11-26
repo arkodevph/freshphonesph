@@ -61,7 +61,9 @@ export default function ReportFiltersPanel({
           <SlidersHorizontal aria-hidden="true" /> Filter report
         </span>
         <span>
-          {periodLabel(draft)} · {batch?.code ?? "All batches"}
+          {periodLabel(draft)}
+          {["payments", "collections", "reconciliation"].includes(kind) &&
+            ` · ${batch?.code ?? "All batches"}`}
           {kind === "payments"
             ? ` · ${draft.status ? statusNames[draft.status] : "All statuses"}`
             : ""}

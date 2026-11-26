@@ -1670,3 +1670,8 @@
   color: var(--system-accent);
   text-decoration: underline;
 }
+
+.recordLink[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}

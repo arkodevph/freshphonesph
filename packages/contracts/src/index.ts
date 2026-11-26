@@ -1788,6 +1788,7 @@ export const taskStatuses = [
   "IN_PROGRESS",
   "SUBMITTED",
   "DONE",
+  "CANCELLED",
 ] as const;
 
 export const taskSchema = z

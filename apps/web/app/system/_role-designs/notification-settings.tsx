@@ -1,5 +1,6 @@
 "use client";
 
+import CooPage from "@/app/system/_role-designs/coo/app/system/notification-settings/page";
 import dynamic from "next/dynamic";
 import { useMe } from "@/lib/useMe";
 import { workspaceDesignRole } from "@/lib/workspace-design-role";
@@ -7,15 +8,12 @@ import RoleDesignLoading from "./RoleDesignLoading";
 
 const views = {
   system_admin: dynamic(
-    () =>
-      import("@/app/system/_role-designs/system_admin/app/system/notification-settings/page"),
+    () => {
+      return import("@/app/system/_role-designs/system_admin/app/system/notification-settings/page");
+    },
     { loading: RoleDesignLoading },
   ),
-  coo: dynamic(
-    () =>
-      import("@/app/system/_role-designs/coo/app/system/notification-settings/page"),
-    { loading: RoleDesignLoading },
-  ),
+  coo: CooPage,
 };
 
 export default function RolePage(props: Record<string, never>) {

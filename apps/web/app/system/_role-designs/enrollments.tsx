@@ -1,5 +1,6 @@
 "use client";
 
+import CooPage from "@/app/system/_role-designs/coo/app/system/enrollments/EnrollmentHome";
 import dynamic from "next/dynamic";
 import { useMe } from "@/lib/useMe";
 import { workspaceDesignRole } from "@/lib/workspace-design-role";
@@ -7,38 +8,40 @@ import RoleDesignLoading from "./RoleDesignLoading";
 
 const views = {
   system_admin: dynamic(
-    () =>
-      import("@/app/system/_role-designs/system_admin/app/system/enrollments/EnrollmentHome"),
+    () => {
+      return import("@/app/system/_role-designs/system_admin/app/system/enrollments/EnrollmentHome");
+    },
     { loading: RoleDesignLoading },
   ),
-  coo: dynamic(
-    () =>
-      import("@/app/system/_role-designs/coo/app/system/enrollments/EnrollmentHome"),
-    { loading: RoleDesignLoading },
-  ),
+  coo: CooPage,
   batch_manager: dynamic(
-    () =>
-      import("@/app/system/_role-designs/batch_manager/app/system/enrollments/EnrollmentHome"),
+    () => {
+      return import("@/app/system/_role-designs/batch_manager/app/system/enrollments/EnrollmentHome");
+    },
     { loading: RoleDesignLoading },
   ),
   records: dynamic(
-    () =>
-      import("@/app/system/_role-designs/records/app/system/enrollments/EnrollmentHome"),
+    () => {
+      return import("@/app/system/_role-designs/records/app/system/enrollments/EnrollmentHome");
+    },
     { loading: RoleDesignLoading },
   ),
   operations_coordinator: dynamic(
-    () =>
-      import("@/app/system/_role-designs/operations_coordinator/app/system/enrollments/EnrollmentHome"),
+    () => {
+      return import("@/app/system/_role-designs/operations_coordinator/app/system/enrollments/EnrollmentHome");
+    },
     { loading: RoleDesignLoading },
   ),
   pioneer_agent: dynamic(
-    () =>
-      import("@/app/system/_role-designs/pioneer_agent/app/system/enrollments/EnrollmentHome"),
+    () => {
+      return import("@/app/system/_role-designs/pioneer_agent/app/system/enrollments/EnrollmentHome");
+    },
     { loading: RoleDesignLoading },
   ),
   agent: dynamic(
-    () =>
-      import("@/app/system/_role-designs/agent/app/system/enrollments/EnrollmentHome"),
+    () => {
+      return import("@/app/system/_role-designs/agent/app/system/enrollments/EnrollmentHome");
+    },
     { loading: RoleDesignLoading },
   ),
 };

@@ -12,6 +12,7 @@ import styles from "@/app/system/_role-designs/hr_payroll/app/system/people/peop
 export type Staff = {
   id: string;
   name: string;
+  image?: string | null;
   role: Role;
   active: boolean;
   supervisor?: { name: string } | null;

@@ -177,10 +177,8 @@ export default function NotificationsPage() {
               Try again
             </button>
           </div>
-        ) : loading ? (
-          <p className={styles.state} role="status">
-            Loading notifications…
-          </p>
+        ) : loading && !snapshot ? (
+          <StaffNotificationList items={[]} loading onOpen={() => {}} />
         ) : !snapshot?.items.length ? (
           <div className={styles.state}>
             <strong>

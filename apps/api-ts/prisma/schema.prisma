@@ -87,6 +87,7 @@ enum TaskStatus {
   IN_PROGRESS
   SUBMITTED
   DONE
+  CANCELLED
 }
 enum TaskAlertKind {
   TASK_ASSIGNED
@@ -665,6 +666,9 @@ model Task {
   priority TaskPriority @default(MEDIUM)
   deadline DateTime
   status TaskStatus @default(TODO)
+  cancelledAt DateTime?
+  cancellationReason String?
+  assignmentRevision Int @default(1)
   report String @default("")
   submittedAt DateTime?
   lateFlag Boolean?

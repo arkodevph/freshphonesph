@@ -326,7 +326,15 @@ export default function PaymentListPanel({
         />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table
+            className="w-full min-w-[640px] text-left text-sm"
+            style={{ tableLayout: "fixed", overflowWrap: "anywhere" }}
+          >
+            <colgroup>
+              {[5, 23, 15, 10, 12, 12, 10, 13].map((width, index) => {
+                return <col key={index} style={{ width: `${width}%` }} />;
+              })}
+            </colgroup>
             <thead className="text-xs uppercase tracking-wide text-ink-soft">
               <tr className="border-b border-white/60">
                 <th className="px-2 py-2">#</th>

@@ -39,6 +39,10 @@ import { queuePendingEmails } from "../staff/email-queue";
 import { adjustmentInclude, effectiveAmount, verifiedTotals } from "./ledger";
 import { paymentListOrder } from "./payment-list-order";
 import {
+  paymentReadEvidence,
+  type PaymentReadEvidence,
+} from "./payment-read-evidence";
+import {
   financePaymentFrom,
   financePaymentWhere,
   financePaymentOrder,
@@ -237,6 +241,7 @@ export class FinanceService {
     tx: Prisma.TransactionClient | Database,
     payment: PaymentRow,
     customer = false,
+    evidence?: PaymentReadEvidence,
   ) {
     const { operationalReviews, batch, ...record } = payment;
 
@@ -251,11 +256,13 @@ export class FinanceService {
         ? {
             workflow: {
               ...workflow(payment),
-              submissionComplete: await submissionReady(
-                tx,
-                payment.batchId,
-                payment.paymentDate,
-              ),
+              submissionComplete:
+                evidence?.submissionComplete ??
+                (await submissionReady(
+                  tx,
+                  payment.batchId,
+                  payment.paymentDate,
+                )),
               evidenceVersion: payment.evidenceVersion,
               managerId: batch.managerId,
               history: operationalReviews.map((review) => {
@@ -291,12 +298,14 @@ export class FinanceService {
         };
       }),
       paymentDate: payment.paymentDate.toISOString().slice(0, 10),
-      duplicateReference: await this.duplicateReference(
-        tx,
-        payment.clientId,
-        payment.referenceNumber,
-        payment.id,
-      ),
+      duplicateReference:
+        evidence?.duplicateReference ??
+        (await this.duplicateReference(
+          tx,
+          payment.clientId,
+          payment.referenceNumber,
+          payment.id,
+        )),
     };
   }
 
@@ -433,10 +442,12 @@ export class FinanceService {
             orderBy: paymentListOrder(query),
           });
 
+          const evidence = await paymentReadEvidence(tx, rows);
+
           return {
             items: await Promise.all(
               rows.map((payment) => {
-                return this.view(tx, payment);
+                return this.view(tx, payment, false, evidence.get(payment.id));
               }),
             ),
             total: Number(count.total),
@@ -459,10 +470,21 @@ export class FinanceService {
       this.db.payment.count({ where }),
     ]);
 
+    const evidence = await paymentReadEvidence(
+      this.db,
+      items,
+      user.role === "CUSTOMER",
+    );
+
     return {
       items: await Promise.all(
         items.map((payment) => {
-          return this.view(this.db, payment, user.role === "CUSTOMER");
+          return this.view(
+            this.db,
+            payment,
+            user.role === "CUSTOMER",
+            evidence.get(payment.id),
+          );
         }),
       ),
       total,

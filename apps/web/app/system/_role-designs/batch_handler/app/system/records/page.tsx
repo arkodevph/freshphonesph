@@ -313,24 +313,6 @@ export default function RecordsPage() {
 
   return (
     <>
-      <header className="glass mb-4 flex items-center gap-3 rounded-3xl px-5 py-3.5">
-        <span className="grid h-10 w-10 place-items-center rounded-2xl chrome">
-          <Stack weight="fill" className="h-5 w-5 text-blue" />
-        </span>
-        <div>
-          <h1 className="font-display text-lg font-700 tracking-tight text-blue-ink">
-            {handler ? "My batches" : "Paluwagan Records"}
-          </h1>
-          <p className="text-xs text-ink-soft">
-            {["core_handler", "batch_handler", "batch_manager"].includes(
-              me?.role ?? "",
-            )
-              ? "Your assigned batches and members"
-              : "Batches — the plan terms drive each member's schedule & balance"}
-          </p>
-        </div>
-      </header>
-
       {(error || notice) && (
         <div
           className={`mb-4 rounded-2xl px-4 py-2.5 text-sm font-600 ${
@@ -459,6 +441,7 @@ export default function RecordsPage() {
 
       {canRead && (
         <RecordFilters
+          compact
           kind="batch"
           value={filters}
           onChange={changeFilter}

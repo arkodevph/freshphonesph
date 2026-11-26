@@ -1,5 +1,7 @@
 "use client";
 
+import InstallmentCharts from "@/app/system/reports/InstallmentCharts";
+
 import {
   earningsFrequencies,
   earningsFrequencyLabels,
@@ -228,6 +230,7 @@ export default function InstallmentEarnings() {
                   <p>Includes retained historical memberships</p>
                 </div>
               </dl>
+              <InstallmentCharts report={report} />
               <p className={styles.help}>
                 Scheduled earnings show issued obligations after recorded
                 replacement releases. Incoming payments and external refund

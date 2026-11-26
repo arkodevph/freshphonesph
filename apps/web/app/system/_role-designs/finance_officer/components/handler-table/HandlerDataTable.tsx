@@ -22,6 +22,7 @@ import {
   type TextTooltip,
 } from "@/app/system/_role-designs/finance_officer/app/system/records/BatchTableText";
 import type { HandlerTableSort } from "@/lib/handler-table";
+import { createStyleSpring } from "@/lib/style-spring";
 import styles from "@/app/system/_role-designs/finance_officer/components/handler-table/handler-data-table.module.css";
 
 const TooltipContext = createContext<{
@@ -69,6 +70,28 @@ export function HandlerRowActions({
   const [open, setOpen] = useState(false);
 
   useLayoutEffect(() => {
+    const element = menu.current;
+
+    if (!element) {
+      return;
+    }
+
+    const motion = createStyleSpring(element, { "--row-menu-progress": 0 });
+
+    const retarget = (event: ToggleEvent) => {
+      motion.to({ "--row-menu-progress": event.newState === "open" ? 1 : 0 });
+    };
+
+    element.addEventListener("beforetoggle", retarget);
+
+    return () => {
+      element.removeEventListener("beforetoggle", retarget);
+
+      motion.dispose();
+    };
+  }, []);
+
+  useLayoutEffect(() => {
     if (!open || !menu.current || !trigger.current) {
       return;
     }
@@ -79,7 +102,11 @@ export function HandlerRowActions({
 
     menu.current.style.left = `${Math.max(12, Math.min(rect.right - 224, window.innerWidth - 236))}px`;
 
-    menu.current.style.top = `${Math.max(8, rect.bottom + height + 8 > window.innerHeight ? rect.top - height - 6 : rect.bottom + 6)}px`;
+    const above = rect.bottom + height + 8 > window.innerHeight;
+
+    menu.current.style.top = `${Math.max(8, above ? rect.top - height - 6 : rect.bottom + 6)}px`;
+
+    menu.current.style.transformOrigin = `right ${above ? "bottom" : "top"}`;
   }, [open]);
 
   return (
@@ -100,6 +127,8 @@ export function HandlerRowActions({
         id={id}
         popover="auto"
         role="group"
+        aria-hidden={!open}
+        inert={!open}
         aria-label={`Row actions for ${label}`}
         className={styles.actionsPopover}
         onToggle={(event) => {

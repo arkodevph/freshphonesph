@@ -1,0 +1,1 @@
+ALTER TABLE "Task" ADD COLUMN "assignmentRevision" INTEGER NOT NULL DEFAULT 1;

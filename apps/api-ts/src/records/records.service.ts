@@ -419,6 +419,7 @@ export class RecordsService {
 
       if (
         input.agentId &&
+        input.agentId !== before.agentId &&
         !(await tx.agent.findFirst({
           where: { id: input.agentId, active: true },
           select: { id: true },
