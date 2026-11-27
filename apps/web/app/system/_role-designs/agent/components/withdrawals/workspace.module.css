@@ -661,10 +661,47 @@
   }
 }
 
-.header { padding: 0 0 18px; border: 0; background: transparent; }
-.header h1 { font-size: 20px; font-weight: 500; }
-.card h3, .panel h2 { font-weight: 500; }
-.badge { background: transparent; border: 0; padding: 0; color: var(--withdrawal-muted); font-weight: 400; }
-.card { border-radius: 12px; }
-.cardSelected { background: var(--workspace-control-hover); }
-.card button { background: var(--workspace-control-hover); }
+.header {
+  padding: 0 0 18px;
+  border: 0;
+  background: transparent;
+}
+.header h1 {
+  font-size: 20px;
+  font-weight: 500;
+}
+.card h3,
+.panel h2 {
+  font-weight: 500;
+}
+.badge {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--withdrawal-muted);
+  font-weight: 400;
+}
+.card {
+  border-radius: 12px;
+}
+.cardSelected {
+  background: var(--workspace-control-hover);
+}
+.card button {
+  background: var(--workspace-control-hover);
+}
+
+.workspace :is(input, textarea, select) {
+  min-width: 0;
+}
+.workspace button:not(:disabled) {
+  cursor: pointer;
+}
+.workspace :is(p, dd, li, span) {
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workspace button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+}

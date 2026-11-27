@@ -356,6 +356,14 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
     });
   }
 
+  if (me.role === "agent") {
+    for (const [index, item] of visibleNav.entries()) {
+      if (item.href === "/system/tasks") {
+        visibleNav[index] = { ...item, label: "My tasks" };
+      }
+    }
+  }
+
   const ownerNav = [
     { href: "/system", icon: Home },
     { href: "/system/assistant", icon: Assistant },
@@ -436,6 +444,13 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
                 <small>CEO portal</small>
               </span>
             </Link>
+          ) : me.role === "agent" ? (
+            <div
+              className="system-agent-context"
+              style={{ fontSize: "1.25rem", fontWeight: 600, lineHeight: 1.35 }}
+            >
+              {current}
+            </div>
           ) : (
             <div>
               <p className="system-eyebrow">Fresh Phones PH</p>

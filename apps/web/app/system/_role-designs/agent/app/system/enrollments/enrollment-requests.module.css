@@ -351,3 +351,40 @@
     justify-self: start;
   }
 }
+
+.dialog.requestDetail [data-modal-header] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--system-border);
+}
+.requestDetail [data-modal-header] h2 {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.requestDetail .detailBody {
+  padding: 24px;
+}
+.requestDetail .detailBody > p {
+  margin: 24px 0 0;
+  line-height: 1.7;
+  font-size: 0.875rem;
+  color: var(--system-muted);
+}
+.requestDetail [data-modal-footer] {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid var(--system-border);
+}
+@media (max-width: 600px) {
+  .dialog.requestDetail [data-modal-header],
+  .requestDetail .detailBody,
+  .requestDetail [data-modal-footer] {
+    padding: 18px;
+  }
+}

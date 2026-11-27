@@ -4,7 +4,6 @@ import WithdrawalFinancials from "@/app/system/_role-designs/agent/components/wi
 import WorkspaceDetails from "@/app/system/_role-designs/agent/components/WorkspaceDetails";
 import type { WithdrawalCase } from "@freshphones/contracts";
 import { withdrawalMoney, withdrawalStatusLabels } from "@/lib/withdrawals";
-import { RefundActions } from "@/app/system/_role-designs/agent/components/withdrawals/RefundActions";
 import { ReplacementActions } from "@/app/system/_role-designs/agent/components/withdrawals/ReplacementActions";
 import {
   ReviewActions,
@@ -16,6 +15,8 @@ export function WithdrawalDetail({
   row,
   customer,
   busy,
+  blocked,
+  onAccessLost,
   stale,
   reload,
   close,
@@ -24,11 +25,15 @@ export function WithdrawalDetail({
   row: WithdrawalCase;
   customer: boolean;
   busy: boolean;
+  blocked?: boolean;
+  onAccessLost?: () => void;
   stale: boolean;
   reload: () => void;
   close: () => void;
   run: RunWithdrawalAction;
 }) {
+  const actionsBlocked = blocked ?? (busy || stale);
+
   return (
     <article
       className={`${styles.panel} ${styles.casePage}`}
@@ -38,7 +43,9 @@ export function WithdrawalDetail({
         <div>
           <p className={styles.reference}>
             {row.batch.code} · Submitted{" "}
-            {new Date(row.submittedAt).toLocaleDateString("en-PH")}
+            {new Date(row.submittedAt).toLocaleDateString("en-PH", {
+              timeZone: "Asia/Manila",
+            })}
           </p>
           <h2>{row.memberName}</h2>
         </div>
@@ -178,12 +185,20 @@ export function WithdrawalDetail({
             </WorkspaceDetails>
           )}
           <div key={`${row.id}:${row.version}`}>
-            <ReviewActions row={row} busy={busy || stale} run={run} />
+            <ReviewActions
+              row={row}
+              busy={busy}
+              blocked={actionsBlocked}
+              run={run}
+            />
             {!customer && (
-              <ReplacementActions row={row} busy={busy || stale} run={run} />
-            )}
-            {!customer && (
-              <RefundActions row={row} busy={busy || stale} run={run} />
+              <ReplacementActions
+                row={row}
+                busy={busy}
+                blocked={actionsBlocked}
+                run={run}
+                onAccessLost={onAccessLost}
+              />
             )}
           </div>
           <WorkspaceDetails className={styles.section}>

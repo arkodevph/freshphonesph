@@ -56,6 +56,22 @@ The [quality test manual](pioneer-agent-quality-test-manual.md),
 local synthetic preview instructions. Human business and screen-reader review
 remain pending until actual results are recorded.
 
+For Agent, use [role and portal access](agent-role-and-access.md) and the
+[review, phased plan and design notebook](agent-remaining-work-plan.md).
+The review reflects the merged HR/personnel update. The four phases are implemented
+and technically verified locally: scoped desk/batch facts, profile readiness,
+own-task counts, application closing, enrollment recovery and withdrawal/
+replacement follow-up, own-task recovery and exact notification destinations.
+The Phase 2 selected-intake status correction is integrated and verified.
+All four implementation phases pass technical checks; human acceptance remains
+unrecorded. For full manual testing, use the
+[104-case whole Agent role manual](agent-whole-role-manual-test.md) and
+[blank whole-role results sheet](agent-whole-role-test-results.csv).
+They cover account security, all Agent workspaces, cross-role handoffs,
+recovery, server access boundaries and accessibility. The earlier
+[26-case acceptance summary](agent-quality-test-manual.md) and
+[results sheet](agent-quality-test-results.csv) remain available.
+
 The [login design notebook](login-design-notebook.md) records the split layout,
 pastel navigation and nine original animated pets gripping the sign-in card.
 

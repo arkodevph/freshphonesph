@@ -1,11 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { tsRequest } from "@/lib/ts-api";
-import { useLiveRecords } from "@/lib/useLiveRecords";
+import { useEffect } from "react";
+import { useAgentResource } from "@/lib/useAgentResource";
 import { formatDate } from "./task-view";
 import styles from "./task-detail-panel.module.css";
-
 type Event = {
   id: string;
   action: string;
@@ -18,99 +16,96 @@ const actions: Record<string, string> = {
   "task.started": "started the task",
   "task.submitted": "submitted work",
   "task.completed": "completed the task",
-  "kpi.reviewed": "recorded a KPI review",
+  "task.cancelled": "cancelled the task",
+  "task.edited": "updated the task",
+  "kpi.reviewed": "recorded a review",
 };
 
 export default function TaskActivity({
   taskId,
   version,
   enabled,
+  onAccessLost,
 }: {
   taskId: string;
   version: number;
   enabled: boolean;
+  onAccessLost?: () => void;
 }) {
-  const [events, setEvents] = useState<Event[] | null>(null);
-  const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
-  const refresh = useCallback(() => {
-    setAttempt((value) => value + 1);
-  }, []);
+  return enabled ? (
+    <Activity
+      key={`${taskId}:${version}`}
+      taskId={taskId}
+      onAccessLost={onAccessLost}
+    />
+  ) : null;
+}
 
-  useLiveRecords(refresh, enabled);
+function Activity({
+  taskId,
+  onAccessLost,
+}: {
+  taskId: string;
+  onAccessLost?: () => void;
+}) {
+  const resource = useAgentResource<Event[]>(`/tasks/${taskId}/activity`);
 
   useEffect(() => {
-    if (!enabled) {
-      return;
+    if (resource.denied) {
+      onAccessLost?.();
     }
+  }, [resource.denied, onAccessLost]);
 
-    const controller = new AbortController();
-    setEvents(null);
-    setError("");
-
-    void tsRequest<Event[]>(`/tasks/${taskId}/activity`, {
-      signal: controller.signal,
-    })
-      .then(setEvents)
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setError(
-            error instanceof Error ? error.message : "Could not load activity.",
-          );
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [taskId, version, enabled, attempt]);
-
-  if (error) {
+  if (resource.error) {
     return (
       <div className={styles.activityState} role="alert">
-        <p>{error}</p>
-        <button type="button" className={styles.secondary} onClick={refresh}>
-          Try again
+        <p>{resource.error}</p>
+        <button
+          type="button"
+          className={styles.secondary}
+          onClick={() => {
+            return void resource.refresh();
+          }}
+        >
+          Retry task activity
         </button>
       </div>
     );
   }
 
-  if (!events) {
+  if (!resource.data) {
     return (
       <p className={styles.activityState} role="status">
         Loading activity…
       </p>
     );
   }
-  if (!events.length) {
-    return <p className={styles.activityState}>No activity recorded yet.</p>;
+
+  if (!resource.data.length) {
+    return (
+      <p className={styles.activityState}>
+        No activity recorded yet. Check again after the next task update.
+      </p>
+    );
   }
 
   return (
     <ol className={styles.activity} aria-label="Task activity">
-      {events.map((event) => (
-        <li key={event.id}>
-          <span className={styles.actor} aria-hidden="true">
-            {event.actorName
-              .trim()
-              .split(/\s+/)
-              .filter(Boolean)
-              .map((part) => part[0])
-              .slice(0, 2)
-              .join("")}
-          </span>
-          <div>
-            <p>
-              <strong>{event.actorName}</strong>{" "}
-              {actions[event.action] ?? "updated the task"}
-            </p>
-            <time dateTime={event.createdAt}>
-              {formatDate(event.createdAt)}
-            </time>
-          </div>
-        </li>
-      ))}
+      {resource.data.map((event) => {
+        return (
+          <li key={event.id}>
+            <div>
+              <p>
+                <strong>{event.actorName}</strong>{" "}
+                {actions[event.action] ?? "updated the task"}
+              </p>
+              <time dateTime={event.createdAt}>
+                {formatDate(event.createdAt)}
+              </time>
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }

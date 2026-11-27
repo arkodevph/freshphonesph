@@ -5,9 +5,11 @@ import Link from "next/link";
 import type { Me } from "@/lib/api";
 import { can } from "@/lib/useMe";
 import { enrollmentAnswerText } from "@/lib/enrollment-forms";
-import { useEnrollmentApplication } from "@/app/system/enrollments/applications/useEnrollmentApplication";
+import { useAgentApplication } from "./useAgentApplication";
+import CloseApplicationForm from "./CloseApplicationForm";
+import { useAgentResource } from "@/lib/useAgentResource";
+import type { EnrollmentBatchChoice } from "@/lib/enrollment-forms";
 import ForwardApplicationForm from "@/app/system/_role-designs/agent/app/system/enrollments/applications/ForwardApplicationForm";
-import ApplicationRouting from "@/app/system/_role-designs/agent/app/system/enrollments/applications/ApplicationRouting";
 import styles from "@/app/system/_role-designs/agent/app/system/enrollments/enrollment-workspace.module.css";
 
 export default function EnrollmentApplicationDetail({
@@ -17,7 +19,13 @@ export default function EnrollmentApplicationDetail({
   id: string;
   me: Me;
 }) {
-  const workspace = useEnrollmentApplication(id, me, true);
+  const workspace = useAgentApplication(id);
+
+  const batches = useAgentResource<EnrollmentBatchChoice[]>(
+    "/enrollment/batches",
+  );
+
+  const blocked = workspace.pending || workspace.stale || workspace.uncertain;
 
   const application = workspace.application;
 
@@ -49,11 +57,56 @@ export default function EnrollmentApplicationDetail({
       {workspace.stale && (
         <div className={styles.notice} role="status">
           This application changed. Your draft is preserved.
-          <button type="button" className={styles.button} onClick={() => {
-            if (window.confirm("Discard your draft and load the latest application?")) {
-              void workspace.load();
-            }
-          }}>Load latest application</button>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Discard your draft and load the latest application?",
+                )
+              ) {
+                void workspace.load();
+              }
+            }}
+          >
+            Load latest application
+          </button>
+        </div>
+      )}
+      {workspace.uncertain && (
+        <div className={styles.notice} role="status">
+          <p>
+            The last action’s result is unconfirmed. Your details are locked to
+            the original attempt. Retry that exact action or load the latest
+            application before editing.
+          </p>
+          <button
+            type="button"
+            className={styles.button}
+            disabled={workspace.pending || workspace.stale}
+            onClick={() => {
+              void workspace.retry();
+            }}
+          >
+            Retry original action
+          </button>
+          <button
+            type="button"
+            className={styles.button}
+            disabled={workspace.pending}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Load the current application and discard unsaved draft changes?",
+                )
+              ) {
+                void workspace.load();
+              }
+            }}
+          >
+            Check latest application
+          </button>
         </div>
       )}
       {workspace.error && (
@@ -122,7 +175,7 @@ export default function EnrollmentApplicationDetail({
               className={styles.link}
               href={`/system/enrollments?request=${encodeURIComponent(application.enrollmentRequest.id)}`}
             >
-              Open Manager enrollment review
+              Open enrollment request
             </Link>
           </div>
         )}
@@ -134,8 +187,12 @@ export default function EnrollmentApplicationDetail({
           <ForwardApplicationForm
             key={`${application.id}-${application.version}`}
             application={application}
-            batches={workspace.batches}
-            pending={workspace.pending || workspace.stale}
+            batches={batches.error ? [] : (batches.data ?? [])}
+            batchLoading={batches.loading}
+            batchError={batches.error}
+            retryBatches={batches.refresh}
+            blocked={blocked}
+            pending={workspace.operation === "forward"}
             run={workspace.run}
             onAccessLost={() => {
               void workspace.load();
@@ -143,13 +200,14 @@ export default function EnrollmentApplicationDetail({
           />
         )}
       {application.status === "RECEIVED" &&
-        me.role === "coo" &&
+        application.assignedAgent.id === String(me.id) &&
+        me.role === "agent" &&
         can(me, "ENROLLMENT_APPLICATION_MANAGE") && (
-          <ApplicationRouting
-            key={`${application.id}-${application.version}`}
+          <CloseApplicationForm
+            key={`close-${application.id}-${application.version}`}
             application={application}
-            agents={workspace.agents}
-            pending={workspace.pending}
+            blocked={blocked}
+            pending={workspace.operation === "close"}
             run={workspace.run}
           />
         )}

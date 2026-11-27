@@ -577,6 +577,204 @@ test("inactive accounts are unavailable while inactive or missing linked profile
   }
 });
 
+test("an Agent sees its own readiness and all assigned batches beyond the legacy cap", async () => {
+  const login = await fetch(`${base}/api/auth/login`, {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: `${namespace}agent-0@phase2.example.test`,
+      password,
+    }),
+  });
+
+  assert.equal(login.status, 200);
+
+  people.set("lead-agent", {
+    id: agents[0],
+    cookie: login.headers
+      .getSetCookie()
+      .map((item) => {
+        return item.split(";")[0];
+      })
+      .join("; "),
+  });
+
+  const profile = await get<NetworkPage<NetworkAgent>>(
+    "/agent-network/agents",
+    "lead-agent",
+  );
+
+  assert.equal(profile.total, 1);
+
+  assert.equal(profile.items[0].id, agents[0]);
+
+  assert.equal(profile.items[0].agentProfile!.active, true);
+
+  const first = await get<NetworkPage<NetworkBatch>>(
+    "/agent-network/batches",
+    "lead-agent",
+  );
+
+  assert.equal(first.total, 105);
+
+  assert.equal(first.items.length, 20);
+
+  const last = await get<NetworkPage<NetworkBatch>>(
+    "/agent-network/batches?page=6",
+    "lead-agent",
+  );
+
+  assert.equal(last.items.length, 5);
+
+  const found = await get<NetworkPage<NetworkBatch>>(
+    "/agent-network/batches?q=Beyond%20old%20batch%20cap",
+    "lead-agent",
+  );
+
+  assert.equal(found.total, 1);
+
+  assert.equal(found.items[0].model, "Beyond old batch cap");
+
+  assert.equal(found.summary.batches, 105);
+
+  assert.equal(
+    (await request(`/agent-network/agents/${foreignId}`, "lead-agent")).status,
+    404,
+  );
+
+  assert.equal(
+    (await request(`/agent-network/batches?agentId=${foreignId}`, "lead-agent"))
+      .status,
+    400,
+  );
+
+  assert.equal(
+    (await request("/pioneer/overview/team", "lead-agent")).status,
+    403,
+  );
+
+  assert.equal(
+    (await request("/pioneer/overview/tasks", "lead-agent")).status,
+    403,
+  );
+
+  await db.agent.update({
+    where: { id: profiles[0] },
+    data: { active: false },
+  });
+
+  try {
+    const inactive = await get<NetworkPage<NetworkAgent>>(
+      "/agent-network/agents",
+      "lead-agent",
+    );
+
+    assert.equal(inactive.items[0].agentProfile!.active, false);
+
+    assert.equal(
+      (
+        await get<NetworkPage<NetworkBatch>>(
+          "/agent-network/batches",
+          "lead-agent",
+        )
+      ).total,
+      0,
+    );
+
+    const missing = await get<NetworkPage<NetworkAgent>>(
+      "/agent-network/agents",
+      "AGENT",
+    );
+
+    assert.equal(missing.items[0].agentProfile, null);
+
+    assert.equal(
+      (await get<NetworkPage<NetworkBatch>>("/agent-network/batches", "AGENT"))
+        .total,
+      0,
+    );
+  } finally {
+    await db.agent.update({
+      where: { id: profiles[0] },
+      data: { active: true },
+    });
+  }
+});
+
+test("Agent open-task counts stay self scoped and available without an active profile", async () => {
+  const assigneeId = people.get("AGENT")!.id;
+
+  const statuses = [
+    "TODO",
+    "IN_PROGRESS",
+    "SUBMITTED",
+    "DONE",
+    "CANCELLED",
+  ] as const;
+
+  await db.task.createMany({
+    data: [assigneeId, agents[0]].flatMap((id) => {
+      return statuses.map((status) => {
+        return {
+          title: `Synthetic Agent desk ${status}`,
+          creatorId: people.get("PIONEER_AGENT")!.id,
+          assigneeId: id,
+          deadline: new Date("2099-01-01"),
+          status,
+        };
+      });
+    }),
+  });
+
+  type TaskPage = {
+    count: number;
+    results: { assigneeId: string; status: string }[];
+  };
+
+  const todo = await get<TaskPage>("/tasks?status=TODO&page=1", "AGENT");
+
+  const active = await get<TaskPage>(
+    "/tasks?status=IN_PROGRESS&page=1",
+    "AGENT",
+  );
+
+  assert.equal(todo.count + active.count, 2);
+
+  assert.deepEqual(
+    todo.results.map((row) => {
+      return row.assigneeId;
+    }),
+    [assigneeId],
+  );
+
+  assert.deepEqual(
+    active.results.map((row) => {
+      return row.status;
+    }),
+    ["IN_PROGRESS"],
+  );
+
+  assert.equal((await request("/tasks?view=team", "AGENT")).status, 403);
+
+  await db.agent.update({
+    where: { id: profiles[0] },
+    data: { active: false },
+  });
+
+  try {
+    const inactive = await get<TaskPage>("/tasks?status=TODO", "lead-agent");
+
+    assert.equal(inactive.count, 1);
+
+    assert.equal(inactive.results[0].assigneeId, agents[0]);
+  } finally {
+    await db.agent.update({
+      where: { id: profiles[0] },
+      data: { active: true },
+    });
+  }
+});
+
 test("current role revocation is enforced on an already signed-in session", async () => {
   const id = people.get("PIONEER_AGENT")!.id;
 

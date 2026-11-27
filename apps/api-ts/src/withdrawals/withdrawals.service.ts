@@ -28,6 +28,7 @@ import { Prisma } from "../generated/prisma/client";
 import { allowed } from "../auth/access";
 import { safeUser } from "../auth/auth.service";
 import { batchScope } from "../records/scope";
+import { enrollmentScope } from "../records/enrollment-scope";
 import { notifyCustomer } from "../portal/notifications.service";
 import {
   replacementItems,
@@ -265,6 +266,19 @@ export class WithdrawalsService {
 
     const approved = ["APPROVED", "REPLACED"].includes(row.status);
 
+    const canReadReplacement = Boolean(
+      row.replacementEnrollmentId &&
+      (allowed(user, "ENROLLMENT_SUBMIT") ||
+        allowed(user, "ENROLLMENT_REVIEW") ||
+        allowed(user, "AGENT_NETWORK_READ")) &&
+      (await tx.enrollmentRequest.findFirst({
+        where: {
+          AND: [{ id: row.replacementEnrollmentId }, enrollmentScope(user)],
+        },
+        select: { id: true },
+      })),
+    );
+
     return {
       id: row.id,
       clientId: row.clientId,
@@ -321,11 +335,7 @@ export class WithdrawalsService {
           allowed(user, "WITHDRAWAL_AGENT_REVIEW") &&
           row.status === "APPROVED" &&
           Boolean(row.replacementMode),
-        viewReplacementEnrollment:
-          Boolean(row.replacementEnrollmentId) &&
-          (allowed(user, "ENROLLMENT_SUBMIT") ||
-            allowed(user, "ENROLLMENT_REVIEW") ||
-            allowed(user, "AGENT_NETWORK_READ")),
+        viewReplacementEnrollment: canReadReplacement,
         payout:
           allowed(user, "WITHDRAWAL_REFUND_PAY") &&
           approved &&

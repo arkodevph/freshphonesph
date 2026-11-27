@@ -931,6 +931,28 @@ test("public intake sends a private in-app notice to the assigned Agent without 
     JSON.stringify(notices),
     /María|Original private answer|public-.*@example/,
   );
+
+  const page = await ok<{ items: { id: string; link: string }[] }>(
+    await api("/notifications", "agent1"),
+  );
+
+  const visible = page.items.find((item) => {
+    return notices.some((row) => {
+      return row.id === item.id;
+    });
+  });
+
+  assert(visible);
+
+  assert.equal(
+    visible.link,
+    `/system/enrollments?view=applications&application=${firstApplication}`,
+  );
+
+  assert.equal(
+    (await api(`/notifications/${visible.id}/read`, "agent2", "PATCH")).status,
+    404,
+  );
 });
 
 test("new retention category is inactive until policy approval and blocks in-flight or converted intake", async () => {
@@ -1259,4 +1281,124 @@ test("Agent can link an existing member with a blank saved phone without changin
   assert.equal((await detail(row.id)).contact.phone, "+639170000111");
 
   assert.equal(await db.member.count({ where: { id: member.id } }), 1);
+});
+
+test("Agent close keeps original evidence and rejects foreign assignment and stale versions", async () => {
+  const receipt = await submit({ answers: { [choiceId]: optionOne } });
+
+  const original = await detail(receipt.reference);
+
+  const path = `/enrollment/applications/${original.id}/close`;
+
+  assert.equal(
+    (
+      await api(path, "agent2", "POST", {
+        version: original.version,
+        reason: "Foreign close denied",
+      })
+    ).status,
+    404,
+  );
+
+  assert.equal(
+    (
+      await api(path, "agent1", "POST", {
+        version: original.version + 1,
+        reason: "Stale close denied",
+      })
+    ).status,
+    409,
+  );
+
+  assert.equal((await detail(original.id)).status, "RECEIVED");
+
+  const closed = await ok<PublicEnrollmentApplication>(
+    await api(path, "agent1", "POST", {
+      version: original.version,
+      reason: "Synthetic applicant chose not to continue",
+    }),
+  );
+
+  assert.equal(closed.status, "CLOSED");
+
+  assert.deepEqual(closed.answers, original.answers);
+
+  assert.deepEqual(closed.contact, original.contact);
+
+  assert.equal(closed.closeReason, "Synthetic applicant chose not to continue");
+
+  assert.equal((await forward(original.id)).status, 409);
+
+  assert.equal(
+    await db.enrollmentRequest.count({ where: { submissionId: original.id } }),
+    0,
+  );
+});
+
+test("manual Agent submission replays the original outcome after response loss and Manager rejection", async () => {
+  const payload = {
+    submissionId: randomUUID(),
+    batchId: batchOne,
+    name: "Synthetic response-loss member",
+    email: "",
+    phone: "09170008888",
+  };
+
+  const count = await db.enrollmentRequest.count();
+
+  const first = await api("/enrollment/requests", "agent1", "POST", payload);
+
+  assert.equal(first.status, 201);
+
+  // Deliberately discard the first response body, as a disconnected UI would.
+  const replay = await ok<{ id: string; status: string; version: number }>(
+    await api("/enrollment/requests", "agent1", "POST", payload),
+  );
+
+  assert.equal(await db.enrollmentRequest.count(), count + 1);
+
+  assert.equal(
+    (
+      await api("/enrollment/requests", "agent1", "POST", {
+        ...payload,
+        name: "Edited after uncertainty",
+      })
+    ).status,
+    409,
+  );
+
+  assert.equal(
+    (await api("/enrollment/requests", "agent2", "POST", payload)).status,
+    409,
+  );
+
+  const foreign = await ok<{ items: unknown[]; total: number }>(
+    await api(`/enrollment/requests?requestId=${replay.id}`, "agent2"),
+  );
+
+  assert.equal(foreign.total, 0);
+
+  await ok(
+    await api(`/enrollment/requests/${replay.id}/review`, "manager1", "POST", {
+      version: replay.version,
+      decision: "REJECTED",
+      reason: "Synthetic requirements incomplete",
+    }),
+  );
+
+  const after = await ok<{ id: string; status: string }>(
+    await api("/enrollment/requests", "agent1", "POST", payload),
+  );
+
+  assert.equal(after.id, replay.id);
+
+  assert.equal(after.status, "REJECTED");
+
+  const own = await ok<{
+    items: { id: string; status: string; reason: string }[];
+  }>(await api(`/enrollment/requests?requestId=${replay.id}`, "agent1"));
+
+  assert.equal(own.items[0].status, "REJECTED");
+
+  assert.equal(own.items[0].reason, "Synthetic requirements incomplete");
 });

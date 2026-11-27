@@ -2,10 +2,13 @@
 
 import WorkspaceProgress from "@/app/system/_role-designs/agent/components/WorkspaceProgress";
 import WorkspaceNativeSelect from "@/app/system/_role-designs/agent/components/WorkspaceNativeSelect";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Me } from "@/lib/api";
-import { useEnrollmentApplications } from "@/app/system/enrollments/applications/useEnrollmentApplications";
+import { useAgentResource } from "@/lib/useAgentResource";
+import type { Page, PublicEnrollmentApplication } from "@freshphones/contracts";
+import { useEnrollmentLocation } from "../useEnrollmentLocation";
+import { enrollmentHref } from "../enrollment-location";
 import EnrollmentApplicationDetail from "@/app/system/_role-designs/agent/app/system/enrollments/applications/EnrollmentApplicationDetail";
 import styles from "@/app/system/_role-designs/agent/app/system/enrollments/enrollment-workspace.module.css";
 
@@ -16,20 +19,32 @@ export default function EnrollmentApplications({
   me: Me;
   applicationId?: string;
 }) {
-  const [page, setPage] = useState(1);
+  const { location, navigate } = useEnrollmentLocation();
 
-  const [status, setStatus] = useState("");
+  const { page, status, q: query } = location;
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(query);
 
-  const [query, setQuery] = useState("");
+  useEffect(() => {
+    setSearch(query);
+  }, [query]);
 
-  const workspace = useEnrollmentApplications({
-    page,
-    q: query,
-    status,
-    applicationId,
+  const params = new URLSearchParams({
+    page: String(applicationId ? 1 : page),
+    ...(!applicationId && query ? { q: query } : {}),
+    ...(!applicationId && status ? { status } : {}),
+    ...(applicationId ? { applicationId } : {}),
   });
+
+  const workspace = useAgentResource<Page<PublicEnrollmentApplication>>(
+    `/enrollment/applications?${params}`,
+  );
+
+  const listHref = enrollmentHref(location, { application: undefined });
+
+  function setPage(value: number) {
+    navigate({ page: value });
+  }
 
   return (
     <div className={styles.workspace}>
@@ -45,10 +60,7 @@ export default function EnrollmentApplications({
         </p>
         {applicationId && (
           <p>
-            <Link
-              className={styles.link}
-              href="/system/enrollments?view=applications"
-            >
+            <Link className={styles.link} href={listHref}>
               View all website applications
             </Link>
           </p>
@@ -59,9 +71,7 @@ export default function EnrollmentApplications({
             onSubmit={(event) => {
               event.preventDefault();
 
-              setQuery(search.trim());
-
-              setPage(1);
+              navigate({ q: search.trim(), page: 1 });
             }}
           >
             <label className={styles.field}>
@@ -79,9 +89,7 @@ export default function EnrollmentApplications({
               <WorkspaceNativeSelect
                 value={status}
                 onChange={(event) => {
-                  setStatus(event.target.value);
-
-                  setPage(1);
+                  navigate({ status: event.target.value, page: 1 });
                 }}
               >
                 <option value="">All statuses</option>
@@ -97,24 +105,24 @@ export default function EnrollmentApplications({
             </div>
           </form>
         )}
-        {workspace.loading && (
+        {!applicationId && workspace.loading && (
           <WorkspaceProgress label="Loading website applications…" />
         )}
-        {workspace.error && (
+        {!applicationId && workspace.error && (
           <div className={styles.error}>
             <p role="alert">{workspace.error}</p>
             <button
               className={styles.button}
               type="button"
               onClick={() => {
-                void workspace.load();
+                void workspace.refresh();
               }}
             >
               Retry applications
             </button>
           </div>
         )}
-        {workspace.data && (
+        {!applicationId && !workspace.error && workspace.data && (
           <>
             <ul className={styles.list}>
               {workspace.data.items.map((application) => {
@@ -136,7 +144,9 @@ export default function EnrollmentApplications({
                     </p>
                     <Link
                       className={styles.link}
-                      href={`/system/enrollments?application=${encodeURIComponent(application.id)}`}
+                      href={enrollmentHref(location, {
+                        application: application.id,
+                      })}
                     >
                       Review application
                     </Link>
@@ -147,32 +157,35 @@ export default function EnrollmentApplications({
             {!workspace.data.items.length && (
               <p>No website applications in this view.</p>
             )}
-            <div className={styles.actions}>
-              <button
-                type="button"
-                disabled={page <= 1 || workspace.loading}
-                onClick={() => {
-                  setPage(page - 1);
-                }}
-              >
-                Previous
-              </button>
-              <span>
-                Page {workspace.data.page} · {workspace.data.total} applications
-              </span>
-              <button
-                type="button"
-                disabled={
-                  workspace.loading ||
-                  page * workspace.data.pageSize >= workspace.data.total
-                }
-                onClick={() => {
-                  setPage(page + 1);
-                }}
-              >
-                Next
-              </button>
-            </div>
+            {!applicationId && (
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  disabled={page <= 1 || workspace.loading}
+                  onClick={() => {
+                    setPage(page - 1);
+                  }}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {workspace.data.page} · {workspace.data.total}{" "}
+                  applications
+                </span>
+                <button
+                  type="button"
+                  disabled={
+                    workspace.loading ||
+                    page * workspace.data.pageSize >= workspace.data.total
+                  }
+                  onClick={() => {
+                    setPage(page + 1);
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         )}
       </section>

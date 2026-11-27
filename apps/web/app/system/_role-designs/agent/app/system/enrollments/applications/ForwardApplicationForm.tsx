@@ -9,23 +9,32 @@ import {
 } from "@freshphones/contracts";
 import {
   findEnrollmentMembers,
-  forwardEnrollmentApplication,
   type EnrollmentBatchChoice,
   type EnrollmentMemberChoice,
 } from "@/lib/enrollment-forms";
 import { ApiError } from "@/lib/ts-api";
+import { useEnrollmentDraftGuard } from "../useEnrollmentDraftGuard";
+import { newApplicationCommand } from "../submission-attempt";
 import styles from "@/app/system/_role-designs/agent/app/system/enrollments/enrollment-workspace.module.css";
 
 export default function ForwardApplicationForm({
   application,
   batches,
   pending,
+  blocked,
+  batchLoading,
+  batchError,
+  retryBatches,
   run,
   onAccessLost,
 }: {
   application: PublicEnrollmentApplication;
   batches: EnrollmentBatchChoice[];
   pending: boolean;
+  blocked: boolean;
+  batchLoading: boolean;
+  batchError: string;
+  retryBatches: () => Promise<void>;
   run: (work: () => Promise<unknown>, message: string) => Promise<void>;
   onAccessLost: () => void;
 }) {
@@ -48,6 +57,16 @@ export default function ForwardApplicationForm({
   const [error, setError] = useState("");
 
   const [notice, setNotice] = useToastNotice("");
+
+  useEnrollmentDraftGuard(
+    Boolean(
+      batchId ||
+      member ||
+      contact.name !== application.contact.name ||
+      contact.phone !== application.contact.phone ||
+      contact.email !== application.contact.email,
+    ),
+  );
 
   useEffect(() => {
     alive.current = true;
@@ -109,6 +128,10 @@ export default function ForwardApplicationForm({
       onSubmit={(event) => {
         event.preventDefault();
 
+        if (blocked || batchLoading || batchError) {
+          return;
+        }
+
         setError("");
 
         const parsed = enrollmentApplicationForwardSchema.safeParse({
@@ -127,9 +150,16 @@ export default function ForwardApplicationForm({
           return;
         }
 
-        void run(() => {
-          return forwardEnrollmentApplication(application.id, parsed.data);
-        }, "Application forwarded. The assigned Batch Manager must approve the enrollment request before a membership is created.");
+        ++searchGeneration.current;
+
+        setSearching(false);
+
+        setChoices([]);
+
+        void run(
+          newApplicationCommand(application.id, "forward", parsed.data),
+          "Application forwarded. The assigned Batch Manager must approve the enrollment request before a membership is created.",
+        );
       }}
     >
       <h2>Agent review</h2>
@@ -139,7 +169,7 @@ export default function ForwardApplicationForm({
         original website answers remain in this application.
       </p>
       <fieldset
-        disabled={pending}
+        disabled={blocked}
         style={{ minWidth: 0, border: 0, padding: 0 }}
       >
         <legend className={styles.srOnly}>Prepare enrollment request</legend>
@@ -289,7 +319,7 @@ export default function ForwardApplicationForm({
             {notice}
           </p>
         )}
-        {!batches.length && (
+        {!batchLoading && !batchError && !batches.length && (
           <p>
             No assigned batches are available. Ask the COO to check your Agent
             profile, batch assignments and assigned Batch Manager.
@@ -300,12 +330,30 @@ export default function ForwardApplicationForm({
             type="submit"
             data-variant="primary"
             className={styles.primary}
-            disabled={pending || !batchId}
+            disabled={
+              blocked || batchLoading || Boolean(batchError) || !batchId
+            }
           >
             {pending ? "Forwarding…" : "Forward to Manager"}
           </button>
         </div>
       </fieldset>
+      {batchLoading && <p role="status">Checking assigned batches…</p>}
+      {batchError && (
+        <div className={styles.error} role="alert">
+          <p>{batchError}</p>
+          <button
+            type="button"
+            className={styles.button}
+            disabled={pending}
+            onClick={() => {
+              void retryBatches();
+            }}
+          >
+            Retry assigned batches
+          </button>
+        </div>
+      )}
     </form>
   );
 }

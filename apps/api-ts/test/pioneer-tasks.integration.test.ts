@@ -563,6 +563,91 @@ test("transfers and inactivity change rows, totals, task details and evidence ac
   );
 });
 
+test("Agent sees terminal cancellation and cannot start, submit, complete or read another task notice", async () => {
+  const task = await body(
+    await request("pioneer", "/tasks", "POST", assignment()),
+    201,
+  );
+
+  const alerts = await body(
+    await request("agent", "/staff/alerts?scope=tasks"),
+  );
+
+  const alert = alerts.items.find((item: { id: string }) => {
+    return item.id === task.id;
+  });
+
+  assert(alert);
+
+  assert.equal(alert.targetPath, `/system/tasks?task=${task.id}`);
+
+  assert.equal(
+    (
+      await request("foreign", `/staff/alerts/${task.id}/read`, "POST", {
+        entity: "task",
+        kind: alert.kind,
+        deadline: alert.deadline,
+      })
+    ).status,
+    404,
+  );
+
+  const cancelled = await body(
+    await request("pioneer", `/tasks/${task.id}/cancel`, "POST", {
+      version: task.version,
+      reason: "Synthetic cancelled assignment",
+    }),
+  );
+
+  const current = await body(await request("agent", `/tasks/${task.id}`));
+
+  assert.equal(current.status, "CANCELLED");
+
+  assert.equal(current.cancellationReason, "Synthetic cancelled assignment");
+
+  assert.equal(
+    (
+      await request("agent", `/tasks/${task.id}/start`, "PATCH", {
+        version: cancelled.version,
+      })
+    ).status,
+    409,
+  );
+
+  const form = new FormData();
+
+  form.set("version", String(cancelled.version));
+
+  form.set("report", "Must not submit cancelled work");
+
+  assert.equal(
+    (
+      await fetch(`${base}/api/tasks/${task.id}/submit`, {
+        method: "POST",
+        headers: { Origin: origin, Cookie: people.get("agent")!.cookie },
+        body: form,
+      })
+    ).status,
+    409,
+  );
+
+  assert.equal(
+    (
+      await request("agent", `/tasks/${task.id}/complete`, "POST", {
+        version: cancelled.version,
+      })
+    ).status,
+    403,
+  );
+
+  assert.equal(
+    await db.auditEntry.count({
+      where: { recordId: task.id, action: "task.submitted" },
+    }),
+    0,
+  );
+});
+
 test("write services reject stale submission permissions after the HTTP identity was captured", async () => {
   const user = (await body(await request("agent", "/auth/me"))) as User;
 

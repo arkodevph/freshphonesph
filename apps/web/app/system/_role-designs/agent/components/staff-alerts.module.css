@@ -621,3 +621,36 @@
 .deleteDialogHeading h2 {
   margin: 0;
 }
+
+.workspace .feedHelp {
+  padding: 0 1.5rem 1rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--alerts-muted);
+}
+.workspace .item > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.workspace .toolbar {
+  flex-wrap: wrap;
+}
+.workspace .toolbar :is(button, select) {
+  min-height: 44px;
+}
+.workspace .toolbar button[aria-pressed="true"] {
+  background: var(--alerts-hover);
+  color: var(--alerts-text);
+}
+.workspace .pageHeading {
+  flex-wrap: wrap;
+}
+.workspace .pageHeading p {
+  font-size: 1rem;
+  line-height: 1.55;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workspace button:active {
+    transform: scale(0.97);
+  }
+}

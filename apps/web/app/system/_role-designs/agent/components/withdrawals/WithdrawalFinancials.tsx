@@ -9,7 +9,11 @@ export default function WithdrawalFinancials({ row }: { row: WithdrawalCase }) {
       aria-label="Withdrawal financial record"
     >
       <section>
-        <h3>External refund</h3>
+        <h3>Recorded external refund</h3>
+        <p className={styles.help}>
+          Read-only context. The COO decides refund terms; Finance records
+          external payments.
+        </p>
         <p className={styles.ledgerStatus}>{withdrawalRefundLabel(row)}</p>
         <dl className={styles.ledgerAmount}>
           <dt>Approved refund</dt>

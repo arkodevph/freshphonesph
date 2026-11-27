@@ -7,6 +7,7 @@ import AgentEnrollmentRequests from "./AgentEnrollmentRequests";
 import EnrollmentFormWorkspace from "@/app/system/_role-designs/agent/app/system/enrollments/forms/EnrollmentFormWorkspace";
 import EnrollmentApplications from "@/app/system/_role-designs/agent/app/system/enrollments/applications/EnrollmentApplications";
 import styles from "@/app/system/_role-designs/agent/app/system/enrollments/enrollment-workspace.module.css";
+import { useEnrollmentLocation } from "./useEnrollmentLocation";
 
 export type EnrollmentView = "requests" | "applications" | "form";
 
@@ -20,6 +21,14 @@ export default function EnrollmentHome({
   applicationId?: string;
 }) {
   const me = useMe();
+
+  const route = useEnrollmentLocation();
+
+  view = route.location.view;
+
+  requestId = route.location.request;
+
+  applicationId = route.location.application;
 
   if (!me) {
     return <WorkspaceProgress label="Loading enrollment workspace…" />;
@@ -60,6 +69,30 @@ export default function EnrollmentHome({
 
   return (
     <div className={styles.workspace}>
+      {route.invalid && (
+        <p className={styles.notice} role="status">
+          These enrollment filters are invalid. Showing all requests.{" "}
+          <button
+            type="button"
+            onClick={() => {
+              route.navigate(
+                {
+                  view: "requests",
+                  page: 1,
+                  status: "",
+                  q: "",
+                  request: undefined,
+                  application: undefined,
+                  new: undefined,
+                },
+                true,
+              );
+            }}
+          >
+            Reset enrollment filters
+          </button>
+        </p>
+      )}
       <nav className={styles.tabs} aria-label="Enrollment workspaces">
         {tabs
           .filter((tab) => {
@@ -82,13 +115,10 @@ export default function EnrollmentHome({
           Your account does not have access to this enrollment workspace.
         </p>
       ) : selected === "requests" ? (
-        <AgentEnrollmentRequests
-          key={`${me.id}-${requestId ?? "all"}`}
-          requestId={requestId}
-        />
+        <AgentEnrollmentRequests key={String(me.id)} requestId={requestId} />
       ) : selected === "applications" ? (
         <EnrollmentApplications
-          key={`${me.id}-${applicationId ?? "all"}`}
+          key={String(me.id)}
           me={me}
           applicationId={applicationId}
         />

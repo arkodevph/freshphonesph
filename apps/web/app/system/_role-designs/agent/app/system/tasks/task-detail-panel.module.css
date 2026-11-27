@@ -333,3 +333,33 @@
     width: 100%;
   }
 }
+
+.detailDialog :is(h2, p, dd, button, .evidenceName) {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.detailDialog .evidenceName {
+  white-space: normal;
+  word-break: break-word;
+  max-width: 100%;
+}
+.detailDialog :is(button, input) {
+  min-height: 44px;
+}
+.detailDialog input[type="file"] {
+  width: 100%;
+  max-width: 100%;
+}
+.detailDialog .reportForm p {
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.detailDialog .reportFooter {
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .detailDialog button:active {
+    transform: scale(0.97);
+  }
+}

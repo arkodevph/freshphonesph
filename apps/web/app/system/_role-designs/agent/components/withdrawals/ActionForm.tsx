@@ -7,6 +7,7 @@ export function ActionForm({
   title,
   label,
   busy,
+  blocked = busy,
   children,
   confirm,
   onSave,
@@ -14,6 +15,7 @@ export function ActionForm({
   title: string;
   label: string;
   busy: boolean;
+  blocked?: boolean;
   children: ReactNode;
   confirm?: string;
   onSave: () => Promise<unknown>;
@@ -22,6 +24,10 @@ export function ActionForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (busy || blocked) {
+      return;
+    }
 
     if (confirm && !reviewing) {
       setReviewing(true);
@@ -38,10 +44,11 @@ export function ActionForm({
     <form
       className={`${styles.form} ${styles.section}`}
       aria-label={title}
+      aria-busy={busy}
       onSubmit={submit}
     >
       <h3>{title}</h3>
-      <fieldset disabled={busy || reviewing}>{children}</fieldset>
+      <fieldset disabled={blocked || busy || reviewing}>{children}</fieldset>
       {reviewing ? (
         <div
           className={styles.consequence}
@@ -53,7 +60,7 @@ export function ActionForm({
           <div className={styles.actions}>
             <button
               type="button"
-              disabled={busy}
+              disabled={blocked || busy}
               onClick={() => {
                 setReviewing(false);
               }}
@@ -62,7 +69,7 @@ export function ActionForm({
             </button>
             <button
               type="submit"
-              disabled={busy}
+              disabled={blocked || busy}
               data-variant="primary"
               className={styles.primary}
             >
@@ -76,7 +83,7 @@ export function ActionForm({
             type="submit"
             data-variant="primary"
             className={styles.primary}
-            disabled={busy}
+            disabled={blocked || busy}
           >
             {busy ? "Saving…" : label}
           </button>

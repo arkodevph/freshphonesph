@@ -1,7 +1,7 @@
 "use client";
 
 import { can, useMe } from "@/lib/useMe";
-import { WithdrawalWorkspace } from "@/app/system/_role-designs/agent/components/withdrawals/WithdrawalWorkspace";
+import AgentWithdrawalWorkspace from "./AgentWithdrawalWorkspace";
 
 export function WithdrawalStaffWorkspace({
   requestId,
@@ -14,11 +14,9 @@ export function WithdrawalStaffWorkspace({
     return <p role="status">Checking your workspace…</p>;
   }
 
-  return (
-    <WithdrawalWorkspace
-      key={`${me.id}:${requestId ?? "all"}`}
-      requestId={requestId}
-      enabled={can(me, "WITHDRAWAL_READ")}
-    />
+  return can(me, "WITHDRAWAL_READ") ? (
+    <AgentWithdrawalWorkspace key={String(me.id)} />
+  ) : (
+    <p role="alert">No access to withdrawal requests.</p>
   );
 }

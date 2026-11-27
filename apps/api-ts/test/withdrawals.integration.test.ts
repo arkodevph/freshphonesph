@@ -1129,3 +1129,139 @@ test("two API instances cannot pay beyond the approved refund or duplicate the r
 
   assert.equal(ordinary.status, 409);
 });
+
+test("replacement link follows enrollment ownership after Agent reassignment without widening reads", async () => {
+  const f = await fixture();
+
+  let row = (await propose(await terms(await approve(f)))).row;
+
+  assert.equal(row.actions.viewReplacementEnrollment, true);
+
+  const requestId = row.replacementEnrollmentId!;
+
+  await db.batch.update({
+    where: { id: f.batch.id },
+    data: { agentId: otherAgentId },
+  });
+
+  assert.equal((await request("AGENT", `/withdrawals/${row.id}`)).status, 404);
+
+  row = (await checked(
+    request("OTHER_AGENT", `/withdrawals/${row.id}`),
+  )) as WithdrawalCase;
+
+  assert.equal(row.actions.viewReplacementEnrollment, false);
+
+  const hidden = await checked(
+    request("OTHER_AGENT", `/enrollment/requests?requestId=${requestId}`),
+  );
+
+  assert.equal(hidden.total, 0);
+
+  const manager = await checked(request("MANAGER", `/withdrawals/${row.id}`));
+
+  assert.equal(manager.actions.viewReplacementEnrollment, true);
+
+  const coo = await checked(request("COO", `/withdrawals/${row.id}`));
+
+  assert.equal(coo.actions.viewReplacementEnrollment, true);
+
+  for (const action of ["decision", "refund", "payout", "policy"]) {
+    assert.equal(
+      (await request("OTHER_AGENT", `/withdrawals/${row.id}/${action}`, {}))
+        .status,
+      403,
+    );
+  }
+});
+
+test("Agent refund facts distinguish undecided from fully paid zero remaining while dues continue", async () => {
+  const f = await fixture();
+
+  let row = await approve(f);
+
+  assert.equal(row.refundAmount, null);
+
+  assert.equal(row.refundRemaining, null);
+
+  row = (await checked(
+    request("COO", `/withdrawals/${row.id}/refund`, {
+      version: row.version,
+      decision: "APPROVED",
+      amount: "5.00",
+      targetDate: null,
+      note: "Synthetic positive refund decision",
+    }),
+  )) as WithdrawalCase;
+
+  await checked(
+    request("FINANCE", `/withdrawals/${row.id}/payout`, {
+      version: row.version,
+      requestId: randomUUID(),
+      amount: "5.00",
+      paymentDate: "2026-11-26",
+      method: "CASH",
+      reference: `synthetic-zero-remaining-${suffix}`,
+      note: "Synthetic full external refund payment",
+    }),
+  );
+
+  const agent = (await checked(
+    request("AGENT", `/withdrawals/${row.id}`),
+  )) as WithdrawalCase;
+
+  assert.equal(agent.refundAmount, "5.00");
+
+  assert.equal(agent.refundRemaining, "0.00");
+
+  assert.equal(agent.duesContinue, true);
+
+  assert.equal(agent.actions.refund, false);
+
+  assert.equal(agent.actions.payout, false);
+
+  assert.equal(
+    (await db.client.findUniqueOrThrow({ where: { id: f.source.id } }))
+      .replacementCompletedAt,
+    null,
+  );
+});
+
+test("received withdrawal notices link the exact case and lose visibility with current batch assignment", async () => {
+  const f = await fixture();
+
+  const row = await submit(f);
+
+  const notices = await checked(request("AGENT", "/notifications"));
+
+  const notice = notices.items.find((item: { link: string }) => {
+    return item.link === `/system/withdrawals?request=${row.id}`;
+  });
+
+  assert(notice);
+
+  assert.equal(
+    (await request("OTHER_AGENT", `/withdrawals/${row.id}`)).status,
+    404,
+  );
+
+  await db.batch.update({
+    where: { id: f.batch.id },
+    data: { agentId: otherAgentId },
+  });
+
+  const after = await checked(request("AGENT", "/notifications"));
+
+  assert(
+    !after.items.some((item: { id: string }) => {
+      return item.id === notice.id;
+    }),
+  );
+
+  assert.equal((await request("AGENT", `/withdrawals/${row.id}`)).status, 404);
+
+  assert.equal(
+    (await request("OTHER_AGENT", `/withdrawals/${row.id}`)).status,
+    200,
+  );
+});

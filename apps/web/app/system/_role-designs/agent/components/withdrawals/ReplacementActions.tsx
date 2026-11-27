@@ -1,77 +1,72 @@
 "use client";
 
-import WorkspaceProgress from "@/app/system/_role-designs/agent/components/WorkspaceProgress";
-import WorkspaceNativeSelect from "@/app/system/_role-designs/agent/components/WorkspaceNativeSelect";
-import DateInput from "@/app/system/_role-designs/agent/components/DateInput";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type {
   WithdrawalCase,
-  WithdrawalReplacementMode,
   WithdrawalReplacementPreview,
 } from "@freshphones/contracts";
-import { BatchSchedulePreview } from "@/app/system/_role-designs/agent/components/BatchSchedulePreview";
+import { withdrawalReplacementSchema } from "@freshphones/contracts";
+import { ApiError } from "@/lib/ts-api";
+import { useAgentResource } from "@/lib/useAgentResource";
 import {
   findWithdrawalReplacementMembers,
-  getReplacementPreview,
-  moneyInput,
-  proposeWithdrawalReplacement,
-  saveWithdrawalPolicy,
   withdrawalMoney,
   type WithdrawalMemberChoice,
 } from "@/lib/withdrawals";
-import {
-  ActionForm,
-  NoteField,
-} from "@/app/system/_role-designs/agent/components/withdrawals/ActionForm";
-import type { RunWithdrawalAction } from "@/app/system/_role-designs/agent/components/withdrawals/ReviewActions";
-import styles from "@/app/system/_role-designs/agent/components/withdrawals/workspace.module.css";
-import { today as manilaToday } from "@/lib/date";
+import WorkspaceProgress from "../WorkspaceProgress";
+import { ActionForm } from "./ActionForm";
+import { withdrawalCommand } from "./agent-withdrawal";
+import { ReplacementEnrollmentLink } from "./ReplacementEnrollmentLink";
+import type { RunWithdrawalAction } from "./ReviewActions";
+import styles from "./workspace.module.css";
 
 export function ReplacementActions({
   row,
   busy,
+  blocked = busy,
   run,
+  onAccessLost,
 }: {
   row: WithdrawalCase;
   busy: boolean;
+  blocked?: boolean;
   run: RunWithdrawalAction;
+  onAccessLost?: () => void;
 }) {
-  const [mode, setMode] = useState<WithdrawalReplacementMode>(
-    row.replacementMode ?? "CONTINUE_UNPAID",
+  if (row.status !== "APPROVED") {
+    return row.replacementEnrollmentId ? (
+      <ReplacementEnrollmentLink row={row} />
+    ) : null;
+  }
+
+  return (
+    <ApprovedReplacement
+      key={row.id}
+      row={row}
+      busy={busy}
+      blocked={blocked}
+      run={run}
+      onAccessLost={onAccessLost}
+    />
   );
+}
 
-  const [consultation, setConsultation] = useState("");
-
-  const [note, setNote] = useState("");
-
-  const [price, setPrice] = useState(row.restartPlan?.contractPrice ?? "");
-
-  const [count, setCount] = useState(
-    String(row.restartPlan?.installmentCount ?? 6),
+function ApprovedReplacement({
+  row,
+  busy,
+  blocked,
+  run,
+  onAccessLost,
+}: {
+  row: WithdrawalCase;
+  busy: boolean;
+  blocked: boolean;
+  run: RunWithdrawalAction;
+  onAccessLost?: () => void;
+}) {
+  const preview = useAgentResource<WithdrawalReplacementPreview>(
+    `/withdrawals/${encodeURIComponent(row.id)}/replacement-preview`,
   );
-
-  const [cadence, setCadence] = useState<"MONTHLY" | "SEMIMONTHLY" | "WEEKLY">(
-    row.restartPlan?.cadence ?? "MONTHLY",
-  );
-
-  const [start, setStart] = useState(
-    row.restartPlan?.startDate ?? manilaToday(),
-  );
-
-  const [first, setFirst] = useState(row.restartPlan?.firstDueDate ?? "");
-
-  const [monthEnd, setMonthEnd] = useState(row.restartPlan?.monthEnd ?? false);
-
-  const [preview, setPreview] = useState<WithdrawalReplacementPreview | null>(
-    null,
-  );
-
-  const [previewError, setPreviewError] = useState<string | null>(null);
-
-  const [previewLoading, setPreviewLoading] = useState(false);
-
-  const [attempt, setAttempt] = useState(0);
 
   const [search, setSearch] = useState("");
 
@@ -79,9 +74,9 @@ export function ReplacementActions({
 
   const [selected, setSelected] = useState<WithdrawalMemberChoice | null>(null);
 
-  const [searchError, setSearchError] = useState<string | null>(null);
-
   const [searching, setSearching] = useState(false);
+
+  const [searchError, setSearchError] = useState("");
 
   const [name, setName] = useState("");
 
@@ -89,377 +84,297 @@ export function ReplacementActions({
 
   const [phone, setPhone] = useState("");
 
-  const submission = useRef<string | null>(null);
+  const [formError, setFormError] = useState("");
 
-  const showPreview =
-    row.actions.policy ||
-    row.actions.proposeReplacement ||
-    (row.status === "APPROVED" && Boolean(row.replacementMode));
+  const generation = useRef(0);
+
+  const alive = useRef(true);
+
+  const locked = useRef(blocked);
+
+  locked.current = blocked;
+
+  const lastVersion = useRef(row.version);
 
   useEffect(() => {
-    if (!showPreview) {
+    alive.current = true;
+
+    return () => {
+      alive.current = false;
+
+      ++generation.current;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (blocked) {
+      ++generation.current;
+
+      setChoices([]);
+
+      setSearching(false);
+    }
+  }, [blocked]);
+
+  useEffect(() => {
+    if (lastVersion.current !== row.version) {
+      lastVersion.current = row.version;
+
+      void preview.refresh();
+    }
+  }, [row.version, preview.refresh]);
+
+  useEffect(() => {
+    if (preview.denied) {
+      onAccessLost?.();
+    }
+  }, [preview.denied, onAccessLost]);
+
+  const terms = preview.error ? null : preview.data;
+
+  const stalePreview = terms && terms.version !== row.version;
+
+  const cannotPropose =
+    blocked ||
+    preview.loading ||
+    !terms ||
+    Boolean(terms.blockedReason || terms.needsPolicyRefresh || stalePreview);
+
+  async function find() {
+    if (blocked) {
       return;
     }
 
-    let active = true;
+    const request = ++generation.current;
 
-    setPreviewLoading(true);
-
-    setPreviewError(null);
-
-    void getReplacementPreview(row.id)
-      .then((value) => {
-        if (active) {
-          setPreview(value);
-        }
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setPreviewError(
-            error instanceof Error
-              ? error.message
-              : "Could not load the replacement preview.",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setPreviewLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [row.id, row.version, showPreview, attempt]);
-
-  async function searchMembers() {
     setSearching(true);
 
-    setSearchError(null);
+    setChoices([]);
+
+    setSearchError("");
 
     try {
-      setChoices(await findWithdrawalReplacementMembers(search));
-    } catch (error) {
-      setSearchError(
-        error instanceof Error
-          ? error.message
-          : "Could not search existing members.",
-      );
+      const found = await findWithdrawalReplacementMembers(search);
+
+      if (alive.current && request === generation.current && !locked.current) {
+        setChoices(found);
+
+        if (!found.length) {
+          setSearchError(
+            "No matching members in your currently assigned batches.",
+          );
+        }
+      }
+    } catch (failure) {
+      if (alive.current && request === generation.current) {
+        if (
+          failure instanceof ApiError &&
+          [401, 403, 404].includes(failure.status)
+        ) {
+          onAccessLost?.();
+        }
+
+        setSearchError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not find replacement members.",
+        );
+      }
     } finally {
-      setSearching(false);
+      if (alive.current && request === generation.current) {
+        setSearching(false);
+      }
     }
+  }
+
+  async function propose() {
+    if (cannotPropose) {
+      return false;
+    }
+
+    const parsed = withdrawalReplacementSchema.safeParse({
+      version: row.version,
+      submissionId: crypto.randomUUID(),
+      ...(selected
+        ? {
+            memberId: selected.memberId,
+            name: selected.name,
+            email: selected.email,
+            phone: selected.phone,
+          }
+        : { name: name.trim(), email: email.trim(), phone: phone.trim() }),
+    });
+
+    if (!parsed.success) {
+      setFormError(
+        parsed.error.issues[0]?.message ?? "Check replacement contact details.",
+      );
+
+      return false;
+    }
+
+    setFormError("");
+
+    ++generation.current;
+
+    setChoices([]);
+
+    setSearching(false);
+
+    return run(
+      withdrawalCommand(row.id, "replacement-request", parsed.data),
+      "Replacement request submitted to the Batch Manager. Dues and the current position continue until approved handover.",
+    );
   }
 
   return (
     <>
-      {showPreview && (
-        <section
-          className={styles.section}
-          aria-label="Replacement schedule preview"
-        >
-          <h3>Replacement schedule</h3>
-          {previewLoading ? (
-            <WorkspaceProgress label="Loading the current replacement terms…" />
-          ) : previewError ? (
-            <div role="alert" className={styles.error}>
-              {previewError}
-              <button
-                type="button"
-                onClick={() => {
-                  setAttempt((value) => {
-                    return value + 1;
-                  });
-                }}
-              >
-                Retry preview
-              </button>
-            </div>
-          ) : (
-            preview && (
-              <>
-                {preview.blockedReason && (
-                  <p className={styles.consequence}>{preview.blockedReason}</p>
-                )}
-                {preview.needsPolicyRefresh && (
-                  <p className={styles.consequence}>
-                    The financial position has changed. The COO must review and
-                    save the replacement terms again.
-                  </p>
-                )}
-                <p>
-                  {preview.mode === "RESTART"
-                    ? "Fresh installment plan"
-                    : preview.mode === "CONTINUE_UNPAID"
-                      ? "Remaining unpaid installments"
-                      : "The COO has not selected replacement terms."}{" "}
-                  · Total {withdrawalMoney(preview.totalDue)}
-                </p>
-                {preview.items.length > 0 && (
-                  <div
-                    className={styles.table}
-                    role="region"
-                    aria-label="Replacement dates and amounts"
-                    tabIndex={0}
-                  >
-                    <table>
-                      <caption>Proposed replacement installments</caption>
-                      <thead>
-                        <tr>
-                          <th>Installment</th>
-                          <th>Due date</th>
-                          <th>Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {preview.items.map((item) => {
-                          return (
-                            <tr key={item.sequenceNo}>
-                              <th scope="row">{item.sequenceNo}</th>
-                              <td>{item.dueDate}</td>
-                              <td>{withdrawalMoney(item.expectedAmount)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
-            )
-          )}
-        </section>
-      )}
-      {row.actions.policy && (
-        <ActionForm
-          title="COO replacement terms"
-          label="Review replacement terms"
-          busy={busy}
-          confirm="Save the agreed replacement terms after discussion with the CEO. This does not enroll anyone or stop the departing member's dues. The assigned Manager still approves the replacement's enrollment."
-          onSave={() => {
-            return run(async () => {
-              return saveWithdrawalPolicy(row.id, {
-                version: row.version,
-                mode,
-                consultationNote: consultation,
-                note,
-                ...(mode === "RESTART"
-                  ? {
-                      contractPrice: moneyInput(price),
-                      installmentCount: Number(count),
-                      cadence,
-                      startDate: start,
-                      firstDueDate: first,
-                      monthEnd: cadence === "MONTHLY" && monthEnd,
-                    }
-                  : {}),
-              });
-            }, "Replacement terms saved. Agent may submit a replacement for Manager approval.");
-          }}
-        >
-          <label className={styles.field}>
-            Replacement arrangement
-            <WorkspaceNativeSelect
-              value={mode}
-              onChange={(event) => {
-                setMode(event.target.value as WithdrawalReplacementMode);
+      <section
+        className={styles.section}
+        aria-labelledby="agent-replacement-terms-title"
+        aria-busy={preview.loading}
+      >
+        <h3 id="agent-replacement-terms-title">Recorded replacement terms</h3>
+        {preview.error ? (
+          <div className={styles.error} role="alert">
+            <p>{preview.error}</p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                void preview.refresh();
               }}
             >
-              <option value="CONTINUE_UNPAID">
-                Continue unpaid installments
-              </option>
-              <option value="RESTART">Start a fresh installment plan</option>
-            </WorkspaceNativeSelect>
-          </label>
-          <p>
-            Continuing carries only the unpaid installments. The departing
-            member's verified payments stay in their own history.
-          </p>
-          <NoteField
-            label="CEO consultation notes (staff only)"
-            value={consultation}
-            onChange={setConsultation}
-          />
-          <NoteField
-            label="Replacement decision notes (staff only)"
-            value={note}
-            onChange={setNote}
-          />
-          {mode === "RESTART" && (
-            <>
-              <div className={styles.fields}>
-                <label className={styles.field}>
-                  New contract price (PHP)
-                  <input
-                    required
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    inputMode="decimal"
-                    value={price}
-                    onChange={(event) => {
-                      setPrice(event.target.value);
-                    }}
-                  />
-                </label>
-                <label className={styles.field}>
-                  New installment count
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    max="600"
-                    value={count}
-                    onChange={(event) => {
-                      setCount(event.target.value);
-                    }}
-                  />
-                </label>
-                <label className={styles.field}>
-                  New installment frequency
-                  <WorkspaceNativeSelect
-                    value={cadence}
-                    onChange={(event) => {
-                      setCadence(event.target.value as typeof cadence);
-                    }}
-                  >
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="SEMIMONTHLY">
-                      Bi-monthly — 15th and month end
-                    </option>
-                    <option value="WEEKLY">Weekly</option>
-                  </WorkspaceNativeSelect>
-                </label>
-                <label className={styles.field}>
-                  New plan start date
-                  <DateInput
-                    required
-                    type="date"
-                    value={start}
-                    onChange={(event) => {
-                      setStart(event.target.value);
-                    }}
-                  />
-                </label>
-                <label className={styles.field}>
-                  First new installment due date
-                  <DateInput
-                    required
-                    type="date"
-                    min={start}
-                    value={first}
-                    onChange={(event) => {
-                      setFirst(event.target.value);
-                    }}
-                  />
-                </label>
-                {cadence === "MONTHLY" && (
-                  <label className={styles.field}>
-                    Monthly alignment
-                    <WorkspaceNativeSelect
-                      value={monthEnd ? "end" : "day"}
-                      onChange={(event) => {
-                        setMonthEnd(event.target.value === "end");
-                      }}
-                    >
-                      <option value="day">Same day each month</option>
-                      <option value="end">Last day of each month</option>
-                    </WorkspaceNativeSelect>
-                  </label>
-                )}
+              Retry replacement terms
+            </button>
+          </div>
+        ) : preview.loading ? (
+          <WorkspaceProgress label="Checking current replacement terms…" />
+        ) : terms ? (
+          <>
+            <p>
+              {terms.mode === "RESTART"
+                ? "Start the COO’s recorded new installment plan"
+                : terms.mode === "CONTINUE_UNPAID"
+                  ? "Continue only the unpaid installments"
+                  : "The COO has not recorded replacement terms."}{" "}
+              · Total {withdrawalMoney(terms.totalDue)}
+            </p>
+            {terms.blockedReason && (
+              <p className={styles.consequence} role="status">
+                {terms.blockedReason}
+              </p>
+            )}
+            {terms.needsPolicyRefresh && (
+              <p className={styles.consequence} role="status">
+                The payment record changed. Ask the COO to review and save the
+                replacement terms again.
+              </p>
+            )}
+            {stalePreview && (
+              <p className={styles.consequence} role="status">
+                These terms refer to a different request version. Load the
+                latest withdrawal before proposing a replacement.
+              </p>
+            )}
+            {terms.items.length > 0 && (
+              <div
+                className={styles.table}
+                role="region"
+                aria-label="Replacement dates and amounts"
+                tabIndex={0}
+              >
+                <table>
+                  <caption>Recorded replacement installment plan</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Installment</th>
+                      <th scope="col">Due date</th>
+                      <th scope="col">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {terms.items.map((item) => {
+                      return (
+                        <tr key={item.sequenceNo}>
+                          <th scope="row">{item.sequenceNo}</th>
+                          <td>{item.dueDate}</td>
+                          <td>{withdrawalMoney(item.expectedAmount)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <BatchSchedulePreview
-                requireFirstDate
-                plan={{
-                  contractPrice: price,
-                  installmentCount: Number(count),
-                  cadence,
-                  startDate: start,
-                  firstDueDate: first,
-                  monthEnd: cadence === "MONTHLY" && monthEnd,
-                }}
-              />
-            </>
-          )}
-        </ActionForm>
-      )}
+            )}
+          </>
+        ) : null}
+        <p>
+          These terms are set by the COO. A proposal creates a request for the
+          Batch Manager; it does not reserve an extra position or transfer
+          verified payments.
+        </p>
+      </section>
+      {row.replacementEnrollmentId && <ReplacementEnrollmentLink row={row} />}
       {row.actions.proposeReplacement && (
         <ActionForm
-          title="Agent: propose a replacement"
+          title="Propose a replacement"
           label="Submit replacement for Manager approval"
-          busy={
-            busy ||
-            previewLoading ||
-            !preview ||
-            Boolean(
-              previewError ||
-              preview.blockedReason ||
-              preview.needsPolicyRefresh,
-            )
-          }
-          onSave={() => {
-            return run(async () => {
-              submission.current ??= crypto.randomUUID();
-
-              return proposeWithdrawalReplacement(row.id, {
-                version: row.version,
-                submissionId: submission.current,
-                ...(selected
-                  ? {
-                      memberId: selected.memberId,
-                      name: selected.name,
-                      email: selected.email,
-                      phone: selected.phone,
-                    }
-                  : { name, email, phone }),
-              });
-            }, "Replacement request submitted. The Manager must approve before the handover occurs.");
-          }}
+          busy={busy}
+          blocked={Boolean(cannotPropose)}
+          onSave={propose}
         >
           <p>
-            Use an existing member or enter a new member's details. A pending
-            request does not free or take another batch position.
+            Choose an existing member or enter a new member’s details.
+            Installments continue until the Manager approves the handover.
           </p>
           <label className={styles.field}>
             Find an existing replacement member
             <input
+              type="search"
               minLength={2}
               maxLength={100}
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
+
+                ++generation.current;
+
+                setChoices([]);
+
+                setSearching(false);
+
+                setSearchError("");
               }}
             />
           </label>
-          <div>
-            <button
-              type="button"
-              disabled={searching || search.trim().length < 2}
-              onClick={() => {
-                void searchMembers();
-              }}
-            >
-              {searching ? "Searching…" : "Find member"}
-            </button>
-          </div>
-          {searchError && <p role="alert">{searchError}</p>}
+          <button
+            type="button"
+            disabled={searching || search.trim().length < 2}
+            onClick={() => {
+              void find();
+            }}
+          >
+            {searching ? "Searching…" : "Find member"}
+          </button>
+          {searchError && <p role="status">{searchError}</p>}
           {choices.length > 0 && (
             <ul
               className={styles.memberChoices}
               aria-label="Matching replacement members"
             >
-              {choices.map((item) => {
+              {choices.map((member) => {
                 return (
-                  <li key={item.memberId}>
+                  <li key={member.memberId}>
                     <button
                       type="button"
                       onClick={() => {
-                        setSelected(item);
+                        setSelected(member);
 
                         setChoices([]);
                       }}
                     >
-                      {item.name} · {item.batch.code}
+                      {member.name} · {member.batch.code}
                     </button>
                   </li>
                 );
@@ -496,6 +411,7 @@ export function ReplacementActions({
                 Replacement email (optional)
                 <input
                   type="email"
+                  maxLength={254}
                   value={email}
                   onChange={(event) => {
                     setEmail(event.target.value);
@@ -506,6 +422,7 @@ export function ReplacementActions({
                 Replacement contact number
                 <input
                   required
+                  type="tel"
                   minLength={7}
                   maxLength={25}
                   value={phone}
@@ -516,17 +433,12 @@ export function ReplacementActions({
               </label>
             </div>
           )}
+          {formError && (
+            <p className={styles.error} role="alert">
+              {formError}
+            </p>
+          )}
         </ActionForm>
-      )}
-      {row.actions.viewReplacementEnrollment && row.replacementEnrollmentId && (
-        <p className={styles.section}>
-          <Link
-            className={styles.link}
-            href={`/system/enrollments?request=${encodeURIComponent(row.replacementEnrollmentId)}`}
-          >
-            Open replacement enrollment
-          </Link>
-        </p>
       )}
     </>
   );
