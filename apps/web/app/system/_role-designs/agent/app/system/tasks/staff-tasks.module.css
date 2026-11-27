@@ -59,7 +59,7 @@
 .sectionHead h2 {
   margin-top: 2px;
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 500;
 }
 .assignForm {
   display: grid;
@@ -200,20 +200,20 @@
   color: var(--system-muted);
 }
 .priority[data-priority="HIGH"] {
-  background: #ffe7e7;
-  color: #ad3434;
+  background: var(--agent-danger-bg);
+  color: var(--agent-danger);
 }
 .priority[data-priority="MEDIUM"] {
-  background: #fff1d7;
-  color: #9a6200;
+  background: var(--agent-warning-bg);
+  color: var(--agent-warning);
 }
 .badge {
   background: var(--system-accent-soft);
   color: var(--system-accent);
 }
 .badge[data-status="DONE"] {
-  background: #e2f6eb;
-  color: #16824a;
+  background: var(--agent-success-bg);
+  color: var(--agent-success);
 }
 .timing {
   color: var(--system-muted);
@@ -376,12 +376,12 @@
   font-weight: 700;
 }
 .error {
-  background: #ffe7e7;
-  color: #a42525;
+  background: var(--agent-danger-bg);
+  color: var(--agent-danger);
 }
 .success {
-  background: #dff5e9;
-  color: #136e42;
+  background: var(--agent-success-bg);
+  color: var(--agent-success);
 }
 .dialogAlert,
 .dialogNotice {
@@ -392,12 +392,12 @@
   font-weight: 700;
 }
 .dialogAlert {
-  background: #ffe7e7;
-  color: #a42525;
+  background: var(--agent-danger-bg);
+  color: var(--agent-danger);
 }
 .dialogNotice {
-  background: #dff5e9;
-  color: #136e42;
+  background: var(--agent-success-bg);
+  color: var(--agent-success);
 }
 @media (max-width: 850px) {
   .reviewGrid {

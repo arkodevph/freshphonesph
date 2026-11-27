@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { FileText, Users } from "@phosphor-icons/react";
+import {
+  FileText,
+  UserCircle,
+} from "@/app/system/_role-designs/agent/components/SolarIcons";
 import WorkspaceProgress from "@/app/system/_role-designs/agent/components/WorkspaceProgress";
 import ReadFailure from "./AgentReadFailure";
 import type { AgentDesk } from "./useAgentDesk";
@@ -20,7 +23,7 @@ export function ApplicationInbox({
 }: Pick<AgentDesk, "applications">) {
   return (
     <section
-      className={styles.panel}
+      className={`${styles.panel} ${styles.intakePanel}`}
       aria-labelledby="application-inbox-title"
       aria-busy={applications.loading}
     >
@@ -45,7 +48,7 @@ export function ApplicationInbox({
         <WorkspaceProgress label="Loading applications…" />
       ) : !applications.data.items.length ? (
         <div className={styles.empty}>
-          <FileText size={30} weight="light" />
+          <FileText width={26} height={26} aria-hidden="true" />
           <h3>No applications to review</h3>
           <p>New website applications assigned to you appear here.</p>
           <Link href="/system/enrollments?view=applications">
@@ -116,7 +119,7 @@ export function EnrollmentHandoffs({ requests }: Pick<AgentDesk, "requests">) {
             return (
               <li key={request.id}>
                 <span className={styles.avatar}>
-                  <Users size={18} />
+                  <UserCircle width={20} height={20} aria-hidden="true" />
                 </span>
                 <div>
                   <strong>{request.name}</strong>

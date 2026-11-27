@@ -14,6 +14,140 @@ verified, 2026-11-26. All four implementation phases pass technical verification
 Named-user business and screen-reader acceptance remain unrecorded.**
 [Current access](agent-role-and-access.md) remains nine existing grants.
 
+## Whole-role reference theme correction — 2026-11-27 (technically verified)
+
+**Authorization:** Jaycee inspected the actual Agent at localhost:3000/system,
+supplied a1920px dark screenshot and explicitly requested applying the existing
+reference design. Functional phase completion above did not establish reference
+fidelity. Current scope is Agent presentation across its six workspaces and
+shared-shell Agent affordances; keep grants, API reads/writes, data and recovery.
+No automatic commit/push is included in this visual follow-up.
+
+**Diary first:** read ROSS's workflow, website/table, practical, visual,
+typography, animation and mobile standards before external research or edits.
+Read current Agent, earlier Pioneer and Finance notebooks and visually inspected
+actual Finance dark/COO light references. Primary composition is the approved
+project Finance/COO grammar, not a new gallery or a collage. Reference files:
+`freshphonesph-main-run/.local/finance-phase4-20261120/chromium-home-dark-1440.png`
+and `.local/finance-phase1-20261120/reference-coo-light.png` in that checkout.
+Before/current evidence is `.local/agent-theme-20261127/` in this checkout.
+
+**Behavioral goal:** identify current assignment/readiness, inspect received
+intake, follow Manager/COO handoffs and report own tasks without confusing role
+powers. Device mix/frequency and actual usability improvement are unmeasured.
+
+| Stage | Information/action | Retained feedback/recovery |
+| --- | --- | --- |
+| Start | Own readiness, full assigned-batch total and open work | Failed/unknown counts stay distinct from zero; independent retries. |
+| Review | Exact received application and original answers | Original evidence, close confirmation and stale/uncertain draft recovery. |
+| Follow up | Own requests, withdrawal/replacement consequences | Correct authority, current scope, recorded terms and exact links. |
+| Report | Own task/report/file and final review state | Visible evidence, original retry and access-loss clearing. |
+
+**Evidence ledger (sources rechecked2026-11-27):**
+
+| Evidence | Confidence/limit | Applied decision / falsification |
+| --- | --- | --- |
+| [W3C status messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html) | Strong normative accessibility guidance; not a task-speed finding. | Retain semantic loading/error/save notices near their action. Verify original recovery scenarios rather than assuming a palette change preserves them. |
+| [W3C reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) | Strong accessibility criterion; meaningful tables may need contained two-dimensional layout. | One-column phone composition, readable labels and reachable drawer actions at320px/enlarged text. Overflow or obscured actions falsify the implementation. |
+| [Scheibehenne et al.2010](https://scheibehenne.de/ScheibehenneGreifenederTodd2010.pdf) | Strong consumer-choice synthesis; analogy-only transfer to this staff app. Mean effect near zero, heterogeneous studies. | Retain all six authorized destinations and meaningful grouping; do not hide useful work to fit an arbitrary menu count. Actual findability remains a human test. |
+
+**Route/patterns:** user-expi → ui-design-index → dashboard/design system.
+The category skill ui-design-systems is absent from both installed roots; use
+inspected existing project components/tokens and native controls as the explicit
+fallback. No new UI dependency or unfamiliar feature implementation is needed.
+Chosen patterns: asymmetric scope summary/intake panel; compact status figures
+with paired labels; quiet separated operational rows and neutral controls.
+
+**Fidelity map:** replace the old right-hand colored identity tile/long rail
+composition with the reference's left featured scope card, paired small work
+figures and a compact waiting row; larger received-intake panel on the right;
+enrollment handoffs and assigned-batch follow-up below. Retain exact operational
+facts instead of inventing money, commissions, charts or capacity. Use the
+reference's subdued green actions, blue featured treatment, neutral surfaces,
+existing line icons in work content,16px panels,24px rhythm and9–10px controls.
+Jaycee explicitly requested retaining the original sidebar icons in his follow-up
+screenshot; use the original shared navigation glyphs for Agent. Keep type
+fluid/relative, regular body copy, readable data, aligned icon slots and tabular
+counts; omit decorative eyebrows. Existing palette values are reference reuse,
+not a new palette; any new gradient interpolation uses OKLCH with fallback.
+On phones show summary then intake then follow-up in one readable column;
+controls reflow and meaningful tables stay inside labeled scroll regions.
+
+**Verification plan:** inspect real desktop1920/1440 and phone393/320 in both
+themes; actual Agent login, all six routes, enrollment/task drawers, relevant
+empty/error/stale/uncertain states, keyboard focus, enlarged text and reduced
+motion. Run existing role-isolation/recovery checks, scoped format/types and
+client-secret check. Verify other roles/API/contracts and retained preview data
+remain unchanged. A clean test run alone is not visual acceptance. Save actual
+renders and a final observed-results record here when complete.
+
+### Observed result — 2026-11-27
+
+Applied the reference composition and neutral/green tokens to the Agent desk,
+batches, enrollment requests/intake, withdrawals, own tasks, notifications and
+drawers. The left scope card contains the authoritative106 assigned batches,
+Agent identity and supervisor; paired work figures show18 pending handoffs and30
+open tasks in retained local data. Intake sits beside that summary; handoffs and
+batch rows follow below. Empty/unknown/error states remain distinct. Mobile
+stacks the same information and keeps actions reachable. Shared navigation uses
+the **original sidebar icons**, following Jaycee's explicit screenshot correction;
+the manifest is byte-identical to HEAD. Theme switching is immediate for Agent.
+
+Actual API review found the Agent task list sending `view=own`, which the current
+API reserves for Pioneer. Removed that query parameter from this Agent client;
+the existing server `taskScope` already restricts Agent to its own assignments.
+No API/grant/schema change. Actual sign-in now loads all36 own tasks and their
+drawers. The task browser fixture now rejects the Pioneer-only parameter, matching
+the real service guard. Task priorities/feedback use the reference semantic tokens.
+
+A long retained enrollment name exposed inherited `white-space:nowrap` on a
+body row header at320px. Body row headings now wrap; real long names and exact
+request actions fit. This correction was rebuilt and checked on the final source.
+
+**Final artifact:** `JF4zx1sYDHPoe42qlXAxf`,72 generated pages, full TypeScript
+validation. All133 frozen application-file hashes match. Full web suite passed
+274 tests across74 files; after the task query correction, the focused task/
+notification and role-isolation checks passed8 tests. Final formatting/whitespace
+and the1,939-file client credential scan pass with zero findings. All other
+tracked files, including other roles, API/contracts and manual results, remain
+unchanged. Shared layout has only the Agent theme-switch condition.
+
+On this exact compiled artifact, all58 existing Chromium workflow groups pass
+(desk10, enrollment18, withdrawals12, tasks/notices18). Actual Agent login/read
+review passes in Chromium across every Agent workspace, both themes, desktop/
+768/393/320px, enrollment/task drawers, native focus/Escape, reduced motion,
+normal-motion theme switching and a root-font-size200% reflow check. Firefox and
+WebKit pass focused desk/request/task/phone-drawer compatibility checks. Together
+these runs produce128 captures and63 clean scoped axe scans, with no page errors
+or unhandled API paths in the accepted runs. Captures were inspected against the
+reference. These checks do not establish human visual/business or screen-reader
+acceptance; all104 manual outcomes remain Not run.
+
+**Retained preview-data limit:** one existing FORWARDED application points to a
+revision missing title/description/contact/questions. A read-only database audit
+confirms this; the all-status intake list returns400 while the RECEIVED queue
+loads normally with0 records. The source/review data were preserved. Successful
+intake detail, forwarding/closure and recovery coverage comes from the intercepted
+synthetic workflow fixtures. No business records were changed by this review.
+Early failures/prototype captures are retained separately from final acceptance.
+Initial Firefox startup failed under the128-task QA limit; the final256-task run
+passes without a product change.
+
+Localhost3000 now serves this optimized artifact under the owned protected web
+service (1G/no swap), with the same API4100, worker, separate cloned database and
+private storage. Original web TypeScript configuration was restored after the
+build. Source is uncommitted on `feature/agent-role-review` after d634c02; no new
+commit/push/merge/deployment. **Next:** Jaycee's visual review; the historical
+intake fixture needs a separate data correction before an all-status real-data
+intake walkthrough. Evidence:
+`../.local/agent-theme-20261127/theme-result.json`.
+
+- [Final dark desk and original icons,1920px](../.local/agent-theme-20261127/compiled-real-chromium/home-1920-dark.png).
+- [Final light desk,1440px](../.local/agent-theme-20261127/compiled-real-chromium/home-1440-light.png).
+- [Real own-task list](../.local/agent-theme-20261127/compiled-real-chromium/tasks-1440-dark.png).
+- [Enrollment drawer,320px](../.local/agent-theme-20261127/compiled-real-chromium/enrollment-drawer-320-light.png).
+- [Phone desk with original icons,Firefox](../.local/agent-theme-20261127/compiled-real-firefox/home-320-dark.png).
+
 ## What the incoming work already supplies
 
 - A real Agent enrollment desk: assigned received applications, enrollment

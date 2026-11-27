@@ -1,6 +1,6 @@
 "use client";
 
-import { Users } from "@phosphor-icons/react";
+import { UserCircle } from "@/app/system/_role-designs/agent/components/SolarIcons";
 import type { NetworkAgent, NetworkPage } from "@freshphones/contracts";
 import type { AgentResource } from "@/lib/useAgentResource";
 import { useMe } from "@/lib/useMe";
@@ -8,8 +8,10 @@ import styles from "./agent-dashboard.module.css";
 
 export default function AgentProfileCard({
   resource,
+  compact = false,
 }: {
   resource: AgentResource<NetworkPage<NetworkAgent>>;
+  compact?: boolean;
 }) {
   const me = useMe();
 
@@ -35,12 +37,12 @@ export default function AgentProfileCard({
 
   return (
     <section
-      className={styles.identity}
+      className={`${styles.identity}${compact ? ` ${styles.identityCompact}` : ""}`}
       aria-label="Agent profile readiness"
       aria-busy={resource.loading}
     >
       <span className={styles.identityIcon}>
-        <Users size={23} />
+        <UserCircle width={23} height={23} aria-hidden="true" />
       </span>
       <div>
         <h2>{me?.full_name ?? "Agent"}</h2>

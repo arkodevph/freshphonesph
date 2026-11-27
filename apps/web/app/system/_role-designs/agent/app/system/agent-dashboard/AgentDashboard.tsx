@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowClockwise, Plus } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react";
+import { Add } from "@/app/system/_role-designs/agent/components/SolarIcons";
 import { ApplicationInbox, EnrollmentHandoffs } from "./AgentDeskQueues";
-import AgentDeskRail from "./AgentDeskRail";
+import AgentDeskRail, { AgentDeskSummary } from "./AgentDeskRail";
 import { useAgentDesk } from "./useAgentDesk";
 import styles from "./agent-dashboard.module.css";
 
@@ -14,15 +15,11 @@ export default function AgentDashboard() {
     <div className={styles.workspace}>
       <div className={styles.heading}>
         <div>
+          <h1>Your enrollment desk</h1>
           <p>
-            {new Date().toLocaleDateString("en-PH", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              timeZone: "Asia/Manila",
-            })}
+            Review assigned applications and follow your work through to the
+            next step.
           </p>
-          <h2>Your enrollment desk</h2>
         </div>
         <div className={styles.actions}>
           <button
@@ -31,22 +28,24 @@ export default function AgentDashboard() {
             disabled={desk.refreshing}
             onClick={desk.refresh}
           >
-            <ArrowClockwise size={18} />
+            <ArrowClockwise size={17} aria-hidden="true" />
+            Refresh desk
           </button>
           <Link
             className={styles.primary}
             href="/system/enrollments?view=requests&new=1"
           >
-            <Plus size={17} />
+            <Add width={18} height={18} aria-hidden="true" />
             Submit enrollment
           </Link>
         </div>
       </div>
+      <div className={styles.overview}>
+        <AgentDeskSummary desk={desk} />
+        <ApplicationInbox applications={desk.applications} />
+      </div>
       <div className={styles.grid}>
-        <div className={styles.main}>
-          <ApplicationInbox applications={desk.applications} />
-          <EnrollmentHandoffs requests={desk.requests} />
-        </div>
+        <EnrollmentHandoffs requests={desk.requests} />
         <AgentDeskRail desk={desk} />
       </div>
     </div>

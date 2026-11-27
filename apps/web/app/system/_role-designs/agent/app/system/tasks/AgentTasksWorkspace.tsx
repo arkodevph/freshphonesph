@@ -29,7 +29,7 @@ export default function AgentTasksWorkspace({ me }: { me: Me }) {
   const location = parsed ?? { page: 1 };
 
   const list = useAgentResource<Page<Task>>(
-    `/tasks?view=own&page=${location.page}${location.status ? `&status=${location.status}` : ""}`,
+    `/tasks?page=${location.page}${location.status ? `&status=${location.status}` : ""}`,
   );
 
   const detail = useAgentTask(location.task);

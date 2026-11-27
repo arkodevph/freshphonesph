@@ -248,6 +248,20 @@ function StandardSystemLayout({ children }: { children: React.ReactNode }) {
       setTheme(nextTheme);
     };
 
+    if (me?.role === "agent") {
+      root.dataset.agentThemeChanging = "true";
+
+      applyTheme();
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          delete root.dataset.agentThemeChanging;
+        });
+      });
+
+      return;
+    }
+
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       applyTheme();
 
